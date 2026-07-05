@@ -4,6 +4,8 @@ import com.tttn.jobrecommendation.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -53,6 +55,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.ACCESS_DENIED.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.ACCESS_DENIED.getCode(), ErrorCode.ACCESS_DENIED.getDefaultMessage()));
+    }
+
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            HttpMediaTypeNotSupportedException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequestException(Exception exception) {
+        return ResponseEntity
+                .status(ErrorCode.BAD_REQUEST.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.BAD_REQUEST.getCode(), ErrorCode.BAD_REQUEST.getDefaultMessage()));
     }
 
     @ExceptionHandler(Exception.class)

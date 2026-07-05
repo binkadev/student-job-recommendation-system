@@ -53,6 +53,9 @@ public class User {
     @Column(name = "status", nullable = false, length = 50)
     private UserStatus status;
 
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
