@@ -64,6 +64,9 @@ public class Company {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
+    @Column(name = "phone", length = 50)
+    private String phone;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     private CompanyStatus status;

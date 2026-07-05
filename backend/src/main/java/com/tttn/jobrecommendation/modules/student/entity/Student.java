@@ -49,6 +49,9 @@ public class Student {
     @Column(name = "graduation_year")
     private Integer graduationYear;
 
+    @Column(name = "location", length = 255)
+    private String location;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

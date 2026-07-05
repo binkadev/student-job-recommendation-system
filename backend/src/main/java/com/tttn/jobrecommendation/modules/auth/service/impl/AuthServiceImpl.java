@@ -110,6 +110,7 @@ public class AuthServiceImpl implements AuthService {
 
             studentProfileRepository.save(StudentProfile.builder()
                     .student(student)
+                    .profileCompleteness(0)
                     .build());
         }
 
@@ -117,6 +118,7 @@ public class AuthServiceImpl implements AuthService {
             companyRepository.save(Company.builder()
                     .user(user)
                     .companyName(resolveCompanyName(request, user))
+                    .phone(trimToNull(request.getPhone()))
                     .status(CompanyStatus.VERIFIED)
                     .build());
         }

@@ -47,6 +47,18 @@ public class StudentProfile {
     @Column(name = "summary", columnDefinition = "TEXT")
     private String summary;
 
+    @Column(name = "education", columnDefinition = "TEXT")
+    private String education;
+
+    @Column(name = "experience", columnDefinition = "TEXT")
+    private String experience;
+
+    @Column(name = "projects", columnDefinition = "TEXT")
+    private String projects;
+
+    @Column(name = "target_position", length = 255)
+    private String targetPosition;
+
     @Column(name = "education_level", length = 100)
     private String educationLevel;
 
@@ -63,6 +75,15 @@ public class StudentProfile {
 
     @Column(name = "preferred_location", length = 255)
     private String preferredLocation;
+
+    @Column(name = "raw_text", columnDefinition = "TEXT")
+    private String rawText;
+
+    @Column(name = "processed_text", columnDefinition = "TEXT")
+    private String processedText;
+
+    @Column(name = "profile_completeness", nullable = false)
+    private Integer profileCompleteness;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
