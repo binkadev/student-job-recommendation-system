@@ -1,6 +1,8 @@
 package com.tttn.jobrecommendation;
 
+import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.company.repository.CompanyRepository;
+import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.job.repository.JobRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentProfileRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
@@ -28,6 +30,12 @@ class JobRecommendationApplicationTests {
 
     @MockitoBean
     private JobRepository jobRepository;
+
+    @MockitoBean
+    private JobApplicationRepository jobApplicationRepository;
+
+    @MockitoBean
+    private CvFileRepository cvFileRepository;
 
     @Test
     void contextLoads() {
