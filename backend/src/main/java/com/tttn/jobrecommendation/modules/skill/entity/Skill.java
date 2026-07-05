@@ -32,6 +32,9 @@ public class Skill {
     @Column(name = "name", nullable = false, unique = true, length = 150)
     private String name;
 
+    @Column(name = "normalized_name", length = 150)
+    private String normalizedName;
+
     @Column(name = "category", length = 100)
     private String category;
 

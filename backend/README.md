@@ -35,10 +35,22 @@ For Git Bash, macOS, or Linux:
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
+The `dev` profile runs the local demo seeder. It creates or updates demo records without duplicating them on restart.
+
+## Demo Accounts
+
+All demo accounts use password `123456`.
+
+- Admin: `admin@example.com`
+- Student: `student@example.com`
+- Company: `company@example.com`
+
 ## Swagger
 
-Swagger UI placeholder:
+Swagger UI:
 
 ```text
 http://localhost:8080/swagger-ui.html
 ```
+
+Use `POST /api/auth/login` with a demo account to get a JWT. Click `Authorize` in Swagger, enter the token as `Bearer <token>`, then test protected APIs.
