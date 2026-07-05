@@ -40,8 +40,17 @@ public class CvFile {
     @Column(name = "file_name", nullable = false, length = 255)
     private String fileName;
 
+    @Column(name = "original_file_name", length = 255)
+    private String originalFileName;
+
+    @Column(name = "stored_file_name", length = 255)
+    private String storedFileName;
+
     @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
+
+    @Column(name = "file_path", length = 500)
+    private String filePath;
 
     @Column(name = "content_type", length = 100)
     private String contentType;
@@ -51,6 +60,12 @@ public class CvFile {
 
     @Column(name = "extracted_text", columnDefinition = "TEXT")
     private String extractedText;
+
+    @Column(name = "processed_text", columnDefinition = "TEXT")
+    private String processedText;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active;
 
     @CreationTimestamp
     @Column(name = "uploaded_at", nullable = false, updatable = false)

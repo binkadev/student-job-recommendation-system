@@ -10,3 +10,6 @@ target/
 ### Environment ###
 .env
 *.log
+
+### Runtime uploads ###
+uploads/

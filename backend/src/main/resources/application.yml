@@ -3,6 +3,10 @@ spring:
     name: backend
   profiles:
     default: no-db
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -11,6 +15,10 @@ app:
   jwt:
     secret: ${APP_JWT_SECRET:change-this-development-secret-key-before-production-use}
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+  upload:
+    cv:
+      storage-dir: ${APP_CV_UPLOAD_DIR:uploads/cvs}
+      max-file-size-bytes: ${APP_CV_MAX_FILE_SIZE_BYTES:10485760}
 
 springdoc:
   api-docs:
