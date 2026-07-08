@@ -4,8 +4,10 @@ import com.tttn.jobrecommendation.modules.application.repository.JobApplicationR
 import com.tttn.jobrecommendation.modules.company.repository.CompanyRepository;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.job.repository.JobRepository;
+import com.tttn.jobrecommendation.modules.job.repository.JobSkillRepository;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationResultRepository;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationRunRepository;
+import com.tttn.jobrecommendation.modules.skill.repository.SkillRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentProfileRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import com.tttn.jobrecommendation.modules.user.repository.UserRepository;
@@ -32,6 +34,12 @@ class JobRecommendationApplicationTests {
 
     @MockitoBean
     private JobRepository jobRepository;
+
+    @MockitoBean
+    private JobSkillRepository jobSkillRepository;
+
+    @MockitoBean
+    private SkillRepository skillRepository;
 
     @MockitoBean
     private JobApplicationRepository jobApplicationRepository;

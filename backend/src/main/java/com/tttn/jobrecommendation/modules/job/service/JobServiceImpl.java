@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.job.service;
 
 import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.common.enums.SkillImportance;
 import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
@@ -10,13 +11,18 @@ import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.company.repository.CompanyRepository;
 import com.tttn.jobrecommendation.modules.job.dto.request.CreateJobRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.JobFilterRequest;
+import com.tttn.jobrecommendation.modules.job.dto.request.JobSkillRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.UpdateJobRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.UpdateJobStatusRequest;
 import com.tttn.jobrecommendation.modules.job.dto.response.JobDetailResponse;
 import com.tttn.jobrecommendation.modules.job.dto.response.JobResponse;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
+import com.tttn.jobrecommendation.modules.job.entity.JobSkill;
 import com.tttn.jobrecommendation.modules.job.mapper.JobMapper;
 import com.tttn.jobrecommendation.modules.job.repository.JobRepository;
+import com.tttn.jobrecommendation.modules.job.repository.JobSkillRepository;
+import com.tttn.jobrecommendation.modules.skill.entity.Skill;
+import com.tttn.jobrecommendation.modules.skill.repository.SkillRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,13 +37,17 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
+    private final JobSkillRepository jobSkillRepository;
+    private final SkillRepository skillRepository;
     private final CompanyRepository companyRepository;
     private final JobMapper jobMapper;
 
@@ -55,7 +65,7 @@ public class JobServiceImpl implements JobService {
         Company currentCompany = role == UserRole.COMPANY ? getCompanyByUserId(userId) : null;
         Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany), pageable);
         List<JobResponse> items = page.getContent().stream()
-                .map(jobMapper::toJobResponse)
+                .map(job -> jobMapper.toJobResponse(job, getJobSkills(job)))
                 .toList();
 
         return new PageResponse<>(
@@ -72,7 +82,7 @@ public class JobServiceImpl implements JobService {
     public JobDetailResponse getJob(Long id, Long userId, UserRole role) {
         Job job = getJobById(id);
         assertCanView(job, userId, role);
-        return jobMapper.toJobDetailResponse(job);
+        return jobMapper.toJobDetailResponse(job, getJobSkills(job));
     }
 
     @Override
@@ -107,7 +117,9 @@ public class JobServiceImpl implements JobService {
                 .closedAt(status == JobStatus.CLOSED ? now : null)
                 .build();
 
-        return jobMapper.toJobDetailResponse(jobRepository.save(job));
+        Job savedJob = jobRepository.save(job);
+        List<JobSkill> jobSkills = syncJobSkills(savedJob, request.getSkills());
+        return jobMapper.toJobDetailResponse(savedJob, jobSkills);
     }
 
     @Override
@@ -155,7 +167,9 @@ public class JobServiceImpl implements JobService {
             job.setDeadline(request.getDeadline());
         }
 
-        return jobMapper.toJobDetailResponse(jobRepository.save(job));
+        Job savedJob = jobRepository.save(job);
+        List<JobSkill> jobSkills = syncJobSkills(savedJob, request.getSkills());
+        return jobMapper.toJobDetailResponse(savedJob, jobSkills);
     }
 
     @Override
@@ -165,7 +179,8 @@ public class JobServiceImpl implements JobService {
         Job job = getJobById(id);
         assertCanManage(job, userId, role);
         applyStatus(job, request.getStatus());
-        return jobMapper.toJobDetailResponse(jobRepository.save(job));
+        Job savedJob = jobRepository.save(job);
+        return jobMapper.toJobDetailResponse(savedJob, getJobSkills(savedJob));
     }
 
     @Override
@@ -175,7 +190,55 @@ public class JobServiceImpl implements JobService {
         Job job = getJobById(id);
         assertCanManage(job, userId, role);
         applyStatus(job, JobStatus.CLOSED);
-        return jobMapper.toJobDetailResponse(jobRepository.save(job));
+        Job savedJob = jobRepository.save(job);
+        return jobMapper.toJobDetailResponse(savedJob, getJobSkills(savedJob));
+    }
+
+    private List<JobSkill> syncJobSkills(Job job, List<JobSkillRequest> skillRequests) {
+        if (skillRequests == null) {
+            return getJobSkills(job);
+        }
+
+        validateUniqueSkillIds(skillRequests);
+        jobSkillRepository.deleteByJobId(job.getId());
+        jobSkillRepository.flush();
+
+        if (skillRequests.isEmpty()) {
+            return List.of();
+        }
+
+        List<JobSkill> jobSkills = skillRequests.stream()
+                .map(request -> toJobSkill(job, request))
+                .toList();
+        return jobSkillRepository.saveAll(jobSkills);
+    }
+
+    private JobSkill toJobSkill(Job job, JobSkillRequest request) {
+        Skill skill = skillRepository.findById(request.getSkillId())
+                .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
+
+        return JobSkill.builder()
+                .job(job)
+                .skill(skill)
+                .importance(request.getImportance() == null ? SkillImportance.REQUIRED : request.getImportance())
+                .minLevel(request.getMinLevel())
+                .build();
+    }
+
+    private void validateUniqueSkillIds(List<JobSkillRequest> skillRequests) {
+        Set<Long> skillIds = new HashSet<>();
+        for (JobSkillRequest request : skillRequests) {
+            if (request.getSkillId() == null) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "skillId is required");
+            }
+            if (!skillIds.add(request.getSkillId())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Duplicate job skill is not allowed");
+            }
+        }
+    }
+
+    private List<JobSkill> getJobSkills(Job job) {
+        return jobSkillRepository.findByJobIdOrderByIdAsc(job.getId());
     }
 
     private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany) {

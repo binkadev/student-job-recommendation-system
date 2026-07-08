@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.modules.job.dto.request;
 
 import com.tttn.jobrecommendation.common.enums.JobType;
 import com.tttn.jobrecommendation.common.enums.WorkingModel;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -43,4 +45,7 @@ public class UpdateJobRequest {
     private String currency;
 
     private LocalDate deadline;
+
+    @Valid
+    private List<JobSkillRequest> skills;
 }

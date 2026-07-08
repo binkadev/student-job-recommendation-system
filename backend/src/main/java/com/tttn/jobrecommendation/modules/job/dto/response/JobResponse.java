@@ -9,6 +9,7 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -26,6 +27,7 @@ public class JobResponse {
     private BigDecimal salaryMax;
     private String currency;
     private LocalDate deadline;
+    private List<JobSkillResponse> skills;
     private LocalDateTime publishedAt;
     private LocalDateTime closedAt;
     private LocalDateTime createdAt;
