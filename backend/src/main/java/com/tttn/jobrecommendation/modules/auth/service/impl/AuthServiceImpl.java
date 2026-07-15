@@ -52,6 +52,10 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        if (request.getRole() == UserRole.ADMIN) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Admin users cannot self-register");
+        }
+
         User user = User.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))

@@ -18,6 +18,7 @@ import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.job.repository.JobRepository;
+import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final CompanyRepository companyRepository;
     private final CvFileRepository cvFileRepository;
     private final ApplicationMapper applicationMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -124,7 +126,12 @@ public class ApplicationServiceImpl implements ApplicationService {
             application.setReviewedAt(LocalDateTime.now());
         }
 
-        return applicationMapper.toApplicationResponse(applicationRepository.save(application));
+        JobApplication savedApplication = applicationRepository.save(application);
+        if (role == UserRole.COMPANY || role == UserRole.ADMIN) {
+            notificationService.createApplicationStatusChangedNotification(savedApplication);
+        }
+
+        return applicationMapper.toApplicationResponse(savedApplication);
     }
 
     private void assertValidEmployerTransition(ApplicationStatus currentStatus, ApplicationStatus targetStatus) {
