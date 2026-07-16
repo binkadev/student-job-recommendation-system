@@ -29,7 +29,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -64,87 +63,75 @@ public class DataSeeder implements ApplicationRunner {
         User studentUser = ensureUser("student@example.com", "Demo Student", null, UserRole.STUDENT);
         User companyUser = ensureUser("company@example.com", "Demo Tech Company", "0900000000", UserRole.COMPANY);
 
-        Student student = ensureStudent(studentUser);
-        ensureStudentProfile(student);
-
-        Company company = ensureCompany(companyUser);
         Map<String, Skill> skills = ensureSkills();
-        ensureJobs(company, skills);
+
+        if (studentUser.getRole() == UserRole.STUDENT) {
+            Student student = ensureStudent(studentUser);
+            ensureStudentProfile(student);
+        }
+
+        if (companyUser.getRole() == UserRole.COMPANY) {
+            Company company = ensureCompany(companyUser);
+            ensureJobs(company, skills);
+        }
     }
 
     private User ensureUser(String email, String fullName, String phone, UserRole role) {
         String normalizedEmail = email.toLowerCase(Locale.ROOT);
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseGet(() -> User.builder()
+        return userRepository.findByEmail(normalizedEmail)
+                .orElseGet(() -> userRepository.save(User.builder()
                         .email(normalizedEmail)
-                        .build());
-
-        user.setEmail(normalizedEmail);
-        user.setFullName(fullName);
-        user.setPhone(phone);
-        user.setRole(role);
-        user.setStatus(UserStatus.ACTIVE);
-
-        if (!StringUtils.hasText(user.getPasswordHash())
-                || !passwordEncoder.matches(DEMO_PASSWORD, user.getPasswordHash())) {
-            user.setPasswordHash(passwordEncoder.encode(DEMO_PASSWORD));
-        }
-
-        return userRepository.save(user);
+                        .fullName(fullName)
+                        .phone(phone)
+                        .role(role)
+                        .status(UserStatus.ACTIVE)
+                        .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
+                        .build()));
     }
 
     private Student ensureStudent(User user) {
-        Student student = studentRepository.findByUserId(user.getId())
-                .orElseGet(() -> Student.builder()
+        return studentRepository.findByUserId(user.getId())
+                .orElseGet(() -> studentRepository.save(Student.builder()
                         .user(user)
-                        .build());
-
-        student.setUser(user);
-        student.setStudentCode("DEMO-STUDENT");
-        student.setUniversity("Demo University");
-        student.setMajor("Software Engineering");
-        student.setGraduationYear(2026);
-        student.setLocation(DEMO_LOCATION);
-        return studentRepository.save(student);
+                        .studentCode("DEMO-STUDENT")
+                        .university("Demo University")
+                        .major("Software Engineering")
+                        .graduationYear(2026)
+                        .location(DEMO_LOCATION)
+                        .build()));
     }
 
     private StudentProfile ensureStudentProfile(Student student) {
-        StudentProfile profile = studentProfileRepository.findByStudentId(student.getId())
-                .orElseGet(() -> StudentProfile.builder()
+        return studentProfileRepository.findByStudentId(student.getId())
+                .orElseGet(() -> studentProfileRepository.save(StudentProfile.builder()
                         .student(student)
-                        .build());
-
-        profile.setStudent(student);
-        profile.setHeadline("Backend Developer Intern");
-        profile.setSummary("IT student interested in backend development");
-        profile.setEducation("Software Engineering student");
-        profile.setExperience("Built REST API projects using Java and Spring Boot");
-        profile.setProjects("Student job recommendation system, ecommerce API");
-        profile.setTargetPosition("Backend Developer Intern");
-        profile.setPreferredLocation(DEMO_LOCATION);
-        profile.setPreferredJobType(JobType.INTERNSHIP);
-        profile.setPreferredWorkingModel(WorkingModel.HYBRID);
-        profile.setRawText(DEMO_RAW_TEXT);
-        profile.setProcessedText(DEMO_RAW_TEXT);
-        profile.setProfileCompleteness(100);
-        return studentProfileRepository.save(profile);
+                        .headline("Backend Developer Intern")
+                        .summary("IT student interested in backend development")
+                        .education("Software Engineering student")
+                        .experience("Built REST API projects using Java and Spring Boot")
+                        .projects("Student job recommendation system, ecommerce API")
+                        .targetPosition("Backend Developer Intern")
+                        .preferredLocation(DEMO_LOCATION)
+                        .preferredJobType(JobType.INTERNSHIP)
+                        .preferredWorkingModel(WorkingModel.HYBRID)
+                        .rawText(DEMO_RAW_TEXT)
+                        .processedText(DEMO_RAW_TEXT)
+                        .profileCompleteness(100)
+                        .build()));
     }
 
     private Company ensureCompany(User user) {
-        Company company = companyRepository.findByUserId(user.getId())
-                .orElseGet(() -> Company.builder()
+        return companyRepository.findByUserId(user.getId())
+                .orElseGet(() -> companyRepository.save(Company.builder()
                         .user(user)
-                        .build());
-
-        company.setUser(user);
-        company.setCompanyName("Demo Tech Company");
-        company.setDescription("A software company hiring IT interns");
-        company.setWebsiteUrl("https://example.com");
-        company.setAddress(DEMO_LOCATION);
-        company.setPhone("0900000000");
-        company.setIndustry("Software Development");
-        company.setStatus(CompanyStatus.VERIFIED);
-        return companyRepository.save(company);
+                        .companyName("Demo Tech Company")
+                        .description("A software company hiring IT interns")
+                        .websiteUrl("https://example.com")
+                        .address(DEMO_LOCATION)
+                        .phone("0900000000")
+                        .industry("Software Development")
+                        .status(CompanyStatus.VERIFIED)
+                        .build()));
     }
 
     private Map<String, Skill> ensureSkills() {
@@ -168,12 +155,12 @@ public class DataSeeder implements ApplicationRunner {
         for (SkillSeed seed : skillSeeds) {
             String normalizedName = normalize(seed.name());
             Skill skill = skillRepository.findByNormalizedName(normalizedName)
-                    .orElseGet(Skill::new);
-
-            skill.setName(seed.name());
-            skill.setNormalizedName(normalizedName);
-            skill.setCategory(seed.category());
-            skills.put(seed.name(), skillRepository.save(skill));
+                    .orElseGet(() -> skillRepository.save(Skill.builder()
+                            .name(seed.name())
+                            .normalizedName(normalizedName)
+                            .category(seed.category())
+                            .build()));
+            skills.put(seed.name(), skill);
         }
         return skills;
     }
@@ -204,31 +191,24 @@ public class DataSeeder implements ApplicationRunner {
 
         for (JobSeed seed : jobSeeds) {
             Job job = jobRepository.findFirstByCompanyIdAndTitleOrderByIdAsc(company.getId(), seed.title())
-                    .orElseGet(() -> Job.builder()
+                    .orElseGet(() -> jobRepository.save(Job.builder()
                             .company(company)
                             .title(seed.title())
-                            .build());
+                            .description(seed.title() + " role for IT students to work on real software projects with mentor support.")
+                            .requirements("Required skills: " + String.join(", ", seed.skillNames()))
+                            .benefits("Mentorship, code review, internship allowance, and real project experience.")
+                            .location(DEMO_LOCATION)
+                            .jobType(JobType.INTERNSHIP)
+                            .workingModel(seed.workingModel())
+                            .status(JobStatus.ACTIVE)
+                            .salaryMin(BigDecimal.valueOf(2_000_000))
+                            .salaryMax(BigDecimal.valueOf(5_000_000))
+                            .currency("VND")
+                            .deadline(LocalDate.now().plusMonths(3))
+                            .publishedAt(LocalDateTime.now())
+                            .build()));
 
-            job.setCompany(company);
-            job.setTitle(seed.title());
-            job.setDescription(seed.title() + " role for IT students to work on real software projects with mentor support.");
-            job.setRequirements("Required skills: " + String.join(", ", seed.skillNames()));
-            job.setBenefits("Mentorship, code review, internship allowance, and real project experience.");
-            job.setLocation(DEMO_LOCATION);
-            job.setJobType(JobType.INTERNSHIP);
-            job.setWorkingModel(seed.workingModel());
-            job.setStatus(JobStatus.ACTIVE);
-            job.setSalaryMin(BigDecimal.valueOf(2_000_000));
-            job.setSalaryMax(BigDecimal.valueOf(5_000_000));
-            job.setCurrency("VND");
-            job.setDeadline(LocalDate.now().plusMonths(3));
-            if (job.getPublishedAt() == null) {
-                job.setPublishedAt(LocalDateTime.now());
-            }
-            job.setClosedAt(null);
-
-            Job savedJob = jobRepository.save(job);
-            ensureJobSkills(savedJob, seed.skillNames(), skills);
+            ensureJobSkills(job, seed.skillNames(), skills);
         }
     }
 

@@ -17,9 +17,25 @@ docker compose up -d postgres
 
 PostgreSQL runs on `localhost:5432` with:
 
-- Database: `job_recommendation_db`
+- Database: `student_job_recommendation`
 - Username: `postgres`
-- Password: `postgres`
+- Password: `123456`
+
+These are the committed development defaults. Override them without editing source by setting environment variables:
+
+```powershell
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/student_job_recommendation"
+$env:SPRING_DATASOURCE_USERNAME="postgres"
+$env:SPRING_DATASOURCE_PASSWORD="123456"
+```
+
+Docker Compose also supports `.env` values:
+
+```text
+POSTGRES_DB=student_job_recommendation
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=123456
+```
 
 ## Run Backend
 
@@ -35,7 +51,7 @@ For Git Bash, macOS, or Linux:
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-The `dev` profile runs the local demo seeder. It creates or updates demo records without duplicating them on restart.
+The `dev` profile runs the local demo seeder. It creates missing demo users, profiles, skills, jobs, and job skills without duplicating them on restart. Existing demo user passwords, roles, and statuses are not reset.
 
 ## Demo Accounts
 
