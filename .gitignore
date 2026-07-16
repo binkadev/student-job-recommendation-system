@@ -9,7 +9,7 @@ frontend/dist/
 out/
 
 # IDE
-.idea/
+
 .vscode/
 
 # Logs
