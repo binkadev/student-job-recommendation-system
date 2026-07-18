@@ -1,53 +1,66 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { clearToken, getCurrentUserRequest, getStoredToken, loginRequest } from "../../services/auth/authService";
 import type { CurrentUser, UserRole } from "../../types/auth";
 
 interface AuthContextValue {
   currentUser: CurrentUser | null;
   currentRole: UserRole | null;
   isAuthenticated: boolean;
-  loginAsCandidate: () => void;
-  loginAsRecruiter: () => void;
-  loginAsAdmin: () => void;
+  isInitializing: boolean;
+  login: (email: string, password: string) => Promise<CurrentUser>;
   logout: () => void;
 }
-
-const mockUsers: Record<UserRole, CurrentUser> = {
-  candidate: {
-    id: "candidate-1",
-    name: "Nguyễn Văn An",
-    email: "candidate@example.com",
-    role: "candidate",
-  },
-  recruiter: {
-    id: "recruiter-1",
-    name: "Trần Thị Bình",
-    email: "recruiter@example.com",
-    role: "recruiter",
-  },
-  admin: {
-    id: "admin-1",
-    name: "Quản trị viên",
-    email: "admin@example.com",
-    role: "admin",
-  },
-};
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      if (!getStoredToken()) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const user = await getCurrentUserRequest();
+        if (active) setCurrentUser(user);
+      } catch {
+        clearToken();
+        if (active) setCurrentUser(null);
+      } finally {
+        if (active) setIsInitializing(false);
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       currentUser,
       currentRole: currentUser?.role ?? null,
       isAuthenticated: Boolean(currentUser),
-      loginAsCandidate: () => setCurrentUser(mockUsers.candidate),
-      loginAsRecruiter: () => setCurrentUser(mockUsers.recruiter),
-      loginAsAdmin: () => setCurrentUser(mockUsers.admin),
-      logout: () => setCurrentUser(null),
+      isInitializing,
+      login: async (email, password) => {
+        const user = await loginRequest({ email, password });
+        setCurrentUser(user);
+        return user;
+      },
+      logout: () => {
+        clearToken();
+        setCurrentUser(null);
+      },
     }),
-    [currentUser],
+    [currentUser, isInitializing],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

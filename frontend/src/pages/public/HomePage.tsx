@@ -13,9 +13,8 @@ import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { FeaturedHomeCompanyCard } from "../../features/public/home/FeaturedHomeCompanyCard";
 import { FeaturedHomeJobCard } from "../../features/public/home/FeaturedHomeJobCard";
-import { HomePageSkeleton } from "../../features/public/home/HomePageSkeleton";
 import { getHomeData } from "../../features/public/home/homeService";
-import type { FeaturedIndustry, IndustryIconMap } from "../../features/public/home/homeTypes";
+import type { FeaturedIndustry, HomeData, IndustryIconMap } from "../../features/public/home/homeTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
@@ -39,6 +38,19 @@ const industryIcons: IndustryIconMap = {
   chart: <LineChart size={20} />,
 };
 
+const fallbackHomeData: HomeData = {
+  statistics: [
+    { id: "jobs", label: "Việc làm đang tuyển", value: "0" },
+    { id: "candidates", label: "Ứng viên", value: "0" },
+    { id: "companies", label: "Công ty", value: "0" },
+    { id: "applications", label: "Lượt ứng tuyển", value: "0" },
+  ],
+  jobs: [],
+  industries: [],
+  companies: [],
+  articles: [],
+};
+
 export function HomePage() {
   const navigate = useNavigate();
   const { currentRole, isAuthenticated } = useAuth();
@@ -47,6 +59,7 @@ export function HomePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const homeQuery = useAsyncData(() => getHomeData(), [reloadKey]);
+  const { statistics, jobs, industries, companies, articles } = homeQuery.data ?? fallbackHomeData;
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,27 +84,6 @@ export function HomePage() {
     showToast({ type: "error", title: "Chỉ tài khoản ứng viên mới có thể tải CV để nhận gợi ý" });
   }
 
-  if (homeQuery.loading) {
-    return (
-      <PageContainer>
-        <HomePageSkeleton />
-      </PageContainer>
-    );
-  }
-
-  if (homeQuery.error || !homeQuery.data) {
-    return (
-      <PageContainer>
-        <ErrorState message={homeQuery.error ?? "Không thể tải dữ liệu trang chủ."} />
-        <div className="mt-4">
-          <Button onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
-        </div>
-      </PageContainer>
-    );
-  }
-
-  const { statistics, jobs, industries, companies, articles } = homeQuery.data;
-
   return (
     <PageContainer>
       <section className="grid gap-8 rounded-2xl bg-slate-950 px-6 py-10 text-white lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
@@ -102,11 +94,11 @@ export function HomePage() {
             Tìm kiếm việc làm, tải CV và nhận gợi ý theo kỹ năng, kinh nghiệm, địa điểm mong muốn và mục tiêu nghề nghiệp của bạn.
           </p>
 
-          <form onSubmit={handleSearch} className="mt-6 grid gap-3 rounded-lg bg-white p-3 text-slate-900 md:grid-cols-[minmax(0,1fr)_220px_120px_190px] md:items-end">
+          <form onSubmit={handleSearch} className="mt-6 grid gap-3 rounded-lg bg-white p-3 text-slate-900 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_130px_150px] xl:items-end">
             <Input label="Từ khóa" name="keyword" placeholder="Frontend, Java, Data..." />
             <Select label="Địa điểm" name="location" options={locationOptions} />
-            <Button type="submit" className="h-10 w-full whitespace-nowrap" icon={<Search size={16} />}>Tìm việc</Button>
-            <Button type="button" variant="secondary" className="h-10 w-full whitespace-nowrap px-3" icon={<FileUp size={16} />} onClick={handleUploadCv}>
+            <Button type="submit" className="h-10 w-full self-end whitespace-nowrap" icon={<Search size={16} />}>Tìm việc</Button>
+            <Button type="button" variant="secondary" className="h-10 w-full self-end whitespace-nowrap px-3" icon={<FileUp size={16} />} onClick={handleUploadCv}>
               Tải CV
             </Button>
           </form>
@@ -122,32 +114,47 @@ export function HomePage() {
         </div>
       </section>
 
+      {homeQuery.error ? (
+        <Card className="mt-5">
+          <ErrorState message="Không thể tải dữ liệu trang chủ từ backend. Giao diện vẫn hiển thị với số liệu 0." />
+          <div className="mt-3">
+            <Button onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
+          </div>
+        </Card>
+      ) : null}
+
       <section className="mt-8">
         <SectionHeader
-          title="Việc làm nổi bật"
-          description="Các vị trí đang tuyển phù hợp với ứng viên muốn tìm việc nhanh và nhận gợi ý từ CV."
+          title="Việc làm đang tuyển"
+          description="Các vị trí đang tuyển lấy trực tiếp từ API backend."
           action={<Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-brand-700">Xem tất cả <ArrowRight size={16} /></Link>}
         />
-        {jobs.length ? (
+        {homeQuery.loading ? (
+          <Card><EmptyState message="Đang tải việc làm từ backend..." /></Card>
+        ) : jobs.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isSaved(job.id)} onToggleSave={toggleSavedJob} />)}
           </div>
         ) : (
-          <EmptyState message="Chưa có việc làm nổi bật." />
+          <EmptyState message="Chưa có việc làm đang tuyển." />
         )}
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Ngành nghề nổi bật" description="Những nhóm ngành có nhiều cơ hội việc làm trên hệ thống." />
+        <SectionHeader title="Ngành nghề nổi bật" description="Backend hiện chưa có API thống kê ngành nghề public." />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {industries.map((industry) => <IndustryCard key={industry.id} industry={industry} />)}
+          {industries.length
+            ? industries.map((industry) => <IndustryCard key={industry.id} industry={industry} />)
+            : ["Công nghệ thông tin", "Kinh doanh", "Marketing", "Dữ liệu"].map((name) => <IndustryPlaceholderCard key={name} name={name} />)}
         </div>
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Công ty nổi bật" description="Doanh nghiệp đang tuyển dụng và có hồ sơ được xác thực trên hệ thống." />
+        <SectionHeader title="Công ty nổi bật" description="Backend hiện chưa có API danh sách công ty public." />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)}
+          {companies.length
+            ? companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)
+            : ["Công ty A", "Công ty B", "Công ty C"].map((name) => <CompanyPlaceholderCard key={name} name={name} />)}
         </div>
       </section>
 
@@ -174,14 +181,18 @@ export function HomePage() {
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Cẩm nang nghề nghiệp" description="Bài viết hỗ trợ ứng viên chuẩn bị CV, phỏng vấn và định hướng mức lương." />
+        <SectionHeader title="Cẩm nang nghề nghiệp" description="Backend hiện chưa có API nội dung bài viết/cẩm nang." />
         <div className="grid gap-4 md:grid-cols-3">
-          {articles.map((article) => (
-            <Link key={article.id} to={article.path} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-brand-200">
-              <h3 className="font-semibold text-slate-900">{article.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{article.summary}</p>
-            </Link>
-          ))}
+          {articles.length ? (
+            articles.map((article) => (
+              <Link key={article.id} to={article.path} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-brand-200">
+                <h3 className="font-semibold text-slate-900">{article.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{article.summary}</p>
+              </Link>
+            ))
+          ) : (
+            ["Viết CV", "Phỏng vấn", "Định hướng nghề nghiệp"].map((title) => <ArticlePlaceholderCard key={title} title={title} />)
+          )}
         </div>
       </section>
 
@@ -198,12 +209,51 @@ export function HomePage() {
 
 function IndustryCard({ industry }: { industry: FeaturedIndustry }) {
   return (
-    <Link to={`/jobs?industry=${encodeURIComponent(industry.name)}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-200 hover:bg-brand-50">
+    <Link to={`/jobs?q=${encodeURIComponent(industry.name)}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-200 hover:bg-brand-50">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">{industryIcons[industry.iconName]}</span>
       <span>
         <span className="block font-medium text-slate-900">{industry.name}</span>
         <span className="mt-1 block text-sm text-slate-600">{industry.jobCount} việc làm</span>
       </span>
     </Link>
+  );
+}
+
+function IndustryPlaceholderCard({ name }: { name: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><BriefcaseBusiness size={20} /></span>
+      <span>
+        <span className="block font-medium text-slate-900">{name}</span>
+        <span className="mt-1 block text-sm text-slate-600">0 việc làm</span>
+      </span>
+    </div>
+  );
+}
+
+function CompanyPlaceholderCard({ name }: { name: string }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">CT</div>
+        <div>
+          <h3 className="font-semibold text-slate-900">{name}</h3>
+          <p className="text-sm text-slate-600">Chưa có API công ty public</p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-2 text-sm text-slate-600">
+        <span>0 việc làm đang tuyển</span>
+        <span>Chưa có dữ liệu xác thực</span>
+      </div>
+    </article>
+  );
+}
+
+function ArticlePlaceholderCard({ title }: { title: string }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="font-semibold text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Chưa có API nội dung bài viết. Dữ liệu sẽ hiển thị khi backend bổ sung endpoint.</p>
+    </article>
   );
 }

@@ -1,10 +1,10 @@
-import { ShieldCheck, User, Users, LogOut, RotateCcw } from "lucide-react";
+import { LogOut, RotateCcw } from "lucide-react";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { useToast } from "../../hooks/useToast";
 import { resetMockStorage } from "../../utils/localStorage";
 
 export function RoleSwitcher() {
-  const { loginAsCandidate, loginAsRecruiter, loginAsAdmin, logout, currentRole } = useAuth();
+  const { logout, currentRole } = useAuth();
   const { showToast } = useToast();
 
   function handleResetMockData() {
@@ -18,27 +18,6 @@ export function RoleSwitcher() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        onClick={loginAsCandidate}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
-      >
-        <User size={16} />
-        Ứng viên
-      </button>
-      <button
-        onClick={loginAsRecruiter}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
-      >
-        <Users size={16} />
-        Nhà tuyển dụng
-      </button>
-      <button
-        onClick={loginAsAdmin}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
-      >
-        <ShieldCheck size={16} />
-        Admin
-      </button>
       {currentRole ? (
         <button
           onClick={logout}

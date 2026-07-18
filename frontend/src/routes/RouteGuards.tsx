@@ -13,20 +13,23 @@ export function PublicRoute() {
 }
 
 export function GuestRoute() {
-  const { currentRole } = useAuth();
+  const { currentRole, isInitializing } = useAuth();
+  if (isInitializing) return null;
   if (currentRole) return <Navigate to={dashboardByRole[currentRole]} replace />;
   return <Outlet />;
 }
 
 export function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   const location = useLocation();
+  if (isInitializing) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />;
   return <Outlet />;
 }
 
 export function RoleRoute({ role }: { role: UserRole }) {
-  const { currentRole } = useAuth();
+  const { currentRole, isInitializing } = useAuth();
+  if (isInitializing) return null;
   if (currentRole !== role) return <Navigate to="/403" replace />;
   return <Outlet />;
 }

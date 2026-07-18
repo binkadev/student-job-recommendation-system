@@ -1,33 +1,26 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { EmptyState } from "../../components/feedback/EmptyState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
-import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
-import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
-import { Textarea } from "../../components/ui/Textarea";
-import { useToast } from "../../hooks/useToast";
 
 type ContentKind = "article" | "banner" | "page";
-type ContentItem = {
-  id: string;
+type ContentStatus = "draft" | "published" | "scheduled";
+
+interface ContentItem {
+  id: number;
   kind: ContentKind;
   title: string;
-  status: "published" | "draft" | "scheduled";
-  owner: string;
+  status: ContentStatus;
+  ownerUserId: number;
+  slug: string;
   updatedAt: string;
-};
-
-const initialItems: ContentItem[] = [
-  { id: "content-1", kind: "article", title: "Cách viết CV thực tập IT nổi bật", status: "published", owner: "Admin nội dung", updatedAt: "2026-07-02" },
-  { id: "content-2", kind: "article", title: "Bộ câu hỏi phỏng vấn Frontend Intern", status: "draft", owner: "Admin nội dung", updatedAt: "2026-07-04" },
-  { id: "content-3", kind: "banner", title: "Banner chiến dịch tuyển dụng mùa hè", status: "scheduled", owner: "Marketing", updatedAt: "2026-07-05" },
-  { id: "content-4", kind: "page", title: "Điều khoản sử dụng", status: "published", owner: "Pháp chế", updatedAt: "2026-06-28" },
-];
+}
 
 const kindLabels: Record<ContentKind, string> = {
   article: "Bài viết",
@@ -35,55 +28,81 @@ const kindLabels: Record<ContentKind, string> = {
   page: "Trang nội dung",
 };
 
+const statusLabels: Record<ContentStatus, string> = {
+  draft: "Bản nháp",
+  published: "Đã xuất bản",
+  scheduled: "Đã lên lịch",
+};
+
 export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind }) {
-  const { showToast } = useToast();
-  const [items, setItems] = useState(initialItems);
-  const [query, setQuery] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const kind = mode === "all" ? "" : mode;
+  const [filters, setFilters] = useState({
+    title: "",
+    kind: mode === "all" ? "" : mode,
+    status: "",
+  });
 
-  const filteredItems = useMemo(() => items.filter((item) => (!kind || item.kind === kind) && (!query || item.title.toLowerCase().includes(query.toLowerCase()))), [items, kind, query]);
-
-  function saveItem() {
-    const nextKind: ContentKind = kind || "article";
-    setItems((current) => [{ id: `content-${Date.now()}`, kind: nextKind, title: title || "Nội dung mới", status: "draft", owner: "Quản trị viên", updatedAt: "2026-07-11" }, ...current]);
-    setModalOpen(false);
-    setTitle("");
-    showToast({ type: "success", title: "Đã lưu nội dung mock" });
-  }
-
-  function updateStatus(id: string, status: ContentItem["status"]) {
-    setItems((current) => current.map((item) => item.id === id ? { ...item, status, updatedAt: "2026-07-11" } : item));
-    showToast({ type: "success", title: "Đã cập nhật trạng thái nội dung" });
+  function updateFilter(key: keyof typeof filters, value: string) {
+    setFilters((current) => ({ ...current, [key]: value }));
   }
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý nội dung" description="Quản trị bài viết cẩm nang, banner và trang nội dung công khai của hệ thống." />
-      <div className="mb-5 flex justify-end">
-        <Button onClick={() => setModalOpen(true)}>Tạo nội dung</Button>
-      </div>
+      <PageHeader title="Quản lý nội dung" description="Trang giữ khung quản trị bài viết, banner và trang nội dung. Backend hiện chưa có DB/API content." />
+
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-3">
-          <Input label="Tìm kiếm" value={query} onChange={(event) => setQuery(event.target.value)} />
-          <Select label="Loại nội dung" value={kind} onChange={() => undefined} options={[{ label: "Tất cả", value: "" }, { label: "Bài viết", value: "article" }, { label: "Banner", value: "banner" }, { label: "Trang nội dung", value: "page" }]} />
-          <Button className="self-end" variant="secondary" onClick={() => showToast({ type: "success", title: "Đã xem trước giao diện công khai" })}>Xem trước</Button>
+          <Input label="Tiêu đề" value={filters.title} onChange={(event) => updateFilter("title", event.target.value)} placeholder="title" disabled />
+          <Select label="Loại nội dung" value={filters.kind} onChange={(event) => updateFilter("kind", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(kindLabels).map(([value, label]) => ({ value, label }))]} disabled={mode !== "all"} />
+          <Select label="Trạng thái" value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))]} disabled />
         </div>
       </Card>
-      <Table rows={filteredItems} getRowKey={(item) => item.id} columns={[
-        { key: "title", header: "Tiêu đề", render: (item) => item.title },
-        { key: "kind", header: "Loại", render: (item) => kindLabels[item.kind] },
-        { key: "owner", header: "Phụ trách", render: (item) => item.owner },
-        { key: "status", header: "Trạng thái", render: (item) => <StatusBadge label={item.status === "published" ? "Đã xuất bản" : item.status === "scheduled" ? "Đã lên lịch" : "Bản nháp"} tone={item.status === "published" ? "success" : "warning"} /> },
-        { key: "actions", header: "Thao tác", render: (item) => <div className="flex gap-2"><Button size="sm" onClick={() => updateStatus(item.id, "published")}>Xuất bản</Button><Button size="sm" variant="secondary" onClick={() => updateStatus(item.id, "draft")}>Lưu nháp</Button></div> },
-      ]} />
-      <Modal open={modalOpen} title="Tạo nội dung" onClose={() => setModalOpen(false)}>
-        <SectionHeader title="Thông tin nội dung" />
-        <Input label="Tiêu đề" value={title} onChange={(event) => setTitle(event.target.value)} />
-        <Textarea className="mt-3" label="Nội dung tóm tắt" placeholder="Nhập mô tả ngắn hiển thị trên giao diện công khai" />
-        <div className="mt-4"><Button onClick={saveItem}>Lưu</Button></div>
-      </Modal>
+
+      <Card className="mb-5">
+        <p className="text-sm font-medium text-slate-900">Tổng nội dung: 0</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chưa có bảng/API cho articles, banners hoặc content pages. Trang không dùng dữ liệu mock.</p>
+      </Card>
+
+      <Table
+        rows={[] as ContentItem[]}
+        getRowKey={(item) => String(item.id)}
+        columns={[
+          { key: "title", header: "Tiêu đề", render: (item) => <ContentTitle item={item} /> },
+          { key: "kind", header: "Loại", render: (item) => kindLabels[item.kind] },
+          { key: "status", header: "Trạng thái", render: (item) => <StatusBadge label={statusLabels[item.status]} tone={getStatusTone(item.status)} /> },
+          { key: "owner", header: "Phụ trách", render: (item) => `User #${item.ownerUserId}` },
+          { key: "updated", header: "Cập nhật", render: (item) => formatDateTime(item.updatedAt) },
+        ]}
+      />
+      <div className="mt-4">
+        <EmptyState message="Chưa có API content nên bảng đang hiển thị 0 dòng, không dùng dữ liệu hard-code." />
+      </div>
+
+      <Card className="mt-5">
+        <SectionHeader title="Field cần có khi bổ sung DB/API" />
+        <div className="flex flex-wrap gap-2">
+          {["id", "kind", "title", "slug", "status", "owner_user_id", "content", "published_at", "created_at", "updated_at"].map((field) => <StatusBadge key={field} label={field} />)}
+        </div>
+      </Card>
     </PageContainer>
   );
+}
+
+function ContentTitle({ item }: { item: ContentItem }) {
+  return (
+    <div className="min-w-[220px]">
+      <p className="font-medium text-slate-900">{item.title}</p>
+      <p className="mt-1 text-xs text-slate-500">{item.slug}</p>
+    </div>
+  );
+}
+
+function getStatusTone(status: ContentStatus) {
+  if (status === "published") return "success" as const;
+  if (status === "scheduled") return "warning" as const;
+  return "neutral" as const;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }

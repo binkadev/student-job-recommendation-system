@@ -5,6 +5,9 @@ import { Button } from "../../../components/ui/Button";
 import type { PublicCompanyListItem } from "./companiesListTypes";
 
 export function PublicCompanyListCard({ company }: { company: PublicCompanyListItem }) {
+  const jobTypes = company.jobTypes ?? [];
+  const workingModels = company.workingModels ?? [];
+
   return (
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <Link to={`/companies/${company.id}`} className={`block h-24 ${company.cover}`} aria-label={`Xem ${company.name}`} />
@@ -21,7 +24,7 @@ export function PublicCompanyListCard({ company }: { company: PublicCompanyListI
               {company.verified ? <ShieldCheck size={16} className="text-emerald-600" /> : null}
             </div>
             <div className="mt-1">
-              <StatusBadge label={company.verified ? "Đã xác thực" : "Chưa xác thực"} tone={company.verified ? "success" : "warning"} />
+              <StatusBadge label={company.verified ? "Đã xác thực" : "Chưa có API xác thực"} tone={company.verified ? "success" : "warning"} />
             </div>
           </div>
         </div>
@@ -32,6 +35,8 @@ export function PublicCompanyListCard({ company }: { company: PublicCompanyListI
           <span className="inline-flex items-center gap-2"><Building2 size={16} />{company.industry}</span>
           <span className="inline-flex items-center gap-2"><Users size={16} />{company.size}</span>
           <span className="inline-flex items-center gap-2"><MapPin size={16} />{company.location}</span>
+          {jobTypes.length ? <span className="inline-flex items-center gap-2"><BriefcaseBusiness size={16} />{jobTypes.join(", ")}</span> : null}
+          {workingModels.length ? <span className="inline-flex items-center gap-2"><Building2 size={16} />{workingModels.join(", ")}</span> : null}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

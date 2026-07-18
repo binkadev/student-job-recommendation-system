@@ -17,19 +17,13 @@ import type { CompaniesListFilters } from "../../features/public/companies/compa
 import { useAsyncData } from "../../hooks/useAsyncData";
 
 const emptyOption = { label: "Tất cả", value: "" };
-const verifiedOptions = [
-  emptyOption,
-  { label: "Đã xác thực", value: "true" },
-  { label: "Chưa xác thực", value: "false" },
-];
 
 function readFilters(searchParams: URLSearchParams): CompaniesListFilters {
   return {
     keyword: searchParams.get("q") ?? "",
-    industry: searchParams.get("industry") ?? "",
     location: searchParams.get("location") ?? "",
-    size: searchParams.get("size") ?? "",
-    verified: searchParams.get("verified") ?? "",
+    jobType: searchParams.get("jobType") ?? "",
+    workingModel: searchParams.get("workingModel") ?? searchParams.get("workMode") ?? "",
     page: Number(searchParams.get("page") ?? 1) || 1,
   };
 }
@@ -37,10 +31,9 @@ function readFilters(searchParams: URLSearchParams): CompaniesListFilters {
 function writeFilters(filters: CompaniesListFilters) {
   const params = new URLSearchParams();
   if (filters.keyword) params.set("q", filters.keyword);
-  if (filters.industry) params.set("industry", filters.industry);
   if (filters.location) params.set("location", filters.location);
-  if (filters.size) params.set("size", filters.size);
-  if (filters.verified) params.set("verified", filters.verified);
+  if (filters.jobType) params.set("jobType", filters.jobType);
+  if (filters.workingModel) params.set("workingModel", filters.workingModel);
   if (filters.page > 1) params.set("page", String(filters.page));
   return params;
 }
@@ -67,10 +60,9 @@ export function CompaniesPage() {
     applyFilters({
       ...filters,
       keyword: String(form.get("keyword") ?? "").trim(),
-      industry: String(form.get("industry") ?? ""),
-      location: String(form.get("location") ?? ""),
-      size: String(form.get("size") ?? ""),
-      verified: String(form.get("verified") ?? ""),
+      location: String(form.get("location") ?? "").trim(),
+      jobType: String(form.get("jobType") ?? ""),
+      workingModel: String(form.get("workingModel") ?? ""),
       page: 1,
     });
   }
@@ -83,15 +75,14 @@ export function CompaniesPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Danh sách công ty" description="Khám phá doanh nghiệp đang tuyển dụng, lọc theo lĩnh vực, địa điểm, quy mô và trạng thái xác thực." />
+      <PageHeader title="Danh sách công ty" description="Danh sách công ty được tổng hợp từ các tin tuyển dụng active trong API jobs." />
 
       <Card className="mb-5">
-        <form key={searchParams.toString()} onSubmit={handleSearch} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_220px_220px_220px_180px_auto]">
-          <Input label="Tên công ty" name="keyword" defaultValue={filters.keyword} placeholder="Tên công ty, lĩnh vực..." />
-          <Select label="Lĩnh vực" name="industry" defaultValue={filters.industry} options={[emptyOption, ...filterOptions.industries.map((value) => ({ label: value, value }))]} />
-          <Select label="Địa điểm" name="location" defaultValue={filters.location} options={[emptyOption, ...filterOptions.locations.map((value) => ({ label: value, value }))]} />
-          <Select label="Quy mô" name="size" defaultValue={filters.size} options={[emptyOption, ...filterOptions.sizes.map((value) => ({ label: value, value }))]} />
-          <Select label="Xác thực" name="verified" defaultValue={filters.verified} options={verifiedOptions} />
+        <form key={searchParams.toString()} onSubmit={handleSearch} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_220px_220px_220px_auto]">
+          <Input label="Tên công ty" name="keyword" defaultValue={filters.keyword} placeholder="Nhập tên công ty" />
+          <Input label="Địa điểm" name="location" defaultValue={filters.location} placeholder="Nhập tỉnh/thành phố" />
+          <Select label="Loại việc" name="jobType" defaultValue={filters.jobType} options={[emptyOption, ...filterOptions.jobTypes]} />
+          <Select label="Hình thức" name="workingModel" defaultValue={filters.workingModel} options={[emptyOption, ...filterOptions.workModes]} />
           <Button type="submit" className="self-end">Tìm kiếm</Button>
         </form>
 
@@ -109,6 +100,7 @@ export function CompaniesPage() {
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">{result?.totalItems ?? 0} công ty phù hợp</p>
+        <p className="mt-1 text-sm text-slate-600">Backend chưa có API public companies list, nên dữ liệu này được gom từ `companyId` và `companyName` trong jobs.</p>
       </Card>
 
       {companiesQuery.loading ? <CompaniesListSkeleton /> : null}
@@ -120,7 +112,7 @@ export function CompaniesPage() {
       ) : null}
       {!companiesQuery.loading && !companiesQuery.error && result?.items.length === 0 ? (
         <Card>
-          <EmptyState message={activeChips.length ? "Không tìm thấy công ty phù hợp với bộ lọc hiện tại." : "Chưa có công ty nào trong dữ liệu mẫu."} />
+          <EmptyState message={activeChips.length ? "Không tìm thấy công ty phù hợp với bộ lọc hiện tại." : "Chưa có công ty nào từ dữ liệu jobs active."} />
           {activeChips.length ? <div className="mt-4"><Button variant="secondary" onClick={clearAllFilters}>Xóa filter</Button></div> : null}
         </Card>
       ) : null}
@@ -140,10 +132,15 @@ export function CompaniesPage() {
   function getActiveChips(currentFilters: CompaniesListFilters) {
     const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
     if (currentFilters.keyword) chips.push({ key: "keyword", label: currentFilters.keyword, onRemove: () => updateFilter("keyword", "") });
-    if (currentFilters.industry) chips.push({ key: "industry", label: currentFilters.industry, onRemove: () => updateFilter("industry", "") });
     if (currentFilters.location) chips.push({ key: "location", label: currentFilters.location, onRemove: () => updateFilter("location", "") });
-    if (currentFilters.size) chips.push({ key: "size", label: currentFilters.size, onRemove: () => updateFilter("size", "") });
-    if (currentFilters.verified) chips.push({ key: "verified", label: currentFilters.verified === "true" ? "Đã xác thực" : "Chưa xác thực", onRemove: () => updateFilter("verified", "") });
+    if (currentFilters.jobType) {
+      const label = filterOptions.jobTypes.find((option) => option.value === currentFilters.jobType)?.label ?? currentFilters.jobType;
+      chips.push({ key: "jobType", label, onRemove: () => updateFilter("jobType", "") });
+    }
+    if (currentFilters.workingModel) {
+      const label = filterOptions.workModes.find((option) => option.value === currentFilters.workingModel)?.label ?? currentFilters.workingModel;
+      chips.push({ key: "workingModel", label, onRemove: () => updateFilter("workingModel", "") });
+    }
     return chips;
   }
 }

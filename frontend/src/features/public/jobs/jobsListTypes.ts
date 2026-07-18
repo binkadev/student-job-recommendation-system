@@ -1,9 +1,8 @@
-export type JobsSort = "latest" | "match" | "salary" | "deadline";
-
 export interface PublicJobListItem {
   id: string;
   logo: string;
   title: string;
+  companyId?: string;
   companyName: string;
   salary: string;
   salaryMax: number;
@@ -13,7 +12,7 @@ export interface PublicJobListItem {
   experienceLabel: string;
   level: string;
   jobType: string;
-  workMode: "Onsite" | "Hybrid" | "Remote";
+  workMode: string;
   skills: string[];
   postedAt: string;
   deadline: string;
@@ -24,16 +23,9 @@ export interface PublicJobListItem {
 
 export interface JobsListFilters {
   keyword: string;
-  locations: string[];
-  industries: string[];
-  salary: string;
-  experience: string;
-  level: string;
+  location: string;
   jobType: string;
-  workMode: string;
-  postedDate: string;
-  featured: boolean;
-  sort: JobsSort;
+  workingModel: string;
   page: number;
 }
 
@@ -45,10 +37,13 @@ export interface JobsListResult {
   totalPages: number;
 }
 
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
 export interface JobsFilterOptions {
-  locations: string[];
-  industries: string[];
-  levels: string[];
-  jobTypes: string[];
-  workModes: string[];
+  locations: FilterOption[];
+  jobTypes: FilterOption[];
+  workModes: FilterOption[];
 }

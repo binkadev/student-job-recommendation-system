@@ -5,16 +5,48 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Too
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Select } from "../../components/ui/Select";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import { applications, companies, cvs, jobs, reports, users } from "../../mocks";
-import { mockAdminService } from "../../services/mock";
+import { httpClient } from "../../services/api/httpClient";
 
 type TimeRange = "7d" | "30d" | "90d" | "12m";
+type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errorCode?: string;
+}
+
+interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+interface JobResponse {
+  id: number;
+  companyId: number;
+  companyName: string;
+  title: string;
+  status: BackendJobStatus;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+interface AdminDashboardData {
+  jobs: JobResponse[];
+  totalJobs: number;
+}
 
 const rangeLabels: Record<TimeRange, string> = {
   "7d": "7 ngày",
@@ -23,71 +55,50 @@ const rangeLabels: Record<TimeRange, string> = {
   "12m": "12 tháng",
 };
 
+const statusLabels: Record<BackendJobStatus, string> = {
+  DRAFT: "Nháp",
+  PENDING_APPROVAL: "Chờ duyệt",
+  ACTIVE: "Đang tuyển",
+  CLOSED: "Đã đóng",
+  REJECTED: "Từ chối",
+  EXPIRED: "Hết hạn",
+};
+
 export function AdminDashboardPage() {
-  const analyticsQuery = useAsyncData(() => mockAdminService.getAnalytics(), []);
+  const dashboardQuery = useAsyncData(getAdminDashboardData, []);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
 
-  const analytics = useMemo(() => {
-    const data = analyticsQuery.data ?? [];
-    if (timeRange === "7d") return data.slice(-2).map((item, index) => ({ ...item, label: `Ngày ${index + 1}` }));
-    if (timeRange === "30d") return data.slice(-3);
-    if (timeRange === "90d") return data.slice(-4);
-    return data;
-  }, [analyticsQuery.data, timeRange]);
-
-  const multiplier = timeRange === "7d" ? 0.35 : timeRange === "30d" ? 1 : timeRange === "90d" ? 1.8 : 3.2;
-
-  if (analyticsQuery.loading) {
+  if (dashboardQuery.loading) {
     return <PageContainer><LoadingState /></PageContainer>;
   }
 
-  const pendingCompanies = companies.filter((company) => !company.verified || company.status === "pending");
-  const pendingJobs = jobs.filter((job) => job.status === "pending");
-  const newReports = reports.filter((report) => report.status === "new");
-  const failedCvs = cvs.filter((cv) => cv.status === "failed");
+  const data = dashboardQuery.data ?? { jobs: [], totalJobs: 0 };
+  const jobs = data.jobs;
+  const pendingJobs = jobs.filter((job) => job.status === "PENDING_APPROVAL");
+  const companiesCount = new Set(jobs.map((job) => job.companyId)).size;
+  const activeJobs = jobs.filter((job) => job.status === "ACTIVE").length;
+  const inactiveJobs = jobs.filter((job) => job.status === "CLOSED" || job.status === "EXPIRED" || job.status === "REJECTED").length;
 
   const stats = [
-    { label: "Tổng ứng viên", value: scaled(users.filter((u) => u.role === "candidate").length + 15, multiplier), icon: <Users /> },
-    { label: "Tổng recruiter", value: scaled(users.filter((u) => u.role === "recruiter").length + 8, multiplier), icon: <Users /> },
-    { label: "Tổng doanh nghiệp", value: companies.length, icon: <Building2 /> },
-    { label: "Tổng việc làm", value: jobs.length, icon: <BriefcaseBusiness /> },
-    { label: "Tổng đơn ứng tuyển", value: scaled(applications.length + 42, multiplier), icon: <FileText /> },
-    { label: "CV đã upload", value: scaled(cvs.length + 28, multiplier), icon: <FileText /> },
-    { label: "Tin chờ duyệt", value: pendingJobs.length, icon: <AlertTriangle /> },
-    { label: "Công ty chờ xác thực", value: pendingCompanies.length, icon: <Building2 /> },
-    { label: "Báo cáo chưa xử lý", value: newReports.length, icon: <AlertTriangle /> },
+    { label: "Tổng ứng viên", value: 0, icon: <Users />, note: "Chưa có API admin users" },
+    { label: "Tổng recruiter", value: 0, icon: <Users />, note: "Chưa có API admin users" },
+    { label: "Tổng doanh nghiệp", value: companiesCount, icon: <Building2 />, note: "Tạm tính từ companyId trong jobs" },
+    { label: "Tổng việc làm", value: data.totalJobs, icon: <BriefcaseBusiness />, note: "GET /api/jobs" },
+    { label: "Tổng đơn ứng tuyển", value: 0, icon: <FileText />, note: "Chưa có API admin applications list" },
+    { label: "CV đã upload", value: 0, icon: <FileText />, note: "Chưa có API admin CV list" },
+    { label: "Tin chờ duyệt", value: pendingJobs.length, icon: <AlertTriangle />, note: "Status PENDING_APPROVAL" },
+    { label: "Công ty chờ xác thực", value: 0, icon: <Building2 />, note: "Chưa có API admin companies list" },
+    { label: "Báo cáo chưa xử lý", value: 0, icon: <AlertTriangle />, note: "Chưa có API reports" },
   ];
 
-  const cvAnalysisData = analytics.map((item) => ({
-    label: item.label,
-    analyzed: Math.round(item.cvs * 0.72),
-    failed: Math.max(1, Math.round(item.cvs * 0.08)),
-    pending: Math.round(item.cvs * 0.2),
-  }));
-  const conversionData = analytics.map((item) => ({
-    label: item.label,
-    viewed: Math.round(item.applications * 1.4),
-    applied: item.applications,
-    hired: Math.max(1, Math.round(item.applications * 0.08)),
-  }));
-  const companyGrowthData = analytics.map((item) => ({
-    label: item.label,
-    companies: Math.round(item.jobs * 0.55),
-  }));
-
-  const actionItems = [
-    ...pendingCompanies.map((company) => ({ id: `company-${company.id}`, title: company.name, time: "Hôm nay", priority: "Cao", path: `/admin/companies/${company.id}/verification`, type: "Doanh nghiệp chờ xác thực" })),
-    ...pendingJobs.map((job) => ({ id: `job-${job.id}`, title: job.title, time: job.postedAt, priority: "Cao", path: `/admin/jobs/${job.id}/review`, type: "Tin chờ duyệt" })),
-    ...newReports.map((report) => ({ id: `report-${report.id}`, title: report.type, time: report.createdAt, priority: "Cao", path: `/admin/reports/${report.id}`, type: "Báo cáo mới" })),
-    ...failedCvs.map((cv) => ({ id: `cv-${cv.id}`, title: cv.fileName, time: cv.uploadedAt, priority: "Trung bình", path: "/admin/cv-analysis/errors", type: "CV lỗi" })),
-    { id: "suspicious-1", title: "Đăng nhập bất thường từ tài khoản recruiter", time: "12/07/2026 08:15", priority: "Cao", path: "/admin/audit-logs", type: "Hoạt động đáng ngờ" },
-    { id: "suspicious-2", title: "Nhiều tin tuyển dụng bị report trong 24 giờ", time: "12/07/2026 09:30", priority: "Trung bình", path: "/admin/reports", type: "Hoạt động đáng ngờ" },
-  ];
+  const statusChartData = buildStatusChartData(jobs);
+  const overviewChartData = buildOverviewChartData({ totalJobs: data.totalJobs, activeJobs, pendingJobs: pendingJobs.length, inactiveJobs, companiesCount });
+  const trendChartData = buildTrendChartData(jobs, timeRange);
 
   return (
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHeader title="Tổng quan quản trị" description="Theo dõi người dùng, doanh nghiệp, việc làm, ứng tuyển, CV và các việc cần xử lý trên toàn hệ thống." />
+        <PageHeader title="Tổng quan quản trị" description="Theo dõi dữ liệu admin dựa trên các API backend hiện có. Các chỉ số chưa có API sẽ hiển thị 0." />
         <Select
           label="Filter thời gian"
           value={timeRange}
@@ -96,43 +107,100 @@ export function AdminDashboardPage() {
         />
       </div>
 
+      {dashboardQuery.error ? (
+        <div className="mb-5">
+          <ErrorState message={dashboardQuery.error} />
+        </div>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.label}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="rounded-lg bg-brand-50 p-2 text-brand-700">{stat.icon}</div>
-              <div><p className="text-sm text-slate-500">{stat.label}</p><p className="text-2xl font-semibold text-slate-950">{stat.value}</p></div>
+              <div>
+                <p className="text-sm text-slate-500">{stat.label}</p>
+                <p className="text-2xl font-semibold text-slate-950">{formatNumber(stat.value)}</p>
+                <p className="mt-1 text-xs text-slate-500">{stat.note}</p>
+              </div>
             </div>
           </Card>
         ))}
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
-        <ChartCard title="Tăng trưởng người dùng"><ResponsiveContainer><LineChart data={analytics}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Line dataKey="users" stroke="#2563eb" name="Người dùng" strokeWidth={2} /></LineChart></ResponsiveContainer></ChartCard>
-        <ChartCard title="Tăng trưởng việc làm"><ResponsiveContainer><BarChart data={analytics}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Bar dataKey="jobs" fill="#2563eb" name="Việc làm" /></BarChart></ResponsiveContainer></ChartCard>
-        <ChartCard title="Tăng trưởng ứng tuyển"><ResponsiveContainer><LineChart data={analytics}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Line dataKey="applications" stroke="#10b981" name="Ứng tuyển" strokeWidth={2} /></LineChart></ResponsiveContainer></ChartCard>
-        <ChartCard title="Tăng trưởng doanh nghiệp"><ResponsiveContainer><BarChart data={companyGrowthData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Bar dataKey="companies" fill="#f59e0b" name="Doanh nghiệp" /></BarChart></ResponsiveContainer></ChartCard>
-        <ChartCard title="Kết quả phân tích CV"><ResponsiveContainer><BarChart data={cvAnalysisData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Bar dataKey="analyzed" stackId="cv" fill="#10b981" name="Đã phân tích" /><Bar dataKey="pending" stackId="cv" fill="#f59e0b" name="Đang xử lý" /><Bar dataKey="failed" stackId="cv" fill="#ef4444" name="Lỗi" /></BarChart></ResponsiveContainer></ChartCard>
-        <ChartCard title="Conversion từ gợi ý việc làm"><ResponsiveContainer><BarChart data={conversionData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis /><Tooltip /><Bar dataKey="viewed" fill="#93c5fd" name="Đã xem gợi ý" /><Bar dataKey="applied" fill="#2563eb" name="Đã ứng tuyển" /><Bar dataKey="hired" fill="#10b981" name="Đã tuyển" /></BarChart></ResponsiveContainer></ChartCard>
+        <ChartCard title="Việc làm theo trạng thái">
+          <ResponsiveContainer>
+            <BarChart data={statusChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#2563eb" name="Số tin" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Tổng quan dữ liệu hiện có">
+          <ResponsiveContainer>
+            <BarChart data={overviewChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#10b981" name="Số lượng" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title={`Việc làm tạo mới trong ${rangeLabels[timeRange]}`}>
+          <ResponsiveContainer>
+            <LineChart data={trendChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Line dataKey="jobs" stroke="#2563eb" name="Việc làm" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Dữ liệu chưa có API admin">
+          <ResponsiveContainer>
+            <BarChart data={[
+              { label: "Users", value: 0 },
+              { label: "Applications", value: 0 },
+              { label: "CV", value: 0 },
+              { label: "Reports", value: 0 },
+            ]}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#f59e0b" name="Số lượng" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
       </section>
 
       <section className="mt-5">
         <Card>
-          <SectionHeader title="Danh sách cần xử lý" description={`Dữ liệu theo bộ lọc ${rangeLabels[timeRange]}.`} />
-          <div className="grid gap-3 xl:grid-cols-2">
-            {actionItems.map((item) => (
-              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-slate-900">{item.title}</p>
-                    <StatusBadge label={item.type} tone={item.priority === "Cao" ? "danger" : "warning"} />
+          <SectionHeader title="Danh sách cần xử lý" description="Hiện lấy từ các tin tuyển dụng có trạng thái chờ duyệt trong API jobs." />
+          {pendingJobs.length ? (
+            <div className="grid gap-3 xl:grid-cols-2">
+              {pendingJobs.map((job) => (
+                <div key={job.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-slate-900">{job.title}</p>
+                      <StatusBadge label="Tin chờ duyệt" tone="warning" />
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{job.companyName} - {formatDate(job.publishedAt || job.createdAt)}</p>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{item.time} • Ưu tiên {item.priority}</p>
+                  <Link to={`/admin/jobs/${job.id}/review`}><Button variant="secondary" size="sm">Xử lý</Button></Link>
                 </div>
-                <Link to={item.path}><Button variant="secondary" size="sm">Xử lý</Button></Link>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Không có tin tuyển dụng chờ duyệt từ API jobs." />
+          )}
         </Card>
       </section>
     </PageContainer>
@@ -143,6 +211,72 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
   return <Card><SectionHeader title={title} /><div className="h-72">{children}</div></Card>;
 }
 
-function scaled(value: number, multiplier: number) {
-  return Math.max(1, Math.round(value * multiplier));
+async function getAdminDashboardData(): Promise<AdminDashboardData> {
+  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+    params: { page: 1, size: 100 },
+  });
+  return {
+    jobs: response.data.data.items,
+    totalJobs: response.data.data.totalItems,
+  };
+}
+
+function buildStatusChartData(jobs: JobResponse[]) {
+  return (Object.keys(statusLabels) as BackendJobStatus[]).map((status) => ({
+    label: statusLabels[status],
+    value: jobs.filter((job) => job.status === status).length,
+  }));
+}
+
+function buildOverviewChartData(values: { totalJobs: number; activeJobs: number; pendingJobs: number; inactiveJobs: number; companiesCount: number }) {
+  return [
+    { label: "Tổng việc", value: values.totalJobs },
+    { label: "Active", value: values.activeJobs },
+    { label: "Chờ duyệt", value: values.pendingJobs },
+    { label: "Không active", value: values.inactiveJobs },
+    { label: "Công ty", value: values.companiesCount },
+  ];
+}
+
+function buildTrendChartData(jobs: JobResponse[], timeRange: TimeRange) {
+  const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365;
+  const bucketCount = timeRange === "7d" ? 7 : timeRange === "30d" ? 6 : timeRange === "90d" ? 6 : 12;
+  const bucketSize = Math.ceil(days / bucketCount);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  return Array.from({ length: bucketCount }, (_, index) => {
+    const endOffset = (bucketCount - index - 1) * bucketSize;
+    const startOffset = endOffset + bucketSize - 1;
+    const start = addDays(today, -startOffset);
+    const end = addDays(today, -endOffset);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return {
+      label: timeRange === "7d" ? formatShortDate(end) : `${formatShortDate(start)}-${formatShortDate(end)}`,
+      jobs: jobs.filter((job) => {
+        const createdAt = new Date(job.createdAt).getTime();
+        return createdAt >= start.getTime() && createdAt <= end.getTime();
+      }).length,
+    };
+  });
+}
+
+function addDays(value: Date, days: number) {
+  const next = new Date(value);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+}
+
+function formatShortDate(value: Date) {
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(value);
 }

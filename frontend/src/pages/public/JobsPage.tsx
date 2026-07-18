@@ -9,94 +9,34 @@ import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
-import { Checkbox } from "../../components/ui/Checkbox";
 import { Drawer } from "../../components/ui/Drawer";
 import { Input } from "../../components/ui/Input";
-import { MultiSelect } from "../../components/ui/MultiSelect";
 import { Select } from "../../components/ui/Select";
 import { JobsListSkeleton } from "../../features/public/jobs/JobsListSkeleton";
 import { PublicJobListCard } from "../../features/public/jobs/PublicJobListCard";
 import { getJobsFilterOptions, getPublicJobs } from "../../features/public/jobs/jobsListService";
-import type { JobsListFilters, JobsSort } from "../../features/public/jobs/jobsListTypes";
+import type { JobsListFilters } from "../../features/public/jobs/jobsListTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 
 const emptyOption = { label: "Tất cả", value: "" };
 
-const salaryOptions = [
-  emptyOption,
-  { label: "Dưới 10 triệu", value: "under-10" },
-  { label: "Từ 10 triệu", value: "10-20" },
-  { label: "Từ 20 triệu", value: "20-35" },
-  { label: "Từ 35 triệu", value: "over-35" },
-];
-
-const experienceOptions = [
-  emptyOption,
-  { label: "Thực tập", value: "intern" },
-  { label: "Từ 1 năm", value: "1" },
-  { label: "Từ 3 năm", value: "3" },
-  { label: "Từ 5 năm", value: "5" },
-];
-
-const postedDateOptions = [
-  emptyOption,
-  { label: "7 ngày gần đây", value: "7-days" },
-  { label: "30 ngày gần đây", value: "30-days" },
-];
-
-const sortOptions = [
-  { label: "Mới nhất", value: "latest" },
-  { label: "Phù hợp nhất", value: "match" },
-  { label: "Lương cao nhất", value: "salary" },
-  { label: "Sắp hết hạn", value: "deadline" },
-];
-
-const labelMaps: Record<string, Record<string, string>> = {
-  salary: Object.fromEntries(salaryOptions.map((option) => [option.value, option.label])),
-  experience: Object.fromEntries(experienceOptions.map((option) => [option.value, option.label])),
-  postedDate: Object.fromEntries(postedDateOptions.map((option) => [option.value, option.label])),
-};
-
 function readFilters(searchParams: URLSearchParams): JobsListFilters {
-  const sortParam = searchParams.get("sort");
   return {
     keyword: searchParams.get("q") ?? "",
-    locations: splitParam(searchParams.get("locations") ?? searchParams.get("location")),
-    industries: splitParam(searchParams.get("industries") ?? searchParams.get("industry")),
-    salary: searchParams.get("salary") ?? "",
-    experience: searchParams.get("experience") ?? "",
-    level: searchParams.get("level") ?? "",
+    location: searchParams.get("location") ?? "",
     jobType: searchParams.get("jobType") ?? "",
-    workMode: searchParams.get("workMode") ?? "",
-    postedDate: searchParams.get("postedDate") ?? "",
-    featured: searchParams.get("featured") === "true",
-    sort: isSort(sortParam) ? sortParam : "latest",
+    workingModel: searchParams.get("workingModel") ?? searchParams.get("workMode") ?? "",
     page: Number(searchParams.get("page") ?? 1) || 1,
   };
-}
-
-function splitParam(value: string | null) {
-  return value ? value.split(",").filter(Boolean) : [];
-}
-
-function isSort(value: string | null): value is JobsSort {
-  return Boolean(value && ["latest", "match", "salary", "deadline"].includes(value));
 }
 
 function writeFilters(filters: JobsListFilters) {
   const params = new URLSearchParams();
   if (filters.keyword) params.set("q", filters.keyword);
-  if (filters.locations.length) params.set("locations", filters.locations.join(","));
-  if (filters.industries.length) params.set("industries", filters.industries.join(","));
-  if (filters.salary) params.set("salary", filters.salary);
-  if (filters.experience) params.set("experience", filters.experience);
-  if (filters.level) params.set("level", filters.level);
+  if (filters.location) params.set("location", filters.location);
   if (filters.jobType) params.set("jobType", filters.jobType);
-  if (filters.workMode) params.set("workMode", filters.workMode);
-  if (filters.postedDate) params.set("postedDate", filters.postedDate);
-  if (filters.featured) params.set("featured", "true");
-  if (filters.sort !== "latest") params.set("sort", filters.sort);
+  if (filters.workingModel) params.set("workingModel", filters.workingModel);
   if (filters.page > 1) params.set("page", String(filters.page));
   return params;
 }
@@ -129,7 +69,7 @@ export function JobsPage() {
     applyFilters({
       ...filters,
       keyword: String(form.get("keyword") ?? "").trim(),
-      locations: splitParam(String(form.get("location") ?? "")),
+      location: String(form.get("location") ?? ""),
       page: 1,
     });
   }
@@ -140,30 +80,30 @@ export function JobsPage() {
 
   const activeChips = getActiveChips(filters);
   const result = jobsQuery.data;
+  const locationOptions = filters.location && !filterOptions.locations.some((option) => option.value === filters.location)
+    ? [emptyOption, { label: filters.location, value: filters.location }, ...filterOptions.locations]
+    : [emptyOption, ...filterOptions.locations];
 
   const filterPanel = (
     <div className="space-y-4">
-      <MultiSelect label="Ngành nghề" value={filters.industries} onChange={(value) => updateFilter("industries", value)} options={filterOptions.industries.map((value) => ({ label: value, value }))} />
-      <MultiSelect label="Địa điểm" value={filters.locations} onChange={(value) => updateFilter("locations", value)} options={filterOptions.locations.map((value) => ({ label: value, value }))} />
-      <Select label="Khoảng lương" value={filters.salary} onChange={(event) => updateFilter("salary", event.target.value)} options={salaryOptions} />
-      <Select label="Số năm kinh nghiệm" value={filters.experience} onChange={(event) => updateFilter("experience", event.target.value)} options={experienceOptions} />
-      <Select label="Cấp bậc" value={filters.level} onChange={(event) => updateFilter("level", event.target.value)} options={[emptyOption, ...filterOptions.levels.map((value) => ({ label: value, value }))]} />
-      <Select label="Loại hình công việc" value={filters.jobType} onChange={(event) => updateFilter("jobType", event.target.value)} options={[emptyOption, ...filterOptions.jobTypes.map((value) => ({ label: value, value }))]} />
-      <Select label="Onsite, hybrid hoặc remote" value={filters.workMode} onChange={(event) => updateFilter("workMode", event.target.value)} options={[emptyOption, ...filterOptions.workModes.map((value) => ({ label: value, value }))]} />
-      <Select label="Ngày đăng" value={filters.postedDate} onChange={(event) => updateFilter("postedDate", event.target.value)} options={postedDateOptions} />
-      <Checkbox label="Chỉ xem việc làm nổi bật" checked={filters.featured} onChange={(event) => updateFilter("featured", event.target.checked)} />
+      <Input label="Địa điểm" value={filters.location} onChange={(event) => updateFilter("location", event.target.value)} placeholder="Nhập tỉnh/thành phố" />
+      <Select label="Loại hình công việc" value={filters.jobType} onChange={(event) => updateFilter("jobType", event.target.value)} options={[emptyOption, ...filterOptions.jobTypes]} />
+      <Select label="Onsite, hybrid hoặc remote" value={filters.workingModel} onChange={(event) => updateFilter("workingModel", event.target.value)} options={[emptyOption, ...filterOptions.workModes]} />
+      <Card>
+        <p className="text-sm leading-6 text-slate-600">Backend hiện hỗ trợ filter theo từ khóa, địa điểm, loại việc, hình thức làm việc và phân trang. Các filter lương, kinh nghiệm, cấp bậc, ngành nghề sẽ bổ sung sau khi có API.</p>
+      </Card>
       <Button type="button" variant="secondary" className="w-full" onClick={clearAllFilters}>Xóa toàn bộ filter</Button>
     </div>
   );
 
   return (
     <PageContainer>
-      <PageHeader title="Danh sách việc làm" description="Tìm kiếm, lọc, sắp xếp và lưu các việc làm phù hợp với kỹ năng, địa điểm và mục tiêu nghề nghiệp của bạn." />
+      <PageHeader title="Danh sách việc làm" description="Tìm kiếm và lọc việc làm theo dữ liệu public từ backend." />
 
       <Card className="mb-5">
         <form key={searchParams.toString()} onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_260px_auto]">
           <Input label="Từ khóa" name="keyword" defaultValue={filters.keyword} placeholder="Vị trí, công ty, kỹ năng" />
-          <Select label="Địa điểm" name="location" defaultValue={filters.locations[0] ?? ""} options={[emptyOption, ...filterOptions.locations.map((value) => ({ label: value, value }))]} />
+          <Select label="Địa điểm" name="location" defaultValue={filters.location} options={locationOptions} />
           <Button type="submit" className="self-end">Tìm kiếm</Button>
         </form>
       </Card>
@@ -191,7 +131,7 @@ export function JobsPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" icon={<SlidersHorizontal size={16} />} onClick={() => setDrawerOpen(true)} className="lg:hidden">Lọc</Button>
-                <Select label="Sắp xếp" value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value as JobsSort)} options={sortOptions} />
+                <Button type="button" variant="secondary" onClick={() => setReloadKey((value) => value + 1)}>Tải lại</Button>
               </div>
             </div>
           </Card>
@@ -229,15 +169,15 @@ export function JobsPage() {
   function getActiveChips(currentFilters: JobsListFilters) {
     const chips: Array<{ key: string; value: string; label: string; onRemove: () => void }> = [];
     if (currentFilters.keyword) chips.push({ key: "keyword", value: currentFilters.keyword, label: currentFilters.keyword, onRemove: () => updateFilter("keyword", "") });
-    currentFilters.locations.forEach((value) => chips.push({ key: "locations", value, label: value, onRemove: () => updateFilter("locations", currentFilters.locations.filter((item) => item !== value)) }));
-    currentFilters.industries.forEach((value) => chips.push({ key: "industries", value, label: value, onRemove: () => updateFilter("industries", currentFilters.industries.filter((item) => item !== value)) }));
-    if (currentFilters.salary) chips.push({ key: "salary", value: currentFilters.salary, label: labelMaps.salary[currentFilters.salary], onRemove: () => updateFilter("salary", "") });
-    if (currentFilters.experience) chips.push({ key: "experience", value: currentFilters.experience, label: labelMaps.experience[currentFilters.experience], onRemove: () => updateFilter("experience", "") });
-    if (currentFilters.level) chips.push({ key: "level", value: currentFilters.level, label: currentFilters.level, onRemove: () => updateFilter("level", "") });
-    if (currentFilters.jobType) chips.push({ key: "jobType", value: currentFilters.jobType, label: currentFilters.jobType, onRemove: () => updateFilter("jobType", "") });
-    if (currentFilters.workMode) chips.push({ key: "workMode", value: currentFilters.workMode, label: currentFilters.workMode, onRemove: () => updateFilter("workMode", "") });
-    if (currentFilters.postedDate) chips.push({ key: "postedDate", value: currentFilters.postedDate, label: labelMaps.postedDate[currentFilters.postedDate], onRemove: () => updateFilter("postedDate", "") });
-    if (currentFilters.featured) chips.push({ key: "featured", value: "true", label: "Việc làm nổi bật", onRemove: () => updateFilter("featured", false) });
+    if (currentFilters.location) chips.push({ key: "location", value: currentFilters.location, label: currentFilters.location, onRemove: () => updateFilter("location", "") });
+    if (currentFilters.jobType) {
+      const label = filterOptions.jobTypes.find((option) => option.value === currentFilters.jobType)?.label ?? currentFilters.jobType;
+      chips.push({ key: "jobType", value: currentFilters.jobType, label, onRemove: () => updateFilter("jobType", "") });
+    }
+    if (currentFilters.workingModel) {
+      const label = filterOptions.workModes.find((option) => option.value === currentFilters.workingModel)?.label ?? currentFilters.workingModel;
+      chips.push({ key: "workingModel", value: currentFilters.workingModel, label, onRemove: () => updateFilter("workingModel", "") });
+    }
     return chips;
   }
 }

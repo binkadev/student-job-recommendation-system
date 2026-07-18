@@ -9,14 +9,15 @@ export interface PublicCompanyListItem {
   location: string;
   description: string;
   openJobs: number;
+  jobTypes?: string[];
+  workingModels?: string[];
 }
 
 export interface CompaniesListFilters {
   keyword: string;
-  industry: string;
   location: string;
-  size: string;
-  verified: string;
+  jobType: string;
+  workingModel: string;
   page: number;
 }
 
@@ -28,8 +29,13 @@ export interface CompaniesListResult {
   totalPages: number;
 }
 
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
 export interface CompanyFilterOptions {
-  industries: string[];
-  locations: string[];
-  sizes: string[];
+  locations: FilterOption[];
+  jobTypes: FilterOption[];
+  workModes: FilterOption[];
 }

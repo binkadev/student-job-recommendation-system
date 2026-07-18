@@ -1,4 +1,6 @@
+import { isAxiosError } from "axios";
 import type { FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -7,21 +9,12 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/Textarea";
 import { useToast } from "../../hooks/useToast";
-import { getStorageItem, setStorageItem } from "../../utils/localStorage";
+import { registerRequest } from "../../services/auth/authService";
+import type { RegisterRequest } from "../../types/auth";
 
 interface AuthFlowPageProps {
   type: "register" | "candidate" | "recruiter" | "forgot" | "reset";
 }
-
-interface RegisteredAccount {
-  role: "candidate" | "recruiter";
-  email: string;
-  password: string;
-  name: string;
-  companyName?: string;
-}
-
-const REGISTERED_ACCOUNTS_KEY = "registered-accounts";
 
 const copy = {
   register: {
@@ -42,16 +35,24 @@ const copy = {
   },
   reset: {
     title: "Đặt lại mật khẩu",
-    description: "Thiết lập mật khẩu mới cho tài khoản demo.",
+    description: "Thiết lập mật khẩu mới cho tài khoản.",
   },
 };
+
+function getErrorMessage(error: unknown) {
+  if (isAxiosError<{ message?: string }>(error)) {
+    return error.response?.data?.message ?? "Không thể xử lý yêu cầu. Vui lòng kiểm tra lại thông tin.";
+  }
+  return "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+}
 
 export function AuthFlowPage({ type }: AuthFlowPageProps) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const page = copy[type];
+  const [loading, setLoading] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
@@ -59,8 +60,10 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       const email = String(formData.get("email") ?? "").trim().toLowerCase();
       const password = String(formData.get("password") ?? "");
       const confirmPassword = String(formData.get("confirmPassword") ?? "");
-      const name = type === "candidate" ? String(formData.get("fullName") ?? "").trim() : String(formData.get("companyName") ?? "").trim();
-      const missingField = !email || !name || !password || !confirmPassword;
+      const phone = String(formData.get("phone") ?? "").trim();
+      const fullName = type === "candidate" ? String(formData.get("fullName") ?? "").trim() : String(formData.get("contactName") ?? "").trim();
+      const companyName = String(formData.get("companyName") ?? "").trim();
+      const missingField = !email || !password || !confirmPassword || (type === "candidate" ? !fullName : !companyName);
 
       if (missingField) {
         showToast({ type: "error", title: "Vui lòng nhập đầy đủ thông tin" });
@@ -75,19 +78,25 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
         return;
       }
 
-      const accounts = getStorageItem<RegisteredAccount[]>(REGISTERED_ACCOUNTS_KEY, []);
-      const nextAccount: RegisteredAccount = {
-        role: type,
+      const payload: RegisterRequest = {
         email,
         password,
-        name,
-        companyName: type === "recruiter" ? name : undefined,
+        role: type === "candidate" ? "STUDENT" : "COMPANY",
+        fullName: type === "candidate" ? fullName : fullName || companyName,
+        phone: phone || undefined,
+        companyName: type === "recruiter" ? companyName : undefined,
       };
-      const nextAccounts = [nextAccount, ...accounts.filter((account) => account.email !== email)];
-      setStorageItem(REGISTERED_ACCOUNTS_KEY, nextAccounts);
 
-      showToast({ type: "success", title: "Bạn đã đăng ký thành công", message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký." });
-      navigate("/login");
+      setLoading(true);
+      try {
+        await registerRequest(payload);
+        showToast({ type: "success", title: "Bạn đã đăng ký thành công", message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký." });
+        navigate("/login");
+      } catch (error) {
+        showToast({ type: "error", title: "Đăng ký thất bại", message: getErrorMessage(error) });
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -100,7 +109,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       }
     }
 
-    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Dữ liệu chỉ được xử lý ở frontend prototype." });
+    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Backend hiện chưa có API cho chức năng này." });
   }
 
   return (
@@ -118,6 +127,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
               <>
                 <Input name="email" label="Email" type="email" placeholder="ungvien@example.com" required />
                 <Input name="fullName" label="Họ và tên" placeholder="Nguyễn Văn An" required />
+                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
                 <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
                 <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
               </>
@@ -127,8 +137,10 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
               <>
                 <Input name="email" label="Email doanh nghiệp" type="email" placeholder="hr@congty.vn" required />
                 <Input name="companyName" label="Tên công ty" placeholder="Công ty TNHH Công nghệ NovaTech" required />
-                <Input name="taxCode" label="Mã số thuế" placeholder="0312345678" />
-                <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Mô tả doanh nghiệp..." />
+                <Input name="contactName" label="Tên người đại diện" placeholder="Trần Thị Bình" />
+                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
+                <Input name="taxCode" label="Mã số thuế" placeholder="0312345678" disabled />
+                <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Cập nhật thông tin này trong hồ sơ công ty sau khi đăng nhập." disabled />
                 <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
                 <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
               </>
@@ -143,7 +155,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
               </>
             ) : null}
 
-            <Button type="submit" className={type === "candidate" || type === "recruiter" ? "w-full" : ""}>
+            <Button type="submit" className={type === "candidate" || type === "recruiter" ? "w-full" : ""} loading={loading}>
               {type === "forgot" ? "Gửi hướng dẫn" : type === "candidate" || type === "recruiter" ? "Đăng ký" : "Lưu thông tin"}
             </Button>
           </form>

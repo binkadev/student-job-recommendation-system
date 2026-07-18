@@ -1,51 +1,29 @@
-import { useState } from "react";
+import { Shield, UserPlus, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
-import { StatusBadge } from "../../components/feedback/StatusBadge";
+import { SectionHeader } from "../../components/common/SectionHeader";
+import { EmptyState } from "../../components/feedback/EmptyState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
-import { Table } from "../../components/ui/Table";
-import { useToast } from "../../hooks/useToast";
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  role: "Owner" | "Recruitment Manager" | "Recruiter" | "Interviewer";
-  status: "active" | "locked" | "invited";
-  joinedAt: string;
-  assignedJobs: number;
-}
-
-const initialMembers: Member[] = [
-  { id: "member-1", name: "Trần Thị Bình", email: "recruiter@example.com", role: "Recruitment Manager", status: "active", joinedAt: "2026-02-20", assignedJobs: 4 },
-  { id: "member-2", name: "Nguyễn Kim Oanh", email: "oanh.nguyen@example.com", role: "Interviewer", status: "active", joinedAt: "2026-04-12", assignedJobs: 2 },
-  { id: "member-3", name: "Phan Đức Tài", email: "tai.phan@example.com", role: "Recruiter", status: "invited", joinedAt: "2026-07-01", assignedJobs: 1 },
-];
 
 export function RecruiterMembersPage({ mode = "list" }: { mode?: "list" | "invite" }) {
-  const { showToast } = useToast();
-  const [members, setMembers] = useState(initialMembers);
-
-  function inviteMember() {
-    const member: Member = { id: `member-${Date.now()}`, name: "Thành viên mới", email: "new.member@example.com", role: "Recruiter", status: "invited", joinedAt: new Date().toISOString().slice(0, 10), assignedJobs: 0 };
-    setMembers((current) => [member, ...current]);
-    showToast({ type: "success", title: "Đã gửi lời mời thành viên" });
-  }
-
   if (mode === "invite") {
     return (
       <PageContainer>
-        <PageHeader title="Mời thành viên" description="Mời thành viên tham gia tài khoản doanh nghiệp và phân quyền tuyển dụng." />
+        <PageHeader title="Mời thành viên" description="Backend hiện chưa có API mời thành viên doanh nghiệp." />
         <Card className="max-w-2xl">
+          <SectionHeader title="Chưa thể gửi lời mời" description="Frontend đã bỏ thao tác mời thành viên giả. Khi backend có endpoint member invitation, form này sẽ gửi dữ liệu thật." />
           <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Email" placeholder="member@example.com" />
-            <Select label="Vai trò" options={["Recruiter", "Interviewer", "Recruitment Manager"].map((value) => ({ label: value, value }))} />
-            <Select label="Tin tuyển dụng phụ trách" options={[{ label: "Frontend Developer", value: "job-1" }, { label: "Backend Developer", value: "job-2" }]} />
+            <Input label="Email" placeholder="member@example.com" disabled />
+            <Select label="Vai trò" disabled options={[{ label: "Recruiter", value: "Recruiter" }, { label: "Interviewer", value: "Interviewer" }, { label: "Recruitment Manager", value: "Recruitment Manager" }]} />
           </div>
-          <div className="mt-5"><Button onClick={inviteMember}>Gửi lời mời</Button></div>
+          <div className="mt-5 flex gap-2">
+            <Button disabled>Gửi lời mời</Button>
+            <Link to="/recruiter/members"><Button variant="secondary">Quay lại</Button></Link>
+          </div>
         </Card>
       </PageContainer>
     );
@@ -53,19 +31,37 @@ export function RecruiterMembersPage({ mode = "list" }: { mode?: "list" | "invit
 
   return (
     <PageContainer>
-      <PageHeader title="Thành viên doanh nghiệp" description="Quản lý thành viên, vai trò, trạng thái và tin tuyển dụng phụ trách." />
-      <div className="mb-5 flex justify-end"><Button onClick={inviteMember}>Mời thành viên</Button></div>
-      <Table
-        rows={members}
-        getRowKey={(member) => member.id}
-        columns={[
-          { key: "name", header: "Thành viên", render: (member) => <div><p className="font-medium text-slate-900">{member.name}</p><p className="text-xs text-slate-500">{member.email}</p></div> },
-          { key: "role", header: "Vai trò", render: (member) => member.role },
-          { key: "status", header: "Trạng thái", render: (member) => <StatusBadge label={member.status === "active" ? "Đang hoạt động" : member.status === "locked" ? "Đã khóa" : "Đã mời"} tone={member.status === "active" ? "success" : member.status === "locked" ? "danger" : "warning"} /> },
-          { key: "jobs", header: "Tin phụ trách", render: (member) => member.assignedJobs },
-          { key: "actions", header: "Thao tác", render: (member) => <div className="flex gap-2"><Button variant="secondary" size="sm">Sửa vai trò</Button><Button variant="secondary" size="sm">Gán tin</Button><Button variant="danger" size="sm" onClick={() => setMembers((current) => current.map((item) => item.id === member.id ? { ...item, status: "locked" } : item))}>Khóa</Button></div> },
-        ]}
-      />
+      <PageHeader title="Thành viên doanh nghiệp" description="Quản lý thành viên sau khi backend bổ sung API member cho công ty." />
+      <div className="mb-5 flex justify-end">
+        <Link to="/recruiter/members/invite"><Button icon={<UserPlus size={16} />}>Mời thành viên</Button></Link>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <SectionHeader title="Danh sách thành viên" description="Backend hiện chưa có endpoint danh sách thành viên theo công ty." />
+          <EmptyState message="Chưa có dữ liệu thành viên từ API backend." />
+        </Card>
+
+        <aside className="space-y-5">
+          <InfoCard icon={<Users size={18} />} title="Thành viên" message="Cần API lấy danh sách recruiter/interviewer thuộc công ty." />
+          <InfoCard icon={<Shield size={18} />} title="Vai trò và quyền" message="Cần API phân quyền Owner, Recruitment Manager, Recruiter, Interviewer." />
+          <InfoCard icon={<UserPlus size={18} />} title="Mời thành viên" message="Cần API gửi lời mời, theo dõi trạng thái invited/active/locked." />
+        </aside>
+      </div>
     </PageContainer>
+  );
+}
+
+function InfoCard({ icon, title, message }: { icon: React.ReactNode; title: string; message: string }) {
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        <div className="rounded-md bg-brand-50 p-2 text-brand-700">{icon}</div>
+        <div>
+          <h2 className="font-semibold text-slate-950">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{message}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

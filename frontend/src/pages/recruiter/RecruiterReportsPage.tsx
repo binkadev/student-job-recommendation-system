@@ -5,8 +5,6 @@ import {
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -17,202 +15,247 @@ import {
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
+import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
+import { httpClient } from "../../services/api/httpClient";
 
-interface ReportRow {
-  id: string;
-  month: string;
-  jobTitle: string;
-  department: string;
-  recruiter: string;
-  source: string;
-  applications: number;
-  qualified: number;
-  interviews: number;
-  offers: number;
-  hires: number;
-  timeToHire: number;
-  offerAccepted: number;
+type JobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
+type ApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errorCode?: string;
 }
 
-const reportData: ReportRow[] = [
-  { id: "r-1", month: "2026-03", jobTitle: "Frontend Developer", department: "Sản phẩm", recruiter: "Trần Thị Bình", source: "Gợi ý hệ thống", applications: 96, qualified: 52, interviews: 31, offers: 12, hires: 8, timeToHire: 17, offerAccepted: 10 },
-  { id: "r-2", month: "2026-03", jobTitle: "Backend Developer", department: "Backend", recruiter: "Đỗ Quốc Huy", source: "LinkedIn", applications: 82, qualified: 39, interviews: 24, offers: 9, hires: 5, timeToHire: 21, offerAccepted: 6 },
-  { id: "r-3", month: "2026-04", jobTitle: "Full-stack Developer", department: "Full-stack", recruiter: "Nguyễn Minh Đức", source: "TopCV", applications: 74, qualified: 34, interviews: 22, offers: 8, hires: 4, timeToHire: 24, offerAccepted: 5 },
-  { id: "r-4", month: "2026-04", jobTitle: "UI/UX Designer", department: "Design", recruiter: "Trần Thị Bình", source: "VietnamWorks", applications: 58, qualified: 28, interviews: 16, offers: 6, hires: 3, timeToHire: 19, offerAccepted: 4 },
-  { id: "r-5", month: "2026-05", jobTitle: "Data Analyst Intern", department: "Dữ liệu", recruiter: "Lê Hoàng Phúc", source: "Gợi ý hệ thống", applications: 110, qualified: 61, interviews: 35, offers: 14, hires: 10, timeToHire: 15, offerAccepted: 12 },
-  { id: "r-6", month: "2026-05", jobTitle: "DevOps Engineer", department: "DevOps", recruiter: "Nguyễn Minh Đức", source: "Referral", applications: 46, qualified: 21, interviews: 13, offers: 5, hires: 2, timeToHire: 31, offerAccepted: 3 },
-  { id: "r-7", month: "2026-06", jobTitle: "Mobile Developer", department: "Mobile", recruiter: "Lê Hoàng Phúc", source: "LinkedIn", applications: 68, qualified: 33, interviews: 19, offers: 7, hires: 4, timeToHire: 22, offerAccepted: 5 },
-  { id: "r-8", month: "2026-06", jobTitle: "QA Engineer", department: "QA", recruiter: "Đỗ Quốc Huy", source: "TopCV", applications: 72, qualified: 37, interviews: 20, offers: 8, hires: 5, timeToHire: 18, offerAccepted: 7 },
-  { id: "r-9", month: "2026-07", jobTitle: "Frontend Developer", department: "Sản phẩm", recruiter: "Trần Thị Bình", source: "Gợi ý hệ thống", applications: 88, qualified: 49, interviews: 29, offers: 11, hires: 7, timeToHire: 16, offerAccepted: 9 },
-  { id: "r-10", month: "2026-07", jobTitle: "Backend Developer", department: "Backend", recruiter: "Đỗ Quốc Huy", source: "VietnamWorks", applications: 64, qualified: 30, interviews: 18, offers: 6, hires: 3, timeToHire: 25, offerAccepted: 4 },
-];
+interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+interface JobResponse {
+  id: number;
+  companyId: number;
+  companyName: string;
+  title: string;
+  location: string | null;
+  status: JobStatus;
+  deadline: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApplicationResponse {
+  id: number;
+  status: ApplicationStatus;
+  studentName: string | null;
+  studentEmail: string | null;
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
+  cvFileName: string | null;
+  appliedAt: string;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ReportData {
+  jobs: JobResponse[];
+  applications: ApplicationResponse[];
+}
+
+interface JobPerformanceRow {
+  id: number;
+  title: string;
+  applications: number;
+  pending: number;
+  reviewed: number;
+  accepted: number;
+  rejected: number;
+  withdrawn: number;
+  conversion: number;
+}
+
+const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  PENDING: "Chờ xử lý",
+  REVIEWED: "Đã xem",
+  ACCEPTED: "Đã nhận",
+  REJECTED: "Từ chối",
+  WITHDRAWN: "Ứng viên rút đơn",
+};
+
+const JOB_STATUS_LABELS: Record<JobStatus, string> = {
+  DRAFT: "Bản nháp",
+  PENDING_APPROVAL: "Chờ duyệt",
+  ACTIVE: "Đang tuyển",
+  CLOSED: "Đã đóng",
+  REJECTED: "Bị từ chối",
+  EXPIRED: "Hết hạn",
+};
 
 const colors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 export function RecruiterReportsPage() {
   const { showToast } = useToast();
-  const [fromMonth, setFromMonth] = useState("2026-03");
-  const [toMonth, setToMonth] = useState("2026-07");
+  const [fromMonth, setFromMonth] = useState("");
+  const [toMonth, setToMonth] = useState("");
   const [jobFilter, setJobFilter] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [recruiterFilter, setRecruiterFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const reportQuery = useAsyncData(() => getRecruiterReportData(), []);
 
-  const jobs = useMemo(() => unique(reportData.map((item) => item.jobTitle)), []);
-  const departments = useMemo(() => unique(reportData.map((item) => item.department)), []);
-  const recruiters = useMemo(() => unique(reportData.map((item) => item.recruiter)), []);
+  const jobs = reportQuery.data?.jobs ?? [];
+  const applications = reportQuery.data?.applications ?? [];
+  const jobOptions = useMemo(() => jobs.map((job) => ({ label: job.title, value: String(job.id) })), [jobs]);
+  const filteredApplications = useMemo(() => {
+    return applications.filter((application) => {
+      const month = application.appliedAt.slice(0, 7);
+      const matchFrom = !fromMonth || month >= fromMonth;
+      const matchTo = !toMonth || month <= toMonth;
+      const matchJob = !jobFilter || String(application.jobId) === jobFilter;
+      const matchStatus = !statusFilter || application.status === statusFilter;
+      return matchFrom && matchTo && matchJob && matchStatus;
+    });
+  }, [applications, fromMonth, jobFilter, statusFilter, toMonth]);
 
-  const filteredData = useMemo(() => reportData.filter((item) => {
-    const matchFrom = !fromMonth || item.month >= fromMonth;
-    const matchTo = !toMonth || item.month <= toMonth;
-    const matchJob = !jobFilter || item.jobTitle === jobFilter;
-    const matchDepartment = !departmentFilter || item.department === departmentFilter;
-    const matchRecruiter = !recruiterFilter || item.recruiter === recruiterFilter;
-    return matchFrom && matchTo && matchJob && matchDepartment && matchRecruiter;
-  }), [departmentFilter, fromMonth, jobFilter, recruiterFilter, toMonth]);
-
-  const totals = useMemo(() => summarize(filteredData), [filteredData]);
-  const trendData = useMemo(() => groupByMonth(filteredData), [filteredData]);
-  const sourceData = useMemo(() => groupSum(filteredData, "source", "applications"), [filteredData]);
-  const recruiterPerformance = useMemo(() => groupRecruiterPerformance(filteredData), [filteredData]);
-  const jobPerformance = useMemo(() => groupJobPerformance(filteredData), [filteredData]);
+  const totals = useMemo(() => summarize(filteredApplications), [filteredApplications]);
+  const trendData = useMemo(() => groupByMonth(filteredApplications), [filteredApplications]);
+  const statusData = useMemo(() => groupByStatus(filteredApplications), [filteredApplications]);
+  const jobPerformance = useMemo(() => buildJobPerformance(jobs, filteredApplications), [filteredApplications, jobs]);
 
   function exportCsv() {
     const rows = [
-      ["month", "jobTitle", "department", "recruiter", "source", "applications", "qualified", "interviews", "offers", "hires", "timeToHire", "offerAccepted"],
-      ...filteredData.map((item) => [item.month, item.jobTitle, item.department, item.recruiter, item.source, item.applications, item.qualified, item.interviews, item.offers, item.hires, item.timeToHire, item.offerAccepted]),
+      ["applicationId", "studentName", "studentEmail", "jobId", "jobTitle", "status", "cvFileName", "appliedAt", "reviewedAt"],
+      ...filteredApplications.map((item) => [item.id, item.studentName ?? "", item.studentEmail ?? "", item.jobId, item.jobTitle, item.status, item.cvFileName ?? "", item.appliedAt, item.reviewedAt ?? ""]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `bao-cao-tuyen-dung-${fromMonth || "all"}-${toMonth || "all"}.csv`;
+    link.download = `bao-cao-ung-tuyen-${fromMonth || "all"}-${toMonth || "all"}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    showToast({ type: "success", title: "Đã export CSV", message: "File CSV được tạo từ dữ liệu đang filter." });
+    showToast({ type: "success", title: "Đã export CSV", message: "File CSV được tạo từ dữ liệu application thật." });
+  }
+
+  if (reportQuery.loading) {
+    return (
+      <PageContainer>
+        <LoadingState />
+      </PageContainer>
+    );
+  }
+
+  if (reportQuery.error) {
+    return (
+      <PageContainer>
+        <PageHeader title="Báo cáo tuyển dụng" description="Không thể tải báo cáo từ backend." />
+        <EmptyState message={reportQuery.error} />
+      </PageContainer>
+    );
   }
 
   return (
     <PageContainer>
-      <PageHeader title="Báo cáo tuyển dụng" description="Theo dõi hiệu quả tuyển dụng theo thời gian, tin đăng, phòng ban, recruiter và nguồn ứng viên." />
+      <PageHeader title="Báo cáo tuyển dụng" description="Báo cáo tính từ jobs và applications thật của backend." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Input label="Từ tháng" type="month" value={fromMonth} onChange={(event) => setFromMonth(event.target.value)} />
           <Input label="Đến tháng" type="month" value={toMonth} onChange={(event) => setToMonth(event.target.value)} />
-          <Select label="Tin tuyển dụng" value={jobFilter} onChange={(event) => setJobFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...jobs.map((value) => ({ label: value, value }))]} />
-          <Select label="Phòng ban" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...departments.map((value) => ({ label: value, value }))]} />
-          <Select label="Recruiter" value={recruiterFilter} onChange={(event) => setRecruiterFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...recruiters.map((value) => ({ label: value, value }))]} />
+          <Select label="Tin tuyển dụng" value={jobFilter} onChange={(event) => setJobFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...jobOptions]} />
+          <Select label="Trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
           <Button className="self-end" onClick={exportCsv}>Export CSV</Button>
         </div>
       </Card>
 
       <div className="mb-5 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Tổng ứng viên" value={totals.applications} />
-        <StatCard label="Ứng viên đạt yêu cầu" value={totals.qualified} />
-        <StatCard label="Phỏng vấn" value={totals.interviews} />
-        <StatCard label="Offer" value={totals.offers} />
-        <StatCard label="Đã tuyển" value={totals.hires} />
-        <StatCard label="Time to hire" value={`${totals.timeToHire} ngày`} />
+        <StatCard label="Tổng ứng viên" value={totals.total} />
+        <StatCard label="Chờ xử lý" value={totals.pending} />
+        <StatCard label="Đã xem" value={totals.reviewed} />
+        <StatCard label="Đã nhận" value={totals.accepted} />
+        <StatCard label="Từ chối/rút" value={totals.rejected + totals.withdrawn} />
+        <StatCard label="Tỷ lệ nhận" value={`${totals.conversion}%`} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <ChartCard title="Applications trend">
-          <ResponsiveContainer>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="applications" stroke="#2563eb" name="Ứng viên" strokeWidth={2} />
-              <Line type="monotone" dataKey="qualified" stroke="#10b981" name="Đạt yêu cầu" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+        <ChartCard title="Ứng tuyển theo tháng">
+          {trendData.length ? (
+            <ResponsiveContainer>
+              <BarChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="applications" fill="#2563eb" name="Ứng viên" />
+                <Bar dataKey="accepted" fill="#10b981" name="Đã nhận" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <EmptyState message="Chưa có dữ liệu ứng tuyển theo bộ lọc." />}
         </ChartCard>
 
-        <ChartCard title="Source distribution">
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie data={sourceData} dataKey="value" nameKey="label" outerRadius={95} label>
-                {sourceData.map((item, index) => <Cell key={item.label} fill={colors[index % colors.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <ChartCard title="Phân bổ trạng thái">
+          {statusData.length ? (
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={statusData} dataKey="value" nameKey="label" outerRadius={95} label>
+                  {statusData.map((item, index) => <Cell key={item.label} fill={colors[index % colors.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <EmptyState message="Chưa có dữ liệu trạng thái ứng tuyển." />}
         </ChartCard>
 
-        <ChartCard title="Pipeline conversion">
-          <ResponsiveContainer>
-            <BarChart data={[totals]}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="applications" fill="#2563eb" name="Tổng ứng viên" />
-              <Bar dataKey="qualified" fill="#10b981" name="Đạt yêu cầu" />
-              <Bar dataKey="interviews" fill="#f59e0b" name="Phỏng vấn" />
-              <Bar dataKey="offers" fill="#8b5cf6" name="Offer" />
-              <Bar dataKey="hires" fill="#ef4444" name="Đã tuyển" />
-            </BarChart>
-          </ResponsiveContainer>
+        <ChartCard title="Pipeline backend">
+          {statusData.length ? (
+            <ResponsiveContainer>
+              <BarChart data={statusData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#10b981" name="Hồ sơ" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <EmptyState message="Chưa có dữ liệu pipeline." />}
         </ChartCard>
 
-        <ChartCard title="Recruiter performance">
-          <ResponsiveContainer>
-            <BarChart data={recruiterPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="hires" fill="#10b981" name="Đã tuyển" />
-              <Bar dataKey="offers" fill="#2563eb" name="Offer" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Job performance">
-          <ResponsiveContainer>
-            <BarChart data={jobPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="applications" fill="#2563eb" name="Ứng viên" />
-              <Bar dataKey="hires" fill="#10b981" name="Đã tuyển" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Offer acceptance">
-          <ResponsiveContainer>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="offerAcceptance" stroke="#8b5cf6" name="Tỷ lệ chấp nhận offer" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+        <ChartCard title="Hiệu quả theo tin tuyển dụng">
+          {jobPerformance.length ? (
+            <ResponsiveContainer>
+              <BarChart data={jobPerformance.slice(0, 8)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="title" hide />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="applications" fill="#2563eb" name="Ứng viên" />
+                <Bar dataKey="accepted" fill="#10b981" name="Đã nhận" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <EmptyState message="Chưa có dữ liệu theo tin tuyển dụng." />}
         </ChartCard>
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        <ReportTable title="Tin hiệu quả nhất" rows={jobPerformance.slice(0, 5)} columns="job" />
-        <ReportTable title="Recruiter hiệu quả nhất" rows={recruiterPerformance.slice(0, 5)} columns="recruiter" />
-        <SimpleTable title="Nguồn ứng viên tốt nhất" rows={sourceData.map((item) => ({ id: item.label, label: item.label, value: item.value, badge: `${Math.round((item.value / Math.max(1, totals.applications)) * 100)}%` }))} />
-        <SimpleTable title="Vị trí khó tuyển" rows={jobPerformance.filter((item) => item.timeToHire >= 22 || item.hires <= 3).map((item) => ({ id: item.label, label: item.label, value: item.timeToHire, badge: `${item.hires} tuyển` }))} />
+        <JobPerformanceTable rows={jobPerformance} />
+        <UnsupportedReportCard />
       </div>
     </PageContainer>
   );
@@ -226,100 +269,117 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   return <Card><SectionHeader title={title} /><div className="h-72">{children}</div></Card>;
 }
 
-function ReportTable({ title, rows, columns }: { title: string; rows: Array<Record<string, string | number>>; columns: "job" | "recruiter" }) {
+function JobPerformanceTable({ rows }: { rows: JobPerformanceRow[] }) {
   return (
     <Card>
-      <SectionHeader title={title} />
-      <Table
-        rows={rows}
-        getRowKey={(row) => String(row.label)}
-        columns={[
-          { key: "label", header: columns === "job" ? "Tin tuyển dụng" : "Recruiter", render: (row) => <span className="font-medium text-slate-900">{row.label}</span> },
-          { key: "applications", header: "Ứng viên", render: (row) => row.applications },
-          { key: "hires", header: "Đã tuyển", render: (row) => row.hires },
-          { key: "rate", header: "Tỷ lệ", render: (row) => <StatusBadge label={`${row.conversion}%`} tone={Number(row.conversion) >= 8 ? "success" : "warning"} /> },
-        ]}
-      />
+      <SectionHeader title="Tin tuyển dụng" description="Hiệu quả theo số lượng application thật." />
+      {rows.length ? (
+        <Table
+          rows={rows}
+          getRowKey={(row) => String(row.id)}
+          columns={[
+            { key: "title", header: "Tin tuyển dụng", render: (row) => <span className="font-medium text-slate-900">{row.title}</span> },
+            { key: "applications", header: "Ứng viên", render: (row) => row.applications },
+            { key: "accepted", header: "Đã nhận", render: (row) => row.accepted },
+            { key: "rejected", header: "Từ chối/rút", render: (row) => row.rejected + row.withdrawn },
+            { key: "rate", header: "Tỷ lệ", render: (row) => <StatusBadge label={`${row.conversion}%`} tone={row.conversion >= 20 ? "success" : "warning"} /> },
+          ]}
+        />
+      ) : <EmptyState message="Chưa có dữ liệu tin tuyển dụng." />}
     </Card>
   );
 }
 
-function SimpleTable({ title, rows }: { title: string; rows: Array<{ id: string; label: string; value: number; badge: string }> }) {
+function UnsupportedReportCard() {
   return (
     <Card>
-      <SectionHeader title={title} />
-      <Table
-        rows={rows}
-        getRowKey={(row) => row.id}
-        columns={[
-          { key: "label", header: "Tên", render: (row) => <span className="font-medium text-slate-900">{row.label}</span> },
-          { key: "value", header: "Giá trị", render: (row) => row.value },
-          { key: "badge", header: "Ghi chú", render: (row) => <StatusBadge label={row.badge} /> },
-        ]}
-      />
+      <SectionHeader title="Chỉ số chưa có API" description="Các chỉ số dưới đây không còn dùng dữ liệu giả." />
+      <div className="flex flex-wrap gap-2">
+        {["Nguồn ứng viên", "Phỏng vấn", "Offer accepted", "Time-to-hire", "Recruiter phụ trách", "Phòng ban"].map((item) => <StatusBadge key={item} label={item} />)}
+      </div>
+      <p className="mt-4 text-sm leading-6 text-slate-600">Khi backend bổ sung endpoint hoặc trường dữ liệu tương ứng, trang báo cáo có thể hiển thị các chỉ số này bằng dữ liệu thật.</p>
     </Card>
   );
 }
 
-function summarize(rows: ReportRow[]) {
-  const total = rows.reduce((acc, item) => ({
-    label: "Pipeline",
-    applications: acc.applications + item.applications,
-    qualified: acc.qualified + item.qualified,
-    interviews: acc.interviews + item.interviews,
-    offers: acc.offers + item.offers,
-    hires: acc.hires + item.hires,
-    offerAccepted: acc.offerAccepted + item.offerAccepted,
-    timeToHireTotal: acc.timeToHireTotal + item.timeToHire * item.hires,
-  }), { label: "Pipeline", applications: 0, qualified: 0, interviews: 0, offers: 0, hires: 0, offerAccepted: 0, timeToHireTotal: 0 });
+async function getRecruiterReportData(): Promise<ReportData> {
+  const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+    params: { page: 1, size: 100 },
+  });
+  const jobs = jobsResponse.data.data.items;
+  const applicationResponses = await Promise.all(
+    jobs.map((job) => httpClient.get<ApiResponse<ApplicationResponse[]>>(`/companies/me/jobs/${job.id}/applications`)),
+  );
+  const applications = applicationResponses
+    .flatMap((response) => response.data.data)
+    .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
+
+  return { jobs, applications };
+}
+
+function summarize(applications: ApplicationResponse[]) {
+  const pending = countByStatus(applications, "PENDING");
+  const reviewed = countByStatus(applications, "REVIEWED");
+  const accepted = countByStatus(applications, "ACCEPTED");
+  const rejected = countByStatus(applications, "REJECTED");
+  const withdrawn = countByStatus(applications, "WITHDRAWN");
   return {
-    ...total,
-    timeToHire: total.hires ? Math.round(total.timeToHireTotal / total.hires) : 0,
-    offerAcceptance: total.offers ? Math.round((total.offerAccepted / total.offers) * 100) : 0,
+    total: applications.length,
+    pending,
+    reviewed,
+    accepted,
+    rejected,
+    withdrawn,
+    conversion: applications.length ? Math.round((accepted / applications.length) * 100) : 0,
   };
 }
 
-function groupByMonth(rows: ReportRow[]) {
-  return Object.values(rows.reduce<Record<string, ReturnType<typeof summarize>>>((acc, item) => {
-    const current = acc[item.month] ? [...rows.filter((row) => row.month === item.month)] : rows.filter((row) => row.month === item.month);
-    acc[item.month] = { ...summarize(current), label: item.month };
+function groupByMonth(applications: ApplicationResponse[]) {
+  const grouped = applications.reduce<Record<string, ApplicationResponse[]>>((acc, application) => {
+    const month = application.appliedAt.slice(0, 7);
+    acc[month] = [...(acc[month] ?? []), application];
     return acc;
-  }, {})).sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([month, rows]) => ({
+      label: month,
+      applications: rows.length,
+      accepted: countByStatus(rows, "ACCEPTED"),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
 }
 
-function groupSum(rows: ReportRow[], key: keyof ReportRow, valueKey: keyof ReportRow) {
-  return Object.values(rows.reduce<Record<string, { label: string; value: number }>>((acc, item) => {
-    const label = String(item[key]);
-    acc[label] = { label, value: (acc[label]?.value ?? 0) + Number(item[valueKey]) };
-    return acc;
-  }, {})).sort((a, b) => b.value - a.value);
+function groupByStatus(applications: ApplicationResponse[]) {
+  return (Object.keys(APPLICATION_STATUS_LABELS) as ApplicationStatus[])
+    .map((status) => ({
+      label: APPLICATION_STATUS_LABELS[status],
+      value: countByStatus(applications, status),
+    }))
+    .filter((item) => item.value > 0);
 }
 
-function groupRecruiterPerformance(rows: ReportRow[]) {
-  return groupPerformance(rows, "recruiter");
+function buildJobPerformance(jobs: JobResponse[], applications: ApplicationResponse[]): JobPerformanceRow[] {
+  return jobs
+    .map((job) => {
+      const rows = applications.filter((application) => application.jobId === job.id);
+      const accepted = countByStatus(rows, "ACCEPTED");
+      return {
+        id: job.id,
+        title: job.title,
+        applications: rows.length,
+        pending: countByStatus(rows, "PENDING"),
+        reviewed: countByStatus(rows, "REVIEWED"),
+        accepted,
+        rejected: countByStatus(rows, "REJECTED"),
+        withdrawn: countByStatus(rows, "WITHDRAWN"),
+        conversion: rows.length ? Math.round((accepted / rows.length) * 100) : 0,
+      };
+    })
+    .filter((row) => row.applications > 0)
+    .sort((left, right) => right.applications - left.applications);
 }
 
-function groupJobPerformance(rows: ReportRow[]) {
-  return groupPerformance(rows, "jobTitle");
-}
-
-function groupPerformance(rows: ReportRow[], key: "recruiter" | "jobTitle") {
-  return Object.values(rows.reduce<Record<string, ReportRow[]>>((acc, item) => {
-    acc[item[key]] = [...(acc[item[key]] ?? []), item];
-    return acc;
-  }, {})).map((items) => {
-    const total = summarize(items);
-    return {
-      label: String(items[0][key]),
-      applications: total.applications,
-      offers: total.offers,
-      hires: total.hires,
-      timeToHire: total.timeToHire,
-      conversion: total.applications ? Math.round((total.hires / total.applications) * 100) : 0,
-    };
-  }).sort((a, b) => b.hires - a.hires);
-}
-
-function unique(values: string[]) {
-  return Array.from(new Set(values));
+function countByStatus(applications: ApplicationResponse[], status: ApplicationStatus) {
+  return applications.filter((application) => application.status === status).length;
 }

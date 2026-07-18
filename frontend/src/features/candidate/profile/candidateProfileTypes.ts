@@ -32,9 +32,11 @@ export interface CandidateEducation {
 
 export interface CandidateSkill {
   id: string;
+  skillId?: number;
   name: string;
   level: string;
   years: number;
+  source?: string;
 }
 
 export interface CandidateCertificate {

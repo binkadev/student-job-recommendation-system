@@ -1,4 +1,4 @@
-import type { PublicJobListItem } from "../../public/jobs/jobsListTypes";
+import type { Job } from "../../../types/domain";
 
 export interface CandidateDashboardProfile {
   id: string;
@@ -6,40 +6,33 @@ export interface CandidateDashboardProfile {
   title: string;
   location: string;
   profileCompletion: number;
-  profileViews: number;
 }
 
 export interface CandidateDashboardStats {
-  matchedJobs: number;
+  activeJobs: number;
   savedJobs: number;
   applications: number;
-  interviews: number;
+  cvs: number;
 }
 
 export interface CandidateDashboardCv {
   id: string;
   fileName: string;
-  score: number;
-  updatedAt: string;
-  isPublic: boolean;
+  fileSize: string;
+  uploadedAt: string;
+  active: boolean;
 }
+
+export type CandidateDashboardApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
 export interface CandidateDashboardApplication {
   id: string;
+  jobId: string;
   jobTitle: string;
   companyName: string;
   appliedAt: string;
-  status: "submitted" | "reviewing" | "interview" | "offer" | "rejected";
-}
-
-export interface CandidateDashboardInterview {
-  id: string;
-  jobTitle: string;
-  companyName: string;
-  startsAt: string;
-  mode: "Online" | "Offline";
-  locationOrLink: string;
-  status: "pending" | "confirmed";
+  updatedAt: string;
+  status: CandidateDashboardApplicationStatus;
 }
 
 export interface CandidateDashboardNotification {
@@ -62,8 +55,8 @@ export interface CandidateDashboardData {
   stats: CandidateDashboardStats;
   cv: CandidateDashboardCv | null;
   missingProfileItems: MissingProfileItem[];
-  recommendedJobs: PublicJobListItem[];
+  jobs: Job[];
   applications: CandidateDashboardApplication[];
-  interviews: CandidateDashboardInterview[];
   notifications: CandidateDashboardNotification[];
+  unreadNotifications: number;
 }

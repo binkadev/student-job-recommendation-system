@@ -32,19 +32,19 @@ const tabs: Array<{ label: string; value: EditTab }> = [
   { label: "Liên kết", value: "links" },
 ];
 
-const phoneRegex = /^(0|\+84)(\d{9})$/;
+const phoneRegex = /^$|^(0|\+84)(\d{9})$/;
 const urlSchema = z.string().url("URL không hợp lệ.").or(z.literal(""));
 
 const editSchema = z.object({
-  avatar: z.string().min(1, "Vui lòng nhập avatar."),
+  avatar: z.string(),
   name: z.string().min(2, "Vui lòng nhập họ tên."),
-  birthDate: z.string().min(1, "Vui lòng chọn ngày sinh."),
+  birthDate: z.string(),
   email: z.string().email("Email không hợp lệ."),
   phone: z.string().regex(phoneRegex, "Số điện thoại Việt Nam không hợp lệ."),
-  location: z.string().min(1, "Vui lòng nhập tỉnh thành."),
-  address: z.string().min(2, "Vui lòng nhập địa chỉ."),
-  currentTitle: z.string().min(2, "Vui lòng nhập chức danh hiện tại."),
-  availability: z.string().min(2, "Vui lòng nhập trạng thái sẵn sàng."),
+  location: z.string(),
+  address: z.string(),
+  currentTitle: z.string(),
+  availability: z.string(),
   summary: z.string().max(1000, "Giới thiệu tối đa 1.000 ký tự."),
   careerGoal: z.string().max(800, "Mục tiêu nghề nghiệp tối đa 800 ký tự."),
   linkedIn: urlSchema,
@@ -127,7 +127,7 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
     setSavedProfile(nextProfile);
     reset(values);
     setListError("");
-    showToast({ type: "success", title: "Đã lưu toàn bộ hồ sơ", message: "Dữ liệu đã được cập nhật vào localStorage." });
+    showToast({ type: "success", title: "Đã lưu toàn bộ hồ sơ", message: "Dữ liệu đã được cập nhật lên backend." });
   }
 
   async function saveCurrentSection() {

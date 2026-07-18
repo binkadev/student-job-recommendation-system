@@ -1,90 +1,163 @@
-import { withMockDelay } from "../../../utils/mockDelay";
-import { publicJobs } from "./jobsListMockData";
+import { httpClient } from "../../../services/api/httpClient";
 import type { JobsFilterOptions, JobsListFilters, JobsListResult, PublicJobListItem } from "./jobsListTypes";
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errorCode?: string;
+}
+
+interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+interface JobSkillResponse {
+  id: number;
+  skillId: number;
+  skillName: string;
+  normalizedName: string;
+  category: string | null;
+}
+
+interface JobResponse {
+  id: number;
+  companyId: number;
+  companyName: string;
+  title: string;
+  location: string | null;
+  jobType: BackendJobType | null;
+  workingModel: BackendWorkingModel | null;
+  status: BackendJobStatus;
+  salaryMin: number | string | null;
+  salaryMax: number | string | null;
+  currency: string | null;
+  deadline: string | null;
+  skills: JobSkillResponse[];
+  publishedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
+type BackendWorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
+type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
 
 const pageSize = 6;
 
+const JOB_TYPE_LABELS: Record<BackendJobType, string> = {
+  FULL_TIME: "Toàn thời gian",
+  PART_TIME: "Bán thời gian",
+  INTERNSHIP: "Thực tập",
+  CONTRACT: "Hợp đồng",
+};
+
+const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
+  ONSITE: "Onsite",
+  HYBRID: "Hybrid",
+  REMOTE: "Remote",
+};
+
 export function getJobsFilterOptions(): JobsFilterOptions {
   return {
-    locations: Array.from(new Set(publicJobs.map((job) => job.location))),
-    industries: Array.from(new Set(publicJobs.map((job) => job.industry))),
-    levels: Array.from(new Set(publicJobs.map((job) => job.level))),
-    jobTypes: Array.from(new Set(publicJobs.map((job) => job.jobType))),
-    workModes: Array.from(new Set(publicJobs.map((job) => job.workMode))),
+    locations: [],
+    jobTypes: Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label })),
+    workModes: Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label })),
   };
 }
 
-export function getPublicJobs(filters: JobsListFilters): Promise<JobsListResult> {
-  const filteredJobs = sortJobs(filterJobs(publicJobs, filters), filters);
-  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
-  const page = Math.min(Math.max(filters.page, 1), totalPages);
-  const start = (page - 1) * pageSize;
-
-  return withMockDelay({
-    items: filteredJobs.slice(start, start + pageSize),
-    totalItems: filteredJobs.length,
-    page,
-    pageSize,
-    totalPages,
+export async function getPublicJobs(filters: JobsListFilters): Promise<JobsListResult> {
+  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+    params: {
+      page: filters.page,
+      size: pageSize,
+      keyword: filters.keyword || undefined,
+      location: filters.location || undefined,
+      jobType: filters.jobType || undefined,
+      workingModel: filters.workingModel || undefined,
+      status: "ACTIVE",
+    },
   });
+  const page = response.data.data;
+
+  return {
+    items: page.items.map(mapJob),
+    totalItems: page.totalItems,
+    page: page.page,
+    pageSize: page.size,
+    totalPages: page.totalPages,
+  };
 }
 
-function filterJobs(jobs: PublicJobListItem[], filters: JobsListFilters) {
-  const keyword = filters.keyword.trim().toLowerCase();
-  const salaryRangeValue = salaryRange(filters.salary);
-  const postedDate = postedDateMin(filters.postedDate);
-
-  return jobs.filter((job) => {
-    const searchable = `${job.title} ${job.companyName} ${job.skills.join(" ")}`.toLowerCase();
-    const matchKeyword = !keyword || searchable.includes(keyword);
-    const matchLocation = !filters.locations.length || filters.locations.includes(job.location);
-    const matchIndustry = !filters.industries.length || filters.industries.includes(job.industry);
-    const matchSalary = !salaryRangeValue || job.salaryMax >= salaryRangeValue.min && job.salaryMax <= salaryRangeValue.max;
-    const matchExperience = matchExperienceFilter(job.experienceYears, filters.experience);
-    const matchLevel = !filters.level || job.level === filters.level;
-    const matchJobType = !filters.jobType || job.jobType === filters.jobType;
-    const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
-    const matchPostedDate = postedDate === null || new Date(job.postedAt) >= postedDate;
-    const matchFeatured = !filters.featured || job.status === "featured";
-
-    return matchKeyword && matchLocation && matchIndustry && matchSalary && matchExperience && matchLevel && matchJobType && matchWorkMode && matchPostedDate && matchFeatured;
-  });
+function mapJob(job: JobResponse): PublicJobListItem {
+  return {
+    id: String(job.id),
+    logo: getInitials(job.companyName),
+    title: job.title,
+    companyId: String(job.companyId),
+    companyName: job.companyName,
+    salary: formatSalary(job),
+    salaryMax: Number(job.salaryMax ?? job.salaryMin ?? 0),
+    location: job.location || "Chưa cập nhật",
+    industry: "Chưa có API",
+    experienceYears: 0,
+    experienceLabel: "Chưa có API",
+    level: "Chưa có API",
+    jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
+    workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
+    skills: (job.skills ?? []).map((skill) => skill.skillName),
+    postedAt: formatDate(job.publishedAt || job.createdAt),
+    deadline: formatDate(job.deadline),
+    applicants: 0,
+    status: getDisplayStatus(job),
+    matchScore: 0,
+  };
 }
 
-function sortJobs(jobs: PublicJobListItem[], filters: JobsListFilters) {
-  const nextJobs = [...jobs];
-  if (filters.sort === "match") return nextJobs.sort((a, b) => b.matchScore - a.matchScore);
-  if (filters.sort === "salary") return nextJobs.sort((a, b) => b.salaryMax - a.salaryMax);
-  if (filters.sort === "deadline") return nextJobs.sort((a, b) => a.deadline.localeCompare(b.deadline));
-  return nextJobs.sort((a, b) => b.postedAt.localeCompare(a.postedAt));
+function getDisplayStatus(job: JobResponse): PublicJobListItem["status"] {
+  if (job.deadline && daysUntil(job.deadline) <= 7) return "urgent";
+  return "published";
 }
 
-function salaryRange(value: string) {
-  if (value === "under-10") return { min: 0, max: 10 };
-  if (value === "10-20") return { min: 10, max: 20 };
-  if (value === "20-35") return { min: 20, max: 35 };
-  if (value === "over-35") return { min: 35, max: Number.POSITIVE_INFINITY };
-  return null;
+function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
+  if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
+  const currency = job.currency || "VND";
+  const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
+  const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
+  if (min && max) return `${min} - ${max} ${currency}`;
+  return `${min || max} ${currency}`;
 }
 
-function matchExperienceFilter(experienceYears: number, value: string) {
-  if (!value) return true;
-  if (value === "intern") return experienceYears === 0;
-  if (value === "1") return experienceYears >= 1 && experienceYears < 3;
-  if (value === "3") return experienceYears >= 3 && experienceYears < 5;
-  if (value === "5") return experienceYears >= 5;
-  return true;
+function formatMoney(value: number | string) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return String(value);
+  return new Intl.NumberFormat("vi-VN").format(numberValue);
 }
 
-function postedDateMin(value: string) {
-  const now = new Date("2026-07-11T00:00:00");
-  if (value === "7-days") {
-    now.setDate(now.getDate() - 7);
-    return now;
-  }
-  if (value === "30-days") {
-    now.setDate(now.getDate() - 30);
-    return now;
-  }
-  return null;
+function formatDate(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+}
+
+function daysUntil(value: string) {
+  const target = new Date(value).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target - today.getTime()) / 86400000);
+}
+
+function getInitials(value: string) {
+  const initials = value
+    .trim()
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join("")
+    .slice(-2)
+    .toUpperCase();
+  return initials || "CT";
 }

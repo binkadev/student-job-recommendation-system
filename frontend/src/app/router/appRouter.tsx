@@ -55,7 +55,7 @@ function routeElement(route: AppRoute) {
   if (route.path === "/companies") return <CompaniesPage />;
   if (route.path === "/companies/:companyId") return <CompanyDetailPage />;
   if (route.path === "/career-resources" || route.path === "/career-resources/:slug") return <CareerResourcesPage />;
-  if (route.path === "/about") return <PublicInfoPage title="Giới thiệu" description="Thông tin tổng quan về hệ thống gợi ý việc làm dựa trên CV và hồ sơ cá nhân." />;
+  if (route.path === "/about") return <PublicInfoPage title="Giới thiệu" description="Thông tin tổng quan về hệ thống gợi ý việc làm dựa trên CV và hồ sơ cá nhân." variant="about" />;
   if (route.path === "/contact") return <PublicInfoPage title="Liên hệ" description="Kênh liên hệ hỗ trợ ứng viên, nhà tuyển dụng và quản trị hệ thống." />;
   if (route.path === "/privacy-policy") return <PublicInfoPage title="Chính sách bảo mật" description="Quy định về thu thập, lưu trữ và sử dụng dữ liệu hồ sơ, CV và thông tin tuyển dụng." />;
   if (route.path === "/terms") return <PublicInfoPage title="Điều khoản sử dụng" description="Điều kiện sử dụng nền tảng, trách nhiệm người dùng và quy định đăng tin tuyển dụng." />;

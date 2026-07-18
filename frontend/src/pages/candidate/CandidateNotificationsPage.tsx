@@ -1,154 +1,81 @@
-import { Bell, BriefcaseBusiness, CalendarDays, FileText, Mail, MessageSquare, Send, Settings, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Bell, CheckCircle2, Send } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { Pagination } from "../../components/common/Pagination";
 import { EmptyState } from "../../components/feedback/EmptyState";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
-import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
-import { mockNotificationService } from "../../services/mock";
-import type { AppNotification, NotificationType } from "../../types/domain";
+import { httpClient } from "../../services/api/httpClient";
 
 type NotificationTab = "all" | "unread";
 
-const notificationTypeLabels: Record<NotificationType, string> = {
-  application: "Ứng tuyển",
-  interview: "Phỏng vấn",
-  job: "Việc làm",
-  invitation: "Lời mời",
-  message: "Tin nhắn",
-  system: "Hệ thống",
-  cv: "CV",
-};
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errorCode?: string;
+}
 
-const notificationTypeIcons: Record<NotificationType, ReactNode> = {
-  application: <Send size={18} />,
-  interview: <CalendarDays size={18} />,
-  job: <BriefcaseBusiness size={18} />,
-  invitation: <Mail size={18} />,
-  message: <MessageSquare size={18} />,
-  system: <Settings size={18} />,
-  cv: <FileText size={18} />,
-};
+interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
 
-const notificationOverrides: Record<string, Partial<AppNotification>> = {
-  "notification-1": {
-    title: "Có 5 việc làm mới phù hợp",
-    body: "Các việc làm React mới đã được thêm vào danh sách gợi ý.",
-    type: "job",
-    targetPath: "/candidate/jobs/recommended",
-  },
-  "notification-2": {
-    title: "CV đã phân tích xong",
-    body: "CV Frontend của bạn đạt 82 điểm.",
-    type: "cv",
-    targetPath: "/candidate/cvs/cv-1/analysis",
-  },
-  "notification-3": {
-    title: "Nhà tuyển dụng đã xem hồ sơ",
-    body: "NovaTech vừa xem hồ sơ ứng tuyển Frontend Developer của bạn.",
-    type: "application",
-    targetPath: "/candidate/applications/app-1",
-  },
-  "notification-4": {
-    title: "Lịch phỏng vấn được xác nhận",
-    body: "Lịch phỏng vấn DevOps ngày 12/07 đã được xác nhận.",
-    type: "interview",
-    targetPath: "/candidate/interviews/interview-1",
-  },
-  "notification-5": {
-    title: "Có lời mời ứng tuyển mới",
-    body: "NovaTech gửi lời mời ứng tuyển vị trí Frontend Developer.",
-    type: "invitation",
-    targetPath: "/candidate/invitations/invitation-1",
-  },
-  "notification-6": {
-    title: "Cập nhật hệ thống",
-    body: "Hệ thống đã cập nhật chính sách bảo mật tài khoản ứng viên.",
-    type: "system",
-    targetPath: "/candidate/settings",
-  },
-  "notification-7": {
-    title: "Tin nhắn mới từ nhà tuyển dụng",
-    body: "Trần Thị Bình vừa gửi tin nhắn về vị trí Frontend Developer.",
-    type: "message",
-    targetPath: "/candidate/messages/conversation-1",
-  },
-  "notification-8": {
-    title: "Gợi ý hoàn thiện hồ sơ",
-    body: "Bạn nên bổ sung dự án cá nhân để tăng khả năng được gợi ý việc làm.",
-    type: "system",
-    targetPath: "/candidate/profile/edit",
-  },
-};
+interface NotificationResponse {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  referenceType: string | null;
+  referenceId: number | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
 
-const extraNotifications: AppNotification[] = [
-  {
-    id: "notification-9",
-    title: "Tin nhắn mới từ Phan Đức Tài",
-    body: "Nhà tuyển dụng hỏi về thời gian bạn có thể phỏng vấn cho vị trí Mobile Developer.",
-    type: "message",
-    read: false,
-    createdAt: "2026-07-10T10:15:00",
-    targetPath: "/candidate/messages/conversation-5",
-  },
-];
+interface UnreadCountResponse {
+  unreadCount: number;
+}
+
+const pageSize = 10;
 
 export function CandidateNotificationsPage() {
   const { showToast } = useToast();
-  const notificationsQuery = useAsyncData(() => mockNotificationService.getNotifications({ pageSize: 100 }), []);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [page, setPage] = useState(1);
   const [tab, setTab] = useState<NotificationTab>("all");
-  const [type, setType] = useState<NotificationType | "">("");
-  const [confirmClearRead, setConfirmClearRead] = useState(false);
+  const [type, setType] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const notificationsQuery = useAsyncData(() => getNotifications(page), [page, reloadKey]);
+  const unreadQuery = useAsyncData(() => getUnreadCount(), [reloadKey]);
+  const result = notificationsQuery.data;
+  const notifications = useMemo(() => {
+    return (result?.items ?? [])
+      .filter((notification) => (tab === "unread" ? !notification.isRead : true))
+      .filter((notification) => (!type ? true : notification.type === type));
+  }, [result?.items, tab, type]);
 
-  useEffect(() => {
-    if (notificationsQuery.data?.items) {
-      setNotifications(mergeNotifications(notificationsQuery.data.items));
-    }
-  }, [notificationsQuery.data?.items]);
-
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
-
-  const filteredNotifications = useMemo(() => {
-    return notifications
-      .filter((notification) => (tab === "unread" ? !notification.read : true))
-      .filter((notification) => (!type ? true : notification.type === type))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [notifications, tab, type]);
-
-  async function markRead(notification: AppNotification) {
-    if (notification.read) return;
-    const nextNotification = { ...notification, read: true };
-    setNotifications((current) => current.map((item) => (item.id === notification.id ? nextNotification : item)));
-    await mockNotificationService.updateNotification(notification.id, { read: true });
+  async function markRead(notification: NotificationResponse) {
+    if (notification.isRead) return;
+    await markNotificationRead(notification.id);
+    setReloadKey((current) => current + 1);
   }
 
   async function markAllRead() {
-    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
-    await Promise.all(notifications.filter((notification) => !notification.read).map((notification) => mockNotificationService.updateNotification(notification.id, { read: true })));
+    await markAllNotificationsRead();
+    setReloadKey((current) => current + 1);
     showToast({ type: "success", title: "Đã đánh dấu tất cả đã đọc" });
-  }
-
-  async function deleteNotification(notification: AppNotification) {
-    setNotifications((current) => current.filter((item) => item.id !== notification.id));
-    await mockNotificationService.deleteNotification(notification.id);
-    showToast({ type: "success", title: "Đã xóa thông báo" });
-  }
-
-  async function clearReadNotifications() {
-    const readNotifications = notifications.filter((notification) => notification.read);
-    setNotifications((current) => current.filter((notification) => !notification.read));
-    await Promise.all(readNotifications.map((notification) => mockNotificationService.deleteNotification(notification.id)));
-    setConfirmClearRead(false);
-    showToast({ type: "success", title: "Đã xóa toàn bộ thông báo đã đọc" });
   }
 
   if (notificationsQuery.loading) {
@@ -159,9 +86,19 @@ export function CandidateNotificationsPage() {
     );
   }
 
+  if (notificationsQuery.error) {
+    return (
+      <PageContainer>
+        <ErrorState message={notificationsQuery.error} />
+      </PageContainer>
+    );
+  }
+
+  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+
   return (
     <PageContainer>
-      <PageHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc. Lọc, đánh dấu đã đọc và mở nhanh các route liên quan.`} />
+      <PageHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc từ API backend.`} />
 
       <Card className="mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -177,48 +114,34 @@ export function CandidateNotificationsPage() {
             <Select
               label="Loại thông báo"
               value={type}
-              onChange={(event) => setType(event.target.value as NotificationType | "")}
+              onChange={(event) => setType(event.target.value)}
               options={[
                 { label: "Tất cả", value: "" },
-                { label: "Ứng tuyển", value: "application" },
-                { label: "Phỏng vấn", value: "interview" },
-                { label: "Việc làm", value: "job" },
-                { label: "Lời mời", value: "invitation" },
-                { label: "Tin nhắn", value: "message" },
-                { label: "Hệ thống", value: "system" },
+                ...Array.from(new Set((result?.items ?? []).map((notification) => notification.type))).map((value) => ({ label: value, value })),
               ]}
             />
             <Button variant="secondary" className="self-end" onClick={() => void markAllRead()} disabled={unreadCount === 0}>
               Đánh dấu tất cả đã đọc
             </Button>
-            <Button variant="danger" className="self-end" icon={<Trash2 size={16} />} onClick={() => setConfirmClearRead(true)} disabled={!notifications.some((notification) => notification.read)}>
-              Xóa đã đọc
-            </Button>
           </div>
         </div>
       </Card>
 
-      {filteredNotifications.length === 0 ? (
+      {notifications.length === 0 ? (
         <Card>
           <EmptyState message="Không có thông báo phù hợp." />
         </Card>
       ) : (
         <div className="grid gap-3">
-          {filteredNotifications.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} onOpen={() => void markRead(notification)} onMarkRead={() => void markRead(notification)} onDelete={() => void deleteNotification(notification)} />
+          {notifications.map((notification) => (
+            <NotificationItem key={notification.id} notification={notification} onOpen={() => void markRead(notification)} onMarkRead={() => void markRead(notification)} />
           ))}
         </div>
       )}
 
-      <Modal open={confirmClearRead} title="Xóa thông báo đã đọc" onClose={() => setConfirmClearRead(false)}>
-        <div className="space-y-4">
-          <p className="text-sm text-slate-700">Bạn có chắc muốn xóa toàn bộ thông báo đã đọc? Thao tác này sẽ cập nhật dữ liệu localStorage.</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setConfirmClearRead(false)}>Hủy</Button>
-            <Button variant="danger" onClick={() => void clearReadNotifications()}>Xóa đã đọc</Button>
-          </div>
-        </div>
-      </Modal>
+      <div className="mt-5">
+        <Pagination page={result?.page ?? page} totalPages={result?.totalPages ?? 1} onPageChange={setPage} />
+      </div>
     </PageContainer>
   );
 }
@@ -227,49 +150,62 @@ function NotificationItem({
   notification,
   onOpen,
   onMarkRead,
-  onDelete,
 }: {
-  notification: AppNotification;
+  notification: NotificationResponse;
   onOpen: () => void;
   onMarkRead: () => void;
-  onDelete: () => void;
 }) {
-  const typeLabel = notificationTypeLabels[notification.type];
+  const targetPath = resolveNotificationPath(notification);
   return (
-    <Card className={notification.read ? "" : "border-brand-200 bg-brand-50/40"}>
+    <Card className={notification.isRead ? "" : "border-brand-200 bg-brand-50/40"}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <Link to={notification.targetPath} onClick={onOpen} className="flex min-w-0 flex-1 gap-3">
-          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${notification.read ? "bg-slate-100 text-slate-600" : "bg-brand-600 text-white"}`}>
-            {notificationTypeIcons[notification.type] ?? <Bell size={18} />}
+        <Link to={targetPath} onClick={onOpen} className="flex min-w-0 flex-1 gap-3">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${notification.isRead ? "bg-slate-100 text-slate-600" : "bg-brand-600 text-white"}`}>
+            {notification.referenceType === "APPLICATION" ? <Send size={18} /> : <Bell size={18} />}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-semibold text-slate-950">{notification.title}</h2>
-              <StatusBadge label={typeLabel} />
-              <StatusBadge label={notification.read ? "Đã đọc" : "Chưa đọc"} tone={notification.read ? "neutral" : "warning"} />
+              <StatusBadge label={notification.type} />
+              <StatusBadge label={notification.isRead ? "Đã đọc" : "Chưa đọc"} tone={notification.isRead ? "neutral" : "warning"} />
             </div>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{notification.body}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</p>
             <p className="mt-1 text-xs text-slate-500">{formatDateTime(notification.createdAt)}</p>
-            <p className="mt-1 text-xs text-brand-700">Route: {notification.targetPath}</p>
           </div>
         </Link>
         <div className="flex flex-wrap justify-end gap-2">
-          <Link to={notification.targetPath} onClick={onOpen}><Button variant="secondary" size="sm">Mở</Button></Link>
-          <Button variant="secondary" size="sm" onClick={onMarkRead} disabled={notification.read}>Đánh dấu đã đọc</Button>
-          <Button variant="danger" size="sm" onClick={onDelete}>Xóa</Button>
+          <Link to={targetPath} onClick={onOpen}><Button variant="secondary" size="sm">Mở</Button></Link>
+          <Button variant="secondary" size="sm" icon={<CheckCircle2 size={16} />} onClick={onMarkRead} disabled={notification.isRead}>Đánh dấu đã đọc</Button>
         </div>
       </div>
     </Card>
   );
 }
 
-function mergeNotifications(items: AppNotification[]) {
-  const normalized = items.map((notification) => ({
-    ...notification,
-    ...notificationOverrides[notification.id],
-  }));
-  const existingIds = new Set(normalized.map((notification) => notification.id));
-  return [...normalized, ...extraNotifications.filter((notification) => !existingIds.has(notification.id))];
+async function getNotifications(page: number) {
+  const response = await httpClient.get<ApiResponse<PageResponse<NotificationResponse>>>("/notifications", {
+    params: { page, size: pageSize },
+  });
+  return response.data.data;
+}
+
+async function getUnreadCount() {
+  const response = await httpClient.get<ApiResponse<UnreadCountResponse>>("/notifications/unread-count");
+  return response.data.data;
+}
+
+async function markNotificationRead(id: number) {
+  await httpClient.patch<ApiResponse<NotificationResponse>>(`/notifications/${id}/read`);
+}
+
+async function markAllNotificationsRead() {
+  await httpClient.patch<ApiResponse<null>>("/notifications/read-all");
+}
+
+function resolveNotificationPath(notification: NotificationResponse) {
+  if (notification.referenceType === "APPLICATION" && notification.referenceId) return `/candidate/applications/${notification.referenceId}`;
+  if (notification.referenceType === "JOB" && notification.referenceId) return `/candidate/jobs/${notification.referenceId}`;
+  return "/candidate/notifications";
 }
 
 function formatDateTime(value: string) {

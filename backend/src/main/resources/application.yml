@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   profiles:
-    default: no-db
+    default: dev
   servlet:
     multipart:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}

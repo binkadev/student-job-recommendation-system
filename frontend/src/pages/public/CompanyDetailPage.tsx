@@ -43,6 +43,7 @@ export function CompanyDetailPage() {
   const [jobQuery, setJobQuery] = useState("");
   const [jobLocation, setJobLocation] = useState("");
   const [jobType, setJobType] = useState("");
+  const [jobWorkMode, setJobWorkMode] = useState("");
   const [page, setPage] = useState(1);
   const [selectedImage, setSelectedImage] = useState<CompanyGalleryItem | null>(null);
   const companyQuery = useAsyncData(() => getPublicCompanyDetail(companyId), [companyId, reloadKey]);
@@ -57,6 +58,7 @@ export function CompanyDetailPage() {
   const jobOptions = useMemo(() => ({
     locations: [emptyOption, ...Array.from(new Set(jobs.map((job) => job.location))).map((value) => ({ label: value, value }))],
     jobTypes: [emptyOption, ...Array.from(new Set(jobs.map((job) => job.jobType))).map((value) => ({ label: value, value }))],
+    workModes: [emptyOption, ...Array.from(new Set(jobs.map((job) => job.workMode))).map((value) => ({ label: value, value }))],
   }), [jobs]);
 
   const filteredJobs = useMemo(() => {
@@ -66,9 +68,10 @@ export function CompanyDetailPage() {
       const matchKeyword = !keyword || searchable.includes(keyword);
       const matchLocation = !jobLocation || job.location === jobLocation;
       const matchType = !jobType || job.jobType === jobType;
-      return matchKeyword && matchLocation && matchType;
+      const matchWorkMode = !jobWorkMode || job.workMode === jobWorkMode;
+      return matchKeyword && matchLocation && matchType && matchWorkMode;
     });
-  }, [jobs, jobLocation, jobQuery, jobType]);
+  }, [jobs, jobLocation, jobQuery, jobType, jobWorkMode]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
   const pagedJobs = filteredJobs.slice((page - 1) * pageSize, page * pageSize);
@@ -114,6 +117,9 @@ export function CompanyDetailPage() {
     );
   }
 
+  const hasWebsite = company.website.startsWith("http://") || company.website.startsWith("https://");
+  const foundedYearLabel = company.foundedYear > 0 ? String(company.foundedYear) : "Chưa có API";
+
   return (
     <PageContainer>
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -144,7 +150,7 @@ export function CompanyDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" icon={<Copy size={16} />} onClick={() => void copyText("website", company.website)}>Copy website</Button>
+            <Button variant="secondary" icon={<Copy size={16} />} disabled={!hasWebsite} onClick={() => void copyText("website", company.website)}>Copy website</Button>
             <Button variant="secondary" icon={<Copy size={16} />} onClick={() => void copyText("địa chỉ", company.address)}>Copy địa chỉ</Button>
           </div>
         </div>
@@ -168,14 +174,18 @@ export function CompanyDetailPage() {
               </Card>
               <Card>
                 <SectionHeader title="Giá trị cốt lõi" />
-                <div className="flex flex-wrap gap-2">{company.coreValues.map((value) => <StatusBadge key={value} label={value} tone="success" />)}</div>
+                {company.coreValues.length ? (
+                  <div className="flex flex-wrap gap-2">{company.coreValues.map((value) => <StatusBadge key={value} label={value} tone="success" />)}</div>
+                ) : (
+                  <EmptyState message="Backend chưa có API public cho giá trị cốt lõi của công ty." />
+                )}
               </Card>
               <Card>
                 <SectionHeader title="Thông tin doanh nghiệp" />
                 <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
                   <InfoBlock label="Lĩnh vực" value={company.industry} />
                   <InfoBlock label="Quy mô" value={company.size} />
-                  <InfoBlock label="Năm thành lập" value={String(company.foundedYear)} />
+                  <InfoBlock label="Năm thành lập" value={foundedYearLabel} />
                   <InfoBlock label="Website" value={company.website} />
                   <InfoBlock label="Chi nhánh" value={company.branches.join(", ")} />
                 </div>
@@ -187,10 +197,11 @@ export function CompanyDetailPage() {
             <div id="jobs">
               <Card>
                 <SectionHeader title="Việc làm đang tuyển" description="Tìm kiếm và lọc các vị trí đang mở tại công ty này." />
-                <div className="mb-4 grid gap-3 md:grid-cols-3">
+                <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <Input label="Search trong công ty" value={jobQuery} onChange={(event) => { setJobQuery(event.target.value); setPage(1); }} placeholder="Tên vị trí, kỹ năng..." />
                   <Select label="Địa điểm" value={jobLocation} onChange={(event) => { setJobLocation(event.target.value); setPage(1); }} options={jobOptions.locations} />
                   <Select label="Loại hình" value={jobType} onChange={(event) => { setJobType(event.target.value); setPage(1); }} options={jobOptions.jobTypes} />
+                  <Select label="Hình thức" value={jobWorkMode} onChange={(event) => { setJobWorkMode(event.target.value); setPage(1); }} options={jobOptions.workModes} />
                 </div>
                 {pagedJobs.length ? (
                   <div className="grid gap-4">
@@ -208,28 +219,36 @@ export function CompanyDetailPage() {
             <Card>
               <SectionHeader title="Phúc lợi" description="Các chính sách hỗ trợ nhân sự trong quá trình làm việc và phát triển." />
               <div className="grid gap-4 md:grid-cols-2">
-                {company.benefits.map((benefit) => (
-                  <div key={benefit.title} className="rounded-lg border border-slate-200 p-4">
-                    <h3 className="font-semibold text-slate-950">{benefit.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{benefit.description}</p>
-                  </div>
-                ))}
+                {company.benefits.length ? (
+                  company.benefits.map((benefit) => (
+                    <div key={benefit.title} className="rounded-lg border border-slate-200 p-4">
+                      <h3 className="font-semibold text-slate-950">{benefit.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{benefit.description}</p>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="Backend chưa có API public cho phúc lợi công ty." />
+                )}
               </div>
             </Card>
           ) : null}
 
           {activeTab === "gallery" ? (
             <Card>
-              <SectionHeader title="Hình ảnh môi trường làm việc" description="Grid ảnh mock mô phỏng văn phòng, hoạt động đội nhóm và đào tạo." />
+              <SectionHeader title="Hình ảnh môi trường làm việc" description="Backend chưa có API public cho hình ảnh công ty." />
               <div className="grid gap-4 sm:grid-cols-2">
-                {company.gallery.map((image) => (
-                  <button key={image.id} type="button" onClick={() => setSelectedImage(image)} className="overflow-hidden rounded-lg border border-slate-200 text-left hover:border-brand-200">
-                    <div className={`flex aspect-video items-end p-4 text-white ${image.tone}`}>
-                      <span className="font-semibold">{image.title}</span>
-                    </div>
-                    <p className="p-4 text-sm text-slate-600">{image.description}</p>
-                  </button>
-                ))}
+                {company.gallery.length ? (
+                  company.gallery.map((image) => (
+                    <button key={image.id} type="button" onClick={() => setSelectedImage(image)} className="overflow-hidden rounded-lg border border-slate-200 text-left hover:border-brand-200">
+                      <div className={`flex aspect-video items-end p-4 text-white ${image.tone}`}>
+                        <span className="font-semibold">{image.title}</span>
+                      </div>
+                      <p className="p-4 text-sm text-slate-600">{image.description}</p>
+                    </button>
+                  ))
+                ) : (
+                  <EmptyState message="Backend chưa có API public cho hình ảnh công ty." />
+                )}
               </div>
             </Card>
           ) : null}
@@ -242,14 +261,18 @@ export function CompanyDetailPage() {
               <InfoItem icon={<Users size={16} />} label={company.size} />
               <InfoItem icon={<MapPin size={16} />} label={company.address} />
               <InfoItem icon={<Globe size={16} />} label={company.website} />
-              <InfoItem icon={<CalendarDays size={16} />} label={`Thành lập ${company.foundedYear}`} />
+              <InfoItem icon={<CalendarDays size={16} />} label={`Thành lập ${foundedYearLabel}`} />
               <InfoItem icon={<BriefcaseBusiness size={16} />} label={`${company.openJobs} việc đang tuyển`} />
             </div>
             <div className="mt-4 grid gap-2">
               <Button onClick={() => changeTab("jobs")}>Mở việc làm</Button>
-              <a href={company.website} target="_blank" rel="noreferrer">
-                <Button className="w-full" variant="secondary" icon={<ExternalLink size={16} />}>Mở website</Button>
-              </a>
+              {hasWebsite ? (
+                <a href={company.website} target="_blank" rel="noreferrer">
+                  <Button className="w-full" variant="secondary" icon={<ExternalLink size={16} />}>Mở website</Button>
+                </a>
+              ) : (
+                <Button className="w-full" variant="secondary" icon={<ExternalLink size={16} />} disabled>Mở website</Button>
+              )}
             </div>
           </Card>
         </aside>
