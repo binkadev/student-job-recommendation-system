@@ -111,9 +111,37 @@ public class CvServiceImpl implements CvService {
                 .orElse(null);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CvFileResponse getMyCvFile(Long userId, Long id) {
+        Student student = getStudentByUserId(userId);
+        CvFile cvFile = getStudentCvFile(id, student);
+        return cvFileMapper.toCvFileResponse(cvFile);
+    }
+
+    @Override
+    @Transactional
+    public CvFileResponse activateCv(Long userId, Long id) {
+        Student student = getStudentByUserId(userId);
+        CvFile cvFile = getStudentCvFile(id, student);
+
+        cvFileRepository.deactivateOtherActiveCvFiles(student.getId(), cvFile.getId());
+        if (!cvFile.isActive()) {
+            cvFile.setActive(true);
+            cvFile = cvFileRepository.save(cvFile);
+        }
+
+        return cvFileMapper.toCvFileResponse(cvFile);
+    }
+
     private Student getStudentByUserId(Long userId) {
         return studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
+    }
+
+    private CvFile getStudentCvFile(Long id, Student student) {
+        return cvFileRepository.findByIdAndStudentId(id, student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CV file not found"));
     }
 
     private void validateFile(MultipartFile file) {
