@@ -12,4 +12,8 @@ public interface CvService {
     List<CvFileResponse> getMyCvFiles(Long userId);
 
     CvFileResponse getActiveCv(Long userId);
+
+    CvFileResponse getMyCvFile(Long userId, Long id);
+
+    CvFileResponse activateCv(Long userId, Long id);
 }
