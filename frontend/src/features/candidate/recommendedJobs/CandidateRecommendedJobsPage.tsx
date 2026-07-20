@@ -15,12 +15,12 @@ import { Select } from "../../../components/ui/Select";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
 import { useToast } from "../../../hooks/useToast";
+import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 import {
   getRecommendedFilterOptions,
   getRecommendedJobs,
   getRecommendedJobState,
-  recommendedJobs,
   saveRecommendedJobState,
 } from "./recommendedJobsService";
 import type { CandidateRecommendedJob, MatchCriterion, RecommendedJobFilters } from "./recommendedJobsTypes";
@@ -61,13 +61,13 @@ export function CandidateRecommendedJobsPage() {
   const [hiddenIds, setHiddenIds] = useState<string[]>(initialState.hiddenIds);
   const [notInterestedIds, setNotInterestedIds] = useState<string[]>(initialState.notInterestedIds);
   const [analysisJob, setAnalysisJob] = useState<CandidateRecommendedJob | null>(null);
-  const [applyJob, setApplyJob] = useState<CandidateRecommendedJob | null>(null);
+  const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { hasApplied, applyToJob } = useAppliedJobs();
+  const { hasApplied } = useAppliedJobs();
   const { showToast } = useToast();
 
   const jobsQuery = useAsyncData(() => getRecommendedJobs(filters, showHidden ? [] : hiddenIds), [filters, hiddenIds, showHidden]);
-  const options = useMemo(() => getRecommendedFilterOptions(recommendedJobs), []);
+  const options = useMemo(() => getRecommendedFilterOptions(jobsQuery.data ?? []), [jobsQuery.data]);
 
   const filteredJobs = useMemo(() => {
     const jobs = jobsQuery.data ?? [];
@@ -98,7 +98,7 @@ export function CandidateRecommendedJobsPage() {
     const nextHiddenIds = hiddenIds.includes(job.id) ? hiddenIds : [...hiddenIds, job.id];
     const nextNotInterestedIds = notInterestedIds.includes(job.id) ? notInterestedIds : [...notInterestedIds, job.id];
     persistRecommendationState(nextHiddenIds, nextNotInterestedIds);
-    showToast({ type: "success", title: "Đã ghi nhận", message: "Hệ thống sẽ giảm ưu tiên các việc tương tự trong dữ liệu mẫu." });
+    showToast({ type: "success", title: "Đã ghi nhận", message: "Việc làm này sẽ được ẩn khỏi danh sách gợi ý trên trình duyệt hiện tại." });
   }
 
   function restoreJob(job: CandidateRecommendedJob) {
@@ -113,14 +113,14 @@ export function CandidateRecommendedJobsPage() {
       showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
       return;
     }
-    setApplyJob(job);
-  }
-
-  function confirmApply() {
-    if (!applyJob) return;
-    applyToJob(applyJob.id);
-    showToast({ type: "success", title: "Ứng tuyển thành công", message: `Hồ sơ đã được gửi đến ${applyJob.companyName}.` });
-    setApplyJob(null);
+    setApplyJob({
+      id: job.id,
+      title: job.title,
+      companyName: job.companyName,
+      salary: job.salary,
+      location: job.location,
+      workMode: job.workMode,
+    });
   }
 
   return (
@@ -205,7 +205,7 @@ export function CandidateRecommendedJobsPage() {
       </div>
 
       <MatchAnalysisModal job={analysisJob} onClose={() => setAnalysisJob(null)} />
-      <ApplyConfirmModal job={applyJob} onClose={() => setApplyJob(null)} onConfirm={confirmApply} />
+      <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} />
     </PageContainer>
   );
 }
@@ -345,23 +345,3 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
   );
 }
 
-function ApplyConfirmModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJob | null; onClose: () => void; onConfirm: () => void }) {
-  return (
-    <Modal open={Boolean(job)} title="Xác nhận ứng tuyển" onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-sm text-slate-700">
-          Bạn đang ứng tuyển vị trí <strong>{job?.title}</strong> tại <strong>{job?.companyName}</strong>. Hệ thống sẽ dùng CV chính và lưu trạng thái để không cho ứng tuyển trùng.
-        </p>
-        <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-          <p>Match score: <strong>{job?.matchScore}%</strong></p>
-          <p>Mức lương: <strong>{job?.salary}</strong></p>
-          <p>Địa điểm: <strong>{job?.location}</strong></p>
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button onClick={onConfirm}>Xác nhận ứng tuyển</Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}

@@ -192,7 +192,9 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
+              {!cv.active ? <Button variant="secondary" size="sm" disabled>Đặt active</Button> : null}
             </div>
+            {!cv.active ? <p className="mt-3 text-xs text-slate-500">Cần API PATCH /api/students/me/cv/{cv.id}/active để bật CV này.</p> : null}
           </Card>
         ))}
       </div>
@@ -226,7 +228,9 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <div className="grid gap-2">
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
               <Link to="/candidate/cvs/upload"><Button className="w-full">Upload CV mới</Button></Link>
+              {!cv.active ? <Button variant="secondary" className="w-full" disabled>Đặt CV active</Button> : null}
             </div>
+            {!cv.active ? <p className="mt-3 text-xs text-slate-500">Chức năng này cần API PATCH /api/students/me/cv/{cv.id}/active.</p> : null}
           </Card>
         </aside>
       </div>

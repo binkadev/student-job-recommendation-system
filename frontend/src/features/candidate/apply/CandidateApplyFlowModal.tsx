@@ -14,8 +14,8 @@ import { Stepper } from "../../../components/ui/Stepper";
 import { Textarea } from "../../../components/ui/Textarea";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useToast } from "../../../hooks/useToast";
-import { mockApplicationService, mockCvService } from "../../../services/mock";
-import type { Application, Cv } from "../../../types/domain";
+import { httpClient } from "../../../services/api/httpClient";
+import type { Cv } from "../../../types/domain";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 
 export interface ApplyFlowJob {
@@ -46,9 +46,30 @@ const cvStatusLabels: Record<Cv["status"], { label: string; tone: "neutral" | "s
   needs_confirmation: { label: "Cần xác nhận", tone: "warning" },
 };
 
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface BackendCvFileResponse {
+  id: number;
+  originalFileName?: string | null;
+  storedFileName?: string | null;
+  filePath?: string | null;
+  contentType?: string | null;
+  fileSize?: number | null;
+  active: boolean;
+  uploadedAt?: string | null;
+}
+
+interface BackendApplicationResponse {
+  id: number;
+}
+
 export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | null; onClose: () => void }) {
   const open = Boolean(job);
-  const cvsQuery = useAsyncData(() => mockCvService.getCvs({ pageSize: 30 }), [open]);
+  const cvsQuery = useAsyncData(() => getSelectableCvs(open), [open]);
   const { hasApplied, applyToJob } = useAppliedJobs();
   const { showToast } = useToast();
   const [step, setStep] = useState(0);
@@ -119,27 +140,21 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       return;
     }
     setSubmitting(true);
-    const code = `APP-${Date.now().toString().slice(-6)}`;
-    const application: Application = {
-      id: `app-${Date.now()}`,
-      candidateId: "candidate-1",
-      candidateName: "Nguyễn Văn An",
-      jobId: job.id,
-      jobTitle: job.title,
-      companyName: job.companyName,
-      cvId: selectedCv?.id ?? "cv-1",
-      cvName: selectedCv?.fileName ?? "CV mặc định",
-      coverLetter,
-      appliedAt: new Date().toISOString().slice(0, 10),
-      status: "submitted",
-      timeline: [{ label: "Đã gửi", at: new Date().toISOString(), note: `Mã ứng tuyển ${code}. Hồ sơ đã được gửi đến nhà tuyển dụng.` }],
-    };
-    await mockApplicationService.createApplication(application);
-    applyToJob(job.id);
-    setApplicationCode(code);
-    setStep(4);
-    setSubmitting(false);
-    showToast({ type: "success", title: "Ứng tuyển thành công", message: `Mã ứng tuyển của bạn là ${code}.` });
+    try {
+      const response = await httpClient.post<ApiResponse<BackendApplicationResponse>>(`/jobs/${job.id}/apply`, {
+        cvFileId: selectedCvId ? Number(selectedCvId) : null,
+        coverLetter: coverLetter.trim() || null,
+      });
+      const code = `APP-${response.data.data.id}`;
+      applyToJob(job.id);
+      setApplicationCode(code);
+      setStep(4);
+      showToast({ type: "success", title: "Ứng tuyển thành công", message: `Mã ứng tuyển của bạn là ${code}.` });
+    } catch {
+      showToast({ type: "error", title: "Không thể gửi ứng tuyển", message: "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau." });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -330,4 +345,26 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 function formatDate(value: string) {
   if (!value) return "";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+}
+
+async function getSelectableCvs(open: boolean): Promise<{ items: Cv[] }> {
+  if (!open) return { items: [] };
+  const response = await httpClient.get<ApiResponse<BackendCvFileResponse[]>>("/students/me/cv");
+  return { items: response.data.data.map(mapBackendCvFile) };
+}
+
+function mapBackendCvFile(cv: BackendCvFileResponse): Cv {
+  return {
+    id: String(cv.id),
+    candidateId: "",
+    fileName: cv.originalFileName ?? cv.storedFileName ?? `CV #${cv.id}`,
+    uploadedAt: cv.uploadedAt ?? "",
+    status: "analyzed",
+    score: 0,
+    isDefault: cv.active,
+    isPublic: false,
+    extractedSkills: [],
+    missingFields: [],
+    warnings: [],
+  };
 }
