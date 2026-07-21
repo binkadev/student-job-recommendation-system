@@ -1,0 +1,20 @@
+﻿# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio Code local configuration
+.vscode/
+
+# Java / Maven build output
+**/target/
+
+# Runtime files
+**/uploads/
+*.log
+
+# Local environment files
+**/.env
+**/.env.*
+!**/.env.example
