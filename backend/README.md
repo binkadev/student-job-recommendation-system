@@ -71,6 +71,22 @@ http://localhost:8080/swagger-ui.html
 
 Use `POST /api/auth/login` with a demo account to get a JWT. Click `Authorize` in Swagger, enter the token as `Bearer <token>`, then test protected APIs.
 
+## Tests
+
+Run the fast smoke and unit-test layer without Docker or PostgreSQL:
+
+```powershell
+.\mvnw.cmd -B -ntp test
+```
+
+Run the complete test lifecycle, including PostgreSQL integration tests:
+
+```powershell
+.\mvnw.cmd -B -ntp clean verify
+```
+
+The integration-test layer requires a working Docker environment. Maven Failsafe starts a PostgreSQL 17 Testcontainer with dynamically assigned connection details, applies Flyway migrations, and validates the Hibernate mappings. It does not use the local development database or its credentials.
+
 ## Phase 1 FE API Gaps
 
 Additional backend endpoints for frontend integration:
