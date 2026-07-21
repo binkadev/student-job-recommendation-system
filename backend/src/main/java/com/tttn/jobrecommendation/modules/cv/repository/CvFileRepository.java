@@ -12,9 +12,15 @@ public interface CvFileRepository extends JpaRepository<CvFile, Long> {
 
     List<CvFile> findByStudentIdOrderByUploadedAtDesc(Long studentId);
 
+    Optional<CvFile> findByIdAndStudentId(Long id, Long studentId);
+
     Optional<CvFile> findFirstByStudentIdAndActiveTrueOrderByUploadedAtDesc(Long studentId);
 
     @Modifying
     @Query("update CvFile c set c.active = false where c.student.id = :studentId and c.active = true")
     void deactivateActiveCvFiles(Long studentId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("update CvFile c set c.active = false where c.student.id = :studentId and c.id <> :cvFileId and c.active = true")
+    void deactivateOtherActiveCvFiles(Long studentId, Long cvFileId);
 }

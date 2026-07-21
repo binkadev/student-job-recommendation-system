@@ -6,7 +6,10 @@ import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.common.response.PageResponse;
+import com.tttn.jobrecommendation.common.utils.PageableUtils;
 import com.tttn.jobrecommendation.modules.application.dto.request.ApplyJobRequest;
+import com.tttn.jobrecommendation.modules.application.dto.request.CompanyApplicationFilterRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.UpdateApplicationStatusRequest;
 import com.tttn.jobrecommendation.modules.application.dto.response.ApplicationResponse;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
@@ -23,17 +26,33 @@ import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
+
+    private static final Map<String, String> COMPANY_APPLICATION_ALLOWED_SORTS = Map.of(
+            "id", "id",
+            "status", "status",
+            "appliedAt", "appliedAt",
+            "reviewedAt", "reviewedAt",
+            "createdAt", "createdAt",
+            "updatedAt", "updatedAt"
+    );
 
     private final JobApplicationRepository applicationRepository;
     private final JobRepository jobRepository;
@@ -101,10 +120,61 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ApplicationResponse> getMyCompanyApplications(
+            Long userId,
+            CompanyApplicationFilterRequest request
+    ) {
+        Company company = getCompanyByUserId(userId);
+        Pageable pageable = PageableUtils.createPageable(
+                request.getPage(),
+                request.getSize(),
+                request.getSort(),
+                "appliedAt",
+                Sort.Direction.DESC,
+                COMPANY_APPLICATION_ALLOWED_SORTS
+        );
+
+        Page<JobApplication> applications = applicationRepository.findAll(
+                buildCompanyApplicationSpecification(company, request),
+                pageable
+        );
+        List<ApplicationResponse> items = applications.getContent()
+                .stream()
+                .map(applicationMapper::toApplicationResponse)
+                .toList();
+
+        return new PageResponse<>(
+                items,
+                applications.getNumber() + 1,
+                applications.getSize(),
+                applications.getTotalElements(),
+                applications.getTotalPages()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationResponse getMyCompanyApplication(Long id, Long userId) {
+        Company company = getCompanyByUserId(userId);
+        JobApplication application = getApplicationById(id);
+        assertCompanyOwnsJob(company, application.getJob());
+        return applicationMapper.toApplicationResponse(application);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationResponse getMyApplication(Long id, Long userId) {
+        Student student = getStudentByUserId(userId);
+        JobApplication application = applicationRepository.findByIdAndStudentId(id, student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        return applicationMapper.toApplicationResponse(application);
+    }
+
+    @Override
     @Transactional
     public ApplicationResponse updateStatus(Long id, UpdateApplicationStatusRequest request, Long userId, UserRole role) {
-        JobApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        JobApplication application = getApplicationById(id);
 
         if (role == UserRole.ADMIN) {
             assertValidEmployerTransition(application.getStatus(), request.getStatus());
@@ -132,6 +202,35 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         return applicationMapper.toApplicationResponse(savedApplication);
+    }
+
+    private Specification<JobApplication> buildCompanyApplicationSpecification(
+            Company company,
+            CompanyApplicationFilterRequest request
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("job").get("company").get("id"), company.getId()));
+
+            if (request.getStatus() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), request.getStatus()));
+            }
+
+            if (request.getJobId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("job").get("id"), request.getJobId()));
+            }
+
+            if (StringUtils.hasText(request.getKeyword())) {
+                String keyword = likeValue(request.getKeyword());
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("user").get("fullName")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("user").get("email")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("job").get("title")), keyword)
+                ));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
     }
 
     private void assertValidEmployerTransition(ApplicationStatus currentStatus, ApplicationStatus targetStatus) {
@@ -186,6 +285,11 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found"));
     }
 
+    private JobApplication getApplicationById(Long id) {
+        return applicationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+    }
+
     private CvFile resolveCvFile(Long cvFileId, Student student) {
         if (cvFileId == null) {
             return null;
@@ -206,5 +310,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String likeValue(String value) {
+        return "%" + value.trim().toLowerCase(Locale.ROOT) + "%";
     }
 }

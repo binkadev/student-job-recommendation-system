@@ -70,3 +70,15 @@ http://localhost:8080/swagger-ui.html
 ```
 
 Use `POST /api/auth/login` with a demo account to get a JWT. Click `Authorize` in Swagger, enter the token as `Bearer <token>`, then test protected APIs.
+
+## Phase 1 FE API Gaps
+
+Additional backend endpoints for frontend integration:
+
+- Public: `GET /api/public/companies`, `GET /api/public/companies/{id}`
+- Admin users: `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PATCH /api/admin/users/{id}/status`
+- Admin companies: `GET /api/admin/companies`, `GET /api/admin/companies/{id}`, `PATCH /api/admin/companies/{id}/status`
+- Company applications: `GET /api/companies/me/applications`, `GET /api/companies/me/applications/{id}`
+- Student details: `GET /api/students/me/applications/{id}`, `GET /api/students/me/cv/{id}`, `PATCH /api/students/me/cv/{id}/active`
+
+See `../docs/api-contract.md` for request parameters, response fields, enum values, and privacy constraints.

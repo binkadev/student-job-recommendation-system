@@ -38,7 +38,17 @@ Paged data:
 }
 ```
 
+Paged list endpoints use 1-based `page` values. `size` is capped at 100 unless an endpoint states a lower default. New Phase 1 sortable list endpoints accept `sort` as `field,asc`, `field,desc`, `field:asc`, or `field:desc`; unsupported sort fields return `BAD_REQUEST`.
+
 Authentication uses `Authorization: Bearer <jwt>` for all protected endpoints.
+
+Common protected-endpoint errors:
+
+- `UNAUTHORIZED`: missing, invalid, expired, `BLOCKED`, or `INACTIVE` user token.
+- `ACCESS_DENIED`: authenticated user does not have the required role or does not own the requested resource.
+- `RESOURCE_NOT_FOUND`: requested resource does not exist or is intentionally hidden from that endpoint.
+- `VALIDATION_ERROR`: invalid request body or query parameter.
+- `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
 
 ## Enums
 
@@ -96,6 +106,39 @@ Response data: `token`, `tokenType`, `expiresIn`, `user`.
 Roles: authenticated users.
 
 Response data: current `AuthUserResponse`.
+
+## Public Companies
+
+Public company APIs do not require authentication. They expose `VERIFIED` companies only. `PENDING` and `BLOCKED` companies are hidden and company detail for those statuses returns `404`.
+
+Privacy decisions:
+
+- `taxCode`, `phone`, and internal user data are not returned by public endpoints.
+- `companySize` and `logoUrl` are returned as nullable placeholders and are currently `null`.
+- Public `location` filtering uses the existing company `address` field.
+- `openJobs` counts `ACTIVE` jobs only.
+
+### GET `/api/public/companies`
+
+Role: public.
+
+Query parameters: `keyword`, `location`, `industry`, `page`, `size`, `sort`.
+
+Allowed sort fields: `id`, `companyName`, `industry`, `address`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`.
+
+Response data: `PageResponse<PublicCompanyResponse>`.
+
+Response item fields: `id`, `companyName`, `industry`, `address`, `websiteUrl`, `description`, `status`, `openJobs`, `createdAt`, `updatedAt`, `companySize`, `logoUrl`.
+
+### GET `/api/public/companies/{id}`
+
+Role: public.
+
+Returns a verified company and its active jobs ordered by `publishedAt` descending.
+
+Response company fields: `id`, `companyName`, `industry`, `address`, `websiteUrl`, `description`, `status`, `openJobs`, `createdAt`, `updatedAt`, `companySize`, `logoUrl`, `jobs`.
+
+Job summary fields: `id`, `title`, `location`, `jobType`, `workingModel`, `status`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `publishedAt`.
 
 ## Student
 
@@ -219,6 +262,110 @@ Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
 
+## Admin Users
+
+All admin user APIs require role `ADMIN`. `passwordHash` is never returned.
+
+### GET `/api/admin/users`
+
+Role: `ADMIN`.
+
+Query parameters: `role`, `fullName`, `keyword`, `status`, `page`, `size`, `sort`.
+
+Enum values:
+
+- `role`: `STUDENT`, `COMPANY`, `ADMIN`
+- `status`: `ACTIVE`, `INACTIVE`, `BLOCKED`
+
+Allowed sort fields: `id`, `email`, `fullName`, `role`, `status`, `lastLoginAt`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`.
+
+Response data: `PageResponse<AdminUserResponse>`.
+
+Response item fields: `id`, `email`, `fullName`, `phone`, `role`, `status`, `lastLoginAt`, `createdAt`, `updatedAt`.
+
+### GET `/api/admin/users/{id}`
+
+Role: `ADMIN`.
+
+Returns base user information plus a profile summary when it exists. This GET does not create a missing student or company profile.
+
+Base fields: `id`, `email`, `fullName`, `phone`, `role`, `status`, `lastLoginAt`, `createdAt`, `updatedAt`.
+
+Student summary field: `studentProfile` with `studentId`, `studentCode`, `university`, `major`, `graduationYear`, `location`, `profileId`, `headline`, `targetPosition`, `profileCompleteness`, `createdAt`, `updatedAt`, or `null`.
+
+Company summary field: `companyProfile` with `companyId`, `companyName`, `taxCode`, `websiteUrl`, `industry`, `description`, `address`, `phone`, `status`, `companySize`, `logoUrl`, `createdAt`, `updatedAt`, or `null`. `companySize` and `logoUrl` are nullable placeholders.
+
+### PATCH `/api/admin/users/{id}/status`
+
+Role: `ADMIN`.
+
+Request:
+
+```json
+{
+  "status": "ACTIVE"
+}
+```
+
+Allowed values: `ACTIVE`, `INACTIVE`, `BLOCKED`.
+
+Rules:
+
+- Returns updated `AdminUserResponse`.
+- Does not change password or role.
+- The authenticated admin cannot set their own status to `INACTIVE` or `BLOCKED`.
+- Once a user is `INACTIVE` or `BLOCKED`, existing JWTs for that user are rejected by the JWT filter.
+
+## Admin Companies
+
+All admin company APIs require role `ADMIN`.
+
+### GET `/api/admin/companies`
+
+Role: `ADMIN`.
+
+Query parameters: `keyword`, `companyName`, `taxCode`, `industry`, `status`, `page`, `size`, `sort`.
+
+`companySize` filtering is not supported in Phase 1.
+
+Enum values:
+
+- `status`: `PENDING`, `VERIFIED`, `BLOCKED`
+
+Allowed sort fields: `id`, `companyName`, `taxCode`, `industry`, `status`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`.
+
+Response data: `PageResponse<AdminCompanyResponse>`.
+
+Response item fields: `id`, `userId`, `email`, `companyName`, `taxCode`, `websiteUrl`, `industry`, `description`, `address`, `phone`, `status`, `openJobs`, `createdAt`, `updatedAt`, `companySize`, `logoUrl`.
+
+`openJobs` counts `ACTIVE` jobs only. `companySize` and `logoUrl` are nullable placeholders.
+
+### GET `/api/admin/companies/{id}`
+
+Role: `ADMIN`.
+
+Returns `AdminCompanyResponse` with the full supported company detail fields listed above. No jobs array is included in Phase 1.
+
+### PATCH `/api/admin/companies/{id}/status`
+
+Role: `ADMIN`.
+
+Request:
+
+```json
+{
+  "status": "VERIFIED"
+}
+```
+
+Allowed values: `PENDING`, `VERIFIED`, `BLOCKED`.
+
+Rules:
+
+- Returns updated `AdminCompanyResponse`.
+- Does not automatically modify the associated `User.status`.
+- Does not create notifications or a separate approval workflow.
+
 ## Skills
 
 ### GET `/api/skills?page=1&size=20&keyword=java&category=Backend`
@@ -315,6 +462,42 @@ Role: `STUDENT`.
 
 Returns the current student's applications.
 
+### GET `/api/students/me/applications/{id}`
+
+Role: `STUDENT`.
+
+Returns one current-student application. Applications belonging to another student are not returned.
+
+Response fields: `id`, `status`, `coverLetter`, `studentId`, `studentName`, `studentEmail`, `jobId`, `jobTitle`, `companyId`, `companyName`, `cvFileId`, `cvFileName`, `appliedAt`, `reviewedAt`, `createdAt`, `updatedAt`.
+
+### GET `/api/companies/me/applications`
+
+Role: `COMPANY`.
+
+Returns paged applications across all jobs owned by the authenticated company.
+
+Query parameters: `status`, `jobId`, `keyword`, `page`, `size`, `sort`.
+
+Enum values:
+
+- `status`: `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, `WITHDRAWN`
+
+`keyword` searches student full name, student email, and job title.
+
+Allowed sort fields: `id`, `status`, `appliedAt`, `reviewedAt`, `createdAt`, `updatedAt`. Default sort: `appliedAt,desc`.
+
+Response data: `PageResponse<ApplicationResponse>`.
+
+Response item fields: `id`, `status`, `coverLetter`, `studentId`, `studentName`, `studentEmail`, `jobId`, `jobTitle`, `companyId`, `companyName`, `cvFileId`, `cvFileName`, `appliedAt`, `reviewedAt`, `createdAt`, `updatedAt`.
+
+Only applications for the authenticated company's jobs are returned.
+
+### GET `/api/companies/me/applications/{id}`
+
+Role: `COMPANY`.
+
+Returns one application if its job belongs to the authenticated company. Applications for another company are not returned. CV exposure is limited to `cvFileId` and `cvFileName`; internal `filePath` and `storedFileName` are not returned.
+
 ### GET `/api/companies/me/jobs/{jobId}/applications`
 
 Role: `COMPANY`.
@@ -337,19 +520,39 @@ Student transition: `PENDING -> WITHDRAWN`.
 
 Role: `STUDENT`.
 
-Multipart request part: `file`. Supported extensions/content types are PDF and DOCX. The current implementation stores metadata and file path only; it does not extract text.
+Multipart request part: `file`. Supported extensions/content types are PDF and DOCX. The current implementation stores metadata and an internal file location; it does not extract text. Responses expose safe metadata only and omit internal `filePath` and `storedFileName`.
 
 ### GET `/api/students/me/cv`
 
 Role: `STUDENT`.
 
-Lists the current student's CV files.
+Lists the current student's CV files with safe metadata only.
 
 ### GET `/api/students/me/cv/active`
 
 Role: `STUDENT`.
 
 Returns the active CV or `null`.
+
+### GET `/api/students/me/cv/{id}`
+
+Role: `STUDENT`.
+
+Returns one CV owned by the authenticated student. CVs belonging to another student are not returned.
+
+Safe response fields: `id`, `studentId`, `fileName`, `originalFileName`, `contentType`, `fileSize`, `extractedText`, `processedText`, `isActive`, `uploadedAt`, `createdAt`, `updatedAt`.
+
+`fileUrl` is not returned because the stored value is an internal relative upload path, not a confirmed safe client-accessible URL. `filePath` and `storedFileName` are never returned.
+
+### PATCH `/api/students/me/cv/{id}/active`
+
+Role: `STUDENT`.
+
+Request body: none.
+
+Sets the selected CV as active transactionally and deactivates any other active CV for the same student. Re-selecting the currently active CV is idempotent. Old CV records are not deleted.
+
+Response data: safe CV metadata with the fields listed above.
 
 ## Recommendation Read-Only APIs
 
