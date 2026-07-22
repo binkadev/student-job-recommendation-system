@@ -53,6 +53,16 @@ For Git Bash, macOS, or Linux:
 
 The `dev` profile runs the local demo seeder. It creates missing demo users, profiles, skills, jobs, and job skills without duplicating them on restart. Existing demo user passwords, roles, and statuses are not reset.
 
+## CV File Storage
+
+CV uploads and downloads resolve files only inside the backend-owned storage directory. The default is `uploads/cvs` relative to the backend working directory. Override it without editing source:
+
+```powershell
+$env:APP_CV_UPLOAD_DIR="C:\path\to\private\cv-storage"
+```
+
+CV file endpoints preview inline by default. Add `?download=true` to request an attachment. Successful file responses stream raw bytes; JSON error responses retain the common API envelope. Internal storage paths and stored filenames are never returned.
+
 ## Demo Accounts
 
 All demo accounts use password `123456`.
@@ -95,6 +105,9 @@ Additional backend endpoints for frontend integration:
 - Admin users: `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PATCH /api/admin/users/{id}/status`
 - Admin companies: `GET /api/admin/companies`, `GET /api/admin/companies/{id}`, `PATCH /api/admin/companies/{id}/status`
 - Company applications: `GET /api/companies/me/applications`, `GET /api/companies/me/applications/{id}`
+- Company application CV: `GET /api/companies/me/applications/{applicationId}/cv/file`
+- Admin applications: `GET /api/admin/applications`, `GET /api/admin/applications/{applicationId}`
 - Student details: `GET /api/students/me/applications/{id}`, `GET /api/students/me/cv/{id}`, `PATCH /api/students/me/cv/{id}/active`
+- Student CV files: `GET /api/students/me/cv/{cvId}/file`, `DELETE /api/students/me/cv/{cvId}`
 
 See `../docs/api-contract.md` for request parameters, response fields, enum values, and privacy constraints.

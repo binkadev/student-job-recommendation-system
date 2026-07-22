@@ -8,7 +8,7 @@ Use the dev profile and the local database defaults unless overridden:
 
 Common assertions:
 
-- All responses use `ApiResponse<T>`.
+- JSON responses use `ApiResponse<T>`. Successful CV file responses stream raw bytes; their error responses still use `ApiResponse<T>`.
 - Protected requests use `Authorization: Bearer <token>`.
 - `passwordHash` is never present in response JSON.
 
@@ -158,3 +158,33 @@ Common assertions:
 103. Active CV uniqueness: previous active CV becomes inactive and only one active CV remains for the student.
 104. Active CV idempotency: repeat `PATCH /api/students/me/cv/{id}/active`; expect success and one active CV.
 105. Company cannot access student CV APIs: company token, `GET /api/students/me/cv/{id}`; expect `403`.
+
+## Core API Gap Package: CV Files and Admin Applications
+
+Use two student accounts, two company accounts with one job each, an admin account, CV fixtures stored under the configured `APP_CV_UPLOAD_DIR`, and applications both with and without a CV. Keep any deliberately unsafe or undeletable fixture confined to disposable test data.
+
+106. Student CV inline file: owning student token, `GET /api/students/me/cv/{cvId}/file`; expect `200`, exact bytes, stored `Content-Type`, `Content-Disposition: inline` with a sanitized original filename, and no internal path in response headers.
+107. Student CV attachment: owning student token, `GET /api/students/me/cv/{cvId}/file?download=true`; expect the same bytes and content type with `Content-Disposition: attachment`.
+108. Student cross-CV protection: another student token requests the file; expect `404 RESOURCE_NOT_FOUND`, indistinguishable from an unknown `cvId`.
+109. CV path containment: set disposable CV metadata to a filename that would resolve outside the configured storage directory and request it; expect `404 RESOURCE_NOT_FOUND`, no outside-file bytes, and no server path in the error.
+110. Missing physical CV: retain disposable CV metadata after removing its physical file, then request it; expect `404 RESOURCE_NOT_FOUND` without a path leak.
+111. Delete unused CV: owning student deletes an unused CV with `DELETE /api/students/me/cv/{cvId}`; expect `200`, message `CV deleted successfully`, `data: null`, and metadata removed.
+112. Delete removes physical file: after case 111, verify the file no longer exists under `APP_CV_UPLOAD_DIR` and a file request returns `404`.
+113. Student cannot delete another student's CV: non-owner token sends the DELETE; expect `404 RESOURCE_NOT_FOUND`, and metadata and file remain.
+114. Referenced CV cannot be deleted: apply using the CV, then send the DELETE; expect `409 CV_IN_USE`; verify the application, CV metadata, and physical file remain unchanged.
+115. Active unused CV can be deleted: delete an active CV with no application reference; expect success, and verify no other CV is activated automatically.
+116. Physical deletion failure is not success: use a disposable fixture whose physical deletion is forced to fail; expect `500 INTERNAL_SERVER_ERROR`, never a success envelope, and verify database metadata is not lost.
+117. Company application CV inline file: owning company token requests `GET /api/companies/me/applications/{applicationId}/cv/file`; expect `200`, exact bytes, stored content type, sanitized inline filename, and no internal path headers.
+118. Company application CV attachment: repeat with `?download=true`; expect `Content-Disposition: attachment`.
+119. Company cross-application protection: another company token requests the application CV; expect `403 ACCESS_DENIED` and no file bytes or metadata.
+120. Application without CV: owning company requests the CV file for an application with `cvFileId: null`; expect `404 RESOURCE_NOT_FOUND`.
+121. Admin application list and exact filters: admin token calls `GET /api/admin/applications` and separately tests `status`, `studentId`, `jobId`, and `companyId`; expect only matching rows in `PageResponse<ApplicationResponse>`.
+122. Admin application keyword: test partial, mixed-case matches for student full name, student email, job title, and company name; expect matching rows for every supported field.
+123. Admin application pagination is 1-based: request `page=1&size=1` and `page=2&size=1`; expect `data.page` to echo 1 and 2, stable distinct items, and correct totals.
+124. Admin application default sort: omit `sort`; expect applications ordered by `appliedAt,desc`.
+125. Admin application allowed sorts: exercise `id`, `status`, `appliedAt`, `reviewedAt`, `createdAt`, and `updatedAt` with accepted comma or colon direction syntax.
+126. Admin application invalid sort: request an unlisted field and an invalid direction; expect `400 BAD_REQUEST` in both cases.
+127. Non-admin application list denied: student and company tokens call `GET /api/admin/applications`; expect `403 ACCESS_DENIED`.
+128. Admin application detail: admin token calls `GET /api/admin/applications/{applicationId}`; expect the matching `ApplicationResponse`.
+129. Absent admin application detail: use an unknown id; expect `404 RESOURCE_NOT_FOUND`.
+130. Admin application privacy: list and detail responses contain only safe CV metadata (`cvFileId`, `cvFileName`) and never `filePath`, `fileUrl`, `storedFileName`, or an absolute storage path.
