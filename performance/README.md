@@ -6,7 +6,9 @@ This directory contains the isolated, deterministic PostgreSQL environment for t
 
 **Local performance testing only. Never point these scripts at development, test, staging, or production databases.** The SQL guard requires the exact database `student_job_recommendation_perf` and exact database user `perf_user` before it permits reset or seed operations.
 
-Phase A creates the environment and dataset. Phase B1 adds measurement tooling and runs only bounded correctness validation. Neither phase optimizes production queries, adds application indexes, changes API contracts, or produces a final latency baseline.
+Phase A creates the environment and dataset. Phase B1 adds measurement tooling and runs only bounded correctness validation. Phase B2 has now produced and finalized three valid 10-VU × 10,000-request runs per endpoint under `performance/results/baseline/20260722-203311-680bd870-native/`.
+
+No phase in this branch optimizes production queries, adds application indexes, changes API contracts, or introduces caching. The Phase B2 numbers are an observed comparison baseline, not a latency SLA or capacity limit.
 
 ## Architecture
 
@@ -162,7 +164,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\ve
 
 ## Phase B1 measurement tooling
 
-> **Phase B1 evidence is tooling validation, not the final performance baseline.** Do not copy smoke latency, throughput, query-count, or EXPLAIN observations into final baseline fields. Those fields remain `TBD` until Phase B2 is explicitly authorized.
+> **Phase B1 evidence is tooling validation, not the final performance baseline.** Never copy smoke latency or throughput into official baseline fields. The finalized Phase B2 result is documented separately below and uses only the full 10,000-request summaries in `run-1`, `run-2`, and `run-3` for latency aggregation.
 
 The canonical requests are:
 
@@ -218,7 +220,7 @@ For Dockerized k6, a host URL using `localhost` or `127.0.0.1` is translated ins
 http://host.docker.internal:8080
 ```
 
-The baseline launcher is present for Phase B2 but must not be run during Phase B1:
+The baseline launcher is the Phase B2 workload driver and must not be used for a Phase B1 smoke validation:
 
 ```powershell
 # PHASE B2 ONLY; do not run as part of tooling validation.
@@ -280,6 +282,34 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\co
 ```
 
 It records the Git state, Java/Spring/PostgreSQL/Flyway/Docker/k6 versions, OS/CPU/RAM, guarded database identity and row counts, timestamp, and canonical endpoint parameters. It does not collect a host name, operating-system user, password, JDBC secret, or token.
+
+## Phase B2 finalized baseline
+
+The valid baseline directory is:
+
+```text
+performance/results/baseline/20260722-203311-680bd870-native/
+```
+
+Validation selected only `run-1`, `run-2`, and `run-3`. Every run contains all three endpoints at 10 VUs and exactly 10,000 measured requests, with zero HTTP failures, zero failed checks, and zero dropped iterations. `preflight/`, `smoke/`, and the single-request `diagnostics/` directory are excluded from latency aggregation.
+
+| Endpoint | Median p50 | Median p95 | Median p99 | Median throughput | SQL calls / service calls | Result |
+|---|---:|---:|---:|---:|---:|---|
+| Jobs | 71.7433 ms | 81.305875 ms | 88.773907 ms | 117.73193731746802 req/s | 66 / 63 | VALID BASELINE |
+| Company applications | 53.88745 ms | 63.21743999999998 ms | 70.22372 ms | 160.2860518737853 req/s | 53 / 50 | VALID BASELINE |
+| Public companies | 7.060499999999999 ms | 8.6116 ms | 9.596142 ms | 700.343657932604 req/s | 4 / 3 | VALID BASELINE |
+
+The official analysis is in `docs/backend-performance-baseline.md`. Within the result directory:
+
+- `baseline-summary.json` contains structured source-precision numbers.
+- `baseline-summary.md` is the human-readable evidence summary.
+- `evidence-manifest.md` records artifact selection, exclusions, provenance limitations, and raw SHA-256 hashes.
+
+The isolated query counts verify ORM query fan-out in Jobs and Company applications, but do not show individually expensive point queries. All nine EXPLAIN plans are buffer-resident and spill-free; the maximum observed SQL execution time is 4.528 ms. Public companies remains the fixed-query control.
+
+Raw run metadata and diagnostics retain the measurement collector's stale Phase B1 `phase` label. They were not rewritten. Phase B2 identity comes from the explicit three-run layout and exact 10-VU × 10,000-request summaries. See the evidence manifest for the provenance note.
+
+Do not rerun these 10,000-request workloads merely to read or validate the finalized baseline. Use the smoke launcher for tooling correctness and reproduce Phase B2 only when intentionally establishing a new comparable baseline.
 
 ## Expected row counts
 
