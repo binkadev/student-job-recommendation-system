@@ -2,7 +2,9 @@
 
 Backend base URL: `http://localhost:8080`
 
-All responses use `ApiResponse<T>`.
+JSON responses use `ApiResponse<T>`.
+
+Successful CV file responses are the only exception: they stream the raw file body as a Spring `Resource`. Their error responses still use `ApiResponse<T>`.
 
 Success:
 
@@ -45,10 +47,12 @@ Authentication uses `Authorization: Bearer <jwt>` for all protected endpoints.
 Common protected-endpoint errors:
 
 - `UNAUTHORIZED`: missing, invalid, expired, `BLOCKED`, or `INACTIVE` user token.
-- `ACCESS_DENIED`: authenticated user does not have the required role or does not own the requested resource.
+- `ACCESS_DENIED`: authenticated user does not have the required role, or an endpoint reports failed ownership as forbidden.
 - `RESOURCE_NOT_FOUND`: requested resource does not exist or is intentionally hidden from that endpoint.
 - `VALIDATION_ERROR`: invalid request body or query parameter.
 - `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
+- `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
+- `INTERNAL_SERVER_ERROR`: an unexpected server or file-storage operation failed.
 
 ## Enums
 
@@ -498,11 +502,61 @@ Role: `COMPANY`.
 
 Returns one application if its job belongs to the authenticated company. Applications for another company are not returned. CV exposure is limited to `cvFileId` and `cvFileName`; internal `filePath` and `storedFileName` are not returned.
 
+### GET `/api/companies/me/applications/{applicationId}/cv/file?download=false`
+
+Role: `COMPANY`.
+
+Streams the CV attached to an application whose job belongs to the authenticated company. The company selects an application only; a standalone CV id is never accepted.
+
+Query parameter:
+
+- `download`: optional boolean, default `false`. `false` returns `Content-Disposition: inline`; `true` returns `Content-Disposition: attachment`.
+
+Successful response: `200 OK` with the raw file body, the stored `Content-Type`, and a sanitized original filename in `Content-Disposition`. The response never exposes `filePath`, `fileUrl`, `storedFileName`, the configured storage directory, or an absolute path.
+
+Errors use the standard JSON error envelope:
+
+- `401 UNAUTHORIZED`: missing or invalid token.
+- `403 ACCESS_DENIED`: wrong role or the application belongs to another company.
+- `404 RESOURCE_NOT_FOUND`: the application does not exist, has no CV reference, its CV metadata or physical file is missing, or its stored filename cannot be resolved safely inside the configured CV storage directory.
+- `500 INTERNAL_SERVER_ERROR`: an unexpected file-storage read fails.
+
 ### GET `/api/companies/me/jobs/{jobId}/applications`
 
 Role: `COMPANY`.
 
 Returns applications for a job owned by the current company.
+
+### GET `/api/admin/applications`
+
+Role: `ADMIN`.
+
+Returns a paged list of all applications.
+
+Query parameters: `status`, `studentId`, `jobId`, `companyId`, `keyword`, `page`, `size`, `sort`.
+
+- `status`: `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, or `WITHDRAWN`.
+- `studentId`, `jobId`, and `companyId`: exact id filters.
+- `keyword`: case-insensitive partial match against student full name, student email, job title, or company name; maximum length 255.
+- `page`: 1-based page number, default `1`.
+- `size`: page size from 1 through 100, default `10`.
+- `sort`: maximum length 100 and accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`.
+
+Allowed sort fields: `id`, `status`, `appliedAt`, `reviewedAt`, `createdAt`, `updatedAt`. Default sort: `appliedAt,desc`.
+
+Response data: `PageResponse<ApplicationResponse>`.
+
+Each item contains `id`, `status`, `coverLetter`, `studentId`, `studentName`, `studentEmail`, `jobId`, `jobTitle`, `companyId`, `companyName`, `cvFileId`, `cvFileName`, `appliedAt`, `reviewedAt`, `createdAt`, and `updatedAt`. Internal CV paths are never returned.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED`, `400 VALIDATION_ERROR` for invalid query values, and `400 BAD_REQUEST` for an unsupported sort field or direction.
+
+### GET `/api/admin/applications/{applicationId}`
+
+Role: `ADMIN`.
+
+Returns one `ApplicationResponse` with the safe fields listed above. It never returns `filePath`, `fileUrl`, or `storedFileName`.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED`, or `404 RESOURCE_NOT_FOUND` when the application is absent.
 
 ### PATCH `/api/applications/{id}/status`
 
@@ -543,6 +597,44 @@ Returns one CV owned by the authenticated student. CVs belonging to another stud
 Safe response fields: `id`, `studentId`, `fileName`, `originalFileName`, `contentType`, `fileSize`, `extractedText`, `processedText`, `isActive`, `uploadedAt`, `createdAt`, `updatedAt`.
 
 `fileUrl` is not returned because the stored value is an internal relative upload path, not a confirmed safe client-accessible URL. `filePath` and `storedFileName` are never returned.
+
+### GET `/api/students/me/cv/{cvId}/file?download=false`
+
+Role: `STUDENT`.
+
+Streams a CV owned by the authenticated student. A CV belonging to another student is intentionally indistinguishable from a missing CV.
+
+Query parameter:
+
+- `download`: optional boolean, default `false`. `false` returns `Content-Disposition: inline`; `true` returns `Content-Disposition: attachment`.
+
+Successful response: `200 OK` with the raw file body, the stored `Content-Type`, and a sanitized original filename in `Content-Disposition`. The file is streamed without loading the full contents into memory. The response never exposes `filePath`, `fileUrl`, `storedFileName`, the configured storage directory, or an absolute path.
+
+Errors use the standard JSON error envelope:
+
+- `401 UNAUTHORIZED`: missing or invalid token.
+- `403 ACCESS_DENIED`: wrong role.
+- `404 RESOURCE_NOT_FOUND`: the CV does not exist, is not owned by the current student, its physical file is missing, or its stored filename cannot be resolved safely inside the configured CV storage directory.
+- `500 INTERNAL_SERVER_ERROR`: an unexpected file-storage read fails.
+
+### DELETE `/api/students/me/cv/{cvId}`
+
+Role: `STUDENT`.
+
+Deletes the current student's unused CV metadata and physical file. A CV belonging to another student is intentionally indistinguishable from a missing CV.
+
+Success: `200 OK` with `ApiResponse<Void>`, message `CV deleted successfully`, and `data: null`.
+
+Rules:
+
+- A CV referenced by any application is not deleted; the API returns `409 Conflict` with error code `CV_IN_USE`.
+- Other protected database references also prevent deletion and return `CV_IN_USE`.
+- An active CV may be deleted when it is unused.
+- Deleting an active CV does not activate another CV automatically.
+- If the physical file is already absent, deleting its stale metadata is allowed.
+- A physical-file deletion failure is reported as an error and must not be presented as a successful deletion.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED` for the wrong role, `404 RESOURCE_NOT_FOUND` for missing/non-owned metadata or an unsafe/non-regular stored path, `409 CV_IN_USE` for a protected database reference, and `500 INTERNAL_SERVER_ERROR` for a file deletion failure.
 
 ### PATCH `/api/students/me/cv/{id}/active`
 

@@ -3,15 +3,19 @@ package com.tttn.jobrecommendation.modules.cv.service.impl;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.cv.mapper.CvFileMapper;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.cv.service.CvService;
+import com.tttn.jobrecommendation.modules.cv.service.CvStorageService;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -40,6 +44,8 @@ public class CvServiceImpl implements CvService {
     private final CvFileRepository cvFileRepository;
     private final StudentRepository studentRepository;
     private final CvFileMapper cvFileMapper;
+    private final JobApplicationRepository applicationRepository;
+    private final CvStorageService cvStorageService;
 
     @Value("${app.upload.cv.storage-dir}")
     private String storageDir;
@@ -117,6 +123,33 @@ public class CvServiceImpl implements CvService {
         Student student = getStudentByUserId(userId);
         CvFile cvFile = getStudentCvFile(id, student);
         return cvFileMapper.toCvFileResponse(cvFile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CvFileDownload getMyCvFileDownload(Long userId, Long cvId) {
+        Student student = getStudentByUserId(userId);
+        CvFile cvFile = getStudentCvFile(cvId, student);
+        return cvStorageService.load(cvFile);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMyCvFile(Long userId, Long cvId) {
+        Student student = getStudentByUserId(userId);
+        CvFile cvFile = getStudentCvFile(cvId, student);
+        if (applicationRepository.existsByCvFileId(cvId)) {
+            throw new AppException(ErrorCode.CV_IN_USE);
+        }
+
+        try {
+            cvFileRepository.delete(cvFile);
+            cvFileRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new AppException(ErrorCode.CV_IN_USE);
+        }
+
+        cvStorageService.delete(cvFile);
     }
 
     @Override
