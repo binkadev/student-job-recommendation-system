@@ -17,7 +17,7 @@ Spring Boot backend (performance profile, port 8080)
        |
        | JDBC localhost:55432
        v
-PostgreSQL 17 container
+PostgreSQL 17.10 container
   database: student_job_recommendation_perf
   user:     perf_user
   volume:   student-job-recommendation-perf-data
@@ -39,7 +39,7 @@ Migration SQL is not copied into this directory.
 
 | Setting | Required value |
 |---|---|
-| PostgreSQL image | `postgres:17` |
+| PostgreSQL image | `postgres:17.10@sha256:a426e44bac0b759c95894d68e1a0ac03ecc20b619f498a91aae373bf06d8508d` |
 | Host | `localhost` |
 | Host port | `55432` |
 | Container port | `5432` |
@@ -208,7 +208,15 @@ The smoke launcher intentionally ignores `VUS` and `ITERATIONS` and fixes them a
 
 ### Local and Dockerized k6
 
-If `k6` is available on `PATH`, the launchers use it. Otherwise they run the official `grafana/k6:latest` image. Force the Docker path for validation with:
+Official reproduction requires k6 2.1.0. If native `k6` is available on `PATH`, the launchers execute `k6 version`, require exactly `v2.1.0`, and print the validated version. A different or unparseable native version fails the run; it is never silently mixed into baseline evidence.
+
+When native k6 is unavailable, or when `-ForceDocker` is supplied, the launchers use the immutable official image:
+
+```text
+grafana/k6:2.1.0@sha256:65c920dc067d5e2e00befbf982af6ad6ad0117034e8b1c65817c7975c52d4669
+```
+
+Force the Docker path for validation with:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\run-k6-smoke.ps1 -ForceDocker
@@ -245,9 +253,17 @@ Stop all k6 runs, then capture one endpoint request at a time:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\measure-query-count.ps1
 ```
 
-The script logs in before each statistics reset, confirms there is no active SQL workload, resets statistics, issues exactly one canonical GET, and captures normalized SQL, calls, rows, execution time, and shared block hits/reads. Instrumentation SQL is excluded. For authenticated endpoints, an email-based JWT user lookup is classified separately when PostgreSQL's normalized statement permits it; transaction-control calls and endpoint-service SQL are also reported separately.
+The script first acquires a query-count lease, then performs authentication before the measured reset/request sequence. Immediately before and after each reset/request it confirms there is no k6 process, Grafana k6 container, or unrelated active SQL workload. It resets statistics, issues exactly one canonical GET, and captures normalized SQL, calls, rows, execution time, and shared block hits/reads. Instrumentation SQL is excluded. For authenticated endpoints, an email-based JWT user lookup is classified separately when PostgreSQL's normalized statement permits it; transaction-control calls and endpoint-service SQL are also reported separately.
 
-Never run query-count diagnostics concurrently with k6. The query-count path is restricted to the local backend on port 8080 and the database guard rejects any non-performance database identity.
+### Measurement isolation locks
+
+The smoke and baseline launchers acquire one `load-test` lease before metadata collection and hold it through every native or Dockerized k6 process. The lease is released in an outer `finally` block. Query-count capture acquires the mutually exclusive `query-count` lease before any extension call, login, statistics reset, or result creation and also releases it in `finally`.
+
+Human-readable JSON lease files are stored under ignored `performance/.locks/`. They record a lease ID, lock kind, workload type, PID, process-start timestamp, and acquisition timestamp without storing paths, users, tokens, or passwords. An atomic repository-scoped mutex closes the check/create race. A valid lock whose PID is dead or reused is archived with a warning; live, corrupt, unreadable, or otherwise ambiguous state fails closed and requires inspection. No script silently deletes unverifiable lock metadata.
+
+Query capture additionally enumerates running Docker containers and inspects their configured image, labels, tags, and digests. Any Grafana k6 workload—including an orphan left after a launcher crash—causes an explicit failure. Inability to inspect local processes, Docker, the lock owner, or the database also fails closed.
+
+Never deliberately run query-count diagnostics concurrently with k6. The query-count path is restricted to the local backend on port 8080 and the database guard rejects any non-performance database identity.
 
 ### EXPLAIN procedure
 
@@ -281,7 +297,7 @@ Metadata collection can also be run directly:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\collect-environment-metadata.ps1
 ```
 
-It records the Git state, Java/Spring/PostgreSQL/Flyway/Docker/k6 versions, OS/CPU/RAM, guarded database identity and row counts, timestamp, and canonical endpoint parameters. It does not collect a host name, operating-system user, password, JDBC secret, or token.
+It records the Git state, Java/Spring/PostgreSQL/Flyway/Docker/k6 versions, the validated k6 runner kind and pinned Docker image when applicable, OS/CPU/RAM, guarded database identity and row counts, timestamp, and canonical endpoint parameters. It does not collect a host name, operating-system user, password, JDBC secret, or token.
 
 ## Phase B2 finalized baseline
 
@@ -349,6 +365,8 @@ Important deterministic distributions:
 - Seed refuses to run unless application tables are empty.
 - Scripts never address port 5432 or the normal development Compose project.
 - SQL files are mounted read-only into the PostgreSQL container.
+- Load-test and query-count scripts use mutually exclusive leases under ignored `performance/.locks/`; ambiguous isolation state fails closed.
+- Native k6 must be exactly 2.1.0, and both Dockerized k6 and PostgreSQL use immutable image digests.
 - No script is bound to application startup, Maven test phases, integration tests, or GitHub Actions.
 
 ## Cleanup

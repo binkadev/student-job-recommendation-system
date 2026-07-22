@@ -1,11 +1,15 @@
 [CmdletBinding()]
 param(
     [string]$ResultDirectory = $env:RESULT_DIRECTORY,
-    [string]$BaseUrl = $(if ($env:BASE_URL) { $env:BASE_URL } else { 'http://localhost:8080' })
+    [string]$BaseUrl = $(if ($env:BASE_URL) { $env:BASE_URL } else { 'http://localhost:8080' }),
+    [ValidateSet('auto', 'native', 'docker')][string]$K6RunnerKind = 'auto',
+    [string]$K6VersionOutput,
+    [string]$K6DockerImage
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'lib/k6-version.ps1')
 
 function Import-PerformanceEnvironment([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Missing $Path." }
@@ -78,18 +82,34 @@ if ($LASTEXITCODE -ne 0) { throw 'Docker is required to collect isolated databas
 $dockerComposeVersion = (& docker compose version --short 2>&1 | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Docker Compose is required.' }
 
-$localK6 = Get-Command k6 -ErrorAction SilentlyContinue
-if ($null -ne $localK6) {
-    $k6Version = (& $localK6.Source version 2>&1 | Out-String).Trim()
+$k6Runtime = $null
+if ($K6RunnerKind -eq 'auto') {
+    if (-not [string]::IsNullOrWhiteSpace($K6VersionOutput) -or -not [string]::IsNullOrWhiteSpace($K6DockerImage)) {
+        throw 'K6VersionOutput and K6DockerImage cannot be supplied when K6RunnerKind is auto.'
+    }
+    $k6Runtime = Resolve-K6Runtime
 }
 else {
-    $savedErrorPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    $k6Version = (& docker run --rm grafana/k6:latest version 2>&1 | Out-String).Trim()
-    $k6ExitCode = $LASTEXITCODE
-    $ErrorActionPreference = $savedErrorPreference
-    if ($k6ExitCode -ne 0) { $k6Version = 'unavailable (Docker image could not be executed)' }
+    if ([string]::IsNullOrWhiteSpace($K6VersionOutput)) {
+        throw 'Validated K6VersionOutput is required when K6RunnerKind is native or docker.'
+    }
+    $validatedVersion = Assert-K6VersionOutput -VersionOutput $K6VersionOutput -RunnerDescription "the supplied $K6RunnerKind runtime"
+    if ($K6RunnerKind -eq 'docker') {
+        if ($K6DockerImage -ne $script:PinnedK6DockerImage) {
+            throw "Metadata must report the pinned Docker image $($script:PinnedK6DockerImage)."
+        }
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($K6DockerImage)) {
+        throw 'K6DockerImage must be empty for a native k6 runtime.'
+    }
+    $k6Runtime = [pscustomobject]@{
+        Kind = $K6RunnerKind
+        Version = $validatedVersion
+        FullVersion = $K6VersionOutput
+        DockerImage = if ($K6RunnerKind -eq 'docker') { $K6DockerImage } else { $null }
+    }
 }
+$k6Version = $k6Runtime.FullVersion
 
 $composeArguments = @('compose', '--env-file', $environmentFile, '-f', $composeFile)
 & docker @composeArguments exec -T postgres psql --username $env:POSTGRES_USER --dbname $env:POSTGRES_DB --set ON_ERROR_STOP=1 --file '/performance/sql/00_guard.sql' | Out-Null
@@ -154,6 +174,8 @@ $metadata = [ordered]@{
         docker = $dockerVersion
         dockerCompose = $dockerComposeVersion
         k6 = $k6Version
+        k6Runner = $k6Runtime.Kind
+        k6DockerImage = $k6Runtime.DockerImage
     }
     host = [ordered]@{
         operatingSystem = $operatingSystem
@@ -189,6 +211,8 @@ $markdown = @"
 - Docker: ``$dockerVersion``
 - Docker Compose: ``$dockerComposeVersion``
 - k6: ``$k6Version``
+- k6 runner: ``$($k6Runtime.Kind)``
+- k6 Docker image: ``$(if ($null -eq $k6Runtime.DockerImage) { 'not used' } else { $k6Runtime.DockerImage })``
 - Operating system: ``$operatingSystem``
 - CPU: ``$cpuModel``
 - Logical CPUs: ``$([Environment]::ProcessorCount)``
