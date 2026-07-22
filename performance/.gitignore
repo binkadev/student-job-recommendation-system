@@ -1,0 +1,4 @@
+# Generated Phase B measurement evidence. Keep only intentionally selected,
+# reviewed small text/JSON/Markdown artifacts out of these run directories.
+results/baseline/*/
+

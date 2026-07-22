@@ -6,7 +6,7 @@ This directory contains the isolated, deterministic PostgreSQL environment for t
 
 **Local performance testing only. Never point these scripts at development, test, staging, or production databases.** The SQL guard requires the exact database `student_job_recommendation_perf` and exact database user `perf_user` before it permits reset or seed operations.
 
-Phase A creates the environment and dataset only. It does not optimize production queries, add indexes, change API contracts, or run k6.
+Phase A creates the environment and dataset. Phase B1 adds measurement tooling and runs only bounded correctness validation. Neither phase optimizes production queries, adds application indexes, changes API contracts, or produces a final latency baseline.
 
 ## Architecture
 
@@ -159,6 +159,127 @@ Verify again after `ANALYZE`:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\verify-dataset.ps1
 ```
+
+## Phase B1 measurement tooling
+
+> **Phase B1 evidence is tooling validation, not the final performance baseline.** Do not copy smoke latency, throughput, query-count, or EXPLAIN observations into final baseline fields. Those fields remain `TBD` until Phase B2 is explicitly authorized.
+
+The canonical requests are:
+
+| Workload | Request | Authentication |
+|---|---|---|
+| Jobs | `GET /api/jobs?page=1&size=20` | student |
+| Company applications | `GET /api/companies/me/applications?page=1&size=20&sort=appliedAt,desc` | heavy company |
+| Public companies | `GET /api/public/companies?page=1&size=20&sort=createdAt,desc` | none |
+
+Login uses `POST /api/auth/login`. Authenticated k6 scripts perform login once in `setup()` and tag setup traffic as `measured=false`; latency/error/throughput evidence uses the `measured=true` submetrics. Tokens remain in memory and are not written to results. The public-company script never creates an `Authorization` header.
+
+Set the documented local-only password in the current PowerShell process without placing it in a command history, result file, or committed environment file:
+
+```powershell
+$env:PERFORMANCE_PASSWORD = Read-Host 'Performance-only password'
+```
+
+Optional variables are:
+
+```text
+BASE_URL
+VUS
+ITERATIONS
+RESULT_DIRECTORY
+STUDENT_EMAIL
+COMPANY_EMAIL
+PERFORMANCE_PASSWORD
+```
+
+Defaults for the student and company emails are the deterministic accounts listed above. `BASE_URL` defaults to `http://localhost:8080`.
+
+### Smoke correctness validation
+
+Run exactly 1 VU and 5 iterations per endpoint:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\run-k6-smoke.ps1
+```
+
+The smoke launcher intentionally ignores `VUS` and `ITERATIONS` and fixes them at `1` and `5`. It checks HTTP 200, valid JSON, the `ApiResponse` envelope, page fields, non-empty content, and absence of authentication errors. A failed check, HTTP error, or dropped iteration causes a non-zero exit.
+
+### Local and Dockerized k6
+
+If `k6` is available on `PATH`, the launchers use it. Otherwise they run the official `grafana/k6:latest` image. Force the Docker path for validation with:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\run-k6-smoke.ps1 -ForceDocker
+```
+
+For Dockerized k6, a host URL using `localhost` or `127.0.0.1` is translated inside the container to:
+
+```text
+http://host.docker.internal:8080
+```
+
+The baseline launcher is present for Phase B2 but must not be run during Phase B1:
+
+```powershell
+# PHASE B2 ONLY; do not run as part of tooling validation.
+$env:VUS = '10'
+$env:ITERATIONS = '10000'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\run-k6-baseline.ps1
+```
+
+### Query-count procedure
+
+`pg_stat_statements` is preloaded only by `performance/docker-compose.yml`. After first adding the Phase B1 configuration, recreate the isolated container while preserving its named volume:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\start-db.ps1
+```
+
+The guarded `performance/sql/50_enable_pg_stat_statements.sql` creates the extension only when the database is exactly `student_job_recommendation_perf`, the user is `perf_user`, Flyway V12 is present, and the preload library is active.
+
+Stop all k6 runs, then capture one endpoint request at a time:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\measure-query-count.ps1
+```
+
+The script logs in before each statistics reset, confirms there is no active SQL workload, resets statistics, issues exactly one canonical GET, and captures normalized SQL, calls, rows, execution time, and shared block hits/reads. Instrumentation SQL is excluded. For authenticated endpoints, an email-based JWT user lookup is classified separately when PostgreSQL's normalized statement permits it; transaction-control calls and endpoint-service SQL are also reported separately.
+
+Never run query-count diagnostics concurrently with k6. The query-count path is restricted to the local backend on port 8080 and the database guard rejects any non-performance database identity.
+
+### EXPLAIN procedure
+
+Stop k6 and run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\capture-explain-plans.ps1
+```
+
+Each endpoint SQL file mirrors its repository content query, count query, and an important secondary query. Every plan runs inside `BEGIN READ ONLY`, applies a local 30-second statement timeout, uses `EXPLAIN (ANALYZE, BUFFERS, SETTINGS, FORMAT JSON)`, and ends with `ROLLBACK`. Deterministic IDs come from the seeded page.
+
+### Result directories
+
+By default each launcher creates a timestamp/SHA run root. To put smoke, query counts, and plans in one run, reuse `RESULT_DIRECTORY`:
+
+```text
+performance/results/baseline/<timestamp>-<git-sha>/
+  metadata.json
+  metadata.md
+  smoke/
+  query-count/
+  explain/
+  k6/
+```
+
+Generated run directories are ignored by `performance/.gitignore`. Passwords, JWTs, environment files, and binary output must never be stored. Small reviewed JSON/text/Markdown evidence may be force-added later only after a secret audit.
+
+Metadata collection can also be run directly:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\collect-environment-metadata.ps1
+```
+
+It records the Git state, Java/Spring/PostgreSQL/Flyway/Docker/k6 versions, OS/CPU/RAM, guarded database identity and row counts, timestamp, and canonical endpoint parameters. It does not collect a host name, operating-system user, password, JDBC secret, or token.
 
 ## Expected row counts
 

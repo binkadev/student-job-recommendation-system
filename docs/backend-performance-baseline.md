@@ -2,7 +2,9 @@
 
 ## Status
 
-Phase A establishes the isolated PostgreSQL environment and deterministic dataset. It does not measure latency and does not optimize production behavior.
+Phase A establishes the isolated PostgreSQL environment and deterministic dataset. Phase B1 creates and validates measurement tooling with a 1 VU × 5 iteration correctness smoke and one-request database diagnostics. Phase B1 does not establish latency/throughput baselines and does not optimize production behavior.
+
+**Current final-baseline status: all values remain `TBD`. Phase B1 output is not a final performance result.**
 
 ## Audit summary
 
@@ -47,7 +49,7 @@ The source audit selected three database-relevant endpoints:
 - Student-skill listing dereferences lazy skills.
 - Admin-company listing dereferences lazy company users while open-job counts are batched.
 
-These findings are static source evidence. Runtime SQL counts remain unmeasured.
+These findings began as static source evidence. Phase B1 has now validated runtime SQL capture, but final Phase B2 query-count fields and conclusions remain `TBD`.
 
 ## Phase A dataset specification
 
@@ -70,6 +72,19 @@ These findings are static source evidence. Runtime SQL counts remain unmeasured.
 
 The seed is deterministic and uses PostgreSQL `generate_series`. It creates exactly 8 skills, 20 saved jobs, and 50 distinct applications per student; 5 skills per job; one active CV per student; and exactly 5,000 applications belonging to the known heavy company.
 
+## Phase B1 measurement tooling
+
+- Shared k6 code validates HTTP 200, JSON parsing, `ApiResponse`, pagination, non-empty content, and authentication correctness.
+- Student/company login occurs once in k6 `setup()`. Setup requests are tagged `measured=false`; endpoint samples are tagged `measured=true`.
+- The public-company workload sends no bearer token.
+- Aggregate results retain measured `http_req_duration` p50/p95/p99, HTTP error rate, request rate, body-byte trend, total requests, failed checks, and dropped iterations.
+- PowerShell launchers prefer local k6 and fall back to official Dockerized Grafana k6 with `host.docker.internal` host routing.
+- `pg_stat_statements` is preloaded only in the isolated performance PostgreSQL container. A guarded extension script and serial capture script isolate one HTTP request after resetting statistics.
+- JSON EXPLAIN tooling captures repository-shaped content, count, and secondary queries in a read-only transaction with a 30-second local timeout.
+- Metadata records Git/runtime/host/database/dataset/request facts without collecting host usernames or secrets.
+
+See `performance/README.md` for exact commands and safety constraints.
+
 ## Measurement methodology placeholders
 
 No performance result is asserted during Phase A.
@@ -80,7 +95,18 @@ No performance result is asserted during Phase A.
 | `GET /api/companies/me/applications` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | `GET /api/public/companies` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
-Future evidence must distinguish the authenticated-user lookup from endpoint-service statements. SQL logging and Hibernate statistics must remain disabled during timed latency tests and may be enabled only for a separate bounded diagnostic pass.
+Future Phase B2 evidence must distinguish the authenticated-user lookup from endpoint-service statements. SQL logging and Hibernate statistics remain disabled during timed latency tests; `pg_stat_statements` diagnostics run separately and serially.
+
+## Phase B1 validation record
+
+| Item | Result |
+|---|---|
+| k6 smoke correctness (1 VU × 5 per endpoint) | Passed for all three endpoints; no HTTP/check/authentication failures or dropped iterations |
+| Isolated query-count capture | Passed for exactly one request per endpoint; JWT, transaction-control, and service classifications captured |
+| Read-only JSON EXPLAIN capture | Passed; nine valid JSON plans plus a manifest captured |
+| Evidence run directory | `performance/results/baseline/20260722-phase-b1-47ecc767/` (generated and ignored) |
+| Final p50/p95/p99/error rate/throughput | TBD — Phase B2 only |
+| Final query counts and plan conclusions | TBD — Phase B2 only |
 
 ## Phase A verification record
 
@@ -102,4 +128,4 @@ Future evidence must distinguish the authenticated-user lookup from endpoint-ser
 
 ## Scope statement
 
-This branch does not optimize queries, add indexes, introduce caching, change API contracts, or alter production Java code. Phase B should add measurement workloads and evidence collection only after Phase A is reproducibly verified.
+This branch does not optimize queries, add application indexes, introduce caching, change API contracts, or alter production Java code. Phase B1 adds only measurement workloads and evidence collection after Phase A was reproducibly verified; final baseline execution remains Phase B2 work.
