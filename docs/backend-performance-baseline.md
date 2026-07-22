@@ -19,9 +19,11 @@ No production Java, API contract, Flyway migration, application index, cache, or
 | Java | 21.0.11 |
 | Spring Boot | 3.5.16 |
 | PostgreSQL | 17.10 |
+| PostgreSQL image | `postgres:17.10@sha256:a426e44bac0b759c95894d68e1a0ac03ecc20b619f498a91aae373bf06d8508d` |
 | Database/user | `student_job_recommendation_perf` / `perf_user` |
 | Flyway | V12 |
 | k6 | 2.1.0, local Windows build |
+| Dockerized k6 fallback | `grafana/k6:2.1.0@sha256:65c920dc067d5e2e00befbf982af6ad6ad0117034e8b1c65817c7975c52d4669` |
 | Docker / Compose | 29.5.3 / 5.1.4 |
 | Operating system | Microsoft Windows 11 Home 10.0.26200 |
 | CPU | 12th Gen Intel Core i7-12700H, 20 logical CPUs |
@@ -67,7 +69,7 @@ The following evidence was excluded from latency aggregation:
 - `diagnostics/`: one-request SQL counts and read-only execution plans.
 - Any timeout, partial, or failed run: none was selected.
 
-Query-count and EXPLAIN diagnostics ran serially and outside timed k6 workloads. `pg_stat_statements` was reset immediately before one isolated canonical HTTP request. The plan captures used repository-shaped SQL inside read-only transactions with a 30-second statement timeout.
+Query-count and EXPLAIN diagnostics ran serially and outside timed k6 workloads. Reproduction tooling now enforces this with a repository-scoped atomic mutex and typed JSON leases under ignored `performance/.locks/`: k6 holds a load-test lease for its complete native or Docker lifetime, while query-count capture holds an incompatible diagnostic lease before any statistics reset. It also rejects active Grafana k6 containers and fails closed when isolation cannot be proven. `pg_stat_statements` was reset immediately before one isolated canonical HTTP request. The plan captures used repository-shaped SQL inside read-only transactions with a 30-second statement timeout.
 
 ## 5. Three-run raw results
 

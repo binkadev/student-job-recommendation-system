@@ -9,30 +9,49 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'lib/k6-runner.ps1')
+. (Join-Path $PSScriptRoot 'lib/measurement-lock.ps1')
 
-$runDirectory = New-PerformanceRunDirectory -RequestedPath $ResultDirectory
 Assert-K6Inputs -BaseUrl $BaseUrl -Vus 1 -Iterations 5 -PerformancePassword $PerformancePassword
+$performanceRoot = Split-Path -Parent $PSScriptRoot
+$measurementLease = $null
 
-& (Join-Path $PSScriptRoot 'collect-environment-metadata.ps1') -ResultDirectory $runDirectory -BaseUrl $BaseUrl
-if ($LASTEXITCODE -ne 0) { throw 'Environment metadata collection failed.' }
+try {
+    $measurementLease = Enter-PerformanceMeasurementLock -PerformanceRoot $performanceRoot -LockKind 'load-test' -WorkloadType 'k6-smoke'
+    Assert-NoExternalK6Workload
+    $k6Runtime = Resolve-K6Runtime -ForceDocker:$ForceDocker
+    $runDirectory = New-PerformanceRunDirectory -RequestedPath $ResultDirectory
 
-foreach ($workload in @(
-    @{ Script = 'jobs-list.js'; Endpoint = 'jobs-list' },
-    @{ Script = 'company-applications.js'; Endpoint = 'company-applications' },
-    @{ Script = 'public-companies.js'; Endpoint = 'public-companies' }
-)) {
-    Invoke-K6Endpoint `
-        -ScriptName $workload.Script `
-        -EndpointName $workload.Endpoint `
-        -RunDirectory $runDirectory `
+    & (Join-Path $PSScriptRoot 'collect-environment-metadata.ps1') `
+        -ResultDirectory $runDirectory `
         -BaseUrl $BaseUrl `
-        -Vus 1 `
-        -Iterations 5 `
-        -PerformancePassword $PerformancePassword `
-        -WorkloadKind smoke `
-        -ForceDocker:$ForceDocker
-}
+        -K6RunnerKind $k6Runtime.Kind `
+        -K6VersionOutput $k6Runtime.FullVersion `
+        -K6DockerImage ([string]$k6Runtime.DockerImage)
+    if ($LASTEXITCODE -ne 0) { throw 'Environment metadata collection failed.' }
 
-Write-Host 'Phase B1 smoke validation passed: 1 VU, 5 iterations per endpoint.'
-Write-Host "Result directory: $runDirectory"
+    foreach ($workload in @(
+        @{ Script = 'jobs-list.js'; Endpoint = 'jobs-list' },
+        @{ Script = 'company-applications.js'; Endpoint = 'company-applications' },
+        @{ Script = 'public-companies.js'; Endpoint = 'public-companies' }
+    )) {
+        Invoke-K6Endpoint `
+            -ScriptName $workload.Script `
+            -EndpointName $workload.Endpoint `
+            -RunDirectory $runDirectory `
+            -BaseUrl $BaseUrl `
+            -Vus 1 `
+            -Iterations 5 `
+            -PerformancePassword $PerformancePassword `
+            -WorkloadKind smoke `
+            -K6Runtime $k6Runtime
+    }
+
+    Write-Host 'Phase B1 smoke validation passed: 1 VU, 5 iterations per endpoint.'
+    Write-Host "Result directory: $runDirectory"
+}
+finally {
+    if ($null -ne $measurementLease) {
+        Exit-PerformanceMeasurementLock -Lease $measurementLease
+    }
+}
 

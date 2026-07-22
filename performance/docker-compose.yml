@@ -2,7 +2,7 @@ name: student-job-recommendation-perf
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17.10@sha256:a426e44bac0b759c95894d68e1a0ac03ecc20b619f498a91aae373bf06d8508d
     container_name: ${PERF_POSTGRES_CONTAINER:-student-job-recommendation-perf-postgres}
     restart: "no"
     command:

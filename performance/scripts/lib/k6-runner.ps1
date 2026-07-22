@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'k6-version.ps1')
 
 function Get-RepositoryRoot {
     $scriptsDirectory = Split-Path -Parent $PSScriptRoot
@@ -67,7 +68,7 @@ function Invoke-K6Endpoint {
         [Parameter(Mandatory = $true)][int]$Iterations,
         [Parameter(Mandatory = $true)][string]$PerformancePassword,
         [Parameter(Mandatory = $true)][ValidateSet('smoke', 'baseline')][string]$WorkloadKind,
-        [switch]$ForceDocker
+        [Parameter(Mandatory = $true)]$K6Runtime
     )
 
     $repositoryRoot = Get-RepositoryRoot
@@ -92,15 +93,21 @@ function Invoke-K6Endpoint {
         $env:PERFORMANCE_PASSWORD = $PerformancePassword
         $env:WORKLOAD_KIND = $WorkloadKind
 
-        $localK6 = Get-Command k6 -ErrorAction SilentlyContinue
-        if ($null -ne $localK6 -and -not $ForceDocker) {
+        if ($null -eq $K6Runtime.PSObject.Properties['Kind'] -or $K6Runtime.Kind -notin @('native', 'docker')) {
+            throw 'Invoke-K6Endpoint requires a validated native or Docker k6 runtime.'
+        }
+
+        if ($K6Runtime.Kind -eq 'native') {
+            if ([string]::IsNullOrWhiteSpace([string]$K6Runtime.Executable) -or -not (Test-Path -LiteralPath $K6Runtime.Executable -PathType Leaf)) {
+                throw 'The validated native k6 executable is no longer available.'
+            }
             $env:RESULT_DIRECTORY = [IO.Path]::GetFullPath($endpointDirectory).Replace('\', '/')
             $relativeScript = (Get-CompatibleRelativePath -BasePath $repositoryRoot -TargetPath $scriptPath).Replace('\', '/')
             Push-Location $repositoryRoot
             try {
                 $savedErrorPreference = $ErrorActionPreference
                 $ErrorActionPreference = 'Continue'
-                & $localK6.Source run --summary-mode=full $relativeScript 2>&1 | Tee-Object -FilePath $consolePath
+                & $K6Runtime.Executable run --summary-mode=full $relativeScript 2>&1 | Tee-Object -FilePath $consolePath
                 $exitCode = $LASTEXITCODE
                 $ErrorActionPreference = $savedErrorPreference
             }
@@ -110,6 +117,9 @@ function Invoke-K6Endpoint {
             }
         }
         else {
+            if ([string]$K6Runtime.DockerImage -ne $script:PinnedK6DockerImage) {
+                throw "The Dockerized k6 runtime is not the required pinned image $($script:PinnedK6DockerImage)."
+            }
             $dockerBaseUrl = $env:BASE_URL
             $baseUri = [Uri]$dockerBaseUrl
             if ($baseUri.Host -in @('localhost', '127.0.0.1')) {
@@ -125,11 +135,13 @@ function Invoke-K6Endpoint {
 
             $arguments = @(
                 'run', '--rm', '--add-host', 'host.docker.internal:host-gateway',
+                '--label', 'com.tttn.performance.workload=k6',
+                '--label', "com.tttn.performance.workload-type=$WorkloadKind",
                 '--volume', "${repositoryRoot}:/workspace", '--workdir', '/workspace',
                 '--env', 'BASE_URL', '--env', 'VUS', '--env', 'ITERATIONS',
                 '--env', 'RESULT_DIRECTORY', '--env', 'STUDENT_EMAIL', '--env', 'COMPANY_EMAIL',
                 '--env', 'PERFORMANCE_PASSWORD', '--env', 'WORKLOAD_KIND',
-                'grafana/k6:latest', 'run', '--summary-mode=full', $relativeScript
+                $K6Runtime.DockerImage, 'run', '--summary-mode=full', $relativeScript
             )
             $savedErrorPreference = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'

@@ -9,6 +9,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'lib/measurement-lock.ps1')
 
 function Import-PerformanceEnvironment([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Missing $Path." }
@@ -54,11 +55,7 @@ function Invoke-Login([string]$Email) {
 }
 
 function Assert-NoConcurrentMeasurement {
-    $localK6 = @(Get-Process k6 -ErrorAction SilentlyContinue)
-    if ($localK6.Count -gt 0) { throw 'A local k6 process is running. Query-count diagnostics must be isolated.' }
-    $dockerK6 = (& docker ps --filter 'ancestor=grafana/k6:latest' --format '{{.ID}}' | Out-String).Trim()
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect Docker for concurrent k6 runs.' }
-    if (-not [string]::IsNullOrWhiteSpace($dockerK6)) { throw 'A Dockerized k6 process is running. Query-count diagnostics must be isolated.' }
+    Assert-NoExternalK6Workload
 
     $activeSql = [int](Invoke-PsqlCommand @"
 SELECT count(*)
@@ -97,26 +94,34 @@ if ($baseUri.Host -notin @('localhost', '127.0.0.1') -or $baseUri.Port -ne 8080)
 }
 if ([string]::IsNullOrWhiteSpace($PerformancePassword)) { throw 'PERFORMANCE_PASSWORD is required and is never written to output.' }
 
-if ([string]::IsNullOrWhiteSpace($ResultDirectory)) {
-    $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $shortSha = (& git -c "safe.directory=$($repositoryRoot.Replace('\', '/'))" -C $repositoryRoot rev-parse --short HEAD).Trim()
-    $ResultDirectory = Join-Path $performanceRoot "results/baseline/$runId-$shortSha"
-}
-elseif (-not [IO.Path]::IsPathRooted($ResultDirectory)) {
-    $ResultDirectory = Join-Path $repositoryRoot $ResultDirectory
-}
-$queryDirectory = Join-Path ([IO.Path]::GetFullPath($ResultDirectory)) 'query-count'
-[IO.Directory]::CreateDirectory($queryDirectory) | Out-Null
+$measurementLease = $null
+$studentToken = $null
+$companyToken = $null
+try {
+    $measurementLease = Enter-PerformanceMeasurementLock -PerformanceRoot $performanceRoot -LockKind 'query-count' -WorkloadType 'query-count-diagnostics'
+    Assert-NoExternalK6Workload
 
-$script:ComposeArguments = @('compose', '--env-file', $environmentFile, '-f', $composeFile)
-$health = (& docker inspect --format '{{.State.Health.Status}}' $env:PERF_POSTGRES_CONTAINER 2>$null)
-if ($LASTEXITCODE -ne 0 -or $health.Trim() -ne 'healthy') { throw 'Performance PostgreSQL is not healthy.' }
+    if ([string]::IsNullOrWhiteSpace($ResultDirectory)) {
+        $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $shortSha = (& git -c "safe.directory=$($repositoryRoot.Replace('\', '/'))" -C $repositoryRoot rev-parse --short HEAD).Trim()
+        $ResultDirectory = Join-Path $performanceRoot "results/baseline/$runId-$shortSha"
+    }
+    elseif (-not [IO.Path]::IsPathRooted($ResultDirectory)) {
+        $ResultDirectory = Join-Path $repositoryRoot $ResultDirectory
+    }
+    $queryDirectory = Join-Path ([IO.Path]::GetFullPath($ResultDirectory)) 'query-count'
+    [IO.Directory]::CreateDirectory($queryDirectory) | Out-Null
 
-& docker @script:ComposeArguments exec -T postgres psql --username $env:POSTGRES_USER --dbname $env:POSTGRES_DB --set ON_ERROR_STOP=1 --file '/performance/sql/50_enable_pg_stat_statements.sql' | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Unable to enable pg_stat_statements in the performance database.' }
+    $script:ComposeArguments = @('compose', '--env-file', $environmentFile, '-f', $composeFile)
+    $health = (& docker inspect --format '{{.State.Health.Status}}' $env:PERF_POSTGRES_CONTAINER 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $health.Trim() -ne 'healthy') { throw 'Performance PostgreSQL is not healthy.' }
+    Assert-NoConcurrentMeasurement
 
-$studentToken = Invoke-Login $StudentEmail
-$companyToken = Invoke-Login $CompanyEmail
+    & docker @script:ComposeArguments exec -T postgres psql --username $env:POSTGRES_USER --dbname $env:POSTGRES_DB --set ON_ERROR_STOP=1 --file '/performance/sql/50_enable_pg_stat_statements.sql' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to enable pg_stat_statements in the performance database.' }
+
+    $studentToken = Invoke-Login $StudentEmail
+    $companyToken = Invoke-Login $CompanyEmail
 
 $endpoints = @(
     [ordered]@{ name = 'jobs-list'; path = '/api/jobs?page=1&size=20'; token = $studentToken; role = 'STUDENT' },
@@ -164,42 +169,50 @@ SELECT jsonb_build_object(
 FROM captured;
 "@
 
-foreach ($endpoint in $endpoints) {
-    Assert-NoConcurrentMeasurement
-    Invoke-PsqlCommand 'SELECT pg_stat_statements_reset();' | Out-Null
+    foreach ($endpoint in $endpoints) {
+        Assert-NoConcurrentMeasurement
+        Invoke-PsqlCommand 'SELECT pg_stat_statements_reset();' | Out-Null
+        Assert-NoConcurrentMeasurement
 
-    $headers = @{ Accept = 'application/json' }
-    if ($null -ne $endpoint.token) { $headers.Authorization = "Bearer $($endpoint.token)" }
-    $startedAt = (Get-Date).ToUniversalTime()
-    $response = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))$($endpoint.path)" -Headers $headers -UseBasicParsing
-    $body = Test-PagedResponse $response $endpoint.name
-    $completedAt = (Get-Date).ToUniversalTime()
+        $headers = @{ Accept = 'application/json' }
+        if ($null -ne $endpoint.token) { $headers.Authorization = "Bearer $($endpoint.token)" }
+        $startedAt = (Get-Date).ToUniversalTime()
+        $response = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))$($endpoint.path)" -Headers $headers -UseBasicParsing
+        $body = Test-PagedResponse $response $endpoint.name
+        $completedAt = (Get-Date).ToUniversalTime()
+        Assert-NoConcurrentMeasurement
 
-    $stats = (Invoke-PsqlCommand $statsSql) | ConvertFrom-Json
-    if ($stats.summary.totalSqlStatements -lt 1) { throw "No SQL statements captured for $($endpoint.name)." }
+        $stats = (Invoke-PsqlCommand $statsSql) | ConvertFrom-Json
+        if ($stats.summary.totalSqlStatements -lt 1) { throw "No SQL statements captured for $($endpoint.name)." }
 
-    $evidence = [ordered]@{
-        phase = 'B1 query-count validation; not a latency baseline'
-        endpoint = $endpoint.name
-        request = "GET $($endpoint.path.Replace('%2C', ','))"
-        authentication = $endpoint.role
-        requestStartedUtc = $startedAt.ToString('o')
-        requestCompletedUtc = $completedAt.ToString('o')
-        http = [ordered]@{
-            status = [int]$response.StatusCode
-            responseBodyBytes = [Text.Encoding]::UTF8.GetByteCount($response.Content)
-            pageItems = @($body.data.items).Count
+        $evidence = [ordered]@{
+            phase = 'B1 query-count validation; not a latency baseline'
+            endpoint = $endpoint.name
+            request = "GET $($endpoint.path.Replace('%2C', ','))"
+            authentication = $endpoint.role
+            requestStartedUtc = $startedAt.ToString('o')
+            requestCompletedUtc = $completedAt.ToString('o')
+            http = [ordered]@{
+                status = [int]$response.StatusCode
+                responseBodyBytes = [Text.Encoding]::UTF8.GetByteCount($response.Content)
+                pageItems = @($body.data.items).Count
+            }
+            queryStatistics = $stats.summary
+            statements = $stats.statements
         }
-        queryStatistics = $stats.summary
-        statements = $stats.statements
+
+        $timestamp = $startedAt.ToString('yyyyMMdd-HHmmssfff')
+        $jsonPath = Join-Path $queryDirectory "$timestamp-$($endpoint.name).json"
+        $evidence | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $jsonPath -Encoding utf8
+        Write-Host ("{0}: total SQL={1}, JWT lookup={2}, transaction control={3}, service SQL={4}" -f $endpoint.name, $stats.summary.totalSqlStatements, $stats.summary.jwtUserLookupStatements, $stats.summary.transactionControlStatements, $stats.summary.serviceStatements)
     }
 
-    $timestamp = $startedAt.ToString('yyyyMMdd-HHmmssfff')
-    $jsonPath = Join-Path $queryDirectory "$timestamp-$($endpoint.name).json"
-    $evidence | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $jsonPath -Encoding utf8
-    Write-Host ("{0}: total SQL={1}, JWT lookup={2}, transaction control={3}, service SQL={4}" -f $endpoint.name, $stats.summary.totalSqlStatements, $stats.summary.jwtUserLookupStatements, $stats.summary.transactionControlStatements, $stats.summary.serviceStatements)
+    Write-Host "Isolated query-count evidence written to $queryDirectory"
 }
-
-$studentToken = $null
-$companyToken = $null
-Write-Host "Isolated query-count evidence written to $queryDirectory"
+finally {
+    $studentToken = $null
+    $companyToken = $null
+    if ($null -ne $measurementLease) {
+        Exit-PerformanceMeasurementLock -Lease $measurementLease
+    }
+}
