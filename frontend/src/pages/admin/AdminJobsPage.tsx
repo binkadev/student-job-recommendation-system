@@ -141,6 +141,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
   const jobs = result?.items ?? [];
   const selectedJob = detailQuery.data ?? jobs.find((job) => String(job.id) === jobId) ?? null;
   const allPageSelected = jobs.length > 0 && jobs.every((job) => selectedIds.includes(job.id));
+  const selectedActiveIds = jobs.filter((job) => selectedIds.includes(job.id) && job.status === "ACTIVE").map((job) => job.id);
   const filterOptions = useMemo(() => ({
     jobTypes: Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label })),
     workModes: Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label })),
@@ -174,7 +175,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
         setSelectedIds([]);
       }
       if (actionType === "bulkClose") {
-        await Promise.all(selectedIds.map((id) => updateJobStatus(id, "CLOSED")));
+        await Promise.all(selectedActiveIds.map((id) => updateJobStatus(id, "CLOSED")));
         showToast({ type: "success", title: "Đã đóng các tin đã chọn" });
         setSelectedIds([]);
       }
@@ -277,7 +278,8 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
                 {selectedJob.status === "PENDING_APPROVAL" ? <Button onClick={() => openAction("approve", selectedJob)}>Duyệt thành ACTIVE</Button> : null}
                 {selectedJob.status === "PENDING_APPROVAL" ? <Button variant="danger" onClick={() => openAction("reject", selectedJob)}>Từ chối</Button> : null}
                 {selectedJob.status !== "PENDING_APPROVAL" ? <Button variant="secondary" onClick={() => openAction("pending", selectedJob)}>Chuyển về chờ duyệt</Button> : null}
-                {selectedJob.status !== "CLOSED" ? <Button variant="secondary" onClick={() => openAction("close", selectedJob)}>Đóng tin</Button> : <Button variant="secondary" onClick={() => openAction("reopen", selectedJob)}>Mở lại</Button>}
+                {selectedJob.status === "ACTIVE" ? <Button variant="secondary" onClick={() => openAction("close", selectedJob)}>Đóng tin</Button> : null}
+                {selectedJob.status === "CLOSED" ? <Button variant="secondary" onClick={() => openAction("reopen", selectedJob)}>Mở lại</Button> : null}
               </div>
             </Card>
             <Card>
@@ -316,7 +318,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" disabled={selectedIds.length === 0} onClick={() => openAction("bulkApprove")}>Duyệt nhiều tin</Button>
-          <Button size="sm" variant="secondary" disabled={selectedIds.length === 0} onClick={() => openAction("bulkClose")}>Đóng nhiều tin</Button>
+          <Button size="sm" variant="secondary" disabled={selectedActiveIds.length === 0} onClick={() => openAction("bulkClose")}>Đóng nhiều tin</Button>
         </div>
       </div>
 
@@ -384,7 +386,8 @@ function JobActions({ job, onOpen }: { job: JobResponse; onOpen: (action: JobAct
       <Link to={`/admin/jobs/${job.id}${job.status === "PENDING_APPROVAL" ? "/review" : ""}`}><Button className="w-full" size="sm" variant="secondary">Xem</Button></Link>
       {job.status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" onClick={() => onOpen("approve", job)}>Duyệt</Button> : null}
       {job.status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" variant="danger" onClick={() => onOpen("reject", job)}>Từ chối</Button> : null}
-      {job.status !== "CLOSED" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("close", job)}>Đóng</Button> : <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("reopen", job)}>Mở lại</Button>}
+      {job.status === "ACTIVE" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("close", job)}>Đóng</Button> : null}
+      {job.status === "CLOSED" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("reopen", job)}>Mở lại</Button> : null}
     </div>
   );
 }
@@ -499,7 +502,7 @@ function getActionTitle(actionType: JobAction) {
 
 function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;

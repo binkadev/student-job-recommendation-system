@@ -24,7 +24,7 @@ interface JobSkillResponse {
   category: string | null;
 }
 
-interface JobResponse {
+interface PublicJobResponse {
   id: number;
   companyId: number;
   companyName: string;
@@ -37,11 +37,17 @@ interface JobResponse {
   salaryMax: number | string | null;
   currency: string | null;
   deadline: string | null;
-  skills: JobSkillResponse[];
+  skills?: JobSkillResponse[] | null;
   publishedAt: string | null;
-  closedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string | null;
+  applicantCount?: number | null;
+  applicationCount?: number | null;
+  applicants?: number | null;
+  totalApplications?: number | null;
+  applicationsCount?: number | null;
+  applicationTotal?: number | null;
+  totalApplicants?: number | null;
+  totalApplicantCount?: number | null;
 }
 
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
@@ -72,29 +78,31 @@ export function getJobsFilterOptions(): JobsFilterOptions {
 }
 
 export async function getPublicJobs(filters: JobsListFilters): Promise<JobsListResult> {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobResponse>>>("/jobs", {
     params: {
       page: filters.page,
       size: pageSize,
+      status: "ACTIVE",
       keyword: filters.keyword || undefined,
       location: filters.location || undefined,
       jobType: filters.jobType || undefined,
       workingModel: filters.workingModel || undefined,
-      status: "ACTIVE",
     },
   });
-  const page = response.data.data;
+  const data = response.data.data;
+  const items = data.items.map(mapJob).filter((job) => matchesClientFilters(job, filters));
 
   return {
-    items: page.items.map(mapJob),
-    totalItems: page.totalItems,
-    page: page.page,
-    pageSize: page.size,
-    totalPages: page.totalPages,
+    items,
+    totalItems: data.totalItems,
+    page: data.page,
+    pageSize: data.size,
+    totalPages: data.totalPages,
   };
 }
 
-function mapJob(job: JobResponse): PublicJobListItem {
+function mapJob(job: PublicJobResponse): PublicJobListItem {
+  const skills = (job.skills ?? []).map((skill) => skill.skillName).filter(Boolean);
   return {
     id: String(job.id),
     logo: getInitials(job.companyName),
@@ -104,33 +112,83 @@ function mapJob(job: JobResponse): PublicJobListItem {
     salary: formatSalary(job),
     salaryMax: Number(job.salaryMax ?? job.salaryMin ?? 0),
     location: job.location || "Chưa cập nhật",
-    industry: "Chưa có API",
-    experienceYears: 0,
-    experienceLabel: "Chưa có API",
-    level: "Chưa có API",
+    industry: job.title,
+    experienceYears: inferExperienceYears(job.title),
+    experienceLabel: inferExperienceLabel(job.title),
+    level: inferLevel(job.title),
     jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
     workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
-    skills: (job.skills ?? []).map((skill) => skill.skillName),
+    skills,
     postedAt: formatDate(job.publishedAt || job.createdAt),
     deadline: formatDate(job.deadline),
-    applicants: 0,
-    status: getDisplayStatus(job),
+    applicants: getApplicantCount(job),
+    status: job.deadline && daysUntil(job.deadline) <= 7 ? "urgent" : "published",
     matchScore: 0,
   };
 }
 
-function getDisplayStatus(job: JobResponse): PublicJobListItem["status"] {
-  if (job.deadline && daysUntil(job.deadline) <= 7) return "urgent";
-  return "published";
+function getApplicantCount(job: PublicJobResponse) {
+  return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
 }
 
-function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
+function matchesClientFilters(job: PublicJobListItem, filters: JobsListFilters) {
+  const keyword = normalizeText(filters.keyword.trim());
+  const searchable = normalizeText(`${job.title} ${job.companyName} ${job.skills.join(" ")}`);
+  const matchKeyword = !keyword || searchable.includes(keyword);
+  const matchLocation = !filters.location || normalizeLocation(job.location).includes(normalizeLocation(filters.location));
+  return matchKeyword && matchLocation;
+}
+
+function inferExperienceLabel(title: string) {
+  const normalized = normalizeText(title);
+  if (/\b(intern|internship|thuc tap|fresher)\b/.test(normalized)) return "Thực tập";
+  if (/\b(junior|0\s*-\s*1|1\s*nam)\b/.test(normalized)) return "0-1 năm";
+  if (/\b(1\s*-\s*2|2\s*nam)\b/.test(normalized)) return "1-2 năm";
+  if (/\b(senior|lead|manager|5\+|5\s*nam)\b/.test(normalized)) return "5+ năm";
+  if (/\b(middle|3\+|3\s*nam|4\s*nam)\b/.test(normalized)) return "3+ năm";
+  return "Chưa cập nhật";
+}
+
+function inferExperienceYears(title: string) {
+  const label = inferExperienceLabel(title);
+  if (label === "Thực tập" || label === "0-1 năm") return 0;
+  if (label === "1-2 năm") return 1;
+  if (label === "3+ năm") return 3;
+  if (label === "5+ năm") return 5;
+  return 0;
+}
+
+function inferLevel(title: string) {
+  const normalized = normalizeText(title);
+  if (/\b(intern|internship|thuc tap)\b/.test(normalized)) return "Intern";
+  if (/\b(fresher)\b/.test(normalized)) return "Fresher";
+  if (/\b(junior)\b/.test(normalized)) return "Junior";
+  if (/\b(senior|lead)\b/.test(normalized)) return "Senior";
+  if (/\b(middle)\b/.test(normalized)) return "Middle";
+  return "Chưa cập nhật";
+}
+
+function normalizeLocation(value: string) {
+  const normalized = normalizeText(value).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+  if (/\b(hcm|hcmc|ho chi minh|ho chi minh city|sai gon|saigon)\b/.test(normalized)) return "ho chi minh";
+  if (/\b(ha noi|hanoi)\b/.test(normalized)) return "ha noi";
+  if (/\b(da nang|danang)\b/.test(normalized)) return "da nang";
+  return normalized;
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function formatSalary(job: Pick<PublicJobResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
-  if (min && max) return `${min} - ${max} ${currency}`;
-  return `${min || max} ${currency}`;
+  if (min && max) return `${min} - ${max} đồng`;
+  return `${min || max} đồng`;
 }
 
 function formatMoney(value: number | string) {

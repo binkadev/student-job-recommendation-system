@@ -11,10 +11,8 @@ import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
-import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
 
 interface ApiResponse<T> {
@@ -58,14 +56,12 @@ const statusOptions: Array<{ label: string; value: "" | ApplicationStatus }> = [
 
 export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "detail" | "status" }) {
   const { applicationId } = useParams();
-  const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ApplicationStatus | "">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
-  const [reloadKey, setReloadKey] = useState(0);
-  const [withdrawTarget, setWithdrawTarget] = useState<ApplicationResponse | null>(null);
+  const [reloadKey] = useState(0);
 
   const applicationsQuery = useAsyncData(() => getMyApplications(), [reloadKey]);
   const applications = applicationsQuery.data ?? [];
@@ -90,13 +86,6 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   function updateFilter(callback: () => void) {
     callback();
     setPage(1);
-  }
-
-  async function withdrawApplication(application: ApplicationResponse) {
-    await updateApplicationStatus(application.id, "WITHDRAWN");
-    setWithdrawTarget(null);
-    setReloadKey((current) => current + 1);
-    showToast({ type: "success", title: "Đã rút hồ sơ", message: "Trạng thái đơn ứng tuyển đã được cập nhật lên backend." });
   }
 
   if (applicationsQuery.loading) {
@@ -132,8 +121,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   if ((mode === "detail" || mode === "status") && selectedApplication) {
     return (
       <PageContainer>
-        <ApplicationDetail application={selectedApplication} onWithdraw={() => setWithdrawTarget(selectedApplication)} />
-        <WithdrawApplicationModal application={withdrawTarget} onClose={() => setWithdrawTarget(null)} onConfirm={withdrawApplication} />
+        <ApplicationDetail application={selectedApplication} />
       </PageContainer>
     );
   }
@@ -163,7 +151,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         <>
           <div className="grid gap-4">
             {pagedApplications.map((application) => (
-              <ApplicationCard key={application.id} application={application} onWithdraw={() => setWithdrawTarget(application)} />
+              <ApplicationCard key={application.id} application={application} />
             ))}
           </div>
           <div className="mt-5">
@@ -172,12 +160,11 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         </>
       )}
 
-      <WithdrawApplicationModal application={withdrawTarget} onClose={() => setWithdrawTarget(null)} onConfirm={withdrawApplication} />
     </PageContainer>
   );
 }
 
-function ApplicationCard({ application, onWithdraw }: { application: ApplicationResponse; onWithdraw: () => void }) {
+function ApplicationCard({ application }: { application: ApplicationResponse }) {
   const status = getStatusMeta(application.status);
 
   return (
@@ -202,14 +189,13 @@ function ApplicationCard({ application, onWithdraw }: { application: Application
           <Link to={`/candidate/applications/${application.id}`}><Button variant="secondary" size="sm">Xem chi tiết</Button></Link>
           <Link to={`/candidate/applications/${application.id}/status`}><Button variant="secondary" size="sm">Xem trạng thái</Button></Link>
           <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary" size="sm">Xem việc làm</Button></Link>
-          {canWithdraw(application.status) ? <Button variant="danger" size="sm" onClick={onWithdraw}>Rút hồ sơ</Button> : null}
         </div>
       </div>
     </Card>
   );
 }
 
-function ApplicationDetail({ application, onWithdraw }: { application: ApplicationResponse; onWithdraw: () => void }) {
+function ApplicationDetail({ application }: { application: ApplicationResponse }) {
   const status = getStatusMeta(application.status);
 
   return (
@@ -228,7 +214,6 @@ function ApplicationDetail({ application, onWithdraw }: { application: Applicati
           <div className="flex flex-wrap gap-2">
             <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary">Xem việc làm</Button></Link>
             {application.cvFileId ? <Link to={`/candidate/cvs/${application.cvFileId}`}><Button variant="secondary">Xem CV</Button></Link> : null}
-            {canWithdraw(application.status) ? <Button variant="danger" onClick={onWithdraw}>Rút hồ sơ</Button> : null}
           </div>
         </div>
       </Card>
@@ -270,38 +255,8 @@ function ApplicationDetail({ application, onWithdraw }: { application: Applicati
   );
 }
 
-function WithdrawApplicationModal({
-  application,
-  onClose,
-  onConfirm,
-}: {
-  application: ApplicationResponse | null;
-  onClose: () => void;
-  onConfirm: (application: ApplicationResponse) => void;
-}) {
-  return (
-    <Modal open={Boolean(application)} title="Rút hồ sơ ứng tuyển" onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-sm text-slate-700">
-          Bạn có chắc muốn rút hồ sơ ứng tuyển vị trí <strong>{application?.jobTitle}</strong> tại <strong>{application?.companyName}</strong>?
-        </p>
-        <p className="text-sm text-slate-500">Backend hiện chỉ hỗ trợ cập nhật trạng thái sang WITHDRAWN, chưa có trường lưu lý do rút hồ sơ.</p>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="danger" onClick={() => application && onConfirm(application)}>Rút hồ sơ</Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 async function getMyApplications() {
   const response = await httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications");
-  return response.data.data;
-}
-
-async function updateApplicationStatus(applicationId: number, status: ApplicationStatus) {
-  const response = await httpClient.patch<ApiResponse<ApplicationResponse>>(`/applications/${applicationId}/status`, { status });
   return response.data.data;
 }
 
@@ -320,10 +275,6 @@ function getStatusMeta(status: ApplicationStatus): { label: string; tone: "neutr
   if (status === "ACCEPTED") return { label: "Đã chấp nhận", tone: "success" };
   if (status === "REJECTED") return { label: "Bị từ chối", tone: "danger" };
   return { label: "Đã rút", tone: "neutral" };
-}
-
-function canWithdraw(status: ApplicationStatus) {
-  return status === "PENDING";
 }
 
 function getNextStep(status: ApplicationStatus) {

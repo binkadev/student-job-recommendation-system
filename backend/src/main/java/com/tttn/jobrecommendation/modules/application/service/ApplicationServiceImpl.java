@@ -11,6 +11,7 @@ import com.tttn.jobrecommendation.common.utils.PageableUtils;
 import com.tttn.jobrecommendation.modules.application.dto.request.ApplyJobRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.CompanyApplicationFilterRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.UpdateApplicationStatusRequest;
+import com.tttn.jobrecommendation.modules.application.dto.response.ApplicationCvDownload;
 import com.tttn.jobrecommendation.modules.application.dto.response.ApplicationResponse;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.mapper.ApplicationMapper;
@@ -25,6 +26,7 @@ import com.tttn.jobrecommendation.modules.notification.service.NotificationServi
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,9 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -61,6 +66,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final CvFileRepository cvFileRepository;
     private final ApplicationMapper applicationMapper;
     private final NotificationService notificationService;
+
+    @Value("${app.upload.cv.storage-dir}")
+    private String cvStorageDir;
 
     @Override
     @Transactional
@@ -160,6 +168,30 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobApplication application = getApplicationById(id);
         assertCompanyOwnsJob(company, application.getJob());
         return applicationMapper.toApplicationResponse(application);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationCvDownload getMyCompanyApplicationCv(Long id, Long userId) {
+        Company company = getCompanyByUserId(userId);
+        JobApplication application = getApplicationById(id);
+        assertCompanyOwnsJob(company, application.getJob());
+
+        CvFile cvFile = application.getCvFile();
+        if (cvFile == null) {
+            throw new ResourceNotFoundException("Application CV file not found");
+        }
+
+        Path cvPath = resolveCvPath(cvFile);
+        if (!Files.exists(cvPath) || !Files.isReadable(cvPath)) {
+            throw new ResourceNotFoundException("CV file not found on storage");
+        }
+
+        return new ApplicationCvDownload(
+                cvPath,
+                StringUtils.hasText(cvFile.getOriginalFileName()) ? cvFile.getOriginalFileName() : cvFile.getFileName(),
+                cvFile.getContentType()
+        );
     }
 
     @Override
@@ -303,6 +335,35 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         return cvFile;
+    }
+
+    private Path resolveCvPath(CvFile cvFile) {
+        Path storagePath = Paths.get(cvStorageDir).toAbsolutePath().normalize();
+
+        if (StringUtils.hasText(cvFile.getStoredFileName())) {
+            Path path = storagePath.resolve(cvFile.getStoredFileName()).normalize();
+            if (path.startsWith(storagePath)) {
+                return path;
+            }
+        }
+
+        String pathValue = StringUtils.hasText(cvFile.getFilePath()) ? cvFile.getFilePath() : cvFile.getFileUrl();
+        if (!StringUtils.hasText(pathValue)) {
+            throw new ResourceNotFoundException("CV file path not found");
+        }
+
+        String normalizedPath = pathValue.replace("\\", "/");
+        int cvPrefixIndex = normalizedPath.lastIndexOf("uploads/cvs/");
+        String fileName = cvPrefixIndex >= 0
+                ? normalizedPath.substring(cvPrefixIndex + "uploads/cvs/".length())
+                : Paths.get(normalizedPath).getFileName().toString();
+        Path path = storagePath.resolve(fileName).normalize();
+
+        if (!path.startsWith(storagePath)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Invalid CV file path");
+        }
+
+        return path;
     }
 
     private String trimToNull(String value) {

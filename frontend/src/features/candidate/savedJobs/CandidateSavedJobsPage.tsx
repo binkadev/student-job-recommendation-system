@@ -1,4 +1,4 @@
-import { BookmarkCheck, BriefcaseBusiness, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import { BookmarkCheck, BriefcaseBusiness, MapPin, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
@@ -53,7 +53,7 @@ export function CandidateSavedJobsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const savedJobsQuery = useAsyncData(() => getSavedJobs(page), [page, reloadKey]);
   const result = savedJobsQuery.data;
-  const savedJobs = result?.items ?? [];
+  const savedJobs = (result?.items ?? []).filter((job) => job.status === "ACTIVE");
 
   async function removeSaved(job: SavedJobResponse) {
     await removeSavedJob(job.jobId);
@@ -63,14 +63,14 @@ export function CandidateSavedJobsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Việc làm đã lưu" description="Danh sách việc làm đã lưu từ API backend." />
+      <PageHeader title="Việc làm đã lưu" description="Chỉ hiển thị các tin đã lưu còn đang tuyển." />
 
       {savedJobsQuery.loading ? <LoadingState /> : null}
       {savedJobsQuery.error ? <ErrorState message={savedJobsQuery.error} /> : null}
 
       {!savedJobsQuery.loading && !savedJobsQuery.error && savedJobs.length === 0 ? (
         <Card>
-          <EmptyState message="Chưa có việc làm đã lưu." />
+          <EmptyState message="Chưa có việc làm đã lưu đang tuyển." />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link to="/candidate/jobs">
               <Button icon={<Search size={16} />}>Chuyển sang tìm việc</Button>
@@ -87,8 +87,8 @@ export function CandidateSavedJobsPage() {
           <Card className="mb-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-950">{result?.totalItems ?? savedJobs.length} việc làm đã lưu</p>
-                <p className="mt-1 text-sm text-slate-600">Dữ liệu được lấy từ bảng saved_jobs qua API ứng viên.</p>
+                <p className="text-sm font-semibold text-slate-950">{savedJobs.length} việc làm đã lưu đang tuyển</p>
+                <p className="mt-1 text-sm text-slate-600">Tin bị khóa, đóng, hết hạn hoặc không ACTIVE sẽ không hiển thị ở đây.</p>
               </div>
             </div>
           </Card>
@@ -109,15 +109,13 @@ export function CandidateSavedJobsPage() {
 }
 
 function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveSaved: () => void }) {
-  const status = getStatusMeta(job.status);
-
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge label={`Lưu ngày ${formatDateTime(job.savedAt)}`} />
-            <StatusBadge label={status.label} tone={status.tone} />
+            <StatusBadge label="Đang tuyển" tone="success" />
           </div>
 
           <Link to={`/candidate/jobs/${job.jobId}`} className="mt-3 block text-lg font-semibold text-slate-950 hover:text-brand-700">
@@ -137,7 +135,6 @@ function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveS
           <Link to={`/candidate/jobs/${job.jobId}`}>
             <Button variant="secondary" size="sm">Xem chi tiết</Button>
           </Link>
-          <Button variant="danger" size="sm" icon={<Trash2 size={16} />} onClick={onRemoveSaved}>Xóa</Button>
         </div>
       </div>
     </Card>
@@ -153,15 +150,6 @@ async function getSavedJobs(page: number) {
 
 async function removeSavedJob(jobId: number) {
   await httpClient.delete<ApiResponse<null>>(`/students/me/saved-jobs/${jobId}`);
-}
-
-function getStatusMeta(status: JobStatus): { label: string; tone: "neutral" | "success" | "warning" | "danger" } {
-  if (status === "ACTIVE") return { label: "Đang tuyển", tone: "success" };
-  if (status === "PENDING_APPROVAL") return { label: "Chờ duyệt", tone: "warning" };
-  if (status === "DRAFT") return { label: "Nháp", tone: "neutral" };
-  if (status === "CLOSED") return { label: "Đã đóng", tone: "neutral" };
-  if (status === "REJECTED") return { label: "Bị từ chối", tone: "danger" };
-  return { label: "Hết hạn", tone: "danger" };
 }
 
 function getJobTypeLabel(value: JobType | null) {

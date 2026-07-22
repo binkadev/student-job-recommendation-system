@@ -20,10 +20,6 @@ interface PageResponse<T> {
   totalPages: number;
 }
 
-interface JobResponse {
-  companyId: number;
-}
-
 interface PublicInfoPageProps {
   title: string;
   description: string;
@@ -46,7 +42,7 @@ export function PublicInfoPage({ title, description, variant = "default" }: Publ
       <PageHeader title={title} description={description} />
       <Card>
         <p className="text-sm leading-6 text-slate-700">
-          Nội dung trang thông tin công khai này đang được viết tĩnh trên frontend. Backend hiện chưa có API public riêng cho nội dung pháp lý hoặc thông tin vận hành.
+          Nội dung trang thông tin công khai này đang được cập nhật.
         </p>
       </Card>
     </PageContainer>
@@ -73,7 +69,7 @@ function AboutPage({ title, description }: Pick<PublicInfoPageProps, "title" | "
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="mt-5">
         <Card>
           <h2 className="text-lg font-semibold text-slate-950">Mục đích hệ thống</h2>
           <div className="mt-3 space-y-3 text-sm leading-6 text-slate-700">
@@ -86,15 +82,6 @@ function AboutPage({ title, description }: Pick<PublicInfoPageProps, "title" | "
             <p>
               Phần gợi ý việc làm theo CV và hồ sơ sẽ được phát triển theo thuật toán riêng ở bước sau. Hiện tại trang giới thiệu chỉ dùng API sẵn có để hiển thị các chỉ số hệ thống cơ bản.
             </p>
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className="text-lg font-semibold text-slate-950">Dữ liệu đang sử dụng</h2>
-          <div className="mt-3 space-y-3 text-sm leading-6 text-slate-700">
-            <p>Số việc làm lấy từ API jobs với trạng thái active.</p>
-            <p>Số công ty được tạm tính từ các `companyId` xuất hiện trong danh sách việc làm active.</p>
-            <p>Số người dùng đang để 0 vì backend chưa có public API thống kê người dùng.</p>
           </div>
         </Card>
       </div>
@@ -112,14 +99,21 @@ function StatCard({ label, value }: { label: string; value: number }) {
 }
 
 async function getAboutStats(): Promise<AboutStats> {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: { page: 1, size: 100, status: "ACTIVE" },
-  });
-  const page = response.data.data;
+  const [jobsResponse, companiesResponse, usersResponse] = await Promise.allSettled([
+    httpClient.get<ApiResponse<PageResponse<unknown>>>("/jobs", {
+      params: { page: 1, size: 1, status: "ACTIVE" },
+    }),
+    httpClient.get<ApiResponse<PageResponse<unknown>>>("/public/companies", {
+      params: { page: 1, size: 1 },
+    }),
+    httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/users", {
+      params: { page: 1, size: 1, role: "STUDENT" },
+    }),
+  ]);
 
   return {
-    jobs: page.totalItems ?? 0,
-    companies: new Set(page.items.map((job) => job.companyId)).size,
-    users: 0,
+    jobs: jobsResponse.status === "fulfilled" ? jobsResponse.value.data.data.totalItems ?? 0 : 0,
+    companies: companiesResponse.status === "fulfilled" ? companiesResponse.value.data.data.totalItems ?? 0 : 0,
+    users: usersResponse.status === "fulfilled" ? usersResponse.value.data.data.totalItems ?? 0 : 0,
   };
 }

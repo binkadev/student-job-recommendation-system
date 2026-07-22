@@ -1,4 +1,4 @@
-import { FileText, UploadCloud } from "lucide-react";
+import { FileText, UploadCloud, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -10,10 +10,13 @@ import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { FileUploader } from "../../components/ui/FileUploader";
+import { Modal } from "../../components/ui/Modal";
 import { Switch } from "../../components/ui/Switch";
 import { useAsyncData } from "../../hooks/useAsyncData";
+import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
+import { getSystemSettings } from "../../utils/systemSettings";
 
 interface CandidateCvsPageProps {
   mode?: "list" | "upload" | "detail" | "analysis" | "edit-extracted" | "review";
@@ -46,12 +49,16 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [active, setActive] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [hiddenCvIds, setHiddenCvIds] = useLocalStorageState<string[]>("candidate-hidden-cv-ids", []);
+  const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
+  const cvSettings = getSystemSettings().cv;
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
-  const cvs = cvsQuery.data ?? [];
+  const cvs = (cvsQuery.data ?? []).filter((cv) => !hiddenCvIds.includes(String(cv.id)));
   const selectedCv = useMemo(() => cvs.find((cv) => String(cv.id) === cvId) ?? cvs[0], [cvId, cvs]);
+  const reachedCvLimit = cvs.length >= cvSettings.maxCvsPerUser;
 
   function handleFile(file: File) {
-    const error = validateFile(file);
+    const error = validateFile(file, cvSettings.maxFileSizeMb);
     setUploadError(error);
     if (error) {
       setSelectedFile(null);
@@ -62,6 +69,10 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   }
 
   async function uploadCv() {
+    if (reachedCvLimit) {
+      setUploadError(`Bạn chỉ được upload tối đa ${cvSettings.maxCvsPerUser} CV.`);
+      return;
+    }
     if (!selectedFile) {
       setUploadError("Vui lòng chọn file CV trước khi upload.");
       return;
@@ -76,6 +87,18 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function activateCv(cv: CvFileResponse) {
+    const updatedCv = await activateCandidateCv(cv.id);
+    showToast({ type: "success", title: "Đã đặt CV active", message: `${updatedCv.originalFileName} đang là CV active.` });
+    setReloadKey((current) => current + 1);
+  }
+
+  function hideCv(cv: CvFileResponse) {
+    setHiddenCvIds((current) => Array.from(new Set([...current, String(cv.id)])));
+    setDeleteTarget(null);
+    showToast({ type: "success", title: "Đã xóa CV khỏi giao diện", message: "Backend hiện chưa có API xóa file CV nên thao tác này chỉ ẩn CV ở frontend." });
   }
 
   if (cvsQuery.loading) {
@@ -102,14 +125,22 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX theo API CV của backend." />
         <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
           <Card>
-            <SectionHeader title="Chọn file CV" description="Backend hỗ trợ PDF/DOCX, tối đa theo cấu hình server." />
+            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, tối đa ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
+            {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng ẩn bớt CV trên giao diện trước khi upload thêm.`} /></div> : null}
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
 
             {selectedFile ? (
-              <div className="mt-5 rounded-lg border border-slate-200 p-4">
-                <h2 className="font-semibold text-slate-950">File đã chọn</h2>
-                <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
-                  <p><strong>Tên:</strong> {selectedFile.name}</p>
+              <div className="mt-5 rounded-lg border border-red-200 bg-red-50/40 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-slate-950">File đã chọn</h2>
+                    <p className="mt-2 truncate text-sm font-medium text-slate-800">{selectedFile.name}</p>
+                  </div>
+                  <button type="button" className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-red-600" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                   <p><strong>Loại:</strong> {selectedFile.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF"}</p>
                   <p><strong>Dung lượng:</strong> {formatFileSize(selectedFile.size)}</p>
                 </div>
@@ -123,7 +154,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Upload</Button>
+              <Button type="button" loading={uploading} disabled={uploading || reachedCvLimit} onClick={() => void uploadCv()}>Upload</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
             </div>
           </Card>
@@ -156,6 +187,8 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <StatusBadge label={`${cvs.length} CV`} />
+          <StatusBadge label={`Tối đa ${cvSettings.maxCvsPerUser} CV`} />
+          <StatusBadge label={`${cvSettings.maxFileSizeMb} MB/file`} />
           {cvs.some((cv) => cv.active) ? <StatusBadge label="Có CV active" tone="success" /> : null}
         </div>
         <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Upload CV mới</Button></Link>
@@ -181,7 +214,12 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
                   <p className="mt-1 text-sm text-slate-500">{getFileType(cv.contentType)} • {formatFileSize(cv.fileSize)}</p>
                 </div>
               </div>
-              {cv.active ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
+              <div className="flex items-start gap-2">
+                {cv.active ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
+                <button type="button" className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => setDeleteTarget(cv)} aria-label="Xóa CV">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
@@ -192,12 +230,12 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
-              {!cv.active ? <Button variant="secondary" size="sm" disabled>Đặt active</Button> : null}
+              {!cv.active ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt active</Button> : null}
             </div>
-            {!cv.active ? <p className="mt-3 text-xs text-slate-500">Cần API PATCH /api/students/me/cv/{cv.id}/active để bật CV này.</p> : null}
           </Card>
         ))}
       </div>
+      <DeleteCvModal cv={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={hideCv} />
     </PageContainer>
   );
 }
@@ -238,6 +276,23 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
   );
 }
 
+function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; onClose: () => void; onConfirm: (cv: CvFileResponse) => void }) {
+  return (
+    <Modal open={Boolean(cv)} title="Xóa CV" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-slate-700">
+          Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> khỏi danh sách hiển thị không?
+        </p>
+        <p className="text-sm text-slate-500">Backend hiện chưa có API xóa file CV, nên frontend sẽ ẩn CV này khỏi giao diện.</p>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Hủy</Button>
+          <Button variant="danger" onClick={() => cv && onConfirm(cv)}>Có, xóa CV</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function UnsupportedCvFeature({ mode, cv }: { mode: Exclude<NonNullable<CandidateCvsPageProps["mode"]>, "list" | "upload" | "detail">; cv?: CvFileResponse }) {
   const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Review CV";
   return (
@@ -275,9 +330,15 @@ async function uploadCandidateCv(file: File, active: boolean) {
   return response.data.data;
 }
 
-function validateFile(file: File) {
+async function activateCandidateCv(cvId: number) {
+  const response = await httpClient.patch<ApiResponse<CvFileResponse>>(`/students/me/cv/${cvId}/active`);
+  return response.data.data;
+}
+
+function validateFile(file: File, maxFileSizeMb: number) {
   const isValidExtension = [".pdf", ".docx"].some((extension) => file.name.toLowerCase().endsWith(extension));
   if (!isValidExtension) return "Chỉ chấp nhận file PDF hoặc DOCX.";
+  if (file.size > maxFileSizeMb * 1024 * 1024) return `Dung lượng file không được vượt quá ${maxFileSizeMb} MB.`;
   return "";
 }
 

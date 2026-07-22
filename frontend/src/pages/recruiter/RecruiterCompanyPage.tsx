@@ -521,7 +521,7 @@ function formatJobMeta(job: JobResponse) {
 
 function formatSalary(job: JobResponse) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;

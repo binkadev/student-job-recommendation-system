@@ -13,8 +13,8 @@ export function PublicCompanyListCard({ company }: { company: PublicCompanyListI
       <Link to={`/companies/${company.id}`} className={`block h-24 ${company.cover}`} aria-label={`Xem ${company.name}`} />
       <div className="p-5">
         <div className="-mt-12 flex items-start gap-3">
-          <Link to={`/companies/${company.id}`} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-white bg-slate-100 font-semibold text-slate-700 shadow-sm">
-            {company.logo}
+          <Link to={`/companies/${company.id}`} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white bg-slate-100 font-semibold text-slate-700 shadow-sm">
+            {company.logoUrl ? <img src={company.logoUrl} alt={company.name} className="h-full w-full object-cover" /> : company.logo}
           </Link>
           <div className="min-w-0 pt-7">
             <div className="flex flex-wrap items-center gap-2">
@@ -24,7 +24,7 @@ export function PublicCompanyListCard({ company }: { company: PublicCompanyListI
               {company.verified ? <ShieldCheck size={16} className="text-emerald-600" /> : null}
             </div>
             <div className="mt-1">
-              <StatusBadge label={company.verified ? "Đã xác thực" : "Chưa có API xác thực"} tone={company.verified ? "success" : "warning"} />
+              <StatusBadge label={company.verified ? "Đã xác thực" : "Chưa xác thực"} tone={company.verified ? "success" : "warning"} />
             </div>
           </div>
         </div>

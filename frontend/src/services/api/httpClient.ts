@@ -10,7 +10,7 @@ export const httpClient = axios.create({
 });
 
 httpClient.interceptors.request.use((config) => {
-  const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const token = window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

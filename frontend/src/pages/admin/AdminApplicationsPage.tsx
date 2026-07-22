@@ -10,6 +10,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
+import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
 
@@ -41,6 +42,12 @@ interface ApplicationResponse {
   updatedAt: string;
 }
 
+interface PublicStatisticsResponse {
+  totalApplications?: number | null;
+  applicationCount?: number | null;
+  applications?: number | null;
+}
+
 const statusLabels: Record<ApplicationStatus, string> = {
   PENDING: "Chờ xử lý",
   REVIEWED: "Đã xem",
@@ -58,6 +65,8 @@ export function AdminApplicationsPage({ mode = "list" }: { mode?: "list" | "deta
   const [nextStatus, setNextStatus] = useState<ApplicationStatus>("REVIEWED");
   const [lastUpdated, setLastUpdated] = useState<ApplicationResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const statsQuery = useAsyncData(getPublicStatistics, []);
+  const totalApplications = getTotalApplications(statsQuery.data);
 
   async function updateStatus() {
     const id = Number(targetId);
@@ -105,7 +114,7 @@ export function AdminApplicationsPage({ mode = "list" }: { mode?: "list" | "deta
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <Card>
-          <SectionHeader title="Danh sách đơn ứng tuyển" description="Chưa có GET /api/applications hoặc GET /api/admin/applications." />
+          <SectionHeader title="Danh sách đơn ứng tuyển" description={`Tổng đơn ứng tuyển từ API thống kê: ${totalApplications}. Danh sách admin vẫn chờ API list riêng.`} />
           <div className="mb-4 grid gap-3 md:grid-cols-5">
             <Input label="Student ID" disabled value="" onChange={() => undefined} placeholder="0" />
             <Input label="Job ID" disabled value="" onChange={() => undefined} placeholder="0" />
@@ -125,7 +134,7 @@ export function AdminApplicationsPage({ mode = "list" }: { mode?: "list" | "deta
             ]}
           />
           <div className="mt-4">
-            <EmptyState message="Backend chưa có API admin list tất cả đơn ứng tuyển. Tổng đơn đang hiển thị là 0." />
+            <EmptyState message={`Backend chưa có API admin list tất cả đơn ứng tuyển. Tổng đơn hiện có từ thống kê là ${totalApplications}.`} />
           </div>
         </Card>
 
@@ -176,6 +185,19 @@ function StatusUpdateCard({
       ) : null}
     </Card>
   );
+}
+
+async function getPublicStatistics(): Promise<PublicStatisticsResponse | null> {
+  try {
+    const response = await httpClient.get<ApiResponse<PublicStatisticsResponse>>("/public/statistics");
+    return response.data.data;
+  } catch {
+    return null;
+  }
+}
+
+function getTotalApplications(stats: PublicStatisticsResponse | null) {
+  return Number(stats?.totalApplications ?? stats?.applicationCount ?? stats?.applications ?? 0);
 }
 
 function Info({ label, value }: { label: string; value: string }) {

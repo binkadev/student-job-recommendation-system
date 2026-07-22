@@ -17,6 +17,8 @@ import { httpClient } from "../../services/api/httpClient";
 
 type TimeRange = "7d" | "30d" | "90d" | "12m";
 type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
+type UserRole = "STUDENT" | "COMPANY" | "ADMIN";
+type CompanyStatus = "PENDING" | "VERIFIED" | "BLOCKED";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -43,9 +45,23 @@ interface JobResponse {
   createdAt: string;
 }
 
+interface PublicStatisticsResponse {
+  totalApplications?: number | null;
+  applicationCount?: number | null;
+  applications?: number | null;
+}
+
 interface AdminDashboardData {
   jobs: JobResponse[];
   totalJobs: number;
+  activeJobs: number;
+  inactiveJobs: number;
+  totalApplications: number;
+  totalStudents: number;
+  totalRecruiters: number;
+  totalCompanies: number;
+  pendingCompanies: number;
+  jobStatusCounts: Record<BackendJobStatus, number>;
 }
 
 const rangeLabels: Record<TimeRange, string> = {
@@ -72,27 +88,35 @@ export function AdminDashboardPage() {
     return <PageContainer><LoadingState /></PageContainer>;
   }
 
-  const data = dashboardQuery.data ?? { jobs: [], totalJobs: 0 };
+  const data = dashboardQuery.data ?? {
+    jobs: [],
+    totalJobs: 0,
+    activeJobs: 0,
+    inactiveJobs: 0,
+    totalApplications: 0,
+    totalStudents: 0,
+    totalRecruiters: 0,
+    totalCompanies: 0,
+    pendingCompanies: 0,
+    jobStatusCounts: emptyJobStatusCounts(),
+  };
   const jobs = data.jobs;
   const pendingJobs = jobs.filter((job) => job.status === "PENDING_APPROVAL");
-  const companiesCount = new Set(jobs.map((job) => job.companyId)).size;
-  const activeJobs = jobs.filter((job) => job.status === "ACTIVE").length;
-  const inactiveJobs = jobs.filter((job) => job.status === "CLOSED" || job.status === "EXPIRED" || job.status === "REJECTED").length;
 
   const stats = [
-    { label: "Tổng ứng viên", value: 0, icon: <Users />, note: "Chưa có API admin users" },
-    { label: "Tổng recruiter", value: 0, icon: <Users />, note: "Chưa có API admin users" },
-    { label: "Tổng doanh nghiệp", value: companiesCount, icon: <Building2 />, note: "Tạm tính từ companyId trong jobs" },
+    { label: "Tổng ứng viên", value: data.totalStudents, icon: <Users />, note: "GET /api/admin/users?role=STUDENT" },
+    { label: "Tổng recruiter", value: data.totalRecruiters, icon: <Users />, note: "GET /api/admin/users?role=COMPANY" },
+    { label: "Tổng doanh nghiệp", value: data.totalCompanies, icon: <Building2 />, note: "GET /api/admin/companies" },
     { label: "Tổng việc làm", value: data.totalJobs, icon: <BriefcaseBusiness />, note: "GET /api/jobs" },
-    { label: "Tổng đơn ứng tuyển", value: 0, icon: <FileText />, note: "Chưa có API admin applications list" },
+    { label: "Tổng đơn ứng tuyển", value: data.totalApplications, icon: <FileText />, note: "GET /api/public/statistics" },
     { label: "CV đã upload", value: 0, icon: <FileText />, note: "Chưa có API admin CV list" },
-    { label: "Tin chờ duyệt", value: pendingJobs.length, icon: <AlertTriangle />, note: "Status PENDING_APPROVAL" },
-    { label: "Công ty chờ xác thực", value: 0, icon: <Building2 />, note: "Chưa có API admin companies list" },
+    { label: "Tin chờ duyệt", value: data.jobStatusCounts.PENDING_APPROVAL, icon: <AlertTriangle />, note: "GET /api/jobs?status=PENDING_APPROVAL" },
+    { label: "Công ty chờ xác thực", value: data.pendingCompanies, icon: <Building2 />, note: "GET /api/admin/companies?status=PENDING" },
     { label: "Báo cáo chưa xử lý", value: 0, icon: <AlertTriangle />, note: "Chưa có API reports" },
   ];
 
-  const statusChartData = buildStatusChartData(jobs);
-  const overviewChartData = buildOverviewChartData({ totalJobs: data.totalJobs, activeJobs, pendingJobs: pendingJobs.length, inactiveJobs, companiesCount });
+  const statusChartData = buildStatusChartData(data.jobStatusCounts);
+  const overviewChartData = buildOverviewChartData({ totalJobs: data.totalJobs, activeJobs: data.activeJobs, pendingJobs: data.jobStatusCounts.PENDING_APPROVAL, inactiveJobs: data.inactiveJobs, companiesCount: data.totalCompanies });
   const trendChartData = buildTrendChartData(jobs, timeRange);
 
   return (
@@ -212,20 +236,92 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
 }
 
 async function getAdminDashboardData(): Promise<AdminDashboardData> {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: { page: 1, size: 100 },
-  });
+  const [jobsByStatus, studentsResponse, recruitersResponse, companiesResponse, pendingCompaniesResponse, statisticsResponse] = await Promise.all([
+    getJobsByStatus(),
+    getAdminUserCount("STUDENT"),
+    getAdminUserCount("COMPANY"),
+    getAdminCompanyCount(),
+    getAdminCompanyCount("PENDING"),
+    getPublicStatistics(),
+  ]);
+  const jobs = Object.values(jobsByStatus)
+    .flatMap((result) => result.items)
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+  const jobStatusCounts = (Object.keys(statusLabels) as BackendJobStatus[]).reduce((acc, status) => {
+    acc[status] = jobsByStatus[status].totalItems;
+    return acc;
+  }, emptyJobStatusCounts());
+  const inactiveJobs = jobStatusCounts.CLOSED + jobStatusCounts.REJECTED + jobStatusCounts.EXPIRED;
+
   return {
-    jobs: response.data.data.items,
-    totalJobs: response.data.data.totalItems,
+    jobs,
+    totalJobs: Object.values(jobStatusCounts).reduce((sum, value) => sum + value, 0),
+    activeJobs: jobStatusCounts.ACTIVE,
+    inactiveJobs,
+    totalApplications: getTotalApplications(statisticsResponse),
+    totalStudents: studentsResponse,
+    totalRecruiters: recruitersResponse,
+    totalCompanies: companiesResponse,
+    pendingCompanies: pendingCompaniesResponse,
+    jobStatusCounts,
   };
 }
 
-function buildStatusChartData(jobs: JobResponse[]) {
+async function getPublicStatistics(): Promise<PublicStatisticsResponse | null> {
+  try {
+    const response = await httpClient.get<ApiResponse<PublicStatisticsResponse>>("/public/statistics");
+    return response.data.data;
+  } catch {
+    return null;
+  }
+}
+
+function getTotalApplications(stats: PublicStatisticsResponse | null) {
+  return Number(stats?.totalApplications ?? stats?.applicationCount ?? stats?.applications ?? 0);
+}
+
+async function getJobsByStatus() {
+  const statuses = Object.keys(statusLabels) as BackendJobStatus[];
+  const responses = await Promise.all(statuses.map(async (status) => {
+    const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+      params: { page: 1, size: 100, status },
+    });
+    return [status, response.data.data] as const;
+  }));
+
+  return Object.fromEntries(responses) as Record<BackendJobStatus, PageResponse<JobResponse>>;
+}
+
+async function getAdminUserCount(role: UserRole) {
+  const response = await httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/users", {
+    params: { page: 1, size: 1, role },
+  });
+  return response.data.data.totalItems;
+}
+
+async function getAdminCompanyCount(status?: CompanyStatus) {
+  const response = await httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/companies", {
+    params: { page: 1, size: 1, status },
+  });
+  return response.data.data.totalItems;
+}
+
+function buildStatusChartData(counts: Record<BackendJobStatus, number>) {
   return (Object.keys(statusLabels) as BackendJobStatus[]).map((status) => ({
     label: statusLabels[status],
-    value: jobs.filter((job) => job.status === status).length,
+    value: counts[status],
   }));
+}
+
+function emptyJobStatusCounts(): Record<BackendJobStatus, number> {
+  return {
+    DRAFT: 0,
+    PENDING_APPROVAL: 0,
+    ACTIVE: 0,
+    CLOSED: 0,
+    REJECTED: 0,
+    EXPIRED: 0,
+  };
 }
 
 function buildOverviewChartData(values: { totalJobs: number; activeJobs: number; pendingJobs: number; inactiveJobs: number; companiesCount: number }) {

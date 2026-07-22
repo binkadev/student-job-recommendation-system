@@ -1,4 +1,4 @@
-import { ArrowRight, Banknote, BriefcaseBusiness, Calculator, Code2, FileUp, LineChart, Megaphone, Palette, Search, Users } from "lucide-react";
+import { ArrowRight, FileUp, Search } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
@@ -14,7 +14,7 @@ import { Select } from "../../components/ui/Select";
 import { FeaturedHomeCompanyCard } from "../../features/public/home/FeaturedHomeCompanyCard";
 import { FeaturedHomeJobCard } from "../../features/public/home/FeaturedHomeJobCard";
 import { getHomeData } from "../../features/public/home/homeService";
-import type { FeaturedIndustry, HomeData, IndustryIconMap } from "../../features/public/home/homeTypes";
+import type { HomeData } from "../../features/public/home/homeTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
@@ -26,17 +26,6 @@ const locationOptions = [
   { label: "Đà Nẵng", value: "Đà Nẵng" },
   { label: "Remote", value: "Remote" },
 ];
-
-const industryIcons: IndustryIconMap = {
-  code: <Code2 size={20} />,
-  briefcase: <BriefcaseBusiness size={20} />,
-  megaphone: <Megaphone size={20} />,
-  banknote: <Banknote size={20} />,
-  calculator: <Calculator size={20} />,
-  users: <Users size={20} />,
-  palette: <Palette size={20} />,
-  chart: <LineChart size={20} />,
-};
 
 const fallbackHomeData: HomeData = {
   statistics: [
@@ -59,7 +48,7 @@ export function HomePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const homeQuery = useAsyncData(() => getHomeData(), [reloadKey]);
-  const { statistics, jobs, industries, companies, articles } = homeQuery.data ?? fallbackHomeData;
+  const { statistics, jobs, companies, articles } = homeQuery.data ?? fallbackHomeData;
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +71,22 @@ export function HomePage() {
       return;
     }
     showToast({ type: "error", title: "Chỉ tài khoản ứng viên mới có thể tải CV để nhận gợi ý" });
+  }
+
+  async function handleToggleSave(jobId: string) {
+    if (!isAuthenticated) {
+      setLoginModalOpen(true);
+      return;
+    }
+    if (currentRole !== "candidate") {
+      showToast({ type: "error", title: "Tài khoản này không thể thao tác", message: "Vui lòng dùng tài khoản ứng viên để lưu việc làm." });
+      return;
+    }
+    try {
+      await toggleSavedJob(jobId);
+    } catch {
+      showToast({ type: "error", title: "Không thể cập nhật lưu việc", message: "Vui lòng thử lại sau." });
+    }
   }
 
   return (
@@ -126,14 +131,13 @@ export function HomePage() {
       <section className="mt-8">
         <SectionHeader
           title="Việc làm đang tuyển"
-          description="Các vị trí đang tuyển lấy trực tiếp từ API backend."
           action={<Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-brand-700">Xem tất cả <ArrowRight size={16} /></Link>}
         />
         {homeQuery.loading ? (
           <Card><EmptyState message="Đang tải việc làm từ backend..." /></Card>
         ) : jobs.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
-            {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isSaved(job.id)} onToggleSave={toggleSavedJob} />)}
+            {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)} onToggleSave={(jobId) => void handleToggleSave(jobId)} />)}
           </div>
         ) : (
           <EmptyState message="Chưa có việc làm đang tuyển." />
@@ -141,16 +145,7 @@ export function HomePage() {
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Ngành nghề nổi bật" description="Backend hiện chưa có API thống kê ngành nghề public." />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {industries.length
-            ? industries.map((industry) => <IndustryCard key={industry.id} industry={industry} />)
-            : ["Công nghệ thông tin", "Kinh doanh", "Marketing", "Dữ liệu"].map((name) => <IndustryPlaceholderCard key={name} name={name} />)}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <SectionHeader title="Công ty nổi bật" description="Backend hiện chưa có API danh sách công ty public." />
+        <SectionHeader title="Công ty nổi bật" />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {companies.length
             ? companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)
@@ -160,7 +155,7 @@ export function HomePage() {
 
       <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
-          <SectionHeader title="Hệ thống gợi ý từ CV hoạt động thế nào?" description="CV và hồ sơ cá nhân được dùng để so khớp kỹ năng, kinh nghiệm, vị trí mong muốn và địa điểm làm việc." />
+          <SectionHeader title="Hệ thống gợi ý từ CV hoạt động thế nào?" />
           <div className="grid gap-3 text-sm text-slate-700">
             <p>Hệ thống đọc thông tin kỹ năng, học vấn và kinh nghiệm từ CV.</p>
             <p>Dữ liệu hồ sơ cá nhân giúp điều chỉnh mức độ phù hợp theo mục tiêu nghề nghiệp.</p>
@@ -168,7 +163,7 @@ export function HomePage() {
           </div>
         </Card>
         <Card>
-          <SectionHeader title="Quy trình sử dụng" description="Bốn bước cơ bản để ứng viên bắt đầu tìm việc với hệ thống." />
+          <SectionHeader title="Quy trình sử dụng" />
           <ol className="grid gap-3 sm:grid-cols-4">
             {["Tạo hồ sơ", "Upload CV", "Nhận gợi ý", "Ứng tuyển"].map((step, index) => (
               <li key={step} className="rounded-lg bg-slate-50 p-4 text-sm">
@@ -181,7 +176,7 @@ export function HomePage() {
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Cẩm nang nghề nghiệp" description="Backend hiện chưa có API nội dung bài viết/cẩm nang." />
+        <SectionHeader title="Cẩm nang nghề nghiệp" />
         <div className="grid gap-4 md:grid-cols-3">
           {articles.length ? (
             articles.map((article) => (
@@ -196,38 +191,14 @@ export function HomePage() {
         </div>
       </section>
 
-      <Modal open={loginModalOpen} title="Đăng nhập để tải CV" onClose={() => setLoginModalOpen(false)}>
-        <p className="text-sm leading-6 text-slate-600">Bạn cần đăng nhập bằng tài khoản ứng viên để tải CV và nhận gợi ý việc làm phù hợp.</p>
+      <Modal open={loginModalOpen} title="Đăng nhập để tiếp tục" onClose={() => setLoginModalOpen(false)}>
+        <p className="text-sm leading-6 text-slate-600">Bạn cần đăng nhập hoặc tạo tài khoản ứng viên để tải CV, lưu việc làm và nhận gợi ý phù hợp.</p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link to="/login"><Button onClick={() => setLoginModalOpen(false)}>Đăng nhập</Button></Link>
           <Link to="/register/candidate"><Button variant="secondary" onClick={() => setLoginModalOpen(false)}>Đăng ký ứng viên</Button></Link>
         </div>
       </Modal>
     </PageContainer>
-  );
-}
-
-function IndustryCard({ industry }: { industry: FeaturedIndustry }) {
-  return (
-    <Link to={`/jobs?q=${encodeURIComponent(industry.name)}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-200 hover:bg-brand-50">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">{industryIcons[industry.iconName]}</span>
-      <span>
-        <span className="block font-medium text-slate-900">{industry.name}</span>
-        <span className="mt-1 block text-sm text-slate-600">{industry.jobCount} việc làm</span>
-      </span>
-    </Link>
-  );
-}
-
-function IndustryPlaceholderCard({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><BriefcaseBusiness size={20} /></span>
-      <span>
-        <span className="block font-medium text-slate-900">{name}</span>
-        <span className="mt-1 block text-sm text-slate-600">0 việc làm</span>
-      </span>
-    </div>
   );
 }
 
@@ -238,12 +209,12 @@ function CompanyPlaceholderCard({ name }: { name: string }) {
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">CT</div>
         <div>
           <h3 className="font-semibold text-slate-900">{name}</h3>
-          <p className="text-sm text-slate-600">Chưa có API công ty public</p>
+          <p className="text-sm text-slate-600">Chưa có công ty đã xác thực</p>
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-slate-600">
         <span>0 việc làm đang tuyển</span>
-        <span>Chưa có dữ liệu xác thực</span>
+        <span>Dữ liệu công ty sẽ hiển thị khi API có bản ghi phù hợp</span>
       </div>
     </article>
   );
@@ -253,7 +224,7 @@ function ArticlePlaceholderCard({ title }: { title: string }) {
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">Chưa có API nội dung bài viết. Dữ liệu sẽ hiển thị khi backend bổ sung endpoint.</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Nội dung sẽ được cập nhật sau.</p>
     </article>
   );
 }

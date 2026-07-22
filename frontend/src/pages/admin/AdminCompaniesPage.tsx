@@ -1,16 +1,38 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
+import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
+import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
+import { useAsyncData } from "../../hooks/useAsyncData";
+import { useToast } from "../../hooks/useToast";
+import { httpClient } from "../../services/api/httpClient";
 
-type CompanyStatus = "PENDING" | "APPROVED" | "REJECTED" | "INACTIVE";
+type CompanyStatus = "PENDING" | "VERIFIED" | "BLOCKED";
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errorCode?: string;
+}
+
+interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+}
 
 interface CompanyAdminRow {
   id: number;
@@ -18,7 +40,7 @@ interface CompanyAdminRow {
   email: string;
   companyName: string;
   taxCode: string | null;
-  website: string | null;
+  websiteUrl: string | null;
   logoUrl: string | null;
   industry: string | null;
   companySize: string | null;
@@ -26,116 +48,165 @@ interface CompanyAdminRow {
   address: string | null;
   phone: string | null;
   status: CompanyStatus;
+  openJobs: number;
   createdAt: string;
   updatedAt: string;
 }
 
 const statusLabels: Record<CompanyStatus, string> = {
-  PENDING: "Chờ duyệt",
-  APPROVED: "Đã duyệt",
-  REJECTED: "Từ chối",
-  INACTIVE: "Tạm khóa",
+  PENDING: "Chờ xác thực",
+  VERIFIED: "Đã xác thực",
+  BLOCKED: "Bị khóa",
 };
 
 const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({ value, label }));
 
 export function AdminCompaniesPage({ mode = "list" }: { mode?: "list" | "detail" | "verification" }) {
   const { companyId } = useParams();
+  const id = Number(companyId);
+
+  if ((mode === "detail" || mode === "verification") && Number.isFinite(id)) {
+    return <AdminCompanyDetailPage companyId={id} mode={mode} />;
+  }
+
+  return <AdminCompaniesListPage />;
+}
+
+function AdminCompaniesListPage() {
+  const { showToast } = useToast();
+  const [page, setPage] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
   const [filters, setFilters] = useState({
     companyName: "",
     taxCode: "",
     industry: "",
-    companySize: "",
     status: "",
+    sort: "createdAt,desc",
   });
+  const [targetCompany, setTargetCompany] = useState<CompanyAdminRow | null>(null);
+  const [nextStatus, setNextStatus] = useState<CompanyStatus>("PENDING");
+  const [updating, setUpdating] = useState(false);
+  const companiesQuery = useAsyncData(() => getAdminCompanies(filters, page), [filters, page, reloadKey]);
+  const result = companiesQuery.data;
 
   function updateFilter(key: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [key]: value }));
+    setPage(1);
   }
 
-  if (mode === "detail" || mode === "verification") {
-    return (
-      <PageContainer>
-        <PageHeader
-          title={mode === "verification" ? "Chi tiết xác thực doanh nghiệp" : "Chi tiết doanh nghiệp"}
-          description="Backend chưa có API admin lấy chi tiết công ty theo ID."
-        />
-        <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-          <Card>
-            <SectionHeader title="Chưa có API detail" />
-            <EmptyState message="Hiện backend chưa có GET /api/admin/companies/{id} hoặc GET /api/companies/{id} cho admin. Khi có API, trang này sẽ hiển thị dữ liệu từ bảng companies." />
-            <div className="mt-5 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <Info label="Company ID từ URL" value={companyId ?? "Không có"} />
-              <Info label="Bảng DB" value="companies" />
-              <Info label="Tổng dữ liệu hiện hiển thị" value="0" />
-              <Info label="Thao tác duyệt/khóa" value="Chưa có API" />
-            </div>
-          </Card>
-          <CompanyFieldsCard />
-        </div>
-      </PageContainer>
-    );
+  async function updateStatus() {
+    if (!targetCompany) return;
+    setUpdating(true);
+    try {
+      await updateAdminCompanyStatus(targetCompany.id, nextStatus);
+      setTargetCompany(null);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã cập nhật trạng thái công ty" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getErrorMessage(error) });
+    } finally {
+      setUpdating(false);
+    }
   }
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý doanh nghiệp" description="Trang admin companies giữ khung theo bảng companies. Backend hiện chưa có API admin list/approve/reject công ty." />
+      <PageHeader title="Quản lý doanh nghiệp" description="Dữ liệu lấy từ GET /api/admin/companies theo bảng companies." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <Input label="Tên công ty" value={filters.companyName} onChange={(event) => updateFilter("companyName", event.target.value)} placeholder="company_name" disabled />
-          <Input label="Mã số thuế" value={filters.taxCode} onChange={(event) => updateFilter("taxCode", event.target.value)} placeholder="tax_code" disabled />
-          <Input label="Lĩnh vực" value={filters.industry} onChange={(event) => updateFilter("industry", event.target.value)} placeholder="industry" disabled />
-          <Input label="Quy mô" value={filters.companySize} onChange={(event) => updateFilter("companySize", event.target.value)} placeholder="company_size" disabled />
-          <Select label="Trạng thái" value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...statusOptions]} disabled />
+          <Input label="Tên công ty" value={filters.companyName} onChange={(event) => updateFilter("companyName", event.target.value)} placeholder="Nhập tên công ty" />
+          <Input label="Mã số thuế" value={filters.taxCode} onChange={(event) => updateFilter("taxCode", event.target.value)} placeholder="Nhập mã số thuế" />
+          <Input label="Lĩnh vực" value={filters.industry} onChange={(event) => updateFilter("industry", event.target.value)} placeholder="Nhập lĩnh vực" />
+          <Select label="Trạng thái" value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...statusOptions]} />
+          <Select label="Sắp xếp" value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)} options={[{ label: "Mới nhất", value: "createdAt,desc" }, { label: "Cũ nhất", value: "createdAt,asc" }]} />
         </div>
       </Card>
 
       <Card className="mb-5">
-        <p className="text-sm font-medium text-slate-900">Tổng công ty: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chỉ có `/api/companies/me` cho role COMPANY, chưa có endpoint admin để lấy danh sách hoặc duyệt công ty.</p>
+        <p className="text-sm font-medium text-slate-900">Tổng công ty: {result?.totalItems ?? 0}</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Admin có thể xem chi tiết và cập nhật trạng thái xác thực công ty bằng API backend hiện có.</p>
       </Card>
 
-      <Table
-        rows={[] as CompanyAdminRow[]}
-        getRowKey={(company) => String(company.id)}
-        columns={[
-          { key: "company", header: "Công ty", render: (company) => <CompanySummary company={company} /> },
-          { key: "legal", header: "Pháp lý", render: (company) => <LegalSummary company={company} /> },
-          { key: "contact", header: "Liên hệ", render: (company) => <ContactSummary company={company} /> },
-          { key: "status", header: "Trạng thái", render: (company) => <StatusBadge label={statusLabels[company.status]} tone={getStatusTone(company.status)} /> },
-        ]}
-      />
-      <div className="mt-4">
-        <EmptyState message="Chưa có API admin list companies nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
-      </div>
+      {companiesQuery.loading ? <LoadingState /> : null}
+      {!companiesQuery.loading && companiesQuery.error ? <EmptyState message={companiesQuery.error} /> : null}
+      {!companiesQuery.loading && !companiesQuery.error && (result?.items.length ?? 0) === 0 ? <EmptyState message="Không có công ty phù hợp." /> : null}
+      {!companiesQuery.loading && result?.items.length ? (
+        <div className="space-y-4">
+          <Table
+            rows={result.items}
+            getRowKey={(company) => String(company.id)}
+            columns={[
+              { key: "company", header: "Công ty", render: (company) => <CompanySummary company={company} /> },
+              { key: "legal", header: "Pháp lý", render: (company) => <LegalSummary company={company} /> },
+              { key: "contact", header: "Liên hệ", render: (company) => <ContactSummary company={company} /> },
+              { key: "jobs", header: "Tin mở", render: (company) => company.openJobs ?? 0 },
+              { key: "status", header: "Trạng thái", render: (company) => <StatusBadge label={statusLabels[company.status]} tone={getStatusTone(company.status)} /> },
+              { key: "actions", header: "Thao tác", render: (company) => (
+                <div className="flex flex-wrap gap-2">
+                  <Link to={`/admin/companies/${company.id}`}><Button variant="secondary" size="sm">Chi tiết</Button></Link>
+                  <Button variant="secondary" size="sm" onClick={() => { setTargetCompany(company); setNextStatus(company.status); }}>Trạng thái</Button>
+                </div>
+              ) },
+            ]}
+          />
+          <Pagination page={result.page} totalPages={Math.max(result.totalPages, 1)} onPageChange={setPage} />
+        </div>
+      ) : null}
+
+      <Modal open={Boolean(targetCompany)} title="Cập nhật trạng thái công ty" onClose={() => setTargetCompany(null)}>
+        {targetCompany ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">Cập nhật trạng thái cho <strong>{targetCompany.companyName}</strong>.</p>
+            <Select label="Trạng thái" value={nextStatus} onChange={(event) => setNextStatus(event.target.value as CompanyStatus)} options={statusOptions} />
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setTargetCompany(null)}>Hủy</Button>
+              <Button loading={updating} onClick={() => void updateStatus()}>Cập nhật</Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </PageContainer>
   );
 }
 
-function CompanyFieldsCard() {
+function AdminCompanyDetailPage({ companyId, mode }: { companyId: number; mode: "detail" | "verification" }) {
+  const companyQuery = useAsyncData(() => getAdminCompany(companyId), [companyId]);
+
+  if (companyQuery.loading) return <PageContainer><LoadingState /></PageContainer>;
+  if (companyQuery.error || !companyQuery.data) return <PageContainer><EmptyState message={companyQuery.error ?? "Không tìm thấy công ty."} /></PageContainer>;
+
+  const company = companyQuery.data;
   return (
-    <Card>
-      <SectionHeader title="Field DB cần hiển thị khi có API" />
-      <div className="grid gap-2 text-sm text-slate-700">
-        {[
-          "id",
-          "user_id",
-          "company_name",
-          "tax_code",
-          "website_url",
-          "logo_url",
-          "industry",
-          "company_size",
-          "description",
-          "address",
-          "phone",
-          "status",
-          "created_at",
-          "updated_at",
-        ].map((field) => <StatusBadge key={field} label={field} />)}
+    <PageContainer>
+      <PageHeader
+        title={mode === "verification" ? "Chi tiết xác thực doanh nghiệp" : company.companyName}
+        description={`Chi tiết công ty ID ${company.id} từ GET /api/admin/companies/${company.id}.`}
+      />
+      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <Card>
+          <SectionHeader title="Thông tin công ty" />
+          <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <Info label="Tên công ty" value={company.companyName} />
+            <Info label="Email" value={company.email} />
+            <Info label="Mã số thuế" value={company.taxCode ?? "Chưa cập nhật"} />
+            <Info label="Lĩnh vực" value={company.industry ?? "Chưa cập nhật"} />
+            <Info label="Quy mô" value={company.companySize ?? "Chưa cập nhật"} />
+            <Info label="Website" value={company.websiteUrl ?? "Chưa cập nhật"} />
+            <Info label="Số điện thoại" value={company.phone ?? "Chưa cập nhật"} />
+            <Info label="Địa chỉ" value={company.address ?? "Chưa cập nhật"} />
+            <Info label="Tin đang mở" value={String(company.openJobs ?? 0)} />
+            <Info label="Tạo lúc" value={formatDateTime(company.createdAt)} />
+            <Info label="Cập nhật" value={formatDateTime(company.updatedAt)} />
+          </div>
+        </Card>
+        <Card>
+          <SectionHeader title="Trạng thái" />
+          <StatusBadge label={statusLabels[company.status]} tone={getStatusTone(company.status)} />
+          <p className="mt-4 text-sm leading-6 text-slate-600">{company.description || "Công ty chưa cập nhật mô tả."}</p>
+        </Card>
       </div>
-    </Card>
+    </PageContainer>
   );
 }
 
@@ -163,9 +234,34 @@ function ContactSummary({ company }: { company: CompanyAdminRow }) {
     <div className="min-w-[180px] space-y-1 text-xs text-slate-600">
       <p>{company.email}</p>
       <p>{company.phone || "Chưa cập nhật"}</p>
-      <p>{company.website || "Chưa cập nhật"}</p>
+      <p>{company.websiteUrl || "Chưa cập nhật"}</p>
     </div>
   );
+}
+
+async function getAdminCompanies(filters: { companyName: string; taxCode: string; industry: string; status: string; sort: string }, page: number) {
+  const response = await httpClient.get<ApiResponse<PageResponse<CompanyAdminRow>>>("/admin/companies", {
+    params: {
+      page,
+      size: 10,
+      companyName: filters.companyName || undefined,
+      taxCode: filters.taxCode || undefined,
+      industry: filters.industry || undefined,
+      status: filters.status || undefined,
+      sort: filters.sort,
+    },
+  });
+  return response.data.data;
+}
+
+async function getAdminCompany(companyId: number) {
+  const response = await httpClient.get<ApiResponse<CompanyAdminRow>>(`/admin/companies/${companyId}`);
+  return response.data.data;
+}
+
+async function updateAdminCompanyStatus(companyId: number, status: CompanyStatus) {
+  const response = await httpClient.patch<ApiResponse<CompanyAdminRow>>(`/admin/companies/${companyId}/status`, { status });
+  return response.data.data;
 }
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -173,8 +269,21 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function getStatusTone(status: CompanyStatus) {
-  if (status === "APPROVED") return "success" as const;
+  if (status === "VERIFIED") return "success" as const;
   if (status === "PENDING") return "warning" as const;
-  if (status === "REJECTED" || status === "INACTIVE") return "danger" as const;
+  if (status === "BLOCKED") return "danger" as const;
   return "neutral" as const;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error && "response" in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? "Vui lòng thử lại.";
+  }
+  return "Vui lòng thử lại.";
 }

@@ -110,6 +110,8 @@ const colors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 
 export function RecruiterReportsPage() {
   const { showToast } = useToast();
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [fromMonth, setFromMonth] = useState("");
   const [toMonth, setToMonth] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -119,16 +121,21 @@ export function RecruiterReportsPage() {
   const jobs = reportQuery.data?.jobs ?? [];
   const applications = reportQuery.data?.applications ?? [];
   const jobOptions = useMemo(() => jobs.map((job) => ({ label: job.title, value: String(job.id) })), [jobs]);
+  const monthRangeError = fromMonth && toMonth && fromMonth > toMonth ? "Từ tháng phải nhỏ hơn hoặc bằng đến tháng." : "";
   const filteredApplications = useMemo(() => {
+    if (monthRangeError) return [];
+    const keyword = searchQuery.trim().toLowerCase();
     return applications.filter((application) => {
       const month = application.appliedAt.slice(0, 7);
+      const searchableText = `${application.studentName ?? ""} ${application.studentEmail ?? ""} ${application.cvFileName ?? ""} ${application.jobTitle}`.toLowerCase();
+      const matchKeyword = !keyword || searchableText.includes(keyword);
       const matchFrom = !fromMonth || month >= fromMonth;
       const matchTo = !toMonth || month <= toMonth;
       const matchJob = !jobFilter || String(application.jobId) === jobFilter;
       const matchStatus = !statusFilter || application.status === statusFilter;
-      return matchFrom && matchTo && matchJob && matchStatus;
+      return matchKeyword && matchFrom && matchTo && matchJob && matchStatus;
     });
-  }, [applications, fromMonth, jobFilter, statusFilter, toMonth]);
+  }, [applications, fromMonth, jobFilter, monthRangeError, searchQuery, statusFilter, toMonth]);
 
   const totals = useMemo(() => summarize(filteredApplications), [filteredApplications]);
   const trendData = useMemo(() => groupByMonth(filteredApplications), [filteredApplications]);
@@ -173,14 +180,24 @@ export function RecruiterReportsPage() {
       <PageHeader title="Báo cáo tuyển dụng" description="Báo cáo tính từ jobs và applications thật của backend." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-          <Input label="Từ tháng" type="month" value={fromMonth} onChange={(event) => setFromMonth(event.target.value)} />
-          <Input label="Đến tháng" type="month" value={toMonth} onChange={(event) => setToMonth(event.target.value)} />
-          <Select label="Tin tuyển dụng" value={jobFilter} onChange={(event) => setJobFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...jobOptions]} />
-          <Select label="Trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
-          <Button className="self-end" onClick={exportCsv}>Export CSV</Button>
+        <div className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input label="Tìm kiếm" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") setSearchQuery(searchInput); }} placeholder="Tên, email, CV..." />
+            <Select label="Tin tuyển dụng" value={jobFilter} onChange={(event) => setJobFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...jobOptions]} />
+            <Select label="Trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input label="Từ tháng" type="month" value={fromMonth} max={toMonth || undefined} error={monthRangeError} onChange={(event) => setFromMonth(event.target.value)} />
+            <Input label="Đến tháng" type="month" value={toMonth} min={fromMonth || undefined} onChange={(event) => setToMonth(event.target.value)} />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Button className="w-full" onClick={() => setSearchQuery(searchInput)}>Tìm kiếm</Button>
+            <Button className="w-full" variant="secondary" onClick={exportCsv}>Export CSV</Button>
+          </div>
         </div>
       </Card>
+
+      {monthRangeError ? <div className="mb-5"><EmptyState message={monthRangeError} /></div> : null}
 
       <div className="mb-5 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Tổng ứng viên" value={totals.total} />
@@ -306,12 +323,12 @@ async function getRecruiterReportData(): Promise<ReportData> {
   const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
     params: { page: 1, size: 100 },
   });
+  const applicationsResponse = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
+    params: { page: 1, size: 100, sort: "appliedAt,desc" },
+  });
+
   const jobs = jobsResponse.data.data.items;
-  const applicationResponses = await Promise.all(
-    jobs.map((job) => httpClient.get<ApiResponse<ApplicationResponse[]>>(`/companies/me/jobs/${job.id}/applications`)),
-  );
-  const applications = applicationResponses
-    .flatMap((response) => response.data.data)
+  const applications = applicationsResponse.data.data.items
     .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
 
   return { jobs, applications };

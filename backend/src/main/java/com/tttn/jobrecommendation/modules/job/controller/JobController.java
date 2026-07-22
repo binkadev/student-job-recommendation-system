@@ -33,22 +33,20 @@ public class JobController {
     private final SecurityUtils securityUtils;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('STUDENT', 'COMPANY', 'ADMIN')")
     public ApiResponse<PageResponse<JobResponse>> getJobs(@Valid @ModelAttribute JobFilterRequest request) {
         return ApiResponse.success(jobService.getJobs(
                 request,
-                securityUtils.getCurrentUserId(),
-                securityUtils.getCurrentUserRole()
+                securityUtils.getCurrentUserIdOrNull(),
+                securityUtils.getCurrentUserRoleOrNull()
         ));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'COMPANY', 'ADMIN')")
     public ApiResponse<JobDetailResponse> getJob(@PathVariable Long id) {
         return ApiResponse.success(jobService.getJob(
                 id,
-                securityUtils.getCurrentUserId(),
-                securityUtils.getCurrentUserRole()
+                securityUtils.getCurrentUserIdOrNull(),
+                securityUtils.getCurrentUserRoleOrNull()
         ));
     }
 

@@ -36,14 +36,16 @@ export function mapAuthUser(user: AuthUserResponse): CurrentUser {
 }
 
 export function getStoredToken() {
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  return window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export function storeToken(token: string) {
-  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export function clearToken() {
+  window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
 }
 

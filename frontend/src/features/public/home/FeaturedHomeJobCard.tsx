@@ -47,7 +47,7 @@ export function FeaturedHomeJobCard({ job, saved, onToggleSave }: FeaturedHomeJo
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="inline-flex items-center gap-2 text-sm text-slate-500"><CalendarDays size={16} />Hạn ứng tuyển: {job.deadline}</p>
         <Link to={`/jobs/${job.id}`}>
-          <Button variant="secondary" size="sm">Xem chi tiết</Button>
+          <Button variant="danger" size="sm">Xem chi tiết</Button>
         </Link>
       </div>
     </article>

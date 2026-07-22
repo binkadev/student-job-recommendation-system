@@ -16,107 +16,77 @@ interface PageResponse<T> {
   totalPages: number;
 }
 
-interface JobResponse {
+interface PublicCompanyResponse {
   id: number;
-  companyId: number;
   companyName: string;
-  title: string;
-  location: string | null;
-  jobType: BackendJobType | null;
-  workingModel: BackendWorkingModel | null;
-  status: BackendJobStatus;
+  industry: string | null;
+  address: string | null;
+  websiteUrl: string | null;
+  description: string | null;
+  status: "PENDING" | "VERIFIED" | "BLOCKED";
+  openJobs: number | null;
+  createdAt: string;
+  updatedAt: string;
+  companySize: string | null;
+  logoUrl: string | null;
 }
 
-type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
-type BackendWorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
-type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
-
 const pageSize = 8;
-
-const JOB_TYPE_LABELS: Record<BackendJobType, string> = {
-  FULL_TIME: "Toàn thời gian",
-  PART_TIME: "Bán thời gian",
-  INTERNSHIP: "Thực tập",
-  CONTRACT: "Hợp đồng",
-};
-
-const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
-  ONSITE: "Onsite",
-  HYBRID: "Hybrid",
-  REMOTE: "Remote",
-};
 
 export function getCompanyFilterOptions(): CompanyFilterOptions {
   return {
     locations: [],
-    jobTypes: Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label })),
-    workModes: Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label })),
+    industries: [],
+    sorts: [
+      { label: "Mới nhất", value: "createdAt,desc" },
+      { label: "Cũ nhất", value: "createdAt,asc" },
+      { label: "Tên A-Z", value: "companyName,asc" },
+      { label: "Tên Z-A", value: "companyName,desc" },
+    ],
   };
 }
 
 export async function getPublicCompanies(filters: CompaniesListFilters): Promise<CompaniesListResult> {
-  const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+  const response = await httpClient.get<ApiResponse<PageResponse<PublicCompanyResponse>>>("/public/companies", {
     params: {
-      page: 1,
-      size: 100,
-      keyword: filters.keyword || undefined,
-      location: filters.location || undefined,
-      jobType: filters.jobType || undefined,
-      workingModel: filters.workingModel || undefined,
-      status: "ACTIVE",
+      page: filters.page,
+      size: pageSize,
+      keyword: emptyToUndefined(filters.keyword),
+      location: emptyToUndefined(filters.location),
+      industry: emptyToUndefined(filters.industry),
+      sort: emptyToUndefined(filters.sort),
     },
   });
-  const companies = groupCompanies(jobsResponse.data.data.items, filters);
-  const totalPages = Math.max(1, Math.ceil(companies.length / pageSize));
-  const page = Math.min(Math.max(filters.page, 1), totalPages);
-  const start = (page - 1) * pageSize;
+  const page = response.data.data;
 
   return {
-    items: companies.slice(start, start + pageSize),
-    totalItems: companies.length,
-    page,
-    pageSize,
-    totalPages,
+    items: page.items.map(mapCompany),
+    totalItems: page.totalItems,
+    page: page.page,
+    pageSize: page.size,
+    totalPages: page.totalPages,
   };
 }
 
-function groupCompanies(jobs: JobResponse[], filters: CompaniesListFilters) {
-  const keyword = filters.keyword.trim().toLowerCase();
-  const groups = jobs.reduce<Record<number, JobResponse[]>>((acc, job) => {
-    acc[job.companyId] = [...(acc[job.companyId] ?? []), job];
-    return acc;
-  }, {});
-
-  return Object.entries(groups)
-    .map(([, companyJobs]) => mapCompany(companyJobs))
-    .filter((company) => !keyword || company.name.toLowerCase().includes(keyword))
-    .sort((left, right) => right.openJobs - left.openJobs || left.name.localeCompare(right.name));
-}
-
-function mapCompany(jobs: JobResponse[]): PublicCompanyListItem {
-  const firstJob = jobs[0];
-  const locations = unique(jobs.map((job) => job.location).filter((value): value is string => Boolean(value)));
-  const jobTypes = unique(jobs.map((job) => job.jobType).filter((value): value is BackendJobType => Boolean(value)).map((value) => JOB_TYPE_LABELS[value]));
-  const workingModels = unique(jobs.map((job) => job.workingModel).filter((value): value is BackendWorkingModel => Boolean(value)).map((value) => WORKING_MODEL_LABELS[value]));
-
+export function mapCompany(company: PublicCompanyResponse): PublicCompanyListItem {
   return {
-    id: String(firstJob.companyId),
+    id: String(company.id),
     cover: "bg-slate-950",
-    logo: getInitials(firstJob.companyName),
-    name: firstJob.companyName,
-    verified: false,
-    industry: "Chưa có API",
-    size: "Chưa có API",
-    location: locations[0] || "Chưa cập nhật",
-    description: "Backend hiện chưa có API public hồ sơ công ty. Thông tin này được tổng hợp từ các tin tuyển dụng đang active.",
-    openJobs: jobs.length,
-    jobTypes,
-    workingModels,
+    logo: getInitials(company.companyName),
+    logoUrl: company.logoUrl ?? "",
+    name: company.companyName,
+    verified: company.status === "VERIFIED",
+    industry: company.industry || "Chưa cập nhật",
+    size: company.companySize || "Chưa cập nhật",
+    location: company.address || "Chưa cập nhật",
+    description: company.description || "Chưa cập nhật mô tả công ty.",
+    openJobs: Number(company.openJobs ?? 0),
   };
 }
 
-function unique(values: string[]) {
-  return Array.from(new Set(values));
+function emptyToUndefined(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 function getInitials(value: string) {

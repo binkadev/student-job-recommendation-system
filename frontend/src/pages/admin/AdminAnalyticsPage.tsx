@@ -17,6 +17,7 @@ import { useAsyncData } from "../../hooks/useAsyncData";
 import { httpClient } from "../../services/api/httpClient";
 
 type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
+type UserRole = "STUDENT" | "COMPANY" | "ADMIN";
 type AuditResult = "SUCCESS" | "FAILED" | "WARNING";
 
 interface ApiResponse<T> {
@@ -40,6 +41,13 @@ interface JobResponse {
   title: string;
   status: BackendJobStatus;
   createdAt: string;
+}
+
+interface AnalyticsData {
+  jobs: JobResponse[];
+  totalJobs: number;
+  totalUsers: number;
+  totalCompanies: number;
 }
 
 interface AuditLogRow {
@@ -76,13 +84,14 @@ export function AdminAnalyticsPage({ mode = "analytics" }: { mode?: "analytics" 
 }
 
 function AnalyticsPage() {
-  const analyticsQuery = useAsyncData(getAnalyticsJobs, []);
-  const jobs = analyticsQuery.data?.items ?? [];
-  const totalJobs = analyticsQuery.data?.totalItems ?? 0;
+  const analyticsQuery = useAsyncData(getAnalyticsData, []);
+  const jobs = analyticsQuery.data?.jobs ?? [];
+  const totalJobs = analyticsQuery.data?.totalJobs ?? 0;
+  const totalUsers = analyticsQuery.data?.totalUsers ?? 0;
+  const totalCompanies = analyticsQuery.data?.totalCompanies ?? 0;
   const activeJobs = jobs.filter((job) => job.status === "ACTIVE").length;
   const pendingJobs = jobs.filter((job) => job.status === "PENDING_APPROVAL").length;
   const inactiveJobs = jobs.filter((job) => job.status === "CLOSED" || job.status === "REJECTED" || job.status === "EXPIRED").length;
-  const companiesCount = new Set(jobs.map((job) => job.companyId)).size;
   const statusChartData = useMemo(() => buildStatusChartData(jobs), [jobs]);
   const trendChartData = useMemo(() => buildTrendChartData(jobs), [jobs]);
 
@@ -92,7 +101,7 @@ function AnalyticsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Thống kê hệ thống" description="Thống kê admin dựa trên API jobs hiện có. Các chỉ số chưa có API hiển thị 0." />
+      <PageHeader title="Thống kê hệ thống" description="Thống kê admin dựa trên API jobs, admin users và admin companies hiện có." />
       {analyticsQuery.error ? <div className="mb-5"><ErrorState message={analyticsQuery.error} /></div> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -100,8 +109,8 @@ function AnalyticsPage() {
         <Metric icon={<ShieldCheck size={20} />} label="Việc đang tuyển" value={activeJobs} />
         <Metric icon={<Activity size={20} />} label="Tin chờ duyệt" value={pendingJobs} />
         <Metric icon={<Database size={20} />} label="Tin không active" value={inactiveJobs} />
-        <Metric icon={<Building2 size={20} />} label="Công ty từ jobs" value={companiesCount} />
-        <Metric icon={<UserCog size={20} />} label="Người dùng" value={0} />
+        <Metric icon={<Building2 size={20} />} label="Doanh nghiệp" value={totalCompanies} />
+        <Metric icon={<UserCog size={20} />} label="Người dùng" value={totalUsers} />
         <Metric icon={<Activity size={20} />} label="Đơn ứng tuyển" value={0} />
         <Metric icon={<Database size={20} />} label="CV" value={0} />
       </div>
@@ -201,11 +210,35 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
   );
 }
 
-async function getAnalyticsJobs(): Promise<PageResponse<JobResponse>> {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: { page: 1, size: 100 },
+async function getAnalyticsData(): Promise<AnalyticsData> {
+  const [jobsResponse, students, recruiters, admins, companies] = await Promise.all([
+    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", { params: { page: 1, size: 100 } }),
+    getAdminUserCount("STUDENT"),
+    getAdminUserCount("COMPANY"),
+    getAdminUserCount("ADMIN"),
+    getAdminCompanyCount(),
+  ]);
+
+  return {
+    jobs: jobsResponse.data.data.items,
+    totalJobs: jobsResponse.data.data.totalItems,
+    totalUsers: students + recruiters + admins,
+    totalCompanies: companies,
+  };
+}
+
+async function getAdminUserCount(role: UserRole) {
+  const response = await httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/users", {
+    params: { page: 1, size: 1, role },
   });
-  return response.data.data;
+  return response.data.data.totalItems;
+}
+
+async function getAdminCompanyCount() {
+  const response = await httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/companies", {
+    params: { page: 1, size: 1 },
+  });
+  return response.data.data.totalItems;
 }
 
 function buildStatusChartData(jobs: JobResponse[]) {

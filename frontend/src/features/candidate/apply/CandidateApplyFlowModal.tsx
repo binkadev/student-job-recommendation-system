@@ -59,7 +59,8 @@ interface BackendCvFileResponse {
   filePath?: string | null;
   contentType?: string | null;
   fileSize?: number | null;
-  active: boolean;
+  active?: boolean;
+  isActive?: boolean;
   uploadedAt?: string | null;
 }
 
@@ -361,7 +362,7 @@ function mapBackendCvFile(cv: BackendCvFileResponse): Cv {
     uploadedAt: cv.uploadedAt ?? "",
     status: "analyzed",
     score: 0,
-    isDefault: cv.active,
+    isDefault: Boolean(cv.active ?? cv.isActive),
     isPublic: false,
     extractedSkills: [],
     missingFields: [],

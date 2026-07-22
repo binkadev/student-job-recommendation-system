@@ -1,4 +1,4 @@
-import { BarChart3, Bookmark, BriefcaseBusiness, EyeOff, MapPin, RotateCcw, Send, Wallet } from "lucide-react";
+import { BarChart3, Bookmark, BookmarkCheck, BriefcaseBusiness, EyeOff, MapPin, RotateCcw, Send, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
@@ -15,8 +15,8 @@ import { Select } from "../../../components/ui/Select";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
 import { useToast } from "../../../hooks/useToast";
-import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
+import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
 import {
   getRecommendedFilterOptions,
   getRecommendedJobs,
@@ -59,9 +59,9 @@ export function CandidateRecommendedJobsPage() {
   const [page, setPage] = useState(1);
   const [showHidden, setShowHidden] = useState(false);
   const [hiddenIds, setHiddenIds] = useState<string[]>(initialState.hiddenIds);
-  const [notInterestedIds, setNotInterestedIds] = useState<string[]>(initialState.notInterestedIds);
   const [analysisJob, setAnalysisJob] = useState<CandidateRecommendedJob | null>(null);
   const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
+  const [hideTarget, setHideTarget] = useState<CandidateRecommendedJob | null>(null);
   const { isSaved, toggleSavedJob } = useSavedJobs();
   const { hasApplied } = useAppliedJobs();
   const { showToast } = useToast();
@@ -82,30 +82,29 @@ export function CandidateRecommendedJobsPage() {
     setPage(1);
   }
 
-  function persistRecommendationState(nextHiddenIds: string[], nextNotInterestedIds = notInterestedIds) {
+  function persistHiddenJobs(nextHiddenIds: string[]) {
     setHiddenIds(nextHiddenIds);
-    setNotInterestedIds(nextNotInterestedIds);
-    saveRecommendedJobState(nextHiddenIds, nextNotInterestedIds);
+    saveRecommendedJobState(nextHiddenIds, []);
   }
 
   function hideJob(job: CandidateRecommendedJob) {
     if (hiddenIds.includes(job.id)) return;
-    persistRecommendationState([...hiddenIds, job.id]);
+    persistHiddenJobs([...hiddenIds, job.id]);
+    setHideTarget(null);
     showToast({ type: "success", title: "Đã ẩn việc làm", message: `${job.title} sẽ không còn xuất hiện trong danh sách gợi ý.` });
   }
 
-  function markNotInterested(job: CandidateRecommendedJob) {
-    const nextHiddenIds = hiddenIds.includes(job.id) ? hiddenIds : [...hiddenIds, job.id];
-    const nextNotInterestedIds = notInterestedIds.includes(job.id) ? notInterestedIds : [...notInterestedIds, job.id];
-    persistRecommendationState(nextHiddenIds, nextNotInterestedIds);
-    showToast({ type: "success", title: "Đã ghi nhận", message: "Việc làm này sẽ được ẩn khỏi danh sách gợi ý trên trình duyệt hiện tại." });
+  function restoreJob(job: CandidateRecommendedJob) {
+    persistHiddenJobs(hiddenIds.filter((id) => id !== job.id));
+    showToast({ type: "success", title: "Đã khôi phục", message: `${job.title} đã trở lại danh sách gợi ý.` });
   }
 
-  function restoreJob(job: CandidateRecommendedJob) {
-    const nextHiddenIds = hiddenIds.filter((id) => id !== job.id);
-    const nextNotInterestedIds = notInterestedIds.filter((id) => id !== job.id);
-    persistRecommendationState(nextHiddenIds, nextNotInterestedIds);
-    showToast({ type: "success", title: "Đã khôi phục", message: `${job.title} đã trở lại danh sách gợi ý.` });
+  async function toggleSave(job: CandidateRecommendedJob) {
+    try {
+      await toggleSavedJob(job.id);
+    } catch {
+      showToast({ type: "error", title: "Không thể cập nhật lưu việc", message: "Vui lòng thử lại sau." });
+    }
   }
 
   function openApply(job: CandidateRecommendedJob) {
@@ -127,7 +126,7 @@ export function CandidateRecommendedJobsPage() {
     <PageContainer>
       <PageHeader
         title="Việc làm gợi ý"
-        description="Danh sách việc làm được chấm điểm theo kỹ năng, kinh nghiệm, học vấn, địa điểm, mức lương và hình thức làm việc."
+        description="Danh sách việc làm đang tuyển trong cơ sở dữ liệu, giữ nguyên cách hiển thị gợi ý hiện có."
       />
 
       <Card className="mb-5">
@@ -151,7 +150,7 @@ export function CandidateRecommendedJobsPage() {
             options={[{ label: "Tất cả", value: "" }, ...options.locations.map((value) => ({ label: value, value }))]}
           />
           <Select
-            label="Ngành nghề"
+            label="Vị trí"
             value={filters.industry}
             onChange={(event) => updateFilter("industry", event.target.value)}
             options={[{ label: "Tất cả", value: "" }, ...options.industries.map((value) => ({ label: value, value }))]}
@@ -188,10 +187,8 @@ export function CandidateRecommendedJobsPage() {
               saved={isSaved(job.id)}
               applied={hasApplied(job.id)}
               hidden={hiddenIds.includes(job.id)}
-              notInterested={notInterestedIds.includes(job.id)}
-              onToggleSave={() => toggleSavedJob(job.id)}
-              onHide={() => hideJob(job)}
-              onNotInterested={() => markNotInterested(job)}
+              onToggleSave={() => void toggleSave(job)}
+              onHide={() => setHideTarget(job)}
               onRestore={() => restoreJob(job)}
               onOpenAnalysis={() => setAnalysisJob(job)}
               onApply={() => openApply(job)}
@@ -206,6 +203,7 @@ export function CandidateRecommendedJobsPage() {
 
       <MatchAnalysisModal job={analysisJob} onClose={() => setAnalysisJob(null)} />
       <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} />
+      <HideJobModal job={hideTarget} onClose={() => setHideTarget(null)} onConfirm={hideJob} />
     </PageContainer>
   );
 }
@@ -215,10 +213,8 @@ function RecommendedJobCard({
   saved,
   applied,
   hidden,
-  notInterested,
   onToggleSave,
   onHide,
-  onNotInterested,
   onRestore,
   onOpenAnalysis,
   onApply,
@@ -227,10 +223,8 @@ function RecommendedJobCard({
   saved: boolean;
   applied: boolean;
   hidden: boolean;
-  notInterested: boolean;
   onToggleSave: () => void;
   onHide: () => void;
-  onNotInterested: () => void;
   onRestore: () => void;
   onOpenAnalysis: () => void;
   onApply: () => void;
@@ -259,7 +253,6 @@ function RecommendedJobCard({
             </div>
             <div className="flex flex-wrap gap-2">
               {hidden ? <StatusBadge label="Đã ẩn" tone="warning" /> : null}
-              {notInterested ? <StatusBadge label="Không quan tâm" tone="warning" /> : null}
               <StatusBadge label={job.industry} />
             </div>
           </div>
@@ -280,7 +273,9 @@ function RecommendedJobCard({
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <Button variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={onOpenAnalysis}>Xem phân tích</Button>
-            <Button variant="secondary" size="sm" icon={<Bookmark size={16} />} onClick={onToggleSave}>{saved ? "Bỏ lưu" : "Lưu"}</Button>
+            <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
+              {saved ? "Bỏ lưu" : "Lưu"}
+            </Button>
             <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
             <Link to={`/candidate/jobs/${job.id}`}>
               <Button variant="secondary" size="sm">Xem chi tiết</Button>
@@ -288,10 +283,7 @@ function RecommendedJobCard({
             {hidden ? (
               <Button variant="secondary" size="sm" icon={<RotateCcw size={16} />} onClick={onRestore}>Khôi phục</Button>
             ) : (
-              <>
-                <Button variant="secondary" size="sm" icon={<EyeOff size={16} />} onClick={onHide}>Ẩn</Button>
-                <Button variant="ghost" size="sm" onClick={onNotInterested}>Không quan tâm</Button>
-              </>
+              <Button variant="secondary" size="sm" icon={<EyeOff size={16} />} onClick={onHide}>Ẩn</Button>
             )}
           </div>
         </div>
@@ -305,11 +297,25 @@ function SkillGroup({ title, skills, tone }: { title: string; skills: string[]; 
     <div>
       <p className="mb-2 text-sm font-semibold text-slate-800">{title}</p>
       <div className="flex flex-wrap gap-2">
-        {skills.map((skill) => (
-          <StatusBadge key={skill} label={skill} tone={tone} />
-        ))}
+        {skills.length ? skills.map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />) : <StatusBadge label="Chưa cập nhật" />}
       </div>
     </div>
+  );
+}
+
+function HideJobModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJob | null; onClose: () => void; onConfirm: (job: CandidateRecommendedJob) => void }) {
+  return (
+    <Modal open={Boolean(job)} title="Ẩn việc làm gợi ý" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-slate-700">
+          Bạn có muốn ẩn tin <strong>{job?.title}</strong> khỏi danh sách việc làm gợi ý không?
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Hủy</Button>
+          <Button variant="danger" onClick={() => job && onConfirm(job)}>Có, ẩn tin</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -317,13 +323,13 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
   const criteria = useMemo<MatchCriterion[]>(() => {
     if (!job) return [];
     return [
-      { label: "Kỹ năng", value: job.skillScore, explanation: `Khớp ${job.matchedSkills.length} kỹ năng chính, còn thiếu ${job.missingSkills.join(", ")}.` },
-      { label: "Kinh nghiệm", value: job.experienceScore, explanation: `Yêu cầu ${job.experienceLabel}, phù hợp với hồ sơ ứng viên ở mức hiện tại.` },
-      { label: "Học vấn", value: job.educationScore, explanation: "Ngành học và nền tảng chuyên môn gần với nhóm kỹ năng nhà tuyển dụng yêu cầu." },
-      { label: "Địa điểm", value: job.locationScore, explanation: `Địa điểm ${job.location} phù hợp với mong muốn làm việc đã thiết lập.` },
-      { label: "Mức lương", value: job.salaryScore, explanation: `Khoảng lương ${job.salary} được so với mức lương mong muốn trong hồ sơ.` },
-      { label: "Hình thức làm việc", value: job.workModeScore, explanation: `Hình thức ${job.workMode} được ưu tiên theo thiết lập nghề nghiệp.` },
-      { label: "Tổng điểm có trọng số", value: job.matchScore, explanation: "Tổng hợp các tiêu chí theo trọng số: kỹ năng, kinh nghiệm, học vấn, địa điểm, lương và hình thức làm việc." },
+      { label: "Kỹ năng", value: job.skillScore, explanation: `Khớp ${job.matchedSkills.length} kỹ năng chính.` },
+      { label: "Kinh nghiệm", value: job.experienceScore, explanation: `Yêu cầu ${job.experienceLabel}, suy ra từ thông tin bài tuyển dụng hiện có.` },
+      { label: "Học vấn", value: job.educationScore, explanation: "Điểm học vấn sẽ chính xác hơn khi thuật toán gợi ý CV được nối ở phase sau." },
+      { label: "Địa điểm", value: job.locationScore, explanation: `Địa điểm: ${job.location}.` },
+      { label: "Mức lương", value: job.salaryScore, explanation: `Khoảng lương: ${job.salary}.` },
+      { label: "Hình thức làm việc", value: job.workModeScore, explanation: `Hình thức: ${job.workMode}.` },
+      { label: "Tổng điểm có trọng số", value: job.matchScore, explanation: "Tạm tính từ job ACTIVE, kỹ năng, địa điểm, lương và hình thức làm việc đang có trong DB." },
     ];
   }, [job]);
 
@@ -344,4 +350,3 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
     </Modal>
   );
 }
-

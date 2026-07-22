@@ -7,7 +7,9 @@ export function FeaturedHomeCompanyCard({ company }: { company: FeaturedHomeComp
   return (
     <Link to={`/companies/${company.id}`} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 font-semibold text-slate-700">{company.logo}</div>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 font-semibold text-slate-700">
+          {company.logoUrl ? <img src={company.logoUrl} alt={company.name} className="h-full w-full object-cover" /> : company.logo}
+        </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-slate-950">{company.name}</h3>

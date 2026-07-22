@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -11,9 +11,8 @@ import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
-import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
-import { Textarea } from "../../components/ui/Textarea";
+import { CandidateApplyFlowModal, type ApplyFlowJob } from "../../features/candidate/apply/CandidateApplyFlowModal";
 import { CandidateRecommendedJobsPage } from "../../features/candidate/recommendedJobs/CandidateRecommendedJobsPage";
 import { CandidateSavedJobsPage } from "../../features/candidate/savedJobs/CandidateSavedJobsPage";
 import { JobCard } from "../../features/public/components/JobCard";
@@ -49,12 +48,6 @@ interface JobSkillResponse {
   category: string | null;
   importance: string;
   minLevel: string;
-}
-
-interface CvFileResponse {
-  id: number;
-  originalFileName: string;
-  active: boolean;
 }
 
 interface SavedJobResponse {
@@ -216,27 +209,13 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
   const { showToast } = useToast();
   const detailQuery = useAsyncData(() => getJobDetail(jobId), [jobId]);
   const selectedJob = detailQuery.data;
-  const cvsQuery = useAsyncData(() => getCandidateCvs(), []);
   const [savedReloadKey, setSavedReloadKey] = useState(0);
   const savedJobsQuery = useAsyncData(() => getSavedJobs(), [savedReloadKey]);
   const [applicationsReloadKey, setApplicationsReloadKey] = useState(0);
   const applicationsQuery = useAsyncData(() => getMyApplications(), [applicationsReloadKey]);
-  const [applyOpen, setApplyOpen] = useState(false);
-  const [coverLetter, setCoverLetter] = useState("");
-  const [selectedCvId, setSelectedCvId] = useState("");
-  const [isApplying, setIsApplying] = useState(false);
-  const cvOptions = [
-    { label: "Không chọn CV", value: "" },
-    ...(cvsQuery.data ?? []).map((cv) => ({ label: `${cv.originalFileName}${cv.active ? " (active)" : ""}`, value: String(cv.id) })),
-  ];
+  const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const isSaved = Boolean(savedJobsQuery.data?.items.some((item) => String(item.jobId) === jobId));
   const appliedApplication = applicationsQuery.data?.find((application) => String(application.jobId) === jobId);
-
-  useEffect(() => {
-    if (selectedCvId || !cvsQuery.data?.length) return;
-    const activeCv = cvsQuery.data.find((cv) => cv.active) ?? cvsQuery.data[0];
-    setSelectedCvId(String(activeCv.id));
-  }, [cvsQuery.data, selectedCvId]);
 
   if (detailQuery.loading) {
     return (
@@ -300,7 +279,19 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
                   <Button>Đã ứng tuyển</Button>
                 </Link>
               ) : (
-                <Button onClick={() => setApplyOpen(true)} disabled={selectedJob.status !== "ACTIVE"}>Ứng tuyển</Button>
+                <Button
+                  onClick={() => setApplyJob({
+                    id: String(selectedJob.id),
+                    title: selectedJob.title,
+                    companyName: selectedJob.companyName,
+                    salary: formatSalary(selectedJob),
+                    location: selectedJob.location || "Chưa cập nhật",
+                    workMode: getWorkingModelLabel(selectedJob.workingModel),
+                  })}
+                  disabled={selectedJob.status !== "ACTIVE"}
+                >
+                  Ứng tuyển
+                </Button>
               )}
               <Button variant="secondary" onClick={() => void toggleDetailSavedJob(selectedJob, isSaved, setSavedReloadKey, showToast)}>
                 {isSaved ? "Bỏ lưu việc làm" : "Lưu việc làm"}
@@ -325,17 +316,13 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
           </Card>
         </aside>
       </div>
-      <Modal open={applyOpen} title={`Ứng tuyển ${selectedJob.title}`} onClose={() => setApplyOpen(false)}>
-        <div className="space-y-4">
-          <Select label="CV ứng tuyển" value={selectedCvId} onChange={(event) => setSelectedCvId(event.target.value)} options={cvOptions} />
-          <Textarea label="Thư giới thiệu" rows={6} value={coverLetter} onChange={(event) => setCoverLetter(event.target.value)} placeholder="Viết ngắn gọn lý do bạn phù hợp với vị trí này..." />
-          <p className="text-sm text-slate-500">Nếu không chọn CV, backend sẽ tạo đơn ứng tuyển với `cvFileId = null`.</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setApplyOpen(false)}>Hủy</Button>
-            <Button loading={isApplying} onClick={() => void applyToJob(selectedJob.id, selectedCvId ? Number(selectedCvId) : null, coverLetter, setIsApplying, setApplyOpen, showToast, () => setApplicationsReloadKey((current) => current + 1))}>Xác nhận ứng tuyển</Button>
-          </div>
-        </div>
-      </Modal>
+      <CandidateApplyFlowModal
+        job={applyJob}
+        onClose={() => {
+          setApplyJob(null);
+          setApplicationsReloadKey((current) => current + 1);
+        }}
+      />
     </PageContainer>
   );
 }
@@ -379,11 +366,6 @@ async function getJobs(params: {
 
 async function getJobDetail(jobId: string) {
   const response = await httpClient.get<ApiResponse<BackendJobDetailResponse>>(`/jobs/${jobId}`);
-  return response.data.data;
-}
-
-async function getCandidateCvs() {
-  const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
   return response.data.data;
 }
 
@@ -431,31 +413,6 @@ async function toggleDetailSavedJob(
     setSavedReloadKey((current) => current + 1);
   } catch (error) {
     showToast({ type: "error", title: "Không thể cập nhật việc đã lưu", message: getApiErrorMessage(error) });
-  }
-}
-
-async function applyToJob(
-  jobId: number,
-  cvFileId: number | null,
-  coverLetter: string,
-  setIsApplying: (value: boolean) => void,
-  setApplyOpen: (value: boolean) => void,
-  showToast: (payload: { type: "success" | "error"; title: string; message?: string }) => void,
-  onSuccess: () => void,
-) {
-  setIsApplying(true);
-  try {
-    await httpClient.post<ApiResponse<unknown>>(`/jobs/${jobId}/apply`, {
-      cvFileId,
-      coverLetter: coverLetter.trim() || null,
-    });
-    showToast({ type: "success", title: "Ứng tuyển thành công", message: "Đơn ứng tuyển đã được tạo trên backend." });
-    setApplyOpen(false);
-    onSuccess();
-  } catch (error) {
-    showToast({ type: "error", title: "Không thể ứng tuyển", message: getApiErrorMessage(error) });
-  } finally {
-    setIsApplying(false);
   }
 }
 
@@ -514,7 +471,7 @@ function getLocationOptions(jobs: BackendJobResponse[]) {
 }
 
 function formatSalary(job: Pick<BackendJobResponse, "salaryMin" | "salaryMax" | "currency">) {
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = toNumber(job.salaryMin);
   const max = toNumber(job.salaryMax);
   if (min && max) return `${formatMoney(min)} - ${formatMoney(max)} ${currency}`;

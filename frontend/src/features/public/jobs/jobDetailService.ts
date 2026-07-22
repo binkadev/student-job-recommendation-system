@@ -38,6 +38,29 @@ interface JobDetailResponse {
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  applicantCount?: number | null;
+  applicationCount?: number | null;
+  applicants?: number | null;
+  totalApplications?: number | null;
+  applicationsCount?: number | null;
+  applicationTotal?: number | null;
+  totalApplicants?: number | null;
+  totalApplicantCount?: number | null;
+}
+
+interface PublicCompanyDetailResponse {
+  id: number;
+  companyName: string;
+  industry: string | null;
+  address: string | null;
+  websiteUrl: string | null;
+  description: string | null;
+  status: "PENDING" | "VERIFIED" | "BLOCKED";
+  openJobs: number | null;
+  createdAt: string;
+  updatedAt: string;
+  companySize: string | null;
+  logoUrl: string | null;
 }
 
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
@@ -60,13 +83,24 @@ const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
 export async function getPublicJobDetail(jobId: string): Promise<JobDetailResult | null> {
   if (!jobId) return null;
   const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`);
+  const job = response.data.data;
+  const company = await getPublicCompanyDetailOrNull(job.companyId);
   return {
-    job: mapJobDetail(response.data.data),
+    job: mapJobDetail(job, company),
     similarJobs: [],
   };
 }
 
-function mapJobDetail(job: JobDetailResponse): PublicJobDetail {
+async function getPublicCompanyDetailOrNull(companyId: number) {
+  try {
+    const response = await httpClient.get<ApiResponse<PublicCompanyDetailResponse>>(`/public/companies/${companyId}`);
+    return response.data.data;
+  } catch {
+    return null;
+  }
+}
+
+function mapJobDetail(job: JobDetailResponse, company: PublicCompanyDetailResponse | null): PublicJobDetail {
   const skills = (job.skills ?? []).map((skill) => skill.skillName);
   return {
     id: String(job.id),
@@ -77,7 +111,7 @@ function mapJobDetail(job: JobDetailResponse): PublicJobDetail {
     salary: formatSalary(job),
     salaryMax: Number(job.salaryMax ?? job.salaryMin ?? 0),
     location: job.location || "Chưa cập nhật",
-    industry: "Chưa có API",
+    industry: company?.industry || "Chưa cập nhật",
     experienceYears: 0,
     experienceLabel: "Chưa có API",
     level: "Chưa có API",
@@ -86,14 +120,16 @@ function mapJobDetail(job: JobDetailResponse): PublicJobDetail {
     skills,
     postedAt: formatDate(job.publishedAt || job.createdAt),
     deadline: formatDate(job.deadline),
-    applicants: 0,
+    applicants: getApplicantCount(job),
     status: job.deadline && daysUntil(job.deadline) <= 7 ? "urgent" : "published",
     matchScore: 0,
-    companyVerified: false,
-    companyIndustry: "Chưa có API",
-    companySize: "Chưa có API",
-    companyLocation: job.location || "Chưa cập nhật",
-    companyDescription: "Backend hiện chưa có API public chi tiết công ty.",
+    companyVerified: company?.status === "VERIFIED",
+    companyIndustry: company?.industry || "Chưa cập nhật",
+    companySize: company?.companySize || "Chưa cập nhật",
+    companyLocation: company?.address || job.location || "Chưa cập nhật",
+    companyDescription: company?.description || "Chưa cập nhật mô tả công ty.",
+    companyLogoUrl: company?.logoUrl ?? "",
+    companyWebsite: company?.websiteUrl || "",
     hiringQuantity: 0,
     views: 0,
     description: job.description || "",
@@ -103,10 +139,27 @@ function mapJobDetail(job: JobDetailResponse): PublicJobDetail {
     preferredSkills: [],
     benefits: splitContent(job.benefits),
     workplace: job.location || "Chưa cập nhật",
-    workingTime: "Chưa có API",
+    workingTime: "Chưa cập nhật",
     recruitmentProcess: [],
+    apiStatus: getStatusLabel(job.status),
+    publishedAt: formatDate(job.publishedAt || job.createdAt),
+    updatedAt: formatDate(job.updatedAt),
+    closedAt: formatDate(job.closedAt),
     detailStatus: mapDetailStatus(job),
   };
+}
+
+function getApplicantCount(job: JobDetailResponse) {
+  return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
+}
+
+function getStatusLabel(status: BackendJobStatus) {
+  if (status === "ACTIVE") return "Đang tuyển";
+  if (status === "DRAFT") return "Bản nháp";
+  if (status === "PENDING_APPROVAL") return "Chờ duyệt";
+  if (status === "CLOSED") return "Đã đóng";
+  if (status === "REJECTED") return "Bị từ chối";
+  return "Hết hạn";
 }
 
 function mapDetailStatus(job: JobDetailResponse): PublicJobDetail["detailStatus"] {
@@ -125,7 +178,7 @@ function splitContent(value?: string | null) {
 
 function formatSalary(job: Pick<JobDetailResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;

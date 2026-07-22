@@ -2,6 +2,7 @@ export interface PublicCompanyListItem {
   id: string;
   cover: string;
   logo: string;
+  logoUrl?: string;
   name: string;
   verified: boolean;
   industry: string;
@@ -16,8 +17,8 @@ export interface PublicCompanyListItem {
 export interface CompaniesListFilters {
   keyword: string;
   location: string;
-  jobType: string;
-  workingModel: string;
+  industry: string;
+  sort: string;
   page: number;
 }
 
@@ -36,6 +37,6 @@ export interface FilterOption {
 
 export interface CompanyFilterOptions {
   locations: FilterOption[];
-  jobTypes: FilterOption[];
-  workModes: FilterOption[];
+  industries: FilterOption[];
+  sorts: FilterOption[];
 }

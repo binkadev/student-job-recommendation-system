@@ -1,10 +1,22 @@
-import { Bookmark, BookmarkCheck, BriefcaseBusiness, CalendarDays, Clock, MapPin, Users, Wallet } from "lucide-react";
+import { Bookmark, BookmarkCheck, BriefcaseBusiness, CalendarDays, Clock, MapPin, Send, Users, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
 import type { PublicJobListItem } from "./jobsListTypes";
 
-export function PublicJobListCard({ job, saved, onToggleSave }: { job: PublicJobListItem; saved: boolean; onToggleSave: (jobId: string) => void }) {
+export function PublicJobListCard({
+  job,
+  saved,
+  applied = false,
+  onToggleSave,
+  onApply,
+}: {
+  job: PublicJobListItem;
+  saved: boolean;
+  applied?: boolean;
+  onToggleSave: (jobId: string) => void;
+  onApply: (jobId: string) => void;
+}) {
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -23,7 +35,7 @@ export function PublicJobListCard({ job, saved, onToggleSave }: { job: PublicJob
           type="button"
           aria-label={saved ? "Bỏ lưu việc làm" : "Lưu việc làm"}
           onClick={() => onToggleSave(job.id)}
-          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-brand-700"
+          className={`rounded-md p-2 transition ${saved ? "bg-brand-100 text-brand-700 hover:bg-brand-200" : "text-slate-500 hover:bg-slate-100 hover:text-brand-700"}`}
         >
           {saved ? <BookmarkCheck size={20} className="text-brand-600" /> : <Bookmark size={20} />}
         </button>
@@ -46,9 +58,14 @@ export function PublicJobListCard({ job, saved, onToggleSave }: { job: PublicJob
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
-        <Link to={`/jobs/${job.id}`}>
-          <Button variant="secondary" size="sm">Xem chi tiết</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/jobs/${job.id}`}>
+            <Button variant="danger" size="sm">Xem chi tiết</Button>
+          </Link>
+          <Button size="sm" icon={<Send size={16} />} onClick={() => onApply(job.id)} disabled={applied}>
+            {applied ? "Đã ứng tuyển" : "Ứng tuyển"}
+          </Button>
+        </div>
       </div>
     </article>
   );

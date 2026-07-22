@@ -81,6 +81,10 @@ interface SkillResponse {
   description: string | null;
 }
 
+interface CompanyResponse {
+  id: number;
+}
+
 interface JobFormState {
   title: string;
   description: string;
@@ -114,7 +118,7 @@ const DEFAULT_FORM: JobFormState = {
   status: "DRAFT",
   salaryMin: "",
   salaryMax: "",
-  currency: "VND",
+  currency: "đồng",
   deadline: "",
   skillIds: [],
 };
@@ -323,9 +327,9 @@ function JobFormView({ mode, job }: { mode: "create" | "edit"; job?: JobDetailRe
     const nextErrors: Record<string, string> = {};
     if (!form.title.trim()) nextErrors.title = "Vui lòng nhập tiêu đề tin.";
     if (!form.description.trim()) nextErrors.description = "Vui lòng nhập mô tả công việc.";
-    if (form.salaryMin && Number(form.salaryMin) < 0) nextErrors.salaryMin = "Lương tối thiểu không hợp lệ.";
-    if (form.salaryMax && Number(form.salaryMax) < 0) nextErrors.salaryMax = "Lương tối đa không hợp lệ.";
-    if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) nextErrors.salaryMax = "Lương tối đa phải lớn hơn lương tối thiểu.";
+    if (form.salaryMin && !isPositiveIntegerMoney(form.salaryMin)) nextErrors.salaryMin = "Lương tối thiểu phải là số nguyên dương.";
+    if (form.salaryMax && !isPositiveIntegerMoney(form.salaryMax)) nextErrors.salaryMax = "Lương tối đa phải là số nguyên dương.";
+    if (form.salaryMin && form.salaryMax && parseMoneyInput(form.salaryMin) > parseMoneyInput(form.salaryMax)) nextErrors.salaryMax = "Lương tối đa phải lớn hơn lương tối thiểu.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -362,9 +366,9 @@ function JobFormView({ mode, job }: { mode: "create" | "edit"; job?: JobDetailRe
               <Input label="Địa điểm" value={form.location} onChange={(event) => update("location", event.target.value)} />
               <Select label="Loại việc" value={form.jobType} onChange={(event) => update("jobType", event.target.value as JobType)} options={Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
               <Select label="Hình thức làm việc" value={form.workingModel} onChange={(event) => update("workingModel", event.target.value as WorkingModel)} options={Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label }))} />
-              <Input label="Lương tối thiểu" type="number" value={form.salaryMin} error={errors.salaryMin} onChange={(event) => update("salaryMin", event.target.value)} />
-              <Input label="Lương tối đa" type="number" value={form.salaryMax} error={errors.salaryMax} onChange={(event) => update("salaryMax", event.target.value)} />
-              <Input label="Tiền tệ" value={form.currency} onChange={(event) => update("currency", event.target.value)} />
+              <Input label="Lương tối thiểu" inputMode="numeric" value={form.salaryMin} error={errors.salaryMin} onChange={(event) => update("salaryMin", formatMoneyInput(event.target.value))} />
+              <Input label="Lương tối đa" inputMode="numeric" value={form.salaryMax} error={errors.salaryMax} onChange={(event) => update("salaryMax", formatMoneyInput(event.target.value))} />
+              <Input label="Đơn vị" value="đồng" disabled />
               <Input label="Hạn nộp" type="date" value={form.deadline} onChange={(event) => update("deadline", event.target.value)} />
             </div>
           </Card>
@@ -485,27 +489,54 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 async function getJobs(filters: { page: number; keyword: string; status: string; jobType: string; workingModel: string }) {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: {
-      page: filters.page,
-      size: 8,
-      keyword: filters.keyword || undefined,
-      status: filters.status || undefined,
-      jobType: filters.jobType || undefined,
-      workingModel: filters.workingModel || undefined,
-    },
-  });
-  return response.data.data;
+  const [companyResponse, jobsResponse] = await Promise.all([
+    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
+    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+      params: {
+        page: 1,
+        size: 100,
+        keyword: filters.keyword || undefined,
+        status: filters.status || undefined,
+        jobType: filters.jobType || undefined,
+        workingModel: filters.workingModel || undefined,
+      },
+    }),
+  ]);
+  const companyId = companyResponse.data.data.id;
+  const ownJobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyId);
+  const pageSize = 8;
+  const totalItems = ownJobs.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(Math.max(filters.page, 1), totalPages);
+  const start = (currentPage - 1) * pageSize;
+
+  return {
+    items: ownJobs.slice(start, start + pageSize),
+    page: currentPage,
+    size: pageSize,
+    totalItems,
+    totalPages,
+  };
 }
 
 async function getJobDetail(jobId: number) {
-  const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`);
-  return response.data.data;
+  const [companyResponse, jobResponse] = await Promise.all([
+    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
+    httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`),
+  ]);
+  const job = jobResponse.data.data;
+  if (job.companyId !== companyResponse.data.data.id) {
+    throw new Error("Bạn không có quyền xem hoặc thao tác tin tuyển dụng của công ty khác.");
+  }
+  return job;
 }
 
 async function getSkills() {
   const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
-    params: { page: 1, size: 100 },
+    params: {
+      page: 1,
+      size: 100,
+    },
   });
   return response.data.data.items;
 }
@@ -540,9 +571,9 @@ function mapJobToForm(job: JobDetailResponse): JobFormState {
     jobType: job.jobType || "FULL_TIME",
     workingModel: job.workingModel || "ONSITE",
     status: job.status || "DRAFT",
-    salaryMin: job.salaryMin == null ? "" : String(job.salaryMin),
-    salaryMax: job.salaryMax == null ? "" : String(job.salaryMax),
-    currency: job.currency || "VND",
+    salaryMin: job.salaryMin == null ? "" : formatMoneyInput(String(job.salaryMin)),
+    salaryMax: job.salaryMax == null ? "" : formatMoneyInput(String(job.salaryMax)),
+    currency: "đồng",
     deadline: job.deadline || "",
     skillIds: job.skills?.map((skill) => String(skill.skillId)) ?? [],
   };
@@ -558,9 +589,9 @@ function buildJobPayload(form: JobFormState) {
     jobType: form.jobType,
     workingModel: form.workingModel,
     status: form.status,
-    salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
-    salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
-    currency: emptyToNull(form.currency),
+    salaryMin: form.salaryMin ? parseMoneyInput(form.salaryMin) : null,
+    salaryMax: form.salaryMax ? parseMoneyInput(form.salaryMax) : null,
+    currency: "đồng",
     deadline: emptyToNull(form.deadline),
     skills: form.skillIds.map((skillId) => ({
       skillId: Number(skillId),
@@ -591,7 +622,7 @@ function formatJobMeta(job: Pick<JobResponse, "jobType" | "workingModel">) {
 
 function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;
@@ -602,6 +633,22 @@ function formatMoney(value: number | string) {
   const numberValue = Number(value);
   if (!Number.isFinite(numberValue)) return String(value);
   return new Intl.NumberFormat("vi-VN").format(numberValue);
+}
+
+function formatMoneyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  return new Intl.NumberFormat("vi-VN").format(Number(digits));
+}
+
+function parseMoneyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function isPositiveIntegerMoney(value: string) {
+  const amount = parseMoneyInput(value);
+  return Number.isInteger(amount) && amount > 0;
 }
 
 function formatDate(value?: string | null) {

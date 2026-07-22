@@ -9,26 +9,24 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
-interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
-  totalItems: number;
-  totalPages: number;
-}
-
-interface JobSkillResponse {
+interface PublicCompanyDetailResponse {
   id: number;
-  skillId: number;
-  skillName: string;
-  normalizedName: string;
-  category: string | null;
-}
-
-interface JobResponse {
-  id: number;
-  companyId: number;
   companyName: string;
+  industry: string | null;
+  address: string | null;
+  websiteUrl: string | null;
+  description: string | null;
+  status: "PENDING" | "VERIFIED" | "BLOCKED";
+  openJobs: number | null;
+  createdAt: string;
+  updatedAt: string;
+  companySize: string | null;
+  logoUrl: string | null;
+  jobs: CompanyJobSummaryResponse[];
+}
+
+interface CompanyJobSummaryResponse {
+  id: number;
   title: string;
   location: string | null;
   jobType: BackendJobType | null;
@@ -38,11 +36,15 @@ interface JobResponse {
   salaryMax: number | string | null;
   currency: string | null;
   deadline: string | null;
-  skills: JobSkillResponse[];
   publishedAt: string | null;
-  closedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  applicantCount?: number | null;
+  applicationCount?: number | null;
+  applicants?: number | null;
+  totalApplications?: number | null;
+  applicationsCount?: number | null;
+  applicationTotal?: number | null;
+  totalApplicants?: number | null;
+  totalApplicantCount?: number | null;
 }
 
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
@@ -63,85 +65,71 @@ const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
 };
 
 export async function getPublicCompanyDetail(companyId: string): Promise<CompanyDetailResult | null> {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: {
-      page: 1,
-      size: 100,
-      status: "ACTIVE",
-    },
-  });
-  const jobs = response.data.data.items.filter((job) => String(job.companyId) === companyId);
-  if (!jobs.length) return null;
-
+  if (!companyId) return null;
+  const response = await httpClient.get<ApiResponse<PublicCompanyDetailResponse>>(`/public/companies/${companyId}`);
+  const company = response.data.data;
   return {
-    company: mapCompany(jobs),
-    jobs: jobs.map(mapJob),
+    company: mapCompany(company),
+    jobs: (company.jobs ?? []).map((job) => mapJob(job, company)),
   };
 }
 
-function mapCompany(jobs: JobResponse[]): PublicCompanyDetail {
-  const firstJob = jobs[0];
-  const locations = unique(jobs.map((job) => job.location).filter((value): value is string => Boolean(value)));
-  const jobTypes = unique(jobs.map((job) => job.jobType).filter((value): value is BackendJobType => Boolean(value)).map((value) => JOB_TYPE_LABELS[value]));
-  const workingModels = unique(jobs.map((job) => job.workingModel).filter((value): value is BackendWorkingModel => Boolean(value)).map((value) => WORKING_MODEL_LABELS[value]));
-
+function mapCompany(company: PublicCompanyDetailResponse): PublicCompanyDetail {
   return {
-    id: String(firstJob.companyId),
+    id: String(company.id),
     cover: "bg-slate-950",
-    logo: getInitials(firstJob.companyName),
-    name: firstJob.companyName,
-    verified: false,
-    industry: "Chưa có API",
-    size: "Chưa có API",
-    location: locations[0] || "Chưa cập nhật",
-    description: "Backend hiện chưa có API public hồ sơ công ty. Thông tin trang này được tổng hợp từ các tin tuyển dụng active của công ty.",
-    openJobs: jobs.length,
-    jobTypes,
-    workingModels,
-    website: "Chưa có API",
-    address: locations.join(", ") || "Chưa cập nhật",
+    logo: getInitials(company.companyName),
+    logoUrl: company.logoUrl ?? "",
+    name: company.companyName,
+    verified: company.status === "VERIFIED",
+    industry: company.industry || "Chưa cập nhật",
+    size: company.companySize || "Chưa cập nhật",
+    location: company.address || "Chưa cập nhật",
+    description: company.description || "Chưa cập nhật mô tả công ty.",
+    openJobs: Number(company.openJobs ?? 0),
+    website: company.websiteUrl || "Chưa cập nhật",
+    address: company.address || "Chưa cập nhật",
     foundedYear: 0,
-    mission: "Chưa có API public cho sứ mệnh công ty.",
+    mission: company.description || "Chưa cập nhật sứ mệnh công ty.",
     coreValues: [],
-    branches: locations.length ? locations : ["Chưa cập nhật"],
+    branches: company.address ? [company.address] : ["Chưa cập nhật"],
     benefits: [],
     gallery: [],
   };
 }
 
-function mapJob(job: JobResponse): PublicJobListItem {
+function mapJob(job: CompanyJobSummaryResponse, company: PublicCompanyDetailResponse): PublicJobListItem {
   return {
     id: String(job.id),
-    logo: getInitials(job.companyName),
+    logo: getInitials(company.companyName),
     title: job.title,
-    companyId: String(job.companyId),
-    companyName: job.companyName,
+    companyId: String(company.id),
+    companyName: company.companyName,
     salary: formatSalary(job),
     salaryMax: Number(job.salaryMax ?? job.salaryMin ?? 0),
     location: job.location || "Chưa cập nhật",
-    industry: "Chưa có API",
+    industry: company.industry || "Chưa cập nhật",
     experienceYears: 0,
     experienceLabel: "Chưa có API",
     level: "Chưa có API",
     jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
     workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
-    skills: (job.skills ?? []).map((skill) => skill.skillName),
-    postedAt: formatDate(job.publishedAt || job.createdAt),
+    skills: [],
+    postedAt: formatDate(job.publishedAt),
     deadline: formatDate(job.deadline),
-    applicants: 0,
-    status: getDisplayStatus(job),
+    applicants: getApplicantCount(job),
+    status: job.deadline && daysUntil(job.deadline) <= 7 ? "urgent" : "published",
     matchScore: 0,
   };
 }
 
-function getDisplayStatus(job: JobResponse): PublicJobListItem["status"] {
-  if (job.deadline && daysUntil(job.deadline) <= 7) return "urgent";
-  return "published";
+function getApplicantCount(job: CompanyJobSummaryResponse) {
+  return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
 }
 
-function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
+function formatSalary(job: Pick<CompanyJobSummaryResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;
@@ -164,10 +152,6 @@ function daysUntil(value: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((target - today.getTime()) / 86400000);
-}
-
-function unique(values: string[]) {
-  return Array.from(new Set(values));
 }
 
 function getInitials(value: string) {

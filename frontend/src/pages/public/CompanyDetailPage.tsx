@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, Building2, CalendarDays, Copy, ExternalLink, Globe, MapPin, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../app/providers/AuthProvider";
 import { PageContainer } from "../../components/common/PageContainer";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
@@ -13,10 +14,12 @@ import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
+import { CandidateApplyFlowModal, type ApplyFlowJob } from "../../features/candidate/apply/CandidateApplyFlowModal";
 import { CompanyDetailSkeleton } from "../../features/public/companies/CompanyDetailSkeleton";
 import { getPublicCompanyDetail } from "../../features/public/companies/companyDetailService";
 import type { CompanyGalleryItem } from "../../features/public/companies/companyDetailTypes";
 import { PublicJobListCard } from "../../features/public/jobs/PublicJobListCard";
+import { useAppliedJobs } from "../../features/public/jobs/useAppliedJobs";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
@@ -36,8 +39,11 @@ const tabs = [
 export function CompanyDetailPage() {
   const { companyId = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { currentRole, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const { isSaved, toggleSavedJob } = useSavedJobs();
+  const { hasApplied } = useAppliedJobs();
   const [reloadKey, setReloadKey] = useState(0);
   const [activeTab, setActiveTab] = useState<CompanyTab>(readTabFromHash(location.hash));
   const [jobQuery, setJobQuery] = useState("");
@@ -46,6 +52,8 @@ export function CompanyDetailPage() {
   const [jobWorkMode, setJobWorkMode] = useState("");
   const [page, setPage] = useState(1);
   const [selectedImage, setSelectedImage] = useState<CompanyGalleryItem | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const companyQuery = useAsyncData(() => getPublicCompanyDetail(companyId), [companyId, reloadKey]);
 
   useEffect(() => {
@@ -66,7 +74,7 @@ export function CompanyDetailPage() {
     return jobs.filter((job) => {
       const searchable = `${job.title} ${job.skills.join(" ")}`.toLowerCase();
       const matchKeyword = !keyword || searchable.includes(keyword);
-      const matchLocation = !jobLocation || job.location === jobLocation;
+      const matchLocation = !jobLocation || normalizeLocation(job.location).includes(normalizeLocation(jobLocation));
       const matchType = !jobType || job.jobType === jobType;
       const matchWorkMode = !jobWorkMode || job.workMode === jobWorkMode;
       return matchKeyword && matchLocation && matchType && matchWorkMode;
@@ -88,6 +96,38 @@ export function CompanyDetailPage() {
       showToast({ type: "success", title: `Đã copy ${label}` });
     } catch {
       showToast({ type: "success", title: `Đã tạo nội dung copy`, message: value });
+    }
+  }
+
+  async function requireCandidate(action: "apply" | "save", jobId: string) {
+    if (!isAuthenticated) {
+      setLoginModalOpen(true);
+      return;
+    }
+    if (currentRole !== "candidate") {
+      showToast({ type: "error", title: "Tài khoản này không thể thao tác", message: "Vui lòng dùng tài khoản ứng viên để ứng tuyển hoặc lưu việc làm." });
+      return;
+    }
+    if (action === "apply") {
+      const job = jobs.find((item) => item.id === jobId);
+      if (job) {
+        setApplyJob({
+          id: job.id,
+          title: job.title,
+          companyName: job.companyName,
+          salary: job.salary,
+          location: job.location,
+          workMode: job.workMode,
+        });
+        return;
+      }
+      navigate(`/candidate/jobs/${jobId}?apply=true`);
+      return;
+    }
+    try {
+      await toggleSavedJob(jobId);
+    } catch {
+      showToast({ type: "error", title: "Không thể cập nhật lưu việc", message: "Vui lòng thử lại sau." });
     }
   }
 
@@ -118,7 +158,7 @@ export function CompanyDetailPage() {
   }
 
   const hasWebsite = company.website.startsWith("http://") || company.website.startsWith("https://");
-  const foundedYearLabel = company.foundedYear > 0 ? String(company.foundedYear) : "Chưa có API";
+  const foundedYearLabel = company.foundedYear > 0 ? String(company.foundedYear) : "Chưa cập nhật";
 
   return (
     <PageContainer>
@@ -131,7 +171,9 @@ export function CompanyDetailPage() {
         </div>
         <div className="flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">{company.logo}</div>
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">
+              {company.logoUrl ? <img src={company.logoUrl} alt={company.name} className="h-full w-full object-cover" /> : company.logo}
+            </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold text-slate-950">{company.name}</h2>
@@ -177,7 +219,7 @@ export function CompanyDetailPage() {
                 {company.coreValues.length ? (
                   <div className="flex flex-wrap gap-2">{company.coreValues.map((value) => <StatusBadge key={value} label={value} tone="success" />)}</div>
                 ) : (
-                  <EmptyState message="Backend chưa có API public cho giá trị cốt lõi của công ty." />
+                  <EmptyState message="Công ty chưa cập nhật giá trị cốt lõi." />
                 )}
               </Card>
               <Card>
@@ -205,7 +247,16 @@ export function CompanyDetailPage() {
                 </div>
                 {pagedJobs.length ? (
                   <div className="grid gap-4">
-                    {pagedJobs.map((job) => <PublicJobListCard key={job.id} job={job} saved={isSaved(job.id)} onToggleSave={toggleSavedJob} />)}
+                    {pagedJobs.map((job) => (
+                      <PublicJobListCard
+                        key={job.id}
+                        job={job}
+                        saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)}
+                        applied={isAuthenticated && currentRole === "candidate" && hasApplied(job.id)}
+                        onToggleSave={(jobId) => void requireCandidate("save", jobId)}
+                        onApply={(jobId) => void requireCandidate("apply", jobId)}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <EmptyState message={jobs.length ? "Không có việc làm phù hợp với bộ lọc hiện tại." : "Công ty hiện chưa có việc làm đang tuyển."} />
@@ -227,7 +278,7 @@ export function CompanyDetailPage() {
                     </div>
                   ))
                 ) : (
-                  <EmptyState message="Backend chưa có API public cho phúc lợi công ty." />
+                  <EmptyState message="Công ty chưa cập nhật phúc lợi." />
                 )}
               </div>
             </Card>
@@ -235,7 +286,7 @@ export function CompanyDetailPage() {
 
           {activeTab === "gallery" ? (
             <Card>
-              <SectionHeader title="Hình ảnh môi trường làm việc" description="Backend chưa có API public cho hình ảnh công ty." />
+              <SectionHeader title="Hình ảnh môi trường làm việc" />
               <div className="grid gap-4 sm:grid-cols-2">
                 {company.gallery.length ? (
                   company.gallery.map((image) => (
@@ -247,7 +298,7 @@ export function CompanyDetailPage() {
                     </button>
                   ))
                 ) : (
-                  <EmptyState message="Backend chưa có API public cho hình ảnh công ty." />
+                  <EmptyState message="Công ty chưa cập nhật hình ảnh môi trường làm việc." />
                 )}
               </div>
             </Card>
@@ -288,8 +339,32 @@ export function CompanyDetailPage() {
           </div>
         ) : null}
       </Modal>
+
+      <Modal open={loginModalOpen} title="Đăng nhập để tiếp tục" onClose={() => setLoginModalOpen(false)}>
+        <p className="text-sm leading-6 text-slate-600">Bạn cần đăng nhập hoặc tạo tài khoản ứng viên để lưu việc làm hoặc ứng tuyển.</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link to="/login"><Button onClick={() => setLoginModalOpen(false)}>Đăng nhập</Button></Link>
+          <Link to="/register/candidate"><Button variant="secondary" onClick={() => setLoginModalOpen(false)}>Đăng ký ứng viên</Button></Link>
+        </div>
+      </Modal>
+      <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} />
     </PageContainer>
   );
+}
+
+function normalizeLocation(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (/\b(hcm|hcmc|ho chi minh|sai gon|saigon)\b/.test(normalized)) return "ho chi minh";
+  if (/\b(ha noi|hanoi)\b/.test(normalized)) return "ha noi";
+  if (/\b(da nang|danang)\b/.test(normalized)) return "da nang";
+  return normalized;
 }
 
 function readTabFromHash(hash: string): CompanyTab {

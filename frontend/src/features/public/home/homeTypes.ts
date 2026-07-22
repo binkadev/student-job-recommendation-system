@@ -29,6 +29,7 @@ export interface FeaturedIndustry {
 export interface FeaturedHomeCompany {
   id: string;
   logo: string;
+  logoUrl?: string;
   name: string;
   industry: string;
   size: string;

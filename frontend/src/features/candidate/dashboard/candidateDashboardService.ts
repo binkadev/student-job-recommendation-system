@@ -242,7 +242,7 @@ function calculateProfileCompletion(student: StudentResponse, profile: StudentPr
 }
 
 function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
-  const currency = job.currency || "VND";
+  const currency = "đồng";
   const min = toNumber(job.salaryMin);
   const max = toNumber(job.salaryMax);
   if (min && max) return `${formatMoney(min)} - ${formatMoney(max)} ${currency}`;

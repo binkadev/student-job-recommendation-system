@@ -62,6 +62,7 @@ interface ApplicationResponse {
 interface DashboardData {
   jobs: JobResponse[];
   applications: ApplicationResponse[];
+  totalApplications: number;
 }
 
 const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -101,7 +102,7 @@ export function RecruiterDashboardPage() {
     );
   }
 
-  const { jobs, applications } = dashboardQuery.data;
+  const { jobs, applications, totalApplications } = dashboardQuery.data;
   const activeJobs = jobs.filter((job) => job.status === "ACTIVE");
   const pendingApplications = applications.filter((application) => application.status === "PENDING");
   const reviewedApplications = applications.filter((application) => application.status === "REVIEWED");
@@ -141,7 +142,7 @@ export function RecruiterDashboardPage() {
         <StatLink icon={<BarChart3 size={20} />} label="Đã xem xét" value={String(reviewedApplications.length)} to="/recruiter/candidates" />
         <StatLink icon={<CalendarDays size={20} />} label="Phỏng vấn" value="0" to="/recruiter/interviews" />
         <StatLink icon={<Handshake size={20} />} label="Đã nhận" value={String(acceptedApplications.length)} to="/recruiter/candidates" />
-        <StatLink icon={<CheckCircle2 size={20} />} label="Tổng ứng tuyển" value={String(applications.length)} to="/recruiter/candidates" />
+        <StatLink icon={<CheckCircle2 size={20} />} label="Tổng ứng tuyển" value={String(totalApplications)} to="/recruiter/candidates" />
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
@@ -217,7 +218,7 @@ export function RecruiterDashboardPage() {
         </Card>
 
         <Card>
-          <SectionHeader title="Ứng viên mới nhất" />
+          <SectionHeader title="Ứng viên mới nhất" action={<Link to="/recruiter/candidates" className="text-sm font-medium text-brand-700 hover:text-brand-800">Xem tất cả</Link>} />
           <div className="space-y-3">
             {recentApplications.length ? recentApplications.map((application) => (
               <div key={application.id} className="grid gap-3 rounded-lg border border-slate-100 p-3 lg:grid-cols-[1fr_auto]">
@@ -297,15 +298,16 @@ async function getRecruiterDashboardData(): Promise<DashboardData> {
   const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
     params: { page: 1, size: 100 },
   });
-  const jobs = jobsResponse.data.data.items;
-  const applicationResponses = await Promise.all(
-    jobs.map((job) => httpClient.get<ApiResponse<ApplicationResponse[]>>(`/companies/me/jobs/${job.id}/applications`)),
-  );
-  const applications = applicationResponses
-    .flatMap((response) => response.data.data)
-    .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
+  const applicationsResponse = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
+    params: { page: 1, size: 100, sort: "appliedAt,desc" },
+  });
 
-  return { jobs, applications };
+  const jobs = jobsResponse.data.data.items;
+  const applications = applicationsResponse.data.data.items
+    .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
+  const totalApplications = applicationsResponse.data.data.totalItems;
+
+  return { jobs, applications, totalApplications };
 }
 
 function buildStatusChartData(applications: ApplicationResponse[]) {

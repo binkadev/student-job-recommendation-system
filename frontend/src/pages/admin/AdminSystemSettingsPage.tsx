@@ -4,11 +4,14 @@ import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
+import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Switch } from "../../components/ui/Switch";
 import { Tabs } from "../../components/ui/Tabs";
+import { useToast } from "../../hooks/useToast";
+import { getSystemSettings, setSystemSettings } from "../../utils/systemSettings";
 
 type SettingsTab = "general" | "cv" | "jobs" | "email" | "notifications" | "security" | "privacy";
 
@@ -24,6 +27,13 @@ const tabs = [
 
 export function AdminSystemSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const { showToast } = useToast();
+  const [settings, setSettings] = useState(() => getSystemSettings());
+
+  function saveCvSettings() {
+    setSystemSettings(settings);
+    showToast({ type: "success", title: "Đã cập nhật cấu hình CV", message: "Trang CV ứng viên sẽ áp dụng cấu hình mới trong frontend." });
+  }
 
   return (
     <PageContainer>
@@ -41,7 +51,7 @@ export function AdminSystemSettingsPage() {
       <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
         <div>
           {activeTab === "general" ? <GeneralSettings /> : null}
-          {activeTab === "cv" ? <CvUploadSettings /> : null}
+          {activeTab === "cv" ? <CvUploadSettings settings={settings.cv} onChange={(cv) => setSettings((current) => ({ ...current, cv }))} onSave={saveCvSettings} /> : null}
           {activeTab === "jobs" ? <JobsSettings /> : null}
           {activeTab === "email" ? <EmailSettings /> : null}
           {activeTab === "notifications" ? <NotificationSettings /> : null}
@@ -76,15 +86,26 @@ function GeneralSettings() {
   );
 }
 
-function CvUploadSettings() {
+function CvUploadSettings({
+  settings,
+  onChange,
+  onSave,
+}: {
+  settings: { maxFileSizeMb: number; maxCvsPerUser: number };
+  onChange: (settings: { maxFileSizeMb: number; maxCvsPerUser: number }) => void;
+  onSave: () => void;
+}) {
   return (
     <Card>
       <SectionHeader title="CV Upload" />
       <div className="grid gap-4 md:grid-cols-2">
-        <Input label="File type cho phép" value="" onChange={() => undefined} placeholder="PDF,DOCX" disabled />
-        <Input label="Dung lượng tối đa (MB)" type="number" value="" onChange={() => undefined} disabled />
-        <Input label="Số CV tối đa mỗi ứng viên" type="number" value="" onChange={() => undefined} disabled />
+        <Input label="File type cho phép" value="PDF,DOCX" onChange={() => undefined} disabled />
+        <Input label="Dung lượng tối đa (MB)" type="number" min="1" value={String(settings.maxFileSizeMb)} onChange={(event) => onChange({ ...settings, maxFileSizeMb: Math.max(1, Number(event.target.value) || 1) })} />
+        <Input label="Số CV tối đa mỗi ứng viên" type="number" min="1" value={String(settings.maxCvsPerUser)} onChange={(event) => onChange({ ...settings, maxCvsPerUser: Math.max(1, Number(event.target.value) || 1) })} />
         <Input label="Analysis timeout (giây)" type="number" value="" onChange={() => undefined} disabled />
+      </div>
+      <div className="mt-5">
+        <Button onClick={onSave}>Cập nhật cấu hình</Button>
       </div>
     </Card>
   );

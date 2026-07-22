@@ -9,6 +9,8 @@ export interface PublicJobDetail extends PublicJobListItem {
   companySize: string;
   companyLocation: string;
   companyDescription: string;
+  companyLogoUrl?: string;
+  companyWebsite?: string;
   hiringQuantity: number;
   views: number;
   description: string;
@@ -20,6 +22,10 @@ export interface PublicJobDetail extends PublicJobListItem {
   workplace: string;
   workingTime: string;
   recruitmentProcess: string[];
+  apiStatus?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  closedAt?: string;
   detailStatus: JobDetailStatus;
 }
 
