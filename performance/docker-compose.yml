@@ -1,0 +1,34 @@
+name: student-job-recommendation-perf
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ${PERF_POSTGRES_CONTAINER:-student-job-recommendation-perf-postgres}
+    restart: "no"
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - compute_query_id=on
+      - -c
+      - pg_stat_statements.track=all
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in performance/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in performance/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in performance/.env}
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - perf_postgres_data:/var/lib/postgresql/data
+      - ./sql:/performance/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+volumes:
+  perf_postgres_data:
+    name: ${PERF_POSTGRES_VOLUME:-student-job-recommendation-perf-data}
