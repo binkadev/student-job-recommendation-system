@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 1,
+  "phase": "B2",
+  "finalizationTimestampUtc": "2026-07-22T13:58:34.6747941Z",
+  "result": "READY",
+  "baselineValidity": "VALID BASELINE",
+  "evidenceDirectory": "performance/results/baseline/20260722-203311-680bd870-native",
+  "git": {
+    "branch": "perf/api-db-baseline",
+    "sha": "680bd8709b3044a2710e2f5f5fcc067878086ee1",
+    "runState": "clean"
+  },
+  "environment": {
+    "javaVersion": "21.0.11",
+    "springBootVersion": "3.5.16",
+    "postgresqlVersion": "17.10",
+    "flywayLatestMigration": 12,
+    "k6Version": "2.1.0",
+    "dockerVersion": "29.5.3",
+    "dockerComposeVersion": "5.1.4",
+    "database": "student_job_recommendation_perf",
+    "databaseUser": "perf_user",
+    "baseUrl": "http://localhost:8080",
+    "operatingSystem": "Microsoft Windows 11 Home 10.0.26200",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "logicalCpuCount": 20,
+    "totalRamBytes": 34070847488
+  },
+  "dataset": {
+    "totalRows": 142651,
+    "rowCounts": {
+      "users": 1101,
+      "students": 1000,
+      "student_profiles": 1000,
+      "companies": 100,
+      "skills": 250,
+      "student_skills": 8000,
+      "jobs": 10000,
+      "job_skills": 50000,
+      "saved_jobs": 20000,
+      "cv_files": 1200,
+      "applications": 50000,
+      "recommendation_runs": 0,
+      "recommendation_results": 0,
+      "notifications": 0
+    }
+  },
+  "workload": {
+    "virtualUsers": 10,
+    "iterationsPerEndpoint": 10000,
+    "validRunCount": 3,
+    "endpoints": [
+      {
+        "id": "jobs-list",
+        "method": "GET",
+        "path": "/api/jobs?page=1&size=20",
+        "authentication": "STUDENT"
+      },
+      {
+        "id": "company-applications",
+        "method": "GET",
+        "path": "/api/companies/me/applications?page=1&size=20&sort=appliedAt,desc",
+        "authentication": "COMPANY"
+      },
+      {
+        "id": "public-companies",
+        "method": "GET",
+        "path": "/api/public/companies?page=1&size=20&sort=createdAt,desc",
+        "authentication": "none"
+      }
+    ]
+  },
+  "validation": {
+    "validRuns": ["run-1", "run-2", "run-3"],
+    "endpointSummaryCount": 9,
+    "sameGitSha": true,
+    "sameDataset": true,
+    "sameDatabaseIdentity": true,
+    "datasetConsistencyBasis": "identical deterministic per-table row counts; no content checksum was captured",
+    "databaseIdentityBasis": "identical logical database name, database user, and PostgreSQL version; no physical cluster fingerprint was captured",
+    "completeEndpointSetInEveryRun": true,
+    "sameVirtualUsers": true,
+    "sameIterations": true,
+    "sameEndpointParameters": true,
+    "allMeasuredRequestCountsExact": true,
+    "allHttpErrorRatesZero": true,
+    "allFailedChecksZero": true,
+    "allDroppedIterationsZero": true,
+    "rawCollectorLabelLimitation": "run and diagnostic metadata retain the Phase B1 tooling-validation label; run shape and counts establish the Phase B2 workload, while diagnostics are supporting evidence only",
+    "excludedEvidence": [
+      {
+        "path": "preflight",
+        "reason": "1,000-request preflight workloads are not official baseline runs"
+      },
+      {
+        "path": "smoke",
+        "reason": "5-iteration correctness smoke latency is excluded"
+      },
+      {
+        "path": "diagnostics",
+        "reason": "one-request query-count and EXPLAIN evidence is diagnostic, not latency aggregation input"
+      }
+    ]
+  },
+  "rawRuns": [
+    {
+      "run": "run-1",
+      "timestampUtc": "2026-07-22T13:36:11.4852776Z",
+      "endpoints": [
+        {
+          "endpoint": "jobs-list",
+          "measuredRequests": 10000,
+          "p50Ms": 70.90809999999999,
+          "p95Ms": 80.74298499999999,
+          "p99Ms": 88.773907,
+          "throughputRps": 118.42084037780425,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 23897,
+          "totalRunDurationMs": 84444.5958
+        },
+        {
+          "endpoint": "company-applications",
+          "measuredRequests": 10000,
+          "p50Ms": 53.41335,
+          "p95Ms": 63.21743999999998,
+          "p99Ms": 70.22372,
+          "throughputRps": 160.99330214252316,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 15203,
+          "totalRunDurationMs": 62114.3853
+        },
+        {
+          "endpoint": "public-companies",
+          "measuredRequests": 10000,
+          "p50Ms": 7.0753,
+          "p95Ms": 8.6116,
+          "p99Ms": 9.763448000000006,
+          "throughputRps": 700.343657932604,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 9094,
+          "totalRunDurationMs": 14278.7043
+        }
+      ]
+    },
+    {
+      "run": "run-2",
+      "timestampUtc": "2026-07-22T13:40:32.5838007Z",
+      "endpoints": [
+        {
+          "endpoint": "jobs-list",
+          "measuredRequests": 10000,
+          "p50Ms": 71.7433,
+          "p95Ms": 81.305875,
+          "p99Ms": 87.065861,
+          "throughputRps": 117.73193731746802,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 23897,
+          "totalRunDurationMs": 84938.7195
+        },
+        {
+          "endpoint": "company-applications",
+          "measuredRequests": 10000,
+          "p50Ms": 53.88745,
+          "p95Ms": 62.49875,
+          "p99Ms": 69.66366400000001,
+          "throughputRps": 160.2860518737853,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 15203,
+          "totalRunDurationMs": 62388.4604
+        },
+        {
+          "endpoint": "public-companies",
+          "measuredRequests": 10000,
+          "p50Ms": 6.985,
+          "p95Ms": 8.356909999999997,
+          "p99Ms": 9.596142,
+          "throughputRps": 714.7375202933638,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 9094,
+          "totalRunDurationMs": 13991.1502
+        }
+      ]
+    },
+    {
+      "run": "run-3",
+      "timestampUtc": "2026-07-22T13:45:31.1213090Z",
+      "endpoints": [
+        {
+          "endpoint": "jobs-list",
+          "measuredRequests": 10000,
+          "p50Ms": 71.9569,
+          "p95Ms": 82.79065,
+          "p99Ms": 96.28312700000001,
+          "throughputRps": 116.36447493258851,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 23897,
+          "totalRunDurationMs": 85936.8807
+        },
+        {
+          "endpoint": "company-applications",
+          "measuredRequests": 10000,
+          "p50Ms": 54.941,
+          "p95Ms": 63.77161,
+          "p99Ms": 71.215569,
+          "throughputRps": 157.67214534852832,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 15203,
+          "totalRunDurationMs": 63422.7433
+        },
+        {
+          "endpoint": "public-companies",
+          "measuredRequests": 10000,
+          "p50Ms": 7.060499999999999,
+          "p95Ms": 8.619224999999998,
+          "p99Ms": 9.439100000000002,
+          "throughputRps": 697.6112020509323,
+          "httpErrorRate": 0,
+          "failedChecks": 0,
+          "droppedIterations": 0,
+          "averageResponseBodyBytes": 9094,
+          "totalRunDurationMs": 14334.6322
+        }
+      ]
+    }
+  ],
+  "medians": [
+    {
+      "endpoint": "jobs-list",
+      "p50Ms": 71.7433,
+      "p95Ms": 81.305875,
+      "p99Ms": 88.773907,
+      "throughputRps": 117.73193731746802,
+      "averageResponseBodyBytes": 23897
+    },
+    {
+      "endpoint": "company-applications",
+      "p50Ms": 53.88745,
+      "p95Ms": 63.21743999999998,
+      "p99Ms": 70.22372,
+      "throughputRps": 160.2860518737853,
+      "averageResponseBodyBytes": 15203
+    },
+    {
+      "endpoint": "public-companies",
+      "p50Ms": 7.060499999999999,
+      "p95Ms": 8.6116,
+      "p99Ms": 9.596142,
+      "throughputRps": 700.343657932604,
+      "averageResponseBodyBytes": 9094
+    }
+  ],
+  "queryCounts": [
+    {
+      "endpoint": "jobs-list",
+      "totalSqlCalls": 66,
+      "jwtUserLookupCalls": 1,
+      "transactionControlCalls": 2,
+      "serviceSqlCalls": 63,
+      "normalizedSqlGroups": 7,
+      "rows": 163,
+      "totalDatabaseExecutionMs": 7.060,
+      "sharedBlockHits": 1503,
+      "sharedBlockReads": 0,
+      "fanOutCalls": 61,
+      "classification": "VERIFIED QUERY FAN-OUT",
+      "classBreakdown": {
+        "service": { "calls": 63, "groups": 5, "rows": 162, "executionMs": 6.797, "sharedBlockHits": 1499, "sharedBlockReads": 0 },
+        "jwtUserLookup": { "calls": 1, "groups": 1, "rows": 1, "executionMs": 0.166, "sharedBlockHits": 4, "sharedBlockReads": 0 },
+        "transactionControl": { "calls": 2, "groups": 1, "rows": 0, "executionMs": 0.097, "sharedBlockHits": 0, "sharedBlockReads": 0 }
+      },
+      "sqlGroups": [
+        { "normalizedShape": "jobs content by status, created_at desc, offset/limit", "statementClass": "service", "calls": 1, "rows": 20, "executionMs": 4.302, "sharedBlockHits": 592, "sharedBlockReads": 0 },
+        { "normalizedShape": "job_skills joined to jobs by job id, ordered by job_skill id", "statementClass": "service", "calls": 20, "rows": 100, "executionMs": 0.985, "sharedBlockHits": 200, "sharedBlockReads": 0 },
+        { "normalizedShape": "jobs count by status", "statementClass": "service", "calls": 1, "rows": 1, "executionMs": 0.835, "sharedBlockHits": 592, "sharedBlockReads": 0 },
+        { "normalizedShape": "skills by primary key", "statementClass": "service", "calls": 30, "rows": 30, "executionMs": 0.459, "sharedBlockHits": 60, "sharedBlockReads": 0 },
+        { "normalizedShape": "companies by primary key", "statementClass": "service", "calls": 11, "rows": 11, "executionMs": 0.216, "sharedBlockHits": 55, "sharedBlockReads": 0 },
+        { "normalizedShape": "users by email", "statementClass": "jwt_user_lookup", "calls": 1, "rows": 1, "executionMs": 0.166, "sharedBlockHits": 4, "sharedBlockReads": 0 },
+        { "normalizedShape": "BEGIN READ ONLY", "statementClass": "transaction_control", "calls": 2, "rows": 0, "executionMs": 0.097, "sharedBlockHits": 0, "sharedBlockReads": 0 }
+      ]
+    },
+    {
+      "endpoint": "company-applications",
+      "totalSqlCalls": 53,
+      "jwtUserLookupCalls": 1,
+      "transactionControlCalls": 2,
+      "serviceSqlCalls": 50,
+      "normalizedSqlGroups": 9,
+      "rows": 70,
+      "totalDatabaseExecutionMs": 4.536,
+      "sharedBlockHits": 9078,
+      "sharedBlockReads": 0,
+      "fanOutCalls": 47,
+      "classification": "VERIFIED QUERY FAN-OUT",
+      "classBreakdown": {
+        "service": { "calls": 50, "groups": 7, "rows": 69, "executionMs": 4.447, "sharedBlockHits": 9074, "sharedBlockReads": 0 },
+        "jwtUserLookup": { "calls": 1, "groups": 1, "rows": 1, "executionMs": 0.056, "sharedBlockHits": 4, "sharedBlockReads": 0 },
+        "transactionControl": { "calls": 2, "groups": 1, "rows": 0, "executionMs": 0.033, "sharedBlockHits": 0, "sharedBlockReads": 0 }
+      },
+      "sqlGroups": [
+        { "normalizedShape": "applications content joined to jobs by company, applied_at desc, offset/limit", "statementClass": "service", "calls": 1, "rows": 20, "executionMs": 2.439, "sharedBlockHits": 4462, "sharedBlockReads": 0 },
+        { "normalizedShape": "applications count joined to jobs by company", "statementClass": "service", "calls": 1, "rows": 1, "executionMs": 1.174, "sharedBlockHits": 4462, "sharedBlockReads": 0 },
+        { "normalizedShape": "students by primary key", "statementClass": "service", "calls": 18, "rows": 18, "executionMs": 0.391, "sharedBlockHits": 54, "sharedBlockReads": 0 },
+        { "normalizedShape": "users by primary key", "statementClass": "service", "calls": 18, "rows": 18, "executionMs": 0.220, "sharedBlockHits": 54, "sharedBlockReads": 0 },
+        { "normalizedShape": "jobs by primary key", "statementClass": "service", "calls": 9, "rows": 9, "executionMs": 0.131, "sharedBlockHits": 27, "sharedBlockReads": 0 },
+        { "normalizedShape": "users by email", "statementClass": "jwt_user_lookup", "calls": 1, "rows": 1, "executionMs": 0.056, "sharedBlockHits": 4, "sharedBlockReads": 0 },
+        { "normalizedShape": "cv_files by primary key", "statementClass": "service", "calls": 2, "rows": 2, "executionMs": 0.053, "sharedBlockHits": 6, "sharedBlockReads": 0 },
+        { "normalizedShape": "companies joined to users by current user id", "statementClass": "service", "calls": 1, "rows": 1, "executionMs": 0.039, "sharedBlockHits": 9, "sharedBlockReads": 0 },
+        { "normalizedShape": "BEGIN READ ONLY", "statementClass": "transaction_control", "calls": 2, "rows": 0, "executionMs": 0.033, "sharedBlockHits": 0, "sharedBlockReads": 0 }
+      ]
+    },
+    {
+      "endpoint": "public-companies",
+      "totalSqlCalls": 4,
+      "jwtUserLookupCalls": 0,
+      "transactionControlCalls": 1,
+      "serviceSqlCalls": 3,
+      "normalizedSqlGroups": 4,
+      "rows": 41,
+      "totalDatabaseExecutionMs": 0.526,
+      "sharedBlockHits": 157,
+      "sharedBlockReads": 0,
+      "fanOutCalls": 0,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR",
+      "classBreakdown": {
+        "service": { "calls": 3, "groups": 3, "rows": 41, "executionMs": 0.490, "sharedBlockHits": 157, "sharedBlockReads": 0 },
+        "jwtUserLookup": { "calls": 0, "groups": 0, "rows": 0, "executionMs": 0, "sharedBlockHits": 0, "sharedBlockReads": 0 },
+        "transactionControl": { "calls": 1, "groups": 1, "rows": 0, "executionMs": 0.036, "sharedBlockHits": 0, "sharedBlockReads": 0 }
+      },
+      "sqlGroups": [
+        { "normalizedShape": "open-job count grouped by 20 company ids", "statementClass": "service", "calls": 1, "rows": 20, "executionMs": 0.374, "sharedBlockHits": 147, "sharedBlockReads": 0 },
+        { "normalizedShape": "companies content by status, created_at desc, offset/limit", "statementClass": "service", "calls": 1, "rows": 20, "executionMs": 0.088, "sharedBlockHits": 5, "sharedBlockReads": 0 },
+        { "normalizedShape": "BEGIN READ ONLY", "statementClass": "transaction_control", "calls": 1, "rows": 0, "executionMs": 0.036, "sharedBlockHits": 0, "sharedBlockReads": 0 },
+        { "normalizedShape": "companies count by status", "statementClass": "service", "calls": 1, "rows": 1, "executionMs": 0.028, "sharedBlockHits": 5, "sharedBlockReads": 0 }
+      ]
+    }
+  ],
+  "explainCapture": {
+    "settings": {},
+    "allSharedBlockReadsZero": true,
+    "allTemporaryBlockReadsZero": true,
+    "allTemporaryBlockWritesZero": true,
+    "allSortsInMemory": true,
+    "maximumExecutionTimeMs": 4.528
+  },
+  "explainPlans": [
+    {
+      "endpoint": "jobs-list",
+      "queryType": "content",
+      "rootNode": "Limit",
+      "rootPlanRows": 20,
+      "rootActualRows": 20,
+      "rootActualLoops": 1,
+      "scanTypes": ["Seq Scan"],
+      "indexes": [],
+      "scanPlanRows": 7000,
+      "scanActualRows": 7000,
+      "rowsRemovedByFilter": 3000,
+      "sortMethod": "top-N heapsort",
+      "sortMemoryKb": 66,
+      "diskSpill": false,
+      "sharedBlockHits": 718,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 174,
+      "planningTimeMs": 0.334,
+      "executionTimeMs": 4.528,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR",
+      "futureRisk": "POSSIBLE FUTURE RISK"
+    },
+    {
+      "endpoint": "jobs-list",
+      "queryType": "count",
+      "rootNode": "Aggregate",
+      "rootPlanRows": 1,
+      "rootActualRows": 1,
+      "rootActualLoops": 1,
+      "scanTypes": ["Seq Scan"],
+      "indexes": [],
+      "scanPlanRows": 7000,
+      "scanActualRows": 7000,
+      "rowsRemovedByFilter": 3000,
+      "sortMethod": null,
+      "sortMemoryKb": null,
+      "diskSpill": false,
+      "sharedBlockHits": 715,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 3,
+      "planningTimeMs": 0.193,
+      "executionTimeMs": 2.882,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR",
+      "futureRisk": "POSSIBLE FUTURE RISK"
+    },
+    {
+      "endpoint": "jobs-list",
+      "queryType": "secondary",
+      "rootNode": "Sort",
+      "rootPlanRows": 5,
+      "rootActualRows": 5,
+      "rootActualLoops": 1,
+      "scanTypes": ["Index Only Scan", "Bitmap Heap Scan", "Bitmap Index Scan"],
+      "indexes": ["jobs_pkey", "uk_job_skills_job_skill"],
+      "rowsRemovedByFilter": 0,
+      "sortMethod": "quicksort",
+      "sortMemoryKb": 25,
+      "diskSpill": false,
+      "sharedBlockHits": 16,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 106,
+      "planningTimeMs": 0.277,
+      "executionTimeMs": 0.133,
+      "classification": "VERIFIED QUERY FAN-OUT",
+      "classificationContext": "the individual secondary query is fast; repeated ORM invocation creates the fan-out"
+    },
+    {
+      "endpoint": "company-applications",
+      "queryType": "content",
+      "rootNode": "Limit",
+      "rootPlanRows": 20,
+      "rootActualRows": 20,
+      "rootActualLoops": 1,
+      "scanTypes": ["Index Scan", "Index Scan"],
+      "indexes": ["idx_jobs_company_id", "idx_applications_job_id"],
+      "joinPlanRows": 500,
+      "joinActualRows": 5000,
+      "innerScanPlanRowsPerLoop": 7,
+      "innerScanActualRowsPerLoop": 50,
+      "innerScanLoops": 100,
+      "rowsRemovedByFilter": 0,
+      "sortMethod": "top-N heapsort",
+      "sortMemoryKb": 46,
+      "diskSpill": false,
+      "sharedBlockHits": 4468,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 376,
+      "planningTimeMs": 0.648,
+      "executionTimeMs": 3.828,
+      "classification": "POSSIBLE FUTURE RISK"
+    },
+    {
+      "endpoint": "company-applications",
+      "queryType": "count",
+      "rootNode": "Aggregate",
+      "rootPlanRows": 1,
+      "rootActualRows": 1,
+      "rootActualLoops": 1,
+      "scanTypes": ["Index Scan", "Index Scan"],
+      "indexes": ["idx_jobs_company_id", "idx_applications_job_id"],
+      "joinPlanRows": 500,
+      "joinActualRows": 5000,
+      "innerScanPlanRowsPerLoop": 7,
+      "innerScanActualRowsPerLoop": 50,
+      "innerScanLoops": 100,
+      "rowsRemovedByFilter": 0,
+      "sortMethod": null,
+      "sortMemoryKb": null,
+      "diskSpill": false,
+      "sharedBlockHits": 4462,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 18,
+      "planningTimeMs": 0.178,
+      "executionTimeMs": 1.671,
+      "classification": "POSSIBLE FUTURE RISK"
+    },
+    {
+      "endpoint": "company-applications",
+      "queryType": "secondary",
+      "rootNode": "Index Scan",
+      "rootPlanRows": 1,
+      "rootActualRows": 1,
+      "rootActualLoops": 1,
+      "scanTypes": ["Index Scan"],
+      "indexes": ["jobs_pkey"],
+      "rowsRemovedByFilter": 0,
+      "sortMethod": null,
+      "sortMemoryKb": null,
+      "diskSpill": false,
+      "sharedBlockHits": 3,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 48,
+      "planningTimeMs": 0.091,
+      "executionTimeMs": 0.009,
+      "classification": "VERIFIED QUERY FAN-OUT",
+      "classificationContext": "the individual primary-key query is fast; repeated ORM invocation creates the fan-out"
+    },
+    {
+      "endpoint": "public-companies",
+      "queryType": "content",
+      "rootNode": "Limit",
+      "rootPlanRows": 20,
+      "rootActualRows": 20,
+      "rootActualLoops": 1,
+      "scanTypes": ["Seq Scan"],
+      "indexes": [],
+      "scanPlanRows": 80,
+      "scanActualRows": 80,
+      "rowsRemovedByFilter": 20,
+      "sortMethod": "top-N heapsort",
+      "sortMemoryKb": 45,
+      "diskSpill": false,
+      "sharedBlockHits": 8,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 125,
+      "planningTimeMs": 0.241,
+      "executionTimeMs": 0.074,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR"
+    },
+    {
+      "endpoint": "public-companies",
+      "queryType": "count",
+      "rootNode": "Aggregate",
+      "rootPlanRows": 1,
+      "rootActualRows": 1,
+      "rootActualLoops": 1,
+      "scanTypes": ["Seq Scan"],
+      "indexes": [],
+      "scanPlanRows": 80,
+      "scanActualRows": 80,
+      "rowsRemovedByFilter": 20,
+      "sortMethod": null,
+      "sortMemoryKb": null,
+      "diskSpill": false,
+      "sharedBlockHits": 5,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 3,
+      "planningTimeMs": 0.045,
+      "executionTimeMs": 0.032,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR"
+    },
+    {
+      "endpoint": "public-companies",
+      "queryType": "secondary",
+      "rootNode": "Aggregate",
+      "rootPlanRows": 100,
+      "rootActualRows": 20,
+      "rootActualLoops": 1,
+      "scanTypes": ["Index Scan"],
+      "indexes": ["idx_jobs_company_id"],
+      "scanPlanRows": 1400,
+      "scanActualRows": 1400,
+      "rowsRemovedByFilter": 600,
+      "sortMethod": null,
+      "sortMemoryKb": null,
+      "diskSpill": false,
+      "sharedBlockHits": 147,
+      "sharedBlockReads": 0,
+      "planningSharedBlockHits": 107,
+      "planningTimeMs": 0.193,
+      "executionTimeMs": 0.512,
+      "classification": "ACCEPTABLE BASELINE BEHAVIOR"
+    }
+  ],
+  "officialBaseline": [
+    {
+      "endpoint": "GET /api/jobs?page=1&size=20",
+      "medianP50Ms": 71.7433,
+      "medianP95Ms": 81.305875,
+      "medianP99Ms": 88.773907,
+      "medianThroughputRps": 117.73193731746802,
+      "sqlCallsPerRequest": 66,
+      "serviceSqlCallsPerRequest": 63,
+      "averageResponseBodyBytes": 23897,
+      "result": "VALID BASELINE"
+    },
+    {
+      "endpoint": "GET /api/companies/me/applications?page=1&size=20&sort=appliedAt,desc",
+      "medianP50Ms": 53.88745,
+      "medianP95Ms": 63.21743999999998,
+      "medianP99Ms": 70.22372,
+      "medianThroughputRps": 160.2860518737853,
+      "sqlCallsPerRequest": 53,
+      "serviceSqlCallsPerRequest": 50,
+      "averageResponseBodyBytes": 15203,
+      "result": "VALID BASELINE"
+    },
+    {
+      "endpoint": "GET /api/public/companies?page=1&size=20&sort=createdAt,desc",
+      "medianP50Ms": 7.060499999999999,
+      "medianP95Ms": 8.6116,
+      "medianP99Ms": 9.596142,
+      "medianThroughputRps": 700.343657932604,
+      "sqlCallsPerRequest": 4,
+      "serviceSqlCallsPerRequest": 3,
+      "averageResponseBodyBytes": 9094,
+      "result": "VALID BASELINE"
+    }
+  ]
+}
