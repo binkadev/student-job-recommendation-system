@@ -52,6 +52,8 @@ Common protected-endpoint errors:
 - `VALIDATION_ERROR`: invalid request body or query parameter.
 - `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
 - `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
+- `SAVED_CANDIDATE_ALREADY_EXISTS`: the company has already saved that student (`409 Conflict`).
+- `SAVED_CANDIDATE_NOT_FOUND`: the saved-candidate id is absent or is not owned by the current company (`404 Not Found`).
 - `INTERNAL_SERVER_ERROR`: an unexpected server or file-storage operation failed.
 
 ## Enums
@@ -265,6 +267,72 @@ Returns current company profile.
 Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
+
+## Recruiter Saved Candidates
+
+All saved-candidate APIs require role `COMPANY` and operate only on the authenticated company.
+
+### GET `/api/companies/me/saved-candidates`
+
+Returns `ApiResponse<PageResponse<SavedCandidateResponse>>`.
+
+Query parameters:
+
+- `keyword`: optional case-insensitive partial match against student full name, student email, university, major, headline, or the saved application's job title; maximum length 255.
+- `page`: 1-based page number, default `1`.
+- `size`: page size from 1 through 100, default `10`.
+- `sort`: accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`; maximum length 100.
+
+Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`. Unsupported fields or directions return `400 BAD_REQUEST`.
+
+Each response item contains:
+
+```json
+{
+  "id": 42,
+  "applicationId": 123,
+  "studentId": 15,
+  "studentName": "Nguyen Van A",
+  "studentEmail": "student@example.com",
+  "university": "Example University",
+  "major": "Software Engineering",
+  "headline": "Java Backend Intern",
+  "jobId": 9,
+  "jobTitle": "Backend Developer Intern",
+  "cvFileId": 31,
+  "cvFileName": "nguyen-van-a-resume.pdf",
+  "note": "Strong backend profile",
+  "savedAt": "2026-07-23T10:00:00",
+  "updatedAt": "2026-07-23T10:00:00"
+}
+```
+
+The list is company-scoped. It never returns CV physical paths, file URLs, stored filenames, password hashes, or internal user data.
+
+### POST `/api/companies/me/saved-candidates`
+
+Request:
+
+```json
+{
+  "applicationId": 123,
+  "note": "Optional recruiter note"
+}
+```
+
+`applicationId` is required and positive. `note` is optional, trimmed, and limited to 2,000 characters. Unknown request fields are rejected; in particular, `studentId` cannot be supplied.
+
+The backend derives the student from the application and creates no application status change. The application's job must belong to the authenticated company; otherwise the request returns `403 ACCESS_DENIED`. Saving the same student twice for one company returns `409 SAVED_CANDIDATE_ALREADY_EXISTS`, even when the student has applications to multiple company jobs.
+
+Withdrawn applications remain saveable because the current application domain does not prohibit recruiter bookmarking after withdrawal.
+
+Response data: the created `SavedCandidateResponse`.
+
+### DELETE `/api/companies/me/saved-candidates/{id}`
+
+Deletes only the saved-candidate bookmark owned by the authenticated company. An absent id and another company's id both return `404 SAVED_CANDIDATE_NOT_FOUND`, so ownership is not disclosed.
+
+This operation does not delete or change the student, application, CV, job, or application status.
 
 ## Admin Users
 
@@ -666,11 +734,50 @@ Notifications are persistent in-app records for authenticated users. They are no
 
 Initial supported automatic event:
 
-- `APPLICATION_STATUS_CHANGED`: created for the student when a company or admin successfully changes one of the student's application statuses.
+- `APPLICATION_STATUS_CHANGED`: created for the student when a company or admin successfully changes one of the student's application statuses and the student's application-status preference is enabled.
 
 Future enum support:
 
-- `RECOMMENDATION` exists for future recommendation integration, but automatic matching-job notification generation is not implemented.
+- `JOB_STATUS_CHANGED`, `RECOMMENDATION`, and `SYSTEM` have persisted preference fields for future automatic producers. No new automatic producer is implemented in this package.
+
+### GET `/api/users/me/notification-settings`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Returns only the authenticated user's settings:
+
+```json
+{
+  "applicationStatusEnabled": true,
+  "jobStatusEnabled": true,
+  "recommendationEnabled": true,
+  "systemEnabled": true,
+  "updatedAt": null
+}
+```
+
+When the user has no persisted row, every setting defaults to `true` and `updatedAt` is `null`. GET is read-only and does not create a row.
+
+### PUT `/api/users/me/notification-settings`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Full replacement request:
+
+```json
+{
+  "applicationStatusEnabled": true,
+  "jobStatusEnabled": true,
+  "recommendationEnabled": true,
+  "systemEnabled": true
+}
+```
+
+Every boolean is required. Unknown fields, including `userId`, are rejected. The authenticated user is always derived from the JWT.
+
+The first PUT atomically creates the user's row; later PUT requests update that same row. Concurrent first writes use the database unique key and atomic upsert, so duplicate rows are not created. Response data has the same fields as GET with a non-null `updatedAt`.
+
+Disabling a preference suppresses only future automatic notifications of that type. It does not delete, hide, or mark existing notifications. A missing settings row always means enabled. Currently only `APPLICATION_STATUS_CHANGED` has an automatic producer.
 
 ### GET `/api/notifications?page=1&size=20`
 

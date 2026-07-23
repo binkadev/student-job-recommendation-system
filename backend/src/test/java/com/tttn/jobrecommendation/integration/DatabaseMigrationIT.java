@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DatabaseMigrationIT extends AbstractPostgresIntegrationTest {
 
     private static final List<String> EXPECTED_MIGRATION_VERSIONS = List.of(
-            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"
     );
 
     private static final List<String> CORE_TABLES = List.of(
@@ -34,7 +34,9 @@ class DatabaseMigrationIT extends AbstractPostgresIntegrationTest {
             "applications",
             "recommendation_runs",
             "recommendation_results",
-            "notifications"
+            "notifications",
+            "saved_candidates",
+            "user_notification_settings"
     );
 
     @Autowired
@@ -62,10 +64,10 @@ class DatabaseMigrationIT extends AbstractPostgresIntegrationTest {
 
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
         assertThat(migrationInfo.current()).isNotNull();
-        assertThat(migrationInfo.current().getVersion().getVersion()).isEqualTo("12");
+        assertThat(migrationInfo.current().getVersion().getVersion()).isEqualTo("13");
         assertThat(migrationInfo.pending()).isEmpty();
         assertThat(appliedVersionedMigrations)
-                .hasSize(12)
+                .hasSize(13)
                 .allSatisfy(migration -> assertThat(migration.getState()).isEqualTo(MigrationState.SUCCESS));
         assertThat(appliedVersionedMigrations)
                 .extracting(migration -> migration.getVersion().getVersion())

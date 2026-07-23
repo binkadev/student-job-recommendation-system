@@ -106,6 +106,8 @@ Additional backend endpoints for frontend integration:
 - Admin companies: `GET /api/admin/companies`, `GET /api/admin/companies/{id}`, `PATCH /api/admin/companies/{id}/status`
 - Company applications: `GET /api/companies/me/applications`, `GET /api/companies/me/applications/{id}`
 - Company application CV: `GET /api/companies/me/applications/{applicationId}/cv/file`
+- Recruiter saved candidates: `GET`, `POST /api/companies/me/saved-candidates`, `DELETE /api/companies/me/saved-candidates/{id}`
+- Notification settings: `GET`, `PUT /api/users/me/notification-settings`
 - Admin applications: `GET /api/admin/applications`, `GET /api/admin/applications/{applicationId}`
 - Student details: `GET /api/students/me/applications/{id}`, `GET /api/students/me/cv/{id}`, `PATCH /api/students/me/cv/{id}/active`
 - Student CV files: `GET /api/students/me/cv/{cvId}/file`, `DELETE /api/students/me/cv/{cvId}`
