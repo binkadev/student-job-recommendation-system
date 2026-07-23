@@ -188,3 +188,33 @@ Use two student accounts, two company accounts with one job each, an admin accou
 128. Admin application detail: admin token calls `GET /api/admin/applications/{applicationId}`; expect the matching `ApplicationResponse`.
 129. Absent admin application detail: use an unknown id; expect `404 RESOURCE_NOT_FOUND`.
 130. Admin application privacy: list and detail responses contain only safe CV metadata (`cvFileId`, `cvFileName`) and never `filePath`, `fileUrl`, `storedFileName`, or an absolute storage path.
+
+## Recruiter Saved Candidates and Notification Settings
+
+Use two company accounts, at least two student accounts with profiles, jobs owned by each company, applications with and without CVs, and one admin account.
+
+131. Save owned candidate: company token sends `POST /api/companies/me/saved-candidates` with its application id and an optional note; expect the created safe response.
+132. Student identity is derived: add `studentId` or another unknown field to the save request; expect `400 BAD_REQUEST` and no row.
+133. Cross-company application: company A attempts to save an application for company B's job; expect `403 ACCESS_DENIED`.
+134. Duplicate saved candidate: save the same student twice for one company; expect `409 SAVED_CANDIDATE_ALREADY_EXISTS`, including when different company-owned applications identify that student.
+135. Withdrawn application: save an owned withdrawn application; expect success because bookmarks do not alter application state.
+136. Company-scoped list: call `GET /api/companies/me/saved-candidates`; expect only the authenticated company's rows.
+137. Saved-candidate keyword: separately search partial mixed-case student name, email, university, major, headline, and job title; expect the matching candidate.
+138. Saved-candidate paging: request `page=1&size=1` and `page=2&size=1`; expect 1-based page values, distinct stable items, and correct totals.
+139. Saved-candidate sorts: exercise `id`, `createdAt`, and `updatedAt` with comma or colon direction syntax; omit sort to confirm `createdAt,desc`.
+140. Invalid saved-candidate sort: use an unlisted field or invalid direction; expect `400 BAD_REQUEST`.
+141. Saved-candidate privacy: list and create responses never contain `filePath`, `fileUrl`, `storedFileName`, password hashes, or absolute storage paths.
+142. Delete owned saved candidate: send `DELETE /api/companies/me/saved-candidates/{id}`; expect success and the bookmark removed.
+143. Delete preserves domain records: after case 142, verify the application, student, CV, job, and application status are unchanged.
+144. Delete foreign saved candidate: company A deletes company B's saved-candidate id; expect `404 SAVED_CANDIDATE_NOT_FOUND`, identical to an absent id, and the row remains.
+145. Notification defaults: each supported role calls `GET /api/users/me/notification-settings` without a row; expect all booleans `true`, `updatedAt: null`, and no inserted row.
+146. Notification PUT create: send all four required booleans to `PUT /api/users/me/notification-settings`; expect the returned values and non-null `updatedAt`.
+147. Notification PUT replace: send a second full body; expect the same database row id with every value replaced.
+148. Notification validation: omit each boolean in turn; expect `400 VALIDATION_ERROR`.
+149. Notification identity protection: add `userId` to PUT or attempt an id-based path; expect rejection or no matching route, and another user's row remains unchanged.
+150. Notification role access: `STUDENT`, `COMPANY`, and `ADMIN` tokens can GET and PUT only their own settings; unauthenticated access returns `401`.
+151. Notification unique constraint: attempt a second direct row for the same user in disposable DB data; expect the unique constraint to reject it.
+152. Application notification disabled: set `applicationStatusEnabled=false`, then perform a valid company/admin application status transition; expect no new `APPLICATION_STATUS_CHANGED` notification.
+153. Missing settings allows notification: remove the student's settings row, perform a valid employer status transition, and expect one notification.
+154. Disable preserves existing notifications: create an existing notification, disable its type, and verify the existing row, read state, and count are unchanged.
+155. Non-current preference fields: changing `jobStatusEnabled`, `recommendationEnabled`, or `systemEnabled` persists and returns correctly but creates no new producers, delivery channels, or recommendation algorithm behavior.

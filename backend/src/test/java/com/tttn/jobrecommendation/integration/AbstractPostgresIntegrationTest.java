@@ -64,6 +64,8 @@ public abstract class AbstractPostgresIntegrationTest {
         jdbcTemplate.execute("""
                 TRUNCATE TABLE
                     notifications,
+                    user_notification_settings,
+                    saved_candidates,
                     recommendation_results,
                     recommendation_runs,
                     applications,

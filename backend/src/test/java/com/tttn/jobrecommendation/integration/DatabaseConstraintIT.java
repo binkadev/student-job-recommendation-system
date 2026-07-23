@@ -8,10 +8,14 @@ import com.tttn.jobrecommendation.common.enums.UserStatus;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
+import com.tttn.jobrecommendation.modules.company.entity.SavedCandidate;
+import com.tttn.jobrecommendation.modules.company.repository.SavedCandidateRepository;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.job.entity.SavedJob;
 import com.tttn.jobrecommendation.modules.job.repository.SavedJobRepository;
+import com.tttn.jobrecommendation.modules.notification.entity.UserNotificationSettings;
+import com.tttn.jobrecommendation.modules.notification.repository.UserNotificationSettingsRepository;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.user.entity.User;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,12 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private SavedJobRepository savedJobRepository;
+
+    @Autowired
+    private SavedCandidateRepository savedCandidateRepository;
+
+    @Autowired
+    private UserNotificationSettingsRepository notificationSettingsRepository;
 
     @Test
     void rejectsDuplicateUserEmail() {
@@ -135,6 +145,47 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
         assertThat(allCvs).isEqualTo(1);
     }
 
+    @Test
+    void rejectsDuplicateSavedCandidateForSameCompanyAndStudent() {
+        Student student = createStudent("saved-candidate-student@example.com");
+        Company company = createCompany(
+                "saved-candidate-company@example.com",
+                "Saved Candidate Constraint Company",
+                CompanyStatus.VERIFIED
+        );
+        Job job = createJob(company, "Saved Candidate Constraint Job", JobStatus.ACTIVE);
+        JobApplication application = jobApplicationRepository.saveAndFlush(application(student, job));
+
+        savedCandidateRepository.saveAndFlush(savedCandidate(company, student, application));
+
+        assertThatThrownBy(() -> savedCandidateRepository.saveAndFlush(savedCandidate(company, student, application)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        Integer survivingSavedCandidates = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM saved_candidates WHERE company_id = ? AND student_id = ?",
+                Integer.class,
+                company.getId(),
+                student.getId()
+        );
+        assertThat(survivingSavedCandidates).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsDuplicateNotificationSettingsForSameUser() {
+        User user = createUser("notification-settings-constraint@example.com", UserRole.ADMIN);
+        notificationSettingsRepository.saveAndFlush(notificationSettings(user));
+
+        assertThatThrownBy(() -> notificationSettingsRepository.saveAndFlush(notificationSettings(user)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        Integer survivingSettings = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_notification_settings WHERE user_id = ?",
+                Integer.class,
+                user.getId()
+        );
+        assertThat(survivingSettings).isEqualTo(1);
+    }
+
     private JobApplication application(Student student, Job job) {
         return JobApplication.builder()
                 .student(student)
@@ -147,6 +198,24 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
         return SavedJob.builder()
                 .student(student)
                 .job(job)
+                .build();
+    }
+
+    private SavedCandidate savedCandidate(Company company, Student student, JobApplication application) {
+        return SavedCandidate.builder()
+                .company(company)
+                .student(student)
+                .application(application)
+                .build();
+    }
+
+    private UserNotificationSettings notificationSettings(User user) {
+        return UserNotificationSettings.builder()
+                .user(user)
+                .applicationStatusEnabled(true)
+                .jobStatusEnabled(true)
+                .recommendationEnabled(true)
+                .systemEnabled(true)
                 .build();
     }
 }
