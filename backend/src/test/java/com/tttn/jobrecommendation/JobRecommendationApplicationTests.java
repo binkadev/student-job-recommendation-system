@@ -14,6 +14,7 @@ import com.tttn.jobrecommendation.modules.skill.repository.SkillRepository;
 import com.tttn.jobrecommendation.modules.skill.repository.StudentSkillRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentProfileRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
+import com.tttn.jobrecommendation.modules.student.repository.SavedSearchRepository;
 import com.tttn.jobrecommendation.modules.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +30,9 @@ class JobRecommendationApplicationTests {
 
     @MockitoBean
     private StudentRepository studentRepository;
+
+    @MockitoBean
+    private SavedSearchRepository savedSearchRepository;
 
     @MockitoBean
     private StudentProfileRepository studentProfileRepository;

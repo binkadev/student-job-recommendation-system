@@ -17,6 +17,8 @@ import com.tttn.jobrecommendation.modules.job.repository.SavedJobRepository;
 import com.tttn.jobrecommendation.modules.notification.entity.UserNotificationSettings;
 import com.tttn.jobrecommendation.modules.notification.repository.UserNotificationSettingsRepository;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
+import com.tttn.jobrecommendation.modules.student.entity.SavedSearch;
+import com.tttn.jobrecommendation.modules.student.repository.SavedSearchRepository;
 import com.tttn.jobrecommendation.modules.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,9 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private UserNotificationSettingsRepository notificationSettingsRepository;
+
+    @Autowired
+    private SavedSearchRepository savedSearchRepository;
 
     @Test
     void rejectsDuplicateUserEmail() {
@@ -186,6 +191,22 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
         assertThat(survivingSettings).isEqualTo(1);
     }
 
+    @Test
+    void rejectsCaseInsensitiveDuplicateSavedSearchNameForSameStudent() {
+        Student student = createStudent("saved-search-constraint@example.com");
+        savedSearchRepository.saveAndFlush(savedSearch(student, "Java Roles"));
+
+        assertThatThrownBy(() -> savedSearchRepository.saveAndFlush(savedSearch(student, "java roles")))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        Integer survivingSavedSearches = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM saved_searches WHERE student_id = ?",
+                Integer.class,
+                student.getId()
+        );
+        assertThat(survivingSavedSearches).isEqualTo(1);
+    }
+
     private JobApplication application(Student student, Job job) {
         return JobApplication.builder()
                 .student(student)
@@ -216,6 +237,13 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
                 .jobStatusEnabled(true)
                 .recommendationEnabled(true)
                 .systemEnabled(true)
+                .build();
+    }
+
+    private SavedSearch savedSearch(Student student, String name) {
+        return SavedSearch.builder()
+                .student(student)
+                .name(name)
                 .build();
     }
 }
