@@ -54,6 +54,9 @@ Common protected-endpoint errors:
 - `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
 - `SAVED_CANDIDATE_ALREADY_EXISTS`: the company has already saved that student (`409 Conflict`).
 - `SAVED_CANDIDATE_NOT_FOUND`: the saved-candidate id is absent or is not owned by the current company (`404 Not Found`).
+- `SAVED_SEARCH_ALREADY_EXISTS`: the student already has a case-insensitively equal saved-search name (`409 Conflict`).
+- `SAVED_SEARCH_NOT_FOUND`: the saved-search id is absent or is not owned by the current student (`404 Not Found`).
+- `INVALID_CURRENT_PASSWORD`: password change failed because the current password did not match (`400 Bad Request`).
 - `INTERNAL_SERVER_ERROR`: an unexpected server or file-storage operation failed.
 
 ## Enums
@@ -113,6 +116,25 @@ Roles: authenticated users.
 
 Response data: current `AuthUserResponse`.
 
+### PATCH `/api/users/me/password`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Request:
+
+```json
+{
+  "currentPassword": "current password",
+  "newPassword": "new password"
+}
+```
+
+Both fields are required. The new password must be at least 6 characters and no password input may exceed 72 UTF-8 bytes, respecting BCrypt's input limit. The new password must differ from the current password.
+
+An incorrect current password returns `400 INVALID_CURRENT_PASSWORD`. On success, only the authenticated user's encoded password and normal audit timestamp are updated; neither plaintext password nor the hash is returned.
+
+Authentication is stateless JWT without refresh-token persistence or revocation. Access tokens issued before a password change remain valid until expiry. Subsequent logins require the new password.
+
 ## Public Companies
 
 Public company APIs do not require authentication. They expose `VERIFIED` companies only. `PENDING` and `BLOCKED` companies are hidden and company detail for those statuses returns `404`.
@@ -145,6 +167,37 @@ Returns a verified company and its active jobs ordered by `publishedAt` descendi
 Response company fields: `id`, `companyName`, `industry`, `address`, `websiteUrl`, `description`, `status`, `openJobs`, `createdAt`, `updatedAt`, `companySize`, `logoUrl`, `jobs`.
 
 Job summary fields: `id`, `title`, `location`, `jobType`, `workingModel`, `status`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `publishedAt`.
+
+## Public Jobs
+
+Public job APIs require no authentication. A job is visible only when its status is `ACTIVE`, its company is `VERIFIED`, and its deadline is null, today, or later. Every non-active status, a non-verified company, or a past deadline hides the job. Hidden detail and absent ids both return `404 RESOURCE_NOT_FOUND`.
+
+### GET `/api/public/jobs`
+
+Role: public.
+
+Query parameters:
+
+- `keyword`: case-insensitive partial match across title, description, and requirements.
+- `location`: case-insensitive partial match.
+- `jobType`: `JobType` enum.
+- `workingModel`: `WorkingModel` enum.
+- `page`: 1-based, default `1`.
+- `size`: default `10`, maximum `100`.
+
+Public status filtering is not supported. Supplying `status` returns `400 BAD_REQUEST`.
+
+Ordering is `publishedAt,desc`, then `createdAt,desc`. Response data is `PageResponse<PublicJobResponse>`.
+
+List item fields: `id`, `companyId`, `companyName`, `title`, `location`, `jobType`, `workingModel`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `skills`, `publishedAt`.
+
+Skill fields: `skillId`, `skillName`, `category`, `importance`, `minLevel`. Internal entity and normalized skill fields are not returned.
+
+### GET `/api/public/jobs/{jobId}`
+
+Role: public.
+
+Applies the exact list visibility rules. Response data contains all public list fields plus `description`, `requirements`, and `benefits`.
 
 ## Student
 
@@ -253,6 +306,42 @@ Response item:
 Role: `STUDENT`.
 
 Removes the current student's saved job. Missing saved rows return not found.
+
+## Student Saved Searches
+
+All saved-search endpoints require role `STUDENT`. Ownership always comes from the authenticated user's student record; `studentId`, `userId`, and other unknown request properties are rejected.
+
+Response fields: `id`, `name`, `keyword`, `location`, `jobType`, `workingModel`, `createdAt`, `updatedAt`.
+
+### GET `/api/students/me/saved-searches`
+
+Returns `ApiResponse<List<SavedSearchResponse>>` for the authenticated student, ordered by `updatedAt,desc`, then `id,desc`.
+
+### POST `/api/students/me/saved-searches`
+
+Request:
+
+```json
+{
+  "name": "Java internships in HCM",
+  "keyword": "Java",
+  "location": "Ho Chi Minh City",
+  "jobType": "INTERNSHIP",
+  "workingModel": "ONSITE"
+}
+```
+
+`name` is required after trimming and has a maximum of 100 characters. Optional `keyword` and `location` are limited to 255 characters. Optional enums must be known `JobType` and `WorkingModel` values. Text is trimmed and blank optional text is stored as null.
+
+Names are unique per student without regard to case. A duplicate returns `409 SAVED_SEARCH_ALREADY_EXISTS`; another student may use the same name.
+
+### PUT `/api/students/me/saved-searches/{savedSearchId}`
+
+Full replacement using the same request and validation as POST. Ownership never changes. A foreign or absent id returns the same `404 SAVED_SEARCH_NOT_FOUND`.
+
+### DELETE `/api/students/me/saved-searches/{savedSearchId}`
+
+Deletes only the authenticated student's saved-search record. A foreign or absent id returns `404 SAVED_SEARCH_NOT_FOUND`.
 
 ## Company
 

@@ -218,3 +218,31 @@ Use two company accounts, at least two student accounts with profiles, jobs owne
 153. Missing settings allows notification: remove the student's settings row, perform a valid employer status transition, and expect one notification.
 154. Disable preserves existing notifications: create an existing notification, disable its type, and verify the existing row, read state, and count are unchanged.
 155. Non-current preference fields: changing `jobStatusEnabled`, `recommendationEnabled`, or `systemEnabled` persists and returns correctly but creates no new producers, delivery channels, or recommendation algorithm behavior.
+
+## Public Jobs, Saved Searches, and Password Change
+
+Use verified and non-verified companies, jobs in multiple statuses with past/null/future deadlines, two students, one company user, and one admin user.
+
+156. Anonymous public jobs: call `GET /api/public/jobs` without a token; expect `200`, 1-based `PageResponse`, and default `publishedAt,desc` then `createdAt,desc` ordering.
+157. Public visibility: verify only `ACTIVE` jobs for `VERIFIED` companies with null or non-expired deadlines appear; draft, closed, other non-active, unverified-company, and past-deadline jobs do not.
+158. Public hidden detail: request a hidden job and an absent id through `GET /api/public/jobs/{jobId}`; expect identical `404 RESOURCE_NOT_FOUND` envelopes.
+159. Public filters: separately test case-insensitive `keyword`, `location`, and valid `jobType` and `workingModel`; expect matching visible jobs only.
+160. Public paging bounds: test `page=2&size=1`; expect page `2`. Test `size=101`; expect `400 VALIDATION_ERROR`.
+161. No public status filter: add `status=ACTIVE`; expect `400 BAD_REQUEST`.
+162. Public response privacy: verify no status-management fields, company internals, normalized skill text, password data, or persistence audit fields are returned.
+163. Public skill batching: compare pages of one and multiple skilled jobs; prepared-statement count remains constant rather than adding one skill query per job.
+164. Create saved search: student token sends `POST /api/students/me/saved-searches`; expect trimmed safe fields and ownership assigned to that student.
+165. Saved-search identity injection: add `studentId` or `userId`; expect `400 BAD_REQUEST` and no inserted row.
+166. Saved-search list: student token calls `GET /api/students/me/saved-searches`; expect only owned rows ordered by `updatedAt,desc`, then `id,desc`.
+167. Replace saved search: owner sends `PUT /api/students/me/saved-searches/{id}` with complete content; expect all criteria replaced without ownership change.
+168. Delete saved search: owner sends `DELETE /api/students/me/saved-searches/{id}`; expect only the saved-search row removed and unrelated student/job/recommendation data unchanged.
+169. Foreign saved search: another student attempts PUT and DELETE; expect `404 SAVED_SEARCH_NOT_FOUND`, identical to an absent id.
+170. Saved-search duplicate: create names differing only by case for one student; expect `409 SAVED_SEARCH_ALREADY_EXISTS`. Use the same name for another student; expect success.
+171. Saved-search validation: test blank/over-100 name, over-255 criteria, and unknown enums; expect a `400` validation or malformed-body error.
+172. Password role access: `STUDENT`, `COMPANY`, and `ADMIN` each send `PATCH /api/users/me/password`; expect success only for their authenticated user.
+173. Invalid current password: send a wrong current password; expect `400 INVALID_CURRENT_PASSWORD` and an unchanged hash.
+174. Password policy: test fewer than 6 characters, more than 72 UTF-8 bytes (including multibyte input), and a new password equal to the current password; expect rejection.
+175. Password persistence and login: verify the stored value is encoded, old credentials no longer authenticate, and new credentials do.
+176. Password response privacy: verify neither plaintext field nor `passwordHash` appears in success or error responses.
+177. Stateless-token behavior: reuse an access token issued before password change; it remains valid until expiry. Confirm future logins require the new password.
+178. Unauthenticated password change: call without a token; expect `401 UNAUTHORIZED`.
