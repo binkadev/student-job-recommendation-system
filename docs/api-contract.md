@@ -52,6 +52,13 @@ Common protected-endpoint errors:
 - `VALIDATION_ERROR`: invalid request body or query parameter.
 - `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
 - `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
+- `CV_ANALYSIS_NOT_READY`: recommendation generation selected a CV without non-blank processed text (`409 Conflict`).
+- `CV_ANALYSIS_FAILED`: an unexpected CV-analysis integration failure occurred (`502 Bad Gateway`).
+- `AI_SERVICE_UNAVAILABLE`: the AI service connection failed or the service returned a server error (`503 Service Unavailable`).
+- `AI_SERVICE_TIMEOUT`: the AI service exceeded the configured read/connect timeout (`504 Gateway Timeout`).
+- `AI_SERVICE_INVALID_RESPONSE`: the AI service rejected the request, returned malformed JSON, or violated its typed response contract (`502 Bad Gateway`).
+- `RECOMMENDATION_RUN_NOT_FOUND`: a recommendation run is absent or not owned by the current student (`404 Not Found`).
+- `RECOMMENDATION_GENERATION_FAILED`: recommendation persistence or another non-AI generation phase failed (`502 Bad Gateway`).
 - `SAVED_CANDIDATE_ALREADY_EXISTS`: the company has already saved that student (`409 Conflict`).
 - `SAVED_CANDIDATE_NOT_FOUND`: the saved-candidate id is absent or is not owned by the current company (`404 Not Found`).
 - `SAVED_SEARCH_ALREADY_EXISTS`: the student already has a case-insensitively equal saved-search name (`409 Conflict`).
@@ -72,7 +79,7 @@ Common protected-endpoint errors:
 - `SkillImportance`: `REQUIRED`, `PREFERRED`, `NICE_TO_HAVE`
 - `ApplicationStatus`: `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, `WITHDRAWN`
 - `RecommendationSourceType`: `PROFILE`, `CV`, `PROFILE_AND_CV`
-- `RecommendationRunStatus`: `SUCCESS`, `FAILED`
+- `RecommendationRunStatus`: `PROCESSING`, `SUCCESS`, `FAILED`
 - `NotificationType`: `APPLICATION_STATUS_CHANGED`, `JOB_STATUS_CHANGED`, `SYSTEM`, `RECOMMENDATION`
 - `ReferenceType`: `APPLICATION`, `JOB`, `RECOMMENDATION_RUN`
 
@@ -803,7 +810,172 @@ Sets the selected CV as active transactionally and deactivates any other active 
 
 Response data: safe CV metadata with the fields listed above.
 
-## Recommendation Read-Only APIs
+### GET `/api/students/me/cv/{cvId}/analysis`
+
+Role: `STUDENT`.
+
+Returns analysis data only for a CV owned by the authenticated student. Foreign and absent CV identifiers return the same `404 RESOURCE_NOT_FOUND` envelope.
+
+Response data:
+
+```json
+{
+  "cvId": 12,
+  "extractedText": "Original extracted text",
+  "processedText": "java spring boot postgresql",
+  "skills": ["java", "postgresql", "spring boot"],
+  "status": "READY",
+  "uploadedAt": "2026-07-24T10:00:00",
+  "updatedAt": "2026-07-24T10:05:00"
+}
+```
+
+`status` is derived rather than persisted: non-blank `processedText` is `READY`; otherwise it is `NOT_READY`. `skills` is the deterministic normalized current student-skill input used by recommendation generation. No file path, storage directory, stored filename, `studentId`, or `userId` is returned.
+
+### PATCH `/api/students/me/cv/{cvId}/extracted-data`
+
+Role: `STUDENT`.
+
+Updates only text fields supported by the existing CV model:
+
+```json
+{
+  "extractedText": "Corrected original text",
+  "processedText": "corrected normalized text"
+}
+```
+
+At least one field is required. Each field is limited to 1,000,000 characters, trimmed, and blank text is stored as null. Unknown fields, including `skills`, `studentId`, and `userId`, are rejected. Student skills are not replaced by this endpoint.
+
+Response data is the updated CV analysis response.
+
+### POST `/api/students/me/cv/{cvId}/reanalyze`
+
+Role: `STUDENT`.
+
+Request body: none.
+
+The backend verifies ownership, resolves the stored CV through its storage abstraction, and uploads it as multipart field `file` to `POST /internal/v1/cv/parse`. No database transaction remains open during that HTTP call. A valid response updates `extractedText` when `rawText` is present and always updates `processedText` in a new short transaction. A failed or invalid response leaves both persisted fields unchanged.
+
+Expected internal response:
+
+```json
+{
+  "rawText": "Optional original extracted text",
+  "processedText": "java spring boot postgresql docker",
+  "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker"]
+}
+```
+
+The current `student_skills` schema records a skill source but does not associate a skill with a particular CV. Reanalysis therefore does not insert, replace, or delete student skills, including manually maintained skills. Parser skill candidates are validated but not persisted until a CV-to-skill association is designed.
+
+Timeout, connection, upstream HTTP, and malformed-response errors use the AI service codes listed above and never expose a CV body, local path, credential, remote response body, or exception class.
+
+## Recommendation APIs
+
+All recommendation endpoints require role `STUDENT`. Ownership is derived exclusively from the authenticated JWT user; public requests never accept `studentId` or `userId`.
+
+### POST `/api/students/me/recommendations/generate`
+
+Request:
+
+```json
+{
+  "cvId": 12,
+  "threshold": 0.1,
+  "limit": 20
+}
+```
+
+Validation:
+
+- `cvId` is required and positive.
+- `threshold` defaults to `0.1` and must be from `0.0` through `1.0`.
+- `limit` defaults to `20` and must be from `1` through `100`.
+- Unknown properties, including `studentId` and `userId`, are rejected.
+- The selected CV must belong to the current student and have non-blank `processedText`.
+
+Generation is synchronous. The backend commits a `PROCESSING` run with source type `CV`, calls the AI service outside every database transaction, then uses a new short transaction to persist results and mark `SUCCESS`, or a separate short transaction to mark `FAILED`. State transitions are only `PROCESSING -> SUCCESS` and `PROCESSING -> FAILED`. Every request creates an independent run.
+
+The eligible corpus is built by Spring Boot and contains only jobs that are `ACTIVE`, belong to a `VERIFIED` company, and have a null, current, or future deadline. Jobs are ordered by id. Each job document deterministically combines title, description, requirements, and normalized job-skill names. Jobs/company and job skills are loaded with bounded batched queries; the AI service receives no database access or authority to reapply visibility rules.
+
+The backend sends:
+
+```json
+{
+  "requestId": "f8dd2777-3457-4515-8829-a63599e74775",
+  "cv": {
+    "id": 12,
+    "processedText": "java spring boot",
+    "skills": ["java", "spring boot"]
+  },
+  "jobs": [
+    {
+      "id": 101,
+      "processedText": "backend intern build apis java postgresql",
+      "skills": ["java", "postgresql"]
+    }
+  ],
+  "threshold": 0.1,
+  "limit": 20
+}
+```
+
+The user's JWT is never forwarded.
+
+Expected internal response:
+
+```json
+{
+  "requestId": "f8dd2777-3457-4515-8829-a63599e74775",
+  "algorithmVersion": "tfidf-cosine-v1",
+  "results": [
+    {
+      "jobId": 101,
+      "score": 0.87342,
+      "rank": 1,
+      "matchedSkills": ["Java"],
+      "missingSkills": ["PostgreSQL"],
+      "reason": "Matched CV and job text"
+    }
+  ]
+}
+```
+
+A successful response is a completed run detail:
+
+```json
+{
+  "id": 55,
+  "cvId": 12,
+  "sourceType": "CV",
+  "status": "SUCCESS",
+  "totalRecommended": 1,
+  "errorMessage": null,
+  "startedAt": "2026-07-24T10:00:00",
+  "finishedAt": "2026-07-24T10:00:01",
+  "createdAt": "2026-07-24T10:00:00",
+  "results": [
+    {
+      "id": 91,
+      "jobId": 101,
+      "jobTitle": "Backend Intern",
+      "companyName": "Example Company",
+      "rankPosition": 1,
+      "score": 0.87342,
+      "matchedKeywords": ["Java"],
+      "reason": null,
+      "createdAt": "2026-07-24T10:00:01"
+    }
+  ]
+}
+```
+
+Scores must remain from `0.0` through `1.0`; invalid values are rejected rather than clamped. The backend also rejects mismatched request IDs, null result lists, unknown/duplicate job IDs, non-finite scores, invalid or inconsistent ranks, excessive result counts, and null/oversized skill values. Valid results are deterministically sorted by score descending and job id ascending for ties, then reranked before persistence. Empty valid results produce a `SUCCESS` run with zero results.
+
+### GET `/api/students/me/recommendation-runs/{runId}`
+
+Returns the owned run detail and its results. Foreign and absent run IDs are intentionally indistinguishable and return `404 RECOMMENDATION_RUN_NOT_FOUND`.
 
 ### GET `/api/students/me/recommendation-runs`
 
@@ -815,7 +987,9 @@ Returns current student's recommendation run history.
 
 Role: `STUDENT`.
 
-Returns latest recommendation results for the current student. This is database read-only; no recommendation algorithm is implemented here.
+Returns persisted results for the current student's latest run. Calling this read-only endpoint never triggers generation.
+
+Historical runs remain linked to their CV identifier. The current schema does not store an immutable snapshot of CV text, student skills, eligible job documents, AI algorithm version, missing skills, or recommendation reasons. Later CV/job/profile edits therefore do not rewrite stored scores, but the exact historical input cannot be reconstructed from the recommendation tables alone.
 
 ## Notifications
 

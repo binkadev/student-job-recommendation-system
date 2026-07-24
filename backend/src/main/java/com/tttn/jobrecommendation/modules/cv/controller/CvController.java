@@ -2,11 +2,15 @@ package com.tttn.jobrecommendation.modules.cv.controller;
 
 import com.tttn.jobrecommendation.common.response.ApiResponse;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
+import com.tttn.jobrecommendation.modules.cv.dto.request.UpdateCvExtractedDataRequest;
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvAnalysisResponse;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
+import com.tttn.jobrecommendation.modules.cv.service.CvAnalysisService;
 import com.tttn.jobrecommendation.modules.cv.service.CvService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,6 +37,7 @@ import java.util.List;
 public class CvController {
 
     private final CvService cvService;
+    private final CvAnalysisService cvAnalysisService;
     private final SecurityUtils securityUtils;
 
     @Operation(summary = "Upload a CV")
@@ -63,6 +69,33 @@ public class CvController {
     @GetMapping("/{id}")
     public ApiResponse<CvFileResponse> getMyCvFile(@PathVariable Long id) {
         return ApiResponse.success(cvService.getMyCvFile(securityUtils.getCurrentUserId(), id));
+    }
+
+    @Operation(summary = "Get current student's CV analysis")
+    @GetMapping("/{cvId}/analysis")
+    public ApiResponse<CvAnalysisResponse> getAnalysis(@PathVariable Long cvId) {
+        return ApiResponse.success(cvAnalysisService.getAnalysis(securityUtils.getCurrentUserId(), cvId));
+    }
+
+    @Operation(summary = "Update supported extracted CV data")
+    @PatchMapping("/{cvId}/extracted-data")
+    public ApiResponse<CvAnalysisResponse> updateExtractedData(
+            @PathVariable Long cvId,
+            @Valid @RequestBody UpdateCvExtractedDataRequest request
+    ) {
+        return ApiResponse.success(
+                "CV extracted data updated successfully",
+                cvAnalysisService.updateExtractedData(securityUtils.getCurrentUserId(), cvId, request)
+        );
+    }
+
+    @Operation(summary = "Reanalyze a stored CV")
+    @PostMapping("/{cvId}/reanalyze")
+    public ApiResponse<CvAnalysisResponse> reanalyze(@PathVariable Long cvId) {
+        return ApiResponse.success(
+                "CV analyzed successfully",
+                cvAnalysisService.reanalyze(securityUtils.getCurrentUserId(), cvId)
+        );
     }
 
     @Operation(summary = "Download or preview a current student's CV file")

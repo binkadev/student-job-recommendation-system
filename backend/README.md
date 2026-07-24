@@ -63,6 +63,35 @@ $env:APP_CV_UPLOAD_DIR="C:\path\to\private\cv-storage"
 
 CV file endpoints preview inline by default. Add `?download=true` to request an attachment. Successful file responses stream raw bytes; JSON error responses retain the common API envelope. Internal storage paths and stored filenames are never returned.
 
+## CV Analysis and Recommendation Integration
+
+Spring Boot is the system of record. It owns JWT and role checks, CV/student ownership, PostgreSQL and Flyway access, eligible-job filtering, transaction boundaries, recommendation run state, result persistence, and public API errors. The separate AI service is stateless computation; it receives neither a user's JWT nor database credentials and must not read or write the Spring Boot database.
+
+Configure the synchronous AI client with environment variables:
+
+```powershell
+$env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
+$env:APP_AI_SERVICE_CONNECT_TIMEOUT="2s"
+$env:APP_AI_SERVICE_READ_TIMEOUT="15s"
+```
+
+These values are optional; the shown values are the safe local defaults. Start the local AI service on port `8000`, then run Spring Boot normally with the `dev` profile. The backend calls:
+
+- `POST /internal/v1/cv/parse` as multipart form data with field `file`.
+- `POST /internal/v1/recommendations` as typed JSON containing one CV and the backend-filtered eligible job corpus.
+
+Public student endpoints:
+
+- `GET /api/students/me/cv/{cvId}/analysis`
+- `PATCH /api/students/me/cv/{cvId}/extracted-data`
+- `POST /api/students/me/cv/{cvId}/reanalyze`
+- `POST /api/students/me/recommendations/generate`
+- `GET /api/students/me/recommendation-runs/{runId}`
+
+Generation commits `PROCESSING`, waits for external computation without an open database transaction, then commits `SUCCESS` plus results or `FAILED` plus a sanitized message. Only `ACTIVE` jobs for `VERIFIED` companies with null, current, or future deadlines are submitted. Scores are validated from `0.0` through `1.0`.
+
+The existing skill schema has a source but no CV reference, so reanalysis preserves all current student skills and does not persist parser skill candidates. Historical recommendation runs retain the CV foreign key but not an immutable snapshot of CV text, skills, job documents, algorithm metadata, missing skills, or reasons.
+
 ## Demo Accounts
 
 All demo accounts use password `123456`.
@@ -97,6 +126,8 @@ Run the complete test lifecycle, including PostgreSQL integration tests:
 
 The integration-test layer requires a working Docker environment. Maven Failsafe starts a PostgreSQL 17 Testcontainer with dynamically assigned connection details, applies Flyway migrations, and validates the Hibernate mappings. It does not use the local development database or its credentials.
 
+AI client unit tests use an in-process local HTTP stub and never contact a real AI service. PostgreSQL API integration tests point the Spring client at another in-process stub, covering successful and failed parsing and recommendation orchestration without an external Python process.
+
 ## Phase 1 FE API Gaps
 
 Additional backend endpoints for frontend integration:
@@ -114,5 +145,7 @@ Additional backend endpoints for frontend integration:
 - Admin applications: `GET /api/admin/applications`, `GET /api/admin/applications/{applicationId}`
 - Student details: `GET /api/students/me/applications/{id}`, `GET /api/students/me/cv/{id}`, `PATCH /api/students/me/cv/{id}/active`
 - Student CV files: `GET /api/students/me/cv/{cvId}/file`, `DELETE /api/students/me/cv/{cvId}`
+- CV analysis: `GET /api/students/me/cv/{cvId}/analysis`, `PATCH /api/students/me/cv/{cvId}/extracted-data`, `POST /api/students/me/cv/{cvId}/reanalyze`
+- Recommendations: `POST /api/students/me/recommendations/generate`, `GET /api/students/me/recommendation-runs/{runId}`
 
 See `../docs/api-contract.md` for request parameters, response fields, enum values, and privacy constraints.

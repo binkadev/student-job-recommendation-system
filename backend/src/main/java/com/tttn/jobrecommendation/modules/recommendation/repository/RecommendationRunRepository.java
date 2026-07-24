@@ -11,4 +11,6 @@ public interface RecommendationRunRepository extends JpaRepository<Recommendatio
     List<RecommendationRun> findByStudentIdOrderByCreatedAtDesc(Long studentId);
 
     Optional<RecommendationRun> findFirstByStudentIdOrderByCreatedAtDesc(Long studentId);
+
+    Optional<RecommendationRun> findByIdAndStudentId(Long id, Long studentId);
 }

@@ -11,6 +11,41 @@ public enum ErrorCode {
     ACCOUNT_DISABLED("ACCOUNT_DISABLED", "Account is not active", HttpStatus.FORBIDDEN),
     EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", "Email already exists", HttpStatus.CONFLICT),
     CV_IN_USE("CV_IN_USE", "CV file is in use", HttpStatus.CONFLICT),
+    CV_ANALYSIS_NOT_READY(
+            "CV_ANALYSIS_NOT_READY",
+            "CV analysis is not ready",
+            HttpStatus.CONFLICT
+    ),
+    CV_ANALYSIS_FAILED(
+            "CV_ANALYSIS_FAILED",
+            "CV analysis failed",
+            HttpStatus.BAD_GATEWAY
+    ),
+    AI_SERVICE_UNAVAILABLE(
+            "AI_SERVICE_UNAVAILABLE",
+            "AI service is unavailable",
+            HttpStatus.SERVICE_UNAVAILABLE
+    ),
+    AI_SERVICE_TIMEOUT(
+            "AI_SERVICE_TIMEOUT",
+            "AI service request timed out",
+            HttpStatus.GATEWAY_TIMEOUT
+    ),
+    AI_SERVICE_INVALID_RESPONSE(
+            "AI_SERVICE_INVALID_RESPONSE",
+            "AI service returned an invalid response",
+            HttpStatus.BAD_GATEWAY
+    ),
+    RECOMMENDATION_RUN_NOT_FOUND(
+            "RECOMMENDATION_RUN_NOT_FOUND",
+            "Recommendation run not found",
+            HttpStatus.NOT_FOUND
+    ),
+    RECOMMENDATION_GENERATION_FAILED(
+            "RECOMMENDATION_GENERATION_FAILED",
+            "Recommendation generation failed",
+            HttpStatus.BAD_GATEWAY
+    ),
     SAVED_CANDIDATE_ALREADY_EXISTS(
             "SAVED_CANDIDATE_ALREADY_EXISTS",
             "Candidate is already saved",
