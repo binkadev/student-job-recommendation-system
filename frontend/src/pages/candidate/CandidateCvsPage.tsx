@@ -32,12 +32,13 @@ interface ApiResponse<T> {
 interface CvFileResponse {
   id: number;
   originalFileName: string;
-  storedFileName: string;
-  filePath: string;
-  contentType: string;
-  fileSize: number;
-  active: boolean;
-  uploadedAt: string;
+  storedFileName?: string | null;
+  filePath?: string | null;
+  contentType?: string | null;
+  fileSize?: number | null;
+  active?: boolean;
+  isActive?: boolean;
+  uploadedAt?: string | null;
 }
 
 export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
@@ -95,10 +96,27 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     setReloadKey((current) => current + 1);
   }
 
-  function hideCv(cv: CvFileResponse) {
-    setHiddenCvIds((current) => Array.from(new Set([...current, String(cv.id)])));
-    setDeleteTarget(null);
-    showToast({ type: "success", title: "Đã xóa CV khỏi giao diện", message: "Backend hiện chưa có API xóa file CV nên thao tác này chỉ ẩn CV ở frontend." });
+  async function deleteCv(cv: CvFileResponse) {
+    try {
+      await deleteCandidateCv(cv.id);
+      setHiddenCvIds((current) => current.filter((id) => id !== String(cv.id)));
+      setDeleteTarget(null);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã xóa CV", message: cv.originalFileName });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể xóa CV", message: getErrorMessage(error) });
+    }
+  }
+
+  async function openCv(cv: CvFileResponse) {
+    try {
+      const response = await httpClient.get<Blob>(`/students/me/cv/${cv.id}/file`, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(response.data);
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể mở CV", message: getErrorMessage(error) });
+    }
   }
 
   if (cvsQuery.loading) {
@@ -189,7 +207,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
           <StatusBadge label={`${cvs.length} CV`} />
           <StatusBadge label={`Tối đa ${cvSettings.maxCvsPerUser} CV`} />
           <StatusBadge label={`${cvSettings.maxFileSizeMb} MB/file`} />
-          {cvs.some((cv) => cv.active) ? <StatusBadge label="Có CV active" tone="success" /> : null}
+          {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV active" tone="success" /> : null}
         </div>
         <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Upload CV mới</Button></Link>
       </div>
@@ -215,7 +233,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                {cv.active ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
+                {isActiveCv(cv) ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
                 <button type="button" className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => setDeleteTarget(cv)} aria-label="Xóa CV">
                   <X size={16} />
                 </button>
@@ -224,23 +242,45 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
               <p>Upload: {formatDateTime(cv.uploadedAt)}</p>
-              <p>Stored file: {cv.storedFileName}</p>
+              <p>Stored file: {cv.storedFileName || "Chưa cập nhật"}</p>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
+              <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
-              {!cv.active ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt active</Button> : null}
+              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt active</Button> : null}
             </div>
           </Card>
         ))}
       </div>
-      <DeleteCvModal cv={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={hideCv} />
+      <DeleteCvModal cv={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={(cv) => void deleteCv(cv)} />
     </PageContainer>
   );
 }
 
 function CvDetailView({ cv }: { cv: CvFileResponse }) {
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  async function setActive() {
+    try {
+      await activateCandidateCv(cv.id);
+      showToast({ type: "success", title: "Đã đặt CV active", message: cv.originalFileName });
+      navigate("/candidate/cvs");
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể đặt CV active", message: getErrorMessage(error) });
+    }
+  }
+
+  async function openFile() {
+    try {
+      await openCandidateCvFile(cv.id);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể mở CV", message: getErrorMessage(error) });
+    }
+  }
+
   return (
     <PageContainer>
       <PageHeader title="Chi tiết CV" description="Metadata file CV theo dữ liệu backend." />
@@ -251,12 +291,12 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
               <SummaryItem label="Tên file gốc" value={cv.originalFileName} />
-              <SummaryItem label="Tên file lưu trữ" value={cv.storedFileName} />
-              <SummaryItem label="Content type" value={cv.contentType} />
+              <SummaryItem label="Tên file lưu trữ" value={cv.storedFileName || "Chưa cập nhật"} />
+              <SummaryItem label="Content type" value={cv.contentType || "Chưa cập nhật"} />
               <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
               <SummaryItem label="Ngày upload" value={formatDateTime(cv.uploadedAt)} />
-              <SummaryItem label="Active" value={cv.active ? "Có" : "Không"} />
-              <SummaryItem label="Đường dẫn" value={cv.filePath} />
+              <SummaryItem label="Active" value={isActiveCv(cv) ? "Có" : "Không"} />
+              <SummaryItem label="Đường dẫn" value={cv.filePath || "Chưa cập nhật"} />
             </div>
           </Card>
         </main>
@@ -266,9 +306,9 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <div className="grid gap-2">
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
               <Link to="/candidate/cvs/upload"><Button className="w-full">Upload CV mới</Button></Link>
-              {!cv.active ? <Button variant="secondary" className="w-full" disabled>Đặt CV active</Button> : null}
+              <Button variant="secondary" className="w-full" onClick={() => void openFile()}>Mở file CV</Button>
+              {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt CV active</Button> : null}
             </div>
-            {!cv.active ? <p className="mt-3 text-xs text-slate-500">Chức năng này cần API PATCH /api/students/me/cv/{cv.id}/active.</p> : null}
           </Card>
         </aside>
       </div>
@@ -283,7 +323,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
         <p className="text-sm text-slate-700">
           Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> khỏi danh sách hiển thị không?
         </p>
-        <p className="text-sm text-slate-500">Backend hiện chưa có API xóa file CV, nên frontend sẽ ẩn CV này khỏi giao diện.</p>
+        <p className="text-sm text-slate-500">CV này sẽ được xóa bằng API xóa CV của ứng viên.</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="danger" onClick={() => cv && onConfirm(cv)}>Có, xóa CV</Button>
@@ -335,6 +375,21 @@ async function activateCandidateCv(cvId: number) {
   return response.data.data;
 }
 
+async function deleteCandidateCv(cvId: number) {
+  await httpClient.delete<ApiResponse<null>>(`/students/me/cv/${cvId}`);
+}
+
+async function openCandidateCvFile(cvId: number) {
+  const response = await httpClient.get<Blob>(`/students/me/cv/${cvId}/file`, { responseType: "blob" });
+  const blobUrl = window.URL.createObjectURL(response.data);
+  window.open(blobUrl, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+}
+
+function isActiveCv(cv: CvFileResponse) {
+  return Boolean(cv.active ?? cv.isActive);
+}
+
 function validateFile(file: File, maxFileSizeMb: number) {
   const isValidExtension = [".pdf", ".docx"].some((extension) => file.name.toLowerCase().endsWith(extension));
   if (!isValidExtension) return "Chỉ chấp nhận file PDF hoặc DOCX.";
@@ -360,18 +415,29 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getFileType(contentType: string) {
+function getFileType(contentType?: string | null) {
+  if (!contentType) return "File";
   if (contentType.includes("pdf")) return "PDF";
   if (contentType.includes("wordprocessingml")) return "DOCX";
   return contentType || "File";
 }
 
-function formatFileSize(size: number) {
+function formatFileSize(size?: number | null) {
+  if (size == null) return "Chưa cập nhật";
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function formatDateTime(value: string) {
+function formatDateTime(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error && "response" in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? "Vui lòng thử lại.";
+  }
+  return "Vui lòng thử lại.";
 }

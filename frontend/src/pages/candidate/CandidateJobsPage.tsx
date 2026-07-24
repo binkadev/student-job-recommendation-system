@@ -61,6 +61,17 @@ interface ApplicationResponse {
   status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 }
 
+interface SavedSearchResponse {
+  id: number;
+  name: string;
+  keyword: string | null;
+  location: string | null;
+  jobType: JobType | null;
+  workingModel: WorkingModel | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface BackendJobResponse {
   id: number;
   companyId: number;
@@ -328,6 +339,109 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
 }
 
 function SavedSearchesPage() {
+  const { showToast } = useToast();
+  const [reloadKey, setReloadKey] = useState(0);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ name: "", keyword: "", location: "", jobType: "" as JobType | "", workingModel: "" as WorkingModel | "" });
+  const savedSearchesQuery = useAsyncData(() => getSavedSearches(), [reloadKey]);
+  const savedSearches = savedSearchesQuery.data ?? [];
+
+  function editSavedSearch(search: SavedSearchResponse) {
+    setEditingId(search.id);
+    setForm({
+      name: search.name,
+      keyword: search.keyword ?? "",
+      location: search.location ?? "",
+      jobType: search.jobType ?? "",
+      workingModel: search.workingModel ?? "",
+    });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setForm({ name: "", keyword: "", location: "", jobType: "", workingModel: "" });
+  }
+
+  async function saveSearch() {
+    if (!form.name.trim()) {
+      showToast({ type: "error", title: "Vui lòng nhập tên bộ lọc" });
+      return;
+    }
+    try {
+      if (editingId) {
+        await updateSavedSearch(editingId, form);
+        showToast({ type: "success", title: "Đã cập nhật tìm kiếm đã lưu" });
+      } else {
+        await createSavedSearch(form);
+        showToast({ type: "success", title: "Đã lưu tìm kiếm" });
+      }
+      resetForm();
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể lưu tìm kiếm", message: getApiErrorMessage(error) });
+    }
+  }
+
+  async function deleteSearch(searchId: number) {
+    try {
+      await deleteSavedSearch(searchId);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã xóa tìm kiếm đã lưu" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể xóa tìm kiếm", message: getApiErrorMessage(error) });
+    }
+  }
+
+  return (
+    <PageContainer>
+      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý bộ lọc tìm việc đã lưu từ API backend." />
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <SectionHeader title="Danh sách tìm kiếm đã lưu" description={`${savedSearches.length} bộ lọc`} />
+          {savedSearchesQuery.loading ? <LoadingState /> : null}
+          {savedSearchesQuery.error ? <ErrorState message={savedSearchesQuery.error} /> : null}
+          {!savedSearchesQuery.loading && !savedSearchesQuery.error && savedSearches.length === 0 ? <EmptyState message="Chưa có tìm kiếm đã lưu." /> : null}
+          <div className="grid gap-3">
+            {savedSearches.map((search) => (
+              <div key={search.id} className="rounded-lg border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold text-slate-950">{search.name}</h2>
+                    <p className="mt-1 text-sm text-slate-600">{formatSavedSearchSummary(search)}</p>
+                    <p className="mt-1 text-xs text-slate-500">Cập nhật: {formatDateTime(search.updatedAt)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => editSavedSearch(search)}>Sửa</Button>
+                    <Button size="sm" variant="danger" onClick={() => void deleteSearch(search.id)}>Xóa</Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <SectionHeader title={editingId ? "Cập nhật bộ lọc" : "Lưu bộ lọc mới"} />
+          <div className="grid gap-3">
+            <Input label="Tên bộ lọc" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <Input label="Từ khóa" value={form.keyword} onChange={(event) => setForm({ ...form, keyword: event.target.value })} />
+            <Input label="Địa điểm" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} />
+            <Select label="Loại hình" value={form.jobType} onChange={(event) => setForm({ ...form, jobType: event.target.value as JobType | "" })} options={jobTypeOptions} />
+            <Select label="Hình thức" value={form.workingModel} onChange={(event) => setForm({ ...form, workingModel: event.target.value as WorkingModel | "" })} options={workingModelOptions} />
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => void saveSearch()}>{editingId ? "Cập nhật" : "Lưu tìm kiếm"}</Button>
+              {editingId ? <Button variant="secondary" onClick={resetForm}>Hủy sửa</Button> : null}
+            </div>
+          </div>
+          <Link to="/candidate/jobs" className="mt-4 inline-flex">
+            <Button variant="secondary">Quay lại tìm việc</Button>
+          </Link>
+        </Card>
+      </div>
+    </PageContainer>
+  );
+}
+
+function LegacySavedSearchesPage() {
   return (
     <PageContainer>
       <PageHeader title="Tìm kiếm đã lưu" description="Backend hiện chưa có API lưu bộ lọc tìm kiếm cho ứng viên." />
@@ -372,6 +486,35 @@ async function getJobDetail(jobId: string) {
 async function getMyApplications() {
   const response = await httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications");
   return response.data.data;
+}
+
+async function getSavedSearches() {
+  const response = await httpClient.get<ApiResponse<SavedSearchResponse[]>>("/students/me/saved-searches");
+  return response.data.data;
+}
+
+async function createSavedSearch(form: { name: string; keyword: string; location: string; jobType: JobType | ""; workingModel: WorkingModel | "" }) {
+  const response = await httpClient.post<ApiResponse<SavedSearchResponse>>("/students/me/saved-searches", mapSavedSearchPayload(form));
+  return response.data.data;
+}
+
+async function updateSavedSearch(savedSearchId: number, form: { name: string; keyword: string; location: string; jobType: JobType | ""; workingModel: WorkingModel | "" }) {
+  const response = await httpClient.put<ApiResponse<SavedSearchResponse>>(`/students/me/saved-searches/${savedSearchId}`, mapSavedSearchPayload(form));
+  return response.data.data;
+}
+
+async function deleteSavedSearch(savedSearchId: number) {
+  await httpClient.delete<ApiResponse<null>>(`/students/me/saved-searches/${savedSearchId}`);
+}
+
+function mapSavedSearchPayload(form: { name: string; keyword: string; location: string; jobType: JobType | ""; workingModel: WorkingModel | "" }) {
+  return {
+    name: form.name.trim(),
+    keyword: emptyToNull(form.keyword),
+    location: emptyToNull(form.location),
+    jobType: form.jobType || null,
+    workingModel: form.workingModel || null,
+  };
 }
 
 async function getSavedJobs() {
@@ -470,6 +613,16 @@ function getLocationOptions(jobs: BackendJobResponse[]) {
   return Array.from(new Set(jobs.map((job) => job.location).filter((value): value is string => Boolean(value))));
 }
 
+function formatSavedSearchSummary(search: SavedSearchResponse) {
+  const parts = [
+    search.keyword || "Tất cả từ khóa",
+    search.location || "Tất cả địa điểm",
+    search.jobType ? getJobTypeLabel(search.jobType) : "Tất cả loại hình",
+    search.workingModel ? getWorkingModelLabel(search.workingModel) : "Tất cả hình thức",
+  ];
+  return parts.join(" • ");
+}
+
 function formatSalary(job: Pick<BackendJobResponse, "salaryMin" | "salaryMax" | "currency">) {
   const currency = "đồng";
   const min = toNumber(job.salaryMin);
@@ -549,6 +702,11 @@ function toNumber(value: number | string | null) {
 
 function emptyToUndefined(value: string) {
   return value.trim() || undefined;
+}
+
+function emptyToNull(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 function getApiErrorMessage(error: unknown) {

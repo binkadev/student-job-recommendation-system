@@ -11,6 +11,7 @@ import com.tttn.jobrecommendation.modules.notification.entity.Notification;
 import com.tttn.jobrecommendation.modules.notification.mapper.NotificationMapper;
 import com.tttn.jobrecommendation.modules.notification.repository.NotificationRepository;
 import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
+import com.tttn.jobrecommendation.modules.notification.service.NotificationSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final NotificationSettingsService notificationSettingsService;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,6 +91,13 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void createApplicationStatusChangedNotification(JobApplication application) {
+        if (!notificationSettingsService.isEnabled(
+                application.getStudent().getUser().getId(),
+                NotificationType.APPLICATION_STATUS_CHANGED
+        )) {
+            return;
+        }
+
         Notification notification = Notification.builder()
                 .user(application.getStudent().getUser())
                 .type(NotificationType.APPLICATION_STATUS_CHANGED)

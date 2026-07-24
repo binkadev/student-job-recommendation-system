@@ -100,8 +100,8 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 async function getAboutStats(): Promise<AboutStats> {
   const [jobsResponse, companiesResponse, usersResponse] = await Promise.allSettled([
-    httpClient.get<ApiResponse<PageResponse<unknown>>>("/jobs", {
-      params: { page: 1, size: 1, status: "ACTIVE" },
+    httpClient.get<ApiResponse<PageResponse<unknown>>>("/public/jobs", {
+      params: { page: 1, size: 1 },
     }),
     httpClient.get<ApiResponse<PageResponse<unknown>>>("/public/companies", {
       params: { page: 1, size: 1 },

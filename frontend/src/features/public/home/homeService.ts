@@ -98,8 +98,8 @@ async function getPublicStats(): Promise<PublicStatsResponse | null> {
 }
 
 async function getAllPublicJobsForStats(page: number, items: PublicJobStatsResponse[]): Promise<PublicJobStatsResponse[]> {
-  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobStatsResponse>>>("/jobs", {
-    params: { page, size: 100, status: "ACTIVE" },
+  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobStatsResponse>>>("/public/jobs", {
+    params: { page, size: 100 },
   });
   const data = response.data.data;
   const nextItems = [...items, ...data.items];

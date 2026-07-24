@@ -9,8 +9,17 @@ frontend/dist/
 out/
 
 # IDE
-
+.idea/
 .vscode/
+*.iml
+*.iws
+*.ipr
+
+# Java / Maven build output
+**/target/
+
+# Runtime files
+**/uploads/
 
 # Logs
 *.log
@@ -18,3 +27,6 @@ out/
 # Environment
 .env
 .env.*
+**/.env
+**/.env.*
+!**/.env.example

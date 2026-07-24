@@ -80,6 +80,14 @@ interface UnreadCountResponse {
   unreadCount: number;
 }
 
+interface NotificationSettingsResponse {
+  applicationStatusEnabled: boolean;
+  jobStatusEnabled: boolean;
+  recommendationEnabled: boolean;
+  systemEnabled: boolean;
+  updatedAt: string | null;
+}
+
 const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   PENDING: "Chờ xác thực",
   VERIFIED: "Đã xác thực",
@@ -223,8 +231,12 @@ function NotificationSettings() {
   const [tab, setTab] = useState<NotificationTab>("all");
   const [type, setType] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [settingsReloadKey, setSettingsReloadKey] = useState(0);
+  const [settings, setSettings] = useState<NotificationSettingsResponse | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
   const notificationsQuery = useAsyncData(() => getNotifications(page), [page, reloadKey]);
   const unreadQuery = useAsyncData(() => getUnreadCount(), [reloadKey]);
+  const settingsQuery = useAsyncData(() => getNotificationSettings(), [settingsReloadKey]);
   const result = notificationsQuery.data;
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
   const notifications = useMemo(() => {
@@ -232,6 +244,29 @@ function NotificationSettings() {
       .filter((notification) => (tab === "unread" ? !notification.isRead : true))
       .filter((notification) => (!type ? true : notification.type === type));
   }, [result?.items, tab, type]);
+
+  useEffect(() => {
+    if (settingsQuery.data) setSettings(settingsQuery.data);
+  }, [settingsQuery.data]);
+
+  function updateSetting(key: keyof Omit<NotificationSettingsResponse, "updatedAt">, value: boolean) {
+    if (!settings) return;
+    setSettings({ ...settings, [key]: value });
+  }
+
+  async function saveSettings() {
+    if (!settings) return;
+    setSavingSettings(true);
+    try {
+      await updateNotificationSettings(settings);
+      setSettingsReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã lưu cài đặt thông báo" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể lưu cài đặt thông báo", message: getErrorMessage(error) });
+    } finally {
+      setSavingSettings(false);
+    }
+  }
 
   async function markRead(notification: NotificationResponse) {
     if (notification.isRead) return;
@@ -258,6 +293,20 @@ function NotificationSettings() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <SectionHeader title="Cấu hình nhận thông báo" />
+        {settingsQuery.loading && !settings ? <LoadingState /> : null}
+        {settingsQuery.error && !settings ? <EmptyState message={settingsQuery.error} /> : null}
+        {settings ? (
+          <div className="grid gap-3">
+            <Switch label="Trạng thái ứng tuyển" checked={settings.applicationStatusEnabled} onChange={(value) => updateSetting("applicationStatusEnabled", value)} />
+            <Switch label="Trạng thái tin tuyển dụng" checked={settings.jobStatusEnabled} onChange={(value) => updateSetting("jobStatusEnabled", value)} />
+            <Switch label="Gợi ý ứng viên/việc làm" checked={settings.recommendationEnabled} onChange={(value) => updateSetting("recommendationEnabled", value)} />
+            <Switch label="Thông báo hệ thống" checked={settings.systemEnabled} onChange={(value) => updateSetting("systemEnabled", value)} />
+            <Button loading={savingSettings} onClick={() => void saveSettings()}>Lưu cấu hình</Button>
+          </div>
+        ) : null}
+      </Card>
       <SectionHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc từ API backend.`} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
@@ -341,13 +390,35 @@ function RecruiterNotificationItem({
 }
 
 function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
+  const { showToast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function changePassword() {
+    if (!currentPassword || newPassword.length < 6) {
+      showToast({ type: "error", title: "Vui lòng nhập mật khẩu hợp lệ" });
+      return;
+    }
+    setSaving(true);
+    try {
+      await changeMyPassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      showToast({ type: "success", title: "Đã đổi mật khẩu" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể đổi mật khẩu", message: getErrorMessage(error) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <EmptyState message="Backend hiện chưa có API đổi mật khẩu, 2FA hoặc đăng xuất khỏi tất cả thiết bị." />
-      <Input label="Mật khẩu hiện tại" type="password" disabled />
-      <Input label="Mật khẩu mới" type="password" disabled />
+      <Input label="Mật khẩu hiện tại" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+      <Input label="Mật khẩu mới" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
       <Switch label="Bật xác thực hai bước" checked={false} onChange={() => onUnsupported("Xác thực hai bước")} />
-      <Button onClick={() => onUnsupported("Đổi mật khẩu")}>Đổi mật khẩu</Button>
+      <Button loading={saving} onClick={() => void changePassword()}>Đổi mật khẩu</Button>
     </div>
   );
 }
@@ -397,6 +468,28 @@ async function markNotificationRead(id: number) {
 
 async function markAllNotificationsRead() {
   await httpClient.patch<ApiResponse<null>>("/notifications/read-all");
+}
+
+async function changeMyPassword(currentPassword: string, newPassword: string) {
+  await httpClient.patch<ApiResponse<null>>("/users/me/password", {
+    currentPassword,
+    newPassword,
+  });
+}
+
+async function getNotificationSettings() {
+  const response = await httpClient.get<ApiResponse<NotificationSettingsResponse>>("/users/me/notification-settings");
+  return response.data.data;
+}
+
+async function updateNotificationSettings(settings: NotificationSettingsResponse) {
+  const response = await httpClient.put<ApiResponse<NotificationSettingsResponse>>("/users/me/notification-settings", {
+    applicationStatusEnabled: settings.applicationStatusEnabled,
+    jobStatusEnabled: settings.jobStatusEnabled,
+    recommendationEnabled: settings.recommendationEnabled,
+    systemEnabled: settings.systemEnabled,
+  });
+  return response.data.data;
 }
 
 function resolveRecruiterNotificationPath(notification: NotificationResponse) {

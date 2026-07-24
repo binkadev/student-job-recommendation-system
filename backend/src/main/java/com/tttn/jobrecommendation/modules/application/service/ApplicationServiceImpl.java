@@ -8,25 +8,26 @@ import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.common.utils.PageableUtils;
+import com.tttn.jobrecommendation.modules.application.dto.request.AdminApplicationFilterRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.ApplyJobRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.CompanyApplicationFilterRequest;
 import com.tttn.jobrecommendation.modules.application.dto.request.UpdateApplicationStatusRequest;
-import com.tttn.jobrecommendation.modules.application.dto.response.ApplicationCvDownload;
 import com.tttn.jobrecommendation.modules.application.dto.response.ApplicationResponse;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.mapper.ApplicationMapper;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.company.repository.CompanyRepository;
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
+import com.tttn.jobrecommendation.modules.cv.service.CvStorageService;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.job.repository.JobRepository;
 import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,9 +39,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -50,7 +48,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
 
-    private static final Map<String, String> COMPANY_APPLICATION_ALLOWED_SORTS = Map.of(
+    private static final Map<String, String> APPLICATION_ALLOWED_SORTS = Map.of(
             "id", "id",
             "status", "status",
             "appliedAt", "appliedAt",
@@ -64,11 +62,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final StudentRepository studentRepository;
     private final CompanyRepository companyRepository;
     private final CvFileRepository cvFileRepository;
+    private final CvStorageService cvStorageService;
     private final ApplicationMapper applicationMapper;
     private final NotificationService notificationService;
-
-    @Value("${app.upload.cv.storage-dir}")
-    private String cvStorageDir;
 
     @Override
     @Transactional
@@ -140,7 +136,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 request.getSort(),
                 "appliedAt",
                 Sort.Direction.DESC,
-                COMPANY_APPLICATION_ALLOWED_SORTS
+                APPLICATION_ALLOWED_SORTS
         );
 
         Page<JobApplication> applications = applicationRepository.findAll(
@@ -172,26 +168,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApplicationCvDownload getMyCompanyApplicationCv(Long id, Long userId) {
+    public CvFileDownload getMyCompanyApplicationCvFile(Long applicationId, Long userId) {
         Company company = getCompanyByUserId(userId);
-        JobApplication application = getApplicationById(id);
+        JobApplication application = getApplicationById(applicationId);
         assertCompanyOwnsJob(company, application.getJob());
 
         CvFile cvFile = application.getCvFile();
         if (cvFile == null) {
-            throw new ResourceNotFoundException("Application CV file not found");
+            throw new ResourceNotFoundException("CV file not found");
         }
 
-        Path cvPath = resolveCvPath(cvFile);
-        if (!Files.exists(cvPath) || !Files.isReadable(cvPath)) {
-            throw new ResourceNotFoundException("CV file not found on storage");
-        }
-
-        return new ApplicationCvDownload(
-                cvPath,
-                StringUtils.hasText(cvFile.getOriginalFileName()) ? cvFile.getOriginalFileName() : cvFile.getFileName(),
-                cvFile.getContentType()
-        );
+        return cvStorageService.load(cvFile);
     }
 
     @Override
@@ -201,6 +188,42 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobApplication application = applicationRepository.findByIdAndStudentId(id, student.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
         return applicationMapper.toApplicationResponse(application);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ApplicationResponse> getAdminApplications(AdminApplicationFilterRequest request) {
+        Pageable pageable = PageableUtils.createPageable(
+                request.getPage(),
+                request.getSize(),
+                request.getSort(),
+                "appliedAt",
+                Sort.Direction.DESC,
+                APPLICATION_ALLOWED_SORTS
+        );
+
+        Page<JobApplication> applications = applicationRepository.findAll(
+                buildAdminApplicationSpecification(request),
+                pageable
+        );
+        List<ApplicationResponse> items = applications.getContent()
+                .stream()
+                .map(applicationMapper::toApplicationResponse)
+                .toList();
+
+        return new PageResponse<>(
+                items,
+                applications.getNumber() + 1,
+                applications.getSize(),
+                applications.getTotalElements(),
+                applications.getTotalPages()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApplicationResponse getAdminApplication(Long applicationId) {
+        return applicationMapper.toApplicationResponse(getApplicationById(applicationId));
     }
 
     @Override
@@ -265,6 +288,47 @@ public class ApplicationServiceImpl implements ApplicationService {
         };
     }
 
+    private Specification<JobApplication> buildAdminApplicationSpecification(
+            AdminApplicationFilterRequest request
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (request.getStatus() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), request.getStatus()));
+            }
+
+            if (request.getStudentId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("student").get("id"), request.getStudentId()));
+            }
+
+            if (request.getJobId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("job").get("id"), request.getJobId()));
+            }
+
+            if (request.getCompanyId() != null) {
+                predicates.add(criteriaBuilder.equal(
+                        root.get("job").get("company").get("id"),
+                        request.getCompanyId()
+                ));
+            }
+
+            if (StringUtils.hasText(request.getKeyword())) {
+                String keyword = likeValue(request.getKeyword());
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("user").get("fullName")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("user").get("email")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("job").get("title")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(
+                                root.get("job").get("company").get("companyName")
+                        ), keyword)
+                ));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
     private void assertValidEmployerTransition(ApplicationStatus currentStatus, ApplicationStatus targetStatus) {
         if (currentStatus == ApplicationStatus.PENDING && targetStatus == ApplicationStatus.REVIEWED) {
             return;
@@ -318,7 +382,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     private JobApplication getApplicationById(Long id) {
-        return applicationRepository.findById(id)
+        return applicationRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
     }
 
@@ -335,35 +399,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         return cvFile;
-    }
-
-    private Path resolveCvPath(CvFile cvFile) {
-        Path storagePath = Paths.get(cvStorageDir).toAbsolutePath().normalize();
-
-        if (StringUtils.hasText(cvFile.getStoredFileName())) {
-            Path path = storagePath.resolve(cvFile.getStoredFileName()).normalize();
-            if (path.startsWith(storagePath)) {
-                return path;
-            }
-        }
-
-        String pathValue = StringUtils.hasText(cvFile.getFilePath()) ? cvFile.getFilePath() : cvFile.getFileUrl();
-        if (!StringUtils.hasText(pathValue)) {
-            throw new ResourceNotFoundException("CV file path not found");
-        }
-
-        String normalizedPath = pathValue.replace("\\", "/");
-        int cvPrefixIndex = normalizedPath.lastIndexOf("uploads/cvs/");
-        String fileName = cvPrefixIndex >= 0
-                ? normalizedPath.substring(cvPrefixIndex + "uploads/cvs/".length())
-                : Paths.get(normalizedPath).getFileName().toString();
-        Path path = storagePath.resolve(fileName).normalize();
-
-        if (!path.startsWith(storagePath)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Invalid CV file path");
-        }
-
-        return path;
     }
 
     private String trimToNull(String value) {

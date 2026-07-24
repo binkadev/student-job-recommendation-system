@@ -1,8 +1,10 @@
-# API Contract
+﻿# API Contract
 
 Backend base URL: `http://localhost:8080`
 
-All responses use `ApiResponse<T>`.
+JSON responses use `ApiResponse<T>`.
+
+Successful CV file responses are the only exception: they stream the raw file body as a Spring `Resource`. Their error responses still use `ApiResponse<T>`.
 
 Success:
 
@@ -45,10 +47,17 @@ Authentication uses `Authorization: Bearer <jwt>` for all protected endpoints.
 Common protected-endpoint errors:
 
 - `UNAUTHORIZED`: missing, invalid, expired, `BLOCKED`, or `INACTIVE` user token.
-- `ACCESS_DENIED`: authenticated user does not have the required role or does not own the requested resource.
+- `ACCESS_DENIED`: authenticated user does not have the required role, or an endpoint reports failed ownership as forbidden.
 - `RESOURCE_NOT_FOUND`: requested resource does not exist or is intentionally hidden from that endpoint.
 - `VALIDATION_ERROR`: invalid request body or query parameter.
 - `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
+- `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
+- `SAVED_CANDIDATE_ALREADY_EXISTS`: the company has already saved that student (`409 Conflict`).
+- `SAVED_CANDIDATE_NOT_FOUND`: the saved-candidate id is absent or is not owned by the current company (`404 Not Found`).
+- `SAVED_SEARCH_ALREADY_EXISTS`: the student already has a case-insensitively equal saved-search name (`409 Conflict`).
+- `SAVED_SEARCH_NOT_FOUND`: the saved-search id is absent or is not owned by the current student (`404 Not Found`).
+- `INVALID_CURRENT_PASSWORD`: password change failed because the current password did not match (`400 Bad Request`).
+- `INTERNAL_SERVER_ERROR`: an unexpected server or file-storage operation failed.
 
 ## Enums
 
@@ -107,6 +116,25 @@ Roles: authenticated users.
 
 Response data: current `AuthUserResponse`.
 
+### PATCH `/api/users/me/password`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Request:
+
+```json
+{
+  "currentPassword": "current password",
+  "newPassword": "new password"
+}
+```
+
+Both fields are required. The new password must be at least 6 characters and no password input may exceed 72 UTF-8 bytes, respecting BCrypt's input limit. The new password must differ from the current password.
+
+An incorrect current password returns `400 INVALID_CURRENT_PASSWORD`. On success, only the authenticated user's encoded password and normal audit timestamp are updated; neither plaintext password nor the hash is returned.
+
+Authentication is stateless JWT without refresh-token persistence or revocation. Access tokens issued before a password change remain valid until expiry. Subsequent logins require the new password.
+
 ## Public Companies
 
 Public company APIs do not require authentication. They expose `VERIFIED` companies only. `PENDING` and `BLOCKED` companies are hidden and company detail for those statuses returns `404`.
@@ -139,6 +167,37 @@ Returns a verified company and its active jobs ordered by `publishedAt` descendi
 Response company fields: `id`, `companyName`, `industry`, `address`, `websiteUrl`, `description`, `status`, `openJobs`, `createdAt`, `updatedAt`, `companySize`, `logoUrl`, `jobs`.
 
 Job summary fields: `id`, `title`, `location`, `jobType`, `workingModel`, `status`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `publishedAt`.
+
+## Public Jobs
+
+Public job APIs require no authentication. A job is visible only when its status is `ACTIVE`, its company is `VERIFIED`, and its deadline is null, today, or later. Every non-active status, a non-verified company, or a past deadline hides the job. Hidden detail and absent ids both return `404 RESOURCE_NOT_FOUND`.
+
+### GET `/api/public/jobs`
+
+Role: public.
+
+Query parameters:
+
+- `keyword`: case-insensitive partial match across title, description, and requirements.
+- `location`: case-insensitive partial match.
+- `jobType`: `JobType` enum.
+- `workingModel`: `WorkingModel` enum.
+- `page`: 1-based, default `1`.
+- `size`: default `10`, maximum `100`.
+
+Public status filtering is not supported. Supplying `status` returns `400 BAD_REQUEST`.
+
+Ordering is `publishedAt,desc`, then `createdAt,desc`. Response data is `PageResponse<PublicJobResponse>`.
+
+List item fields: `id`, `companyId`, `companyName`, `title`, `location`, `jobType`, `workingModel`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `skills`, `publishedAt`.
+
+Skill fields: `skillId`, `skillName`, `category`, `importance`, `minLevel`. Internal entity and normalized skill fields are not returned.
+
+### GET `/api/public/jobs/{jobId}`
+
+Role: public.
+
+Applies the exact list visibility rules. Response data contains all public list fields plus `description`, `requirements`, and `benefits`.
 
 ## Student
 
@@ -248,6 +307,42 @@ Role: `STUDENT`.
 
 Removes the current student's saved job. Missing saved rows return not found.
 
+## Student Saved Searches
+
+All saved-search endpoints require role `STUDENT`. Ownership always comes from the authenticated user's student record; `studentId`, `userId`, and other unknown request properties are rejected.
+
+Response fields: `id`, `name`, `keyword`, `location`, `jobType`, `workingModel`, `createdAt`, `updatedAt`.
+
+### GET `/api/students/me/saved-searches`
+
+Returns `ApiResponse<List<SavedSearchResponse>>` for the authenticated student, ordered by `updatedAt,desc`, then `id,desc`.
+
+### POST `/api/students/me/saved-searches`
+
+Request:
+
+```json
+{
+  "name": "Java internships in HCM",
+  "keyword": "Java",
+  "location": "Ho Chi Minh City",
+  "jobType": "INTERNSHIP",
+  "workingModel": "ONSITE"
+}
+```
+
+`name` is required after trimming and has a maximum of 100 characters. Optional `keyword` and `location` are limited to 255 characters. Optional enums must be known `JobType` and `WorkingModel` values. Text is trimmed and blank optional text is stored as null.
+
+Names are unique per student without regard to case. A duplicate returns `409 SAVED_SEARCH_ALREADY_EXISTS`; another student may use the same name.
+
+### PUT `/api/students/me/saved-searches/{savedSearchId}`
+
+Full replacement using the same request and validation as POST. Ownership never changes. A foreign or absent id returns the same `404 SAVED_SEARCH_NOT_FOUND`.
+
+### DELETE `/api/students/me/saved-searches/{savedSearchId}`
+
+Deletes only the authenticated student's saved-search record. A foreign or absent id returns `404 SAVED_SEARCH_NOT_FOUND`.
+
 ## Company
 
 ### GET `/api/companies/me`
@@ -261,6 +356,72 @@ Returns current company profile.
 Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
+
+## Recruiter Saved Candidates
+
+All saved-candidate APIs require role `COMPANY` and operate only on the authenticated company.
+
+### GET `/api/companies/me/saved-candidates`
+
+Returns `ApiResponse<PageResponse<SavedCandidateResponse>>`.
+
+Query parameters:
+
+- `keyword`: optional case-insensitive partial match against student full name, student email, university, major, headline, or the saved application's job title; maximum length 255.
+- `page`: 1-based page number, default `1`.
+- `size`: page size from 1 through 100, default `10`.
+- `sort`: accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`; maximum length 100.
+
+Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`. Unsupported fields or directions return `400 BAD_REQUEST`.
+
+Each response item contains:
+
+```json
+{
+  "id": 42,
+  "applicationId": 123,
+  "studentId": 15,
+  "studentName": "Nguyen Van A",
+  "studentEmail": "student@example.com",
+  "university": "Example University",
+  "major": "Software Engineering",
+  "headline": "Java Backend Intern",
+  "jobId": 9,
+  "jobTitle": "Backend Developer Intern",
+  "cvFileId": 31,
+  "cvFileName": "nguyen-van-a-resume.pdf",
+  "note": "Strong backend profile",
+  "savedAt": "2026-07-23T10:00:00",
+  "updatedAt": "2026-07-23T10:00:00"
+}
+```
+
+The list is company-scoped. It never returns CV physical paths, file URLs, stored filenames, password hashes, or internal user data.
+
+### POST `/api/companies/me/saved-candidates`
+
+Request:
+
+```json
+{
+  "applicationId": 123,
+  "note": "Optional recruiter note"
+}
+```
+
+`applicationId` is required and positive. `note` is optional, trimmed, and limited to 2,000 characters. Unknown request fields are rejected; in particular, `studentId` cannot be supplied.
+
+The backend derives the student from the application and creates no application status change. The application's job must belong to the authenticated company; otherwise the request returns `403 ACCESS_DENIED`. Saving the same student twice for one company returns `409 SAVED_CANDIDATE_ALREADY_EXISTS`, even when the student has applications to multiple company jobs.
+
+Withdrawn applications remain saveable because the current application domain does not prohibit recruiter bookmarking after withdrawal.
+
+Response data: the created `SavedCandidateResponse`.
+
+### DELETE `/api/companies/me/saved-candidates/{id}`
+
+Deletes only the saved-candidate bookmark owned by the authenticated company. An absent id and another company's id both return `404 SAVED_CANDIDATE_NOT_FOUND`, so ownership is not disclosed.
+
+This operation does not delete or change the student, application, CV, job, or application status.
 
 ## Admin Users
 
@@ -498,11 +659,61 @@ Role: `COMPANY`.
 
 Returns one application if its job belongs to the authenticated company. Applications for another company are not returned. CV exposure is limited to `cvFileId` and `cvFileName`; internal `filePath` and `storedFileName` are not returned.
 
+### GET `/api/companies/me/applications/{applicationId}/cv/file?download=false`
+
+Role: `COMPANY`.
+
+Streams the CV attached to an application whose job belongs to the authenticated company. The company selects an application only; a standalone CV id is never accepted.
+
+Query parameter:
+
+- `download`: optional boolean, default `false`. `false` returns `Content-Disposition: inline`; `true` returns `Content-Disposition: attachment`.
+
+Successful response: `200 OK` with the raw file body, the stored `Content-Type`, and a sanitized original filename in `Content-Disposition`. The response never exposes `filePath`, `fileUrl`, `storedFileName`, the configured storage directory, or an absolute path.
+
+Errors use the standard JSON error envelope:
+
+- `401 UNAUTHORIZED`: missing or invalid token.
+- `403 ACCESS_DENIED`: wrong role or the application belongs to another company.
+- `404 RESOURCE_NOT_FOUND`: the application does not exist, has no CV reference, its CV metadata or physical file is missing, or its stored filename cannot be resolved safely inside the configured CV storage directory.
+- `500 INTERNAL_SERVER_ERROR`: an unexpected file-storage read fails.
+
 ### GET `/api/companies/me/jobs/{jobId}/applications`
 
 Role: `COMPANY`.
 
 Returns applications for a job owned by the current company.
+
+### GET `/api/admin/applications`
+
+Role: `ADMIN`.
+
+Returns a paged list of all applications.
+
+Query parameters: `status`, `studentId`, `jobId`, `companyId`, `keyword`, `page`, `size`, `sort`.
+
+- `status`: `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, or `WITHDRAWN`.
+- `studentId`, `jobId`, and `companyId`: exact id filters.
+- `keyword`: case-insensitive partial match against student full name, student email, job title, or company name; maximum length 255.
+- `page`: 1-based page number, default `1`.
+- `size`: page size from 1 through 100, default `10`.
+- `sort`: maximum length 100 and accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`.
+
+Allowed sort fields: `id`, `status`, `appliedAt`, `reviewedAt`, `createdAt`, `updatedAt`. Default sort: `appliedAt,desc`.
+
+Response data: `PageResponse<ApplicationResponse>`.
+
+Each item contains `id`, `status`, `coverLetter`, `studentId`, `studentName`, `studentEmail`, `jobId`, `jobTitle`, `companyId`, `companyName`, `cvFileId`, `cvFileName`, `appliedAt`, `reviewedAt`, `createdAt`, and `updatedAt`. Internal CV paths are never returned.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED`, `400 VALIDATION_ERROR` for invalid query values, and `400 BAD_REQUEST` for an unsupported sort field or direction.
+
+### GET `/api/admin/applications/{applicationId}`
+
+Role: `ADMIN`.
+
+Returns one `ApplicationResponse` with the safe fields listed above. It never returns `filePath`, `fileUrl`, or `storedFileName`.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED`, or `404 RESOURCE_NOT_FOUND` when the application is absent.
 
 ### PATCH `/api/applications/{id}/status`
 
@@ -544,6 +755,44 @@ Safe response fields: `id`, `studentId`, `fileName`, `originalFileName`, `conten
 
 `fileUrl` is not returned because the stored value is an internal relative upload path, not a confirmed safe client-accessible URL. `filePath` and `storedFileName` are never returned.
 
+### GET `/api/students/me/cv/{cvId}/file?download=false`
+
+Role: `STUDENT`.
+
+Streams a CV owned by the authenticated student. A CV belonging to another student is intentionally indistinguishable from a missing CV.
+
+Query parameter:
+
+- `download`: optional boolean, default `false`. `false` returns `Content-Disposition: inline`; `true` returns `Content-Disposition: attachment`.
+
+Successful response: `200 OK` with the raw file body, the stored `Content-Type`, and a sanitized original filename in `Content-Disposition`. The file is streamed without loading the full contents into memory. The response never exposes `filePath`, `fileUrl`, `storedFileName`, the configured storage directory, or an absolute path.
+
+Errors use the standard JSON error envelope:
+
+- `401 UNAUTHORIZED`: missing or invalid token.
+- `403 ACCESS_DENIED`: wrong role.
+- `404 RESOURCE_NOT_FOUND`: the CV does not exist, is not owned by the current student, its physical file is missing, or its stored filename cannot be resolved safely inside the configured CV storage directory.
+- `500 INTERNAL_SERVER_ERROR`: an unexpected file-storage read fails.
+
+### DELETE `/api/students/me/cv/{cvId}`
+
+Role: `STUDENT`.
+
+Deletes the current student's unused CV metadata and physical file. A CV belonging to another student is intentionally indistinguishable from a missing CV.
+
+Success: `200 OK` with `ApiResponse<Void>`, message `CV deleted successfully`, and `data: null`.
+
+Rules:
+
+- A CV referenced by any application is not deleted; the API returns `409 Conflict` with error code `CV_IN_USE`.
+- Other protected database references also prevent deletion and return `CV_IN_USE`.
+- An active CV may be deleted when it is unused.
+- Deleting an active CV does not activate another CV automatically.
+- If the physical file is already absent, deleting its stale metadata is allowed.
+- A physical-file deletion failure is reported as an error and must not be presented as a successful deletion.
+
+Errors: `401 UNAUTHORIZED`, `403 ACCESS_DENIED` for the wrong role, `404 RESOURCE_NOT_FOUND` for missing/non-owned metadata or an unsafe/non-regular stored path, `409 CV_IN_USE` for a protected database reference, and `500 INTERNAL_SERVER_ERROR` for a file deletion failure.
+
 ### PATCH `/api/students/me/cv/{id}/active`
 
 Role: `STUDENT`.
@@ -574,11 +823,50 @@ Notifications are persistent in-app records for authenticated users. They are no
 
 Initial supported automatic event:
 
-- `APPLICATION_STATUS_CHANGED`: created for the student when a company or admin successfully changes one of the student's application statuses.
+- `APPLICATION_STATUS_CHANGED`: created for the student when a company or admin successfully changes one of the student's application statuses and the student's application-status preference is enabled.
 
 Future enum support:
 
-- `RECOMMENDATION` exists for future recommendation integration, but automatic matching-job notification generation is not implemented.
+- `JOB_STATUS_CHANGED`, `RECOMMENDATION`, and `SYSTEM` have persisted preference fields for future automatic producers. No new automatic producer is implemented in this package.
+
+### GET `/api/users/me/notification-settings`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Returns only the authenticated user's settings:
+
+```json
+{
+  "applicationStatusEnabled": true,
+  "jobStatusEnabled": true,
+  "recommendationEnabled": true,
+  "systemEnabled": true,
+  "updatedAt": null
+}
+```
+
+When the user has no persisted row, every setting defaults to `true` and `updatedAt` is `null`. GET is read-only and does not create a row.
+
+### PUT `/api/users/me/notification-settings`
+
+Roles: `STUDENT`, `COMPANY`, `ADMIN`.
+
+Full replacement request:
+
+```json
+{
+  "applicationStatusEnabled": true,
+  "jobStatusEnabled": true,
+  "recommendationEnabled": true,
+  "systemEnabled": true
+}
+```
+
+Every boolean is required. Unknown fields, including `userId`, are rejected. The authenticated user is always derived from the JWT.
+
+The first PUT atomically creates the user's row; later PUT requests update that same row. Concurrent first writes use the database unique key and atomic upsert, so duplicate rows are not created. Response data has the same fields as GET with a non-null `updatedAt`.
+
+Disabling a preference suppresses only future automatic notifications of that type. It does not delete, hide, or mark existing notifications. A missing settings row always means enabled. Currently only `APPLICATION_STATUS_CHANGED` has an automatic producer.
 
 ### GET `/api/notifications?page=1&size=20`
 

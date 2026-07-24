@@ -1,0 +1,7 @@
+# Generated Phase B measurement evidence. Keep only intentionally selected,
+# reviewed small text/JSON/Markdown artifacts out of these run directories.
+results/baseline/*/
+
+# Cross-process performance measurement leases and archived stale metadata.
+.locks/
+

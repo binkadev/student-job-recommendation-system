@@ -2,19 +2,23 @@ package com.tttn.jobrecommendation.modules.cv.controller;
 
 import com.tttn.jobrecommendation.common.response.ApiResponse;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import com.tttn.jobrecommendation.modules.cv.service.CvService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -59,6 +63,23 @@ public class CvController {
     @GetMapping("/{id}")
     public ApiResponse<CvFileResponse> getMyCvFile(@PathVariable Long id) {
         return ApiResponse.success(cvService.getMyCvFile(securityUtils.getCurrentUserId(), id));
+    }
+
+    @Operation(summary = "Download or preview a current student's CV file")
+    @GetMapping("/{cvId}/file")
+    public ResponseEntity<Resource> getMyCvFileDownload(
+            @PathVariable Long cvId,
+            @RequestParam(name = "download", defaultValue = "false") boolean download
+    ) {
+        CvFileDownload cvFile = cvService.getMyCvFileDownload(securityUtils.getCurrentUserId(), cvId);
+        return cvFile.toResponseEntity(download);
+    }
+
+    @Operation(summary = "Delete a current student's unused CV file")
+    @DeleteMapping("/{cvId}")
+    public ApiResponse<Void> deleteMyCvFile(@PathVariable Long cvId) {
+        cvService.deleteMyCvFile(securityUtils.getCurrentUserId(), cvId);
+        return ApiResponse.success("CV deleted successfully", null);
     }
 
     @Operation(summary = "Set current student's active CV")

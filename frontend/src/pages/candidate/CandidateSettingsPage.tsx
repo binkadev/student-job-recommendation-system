@@ -49,6 +49,14 @@ interface AccountSettingsForm {
   phone: string;
 }
 
+interface NotificationSettingsResponse {
+  applicationStatusEnabled: boolean;
+  jobStatusEnabled: boolean;
+  recommendationEnabled: boolean;
+  systemEnabled: boolean;
+  updatedAt: string | null;
+}
+
 const INITIAL_PRIVACY_SETTINGS = {
   discoverable: false,
   showEmail: false,
@@ -118,9 +126,9 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
               {!studentQuery.loading && studentQuery.data ? <AccountSettings account={mapStudentToAccount(studentQuery.data)} onSave={saveAccount} onUnsupported={notifyUnsupported} /> : null}
             </>
           ) : null}
-          {tab === "security" ? <SecuritySettings onUnsupported={notifyUnsupported} /> : null}
+          {tab === "security" ? <SecuritySettings /> : null}
           {tab === "privacy" ? <PrivacySettings onUnsupported={notifyUnsupported} /> : null}
-          {tab === "notifications" ? <NotificationSettings onUnsupported={notifyUnsupported} /> : null}
+          {tab === "notifications" ? <NotificationSettings /> : null}
         </div>
       </Card>
 
@@ -197,12 +205,14 @@ function AccountSettings({
   );
 }
 
-function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
+function SecuritySettings() {
   const { logout } = useAuth();
+  const { showToast } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const strength = getPasswordStrength(newPassword);
 
   function validate() {
@@ -217,9 +227,20 @@ function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) 
     return Object.keys(nextErrors).length === 0;
   }
 
-  function changePassword() {
+  async function changePassword() {
     if (!validate()) return;
-    onUnsupported("Đổi mật khẩu");
+    setSaving(true);
+    try {
+      await changeMyPassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      showToast({ type: "success", title: "Đã đổi mật khẩu" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể đổi mật khẩu", message: getErrorMessage(error) });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -233,12 +254,12 @@ function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) 
         </div>
       </div>
       <div className="space-y-4 rounded-lg border border-slate-200 p-4">
-        <Switch label="Bật xác thực hai bước" checked={false} onChange={() => onUnsupported("Xác thực hai bước")} />
+        <Switch label="Bật xác thực hai bước" checked={false} onChange={() => undefined} />
         <Button variant="secondary" icon={<LogOut size={16} />} onClick={logout}>
           Đăng xuất phiên hiện tại
         </Button>
       </div>
-      <Button icon={<ShieldAlert size={16} />} onClick={changePassword}>Đổi mật khẩu</Button>
+      <Button icon={<ShieldAlert size={16} />} loading={saving} onClick={() => void changePassword()}>Đổi mật khẩu</Button>
     </div>
   );
 }
@@ -257,16 +278,47 @@ function PrivacySettings({ onUnsupported }: { onUnsupported: (feature: string) =
   );
 }
 
-function NotificationSettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
+function NotificationSettings() {
+  const { showToast } = useToast();
+  const [reloadKey, setReloadKey] = useState(0);
+  const settingsQuery = useAsyncData(() => getNotificationSettings(), [reloadKey]);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<NotificationSettingsResponse | null>(null);
+
+  useEffect(() => {
+    if (settingsQuery.data) setSettings(settingsQuery.data);
+  }, [settingsQuery.data]);
+
+  function update(key: keyof Omit<NotificationSettingsResponse, "updatedAt">, value: boolean) {
+    if (!settings) return;
+    setSettings({ ...settings, [key]: value });
+  }
+
+  async function save() {
+    if (!settings) return;
+    setSaving(true);
+    try {
+      await updateNotificationSettings(settings);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã lưu cài đặt thông báo" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể lưu cài đặt thông báo", message: getErrorMessage(error) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (settingsQuery.loading && !settings) return <LoadingState />;
+  if (settingsQuery.error && !settings) return <EmptyState message={settingsQuery.error} />;
+  if (!settings) return <EmptyState message="Chưa có dữ liệu cài đặt thông báo." />;
+
   return (
     <div className="space-y-4">
-      <EmptyState message="Backend hiện chỉ có API danh sách thông báo, chưa có API lưu tùy chọn nhận thông báo." />
-      <Switch label="Email việc làm phù hợp" checked={INITIAL_NOTIFICATION_SETTINGS.jobMatchEmail} onChange={() => onUnsupported("Cài đặt thông báo")} />
-      <Switch label="Email trạng thái ứng tuyển" checked={INITIAL_NOTIFICATION_SETTINGS.applicationStatusEmail} onChange={() => onUnsupported("Cài đặt thông báo")} />
-      <Switch label="Email phỏng vấn" checked={INITIAL_NOTIFICATION_SETTINGS.interviewEmail} onChange={() => onUnsupported("Cài đặt thông báo")} />
-      <Switch label="Email lời mời" checked={INITIAL_NOTIFICATION_SETTINGS.invitationEmail} onChange={() => onUnsupported("Cài đặt thông báo")} />
-      <Switch label="Thông báo trong hệ thống" checked={INITIAL_NOTIFICATION_SETTINGS.inApp} onChange={() => onUnsupported("Cài đặt thông báo")} />
-      <Switch label="Thông báo tin nhắn" checked={INITIAL_NOTIFICATION_SETTINGS.message} onChange={() => onUnsupported("Cài đặt thông báo")} />
+      <Switch label="Thông báo trạng thái ứng tuyển" checked={settings.applicationStatusEnabled} onChange={(value) => update("applicationStatusEnabled", value)} />
+      <Switch label="Thông báo trạng thái việc làm" checked={settings.jobStatusEnabled} onChange={(value) => update("jobStatusEnabled", value)} />
+      <Switch label="Thông báo gợi ý việc làm" checked={settings.recommendationEnabled} onChange={(value) => update("recommendationEnabled", value)} />
+      <Switch label="Thông báo hệ thống" checked={settings.systemEnabled} onChange={(value) => update("systemEnabled", value)} />
+      <Button loading={saving} onClick={() => void save()}>Lưu cài đặt thông báo</Button>
     </div>
   );
 }
@@ -302,6 +354,28 @@ async function updateStudentAccount(account: AccountSettingsForm) {
     fullName: emptyToNull(account.fullName),
     phone: emptyToNull(account.phone),
   });
+}
+
+async function changeMyPassword(currentPassword: string, newPassword: string) {
+  await httpClient.patch<ApiResponse<null>>("/users/me/password", {
+    currentPassword,
+    newPassword,
+  });
+}
+
+async function getNotificationSettings() {
+  const response = await httpClient.get<ApiResponse<NotificationSettingsResponse>>("/users/me/notification-settings");
+  return response.data.data;
+}
+
+async function updateNotificationSettings(settings: NotificationSettingsResponse) {
+  const response = await httpClient.put<ApiResponse<NotificationSettingsResponse>>("/users/me/notification-settings", {
+    applicationStatusEnabled: settings.applicationStatusEnabled,
+    jobStatusEnabled: settings.jobStatusEnabled,
+    recommendationEnabled: settings.recommendationEnabled,
+    systemEnabled: settings.systemEnabled,
+  });
+  return response.data.data;
 }
 
 function mapStudentToAccount(student: StudentResponse): AccountSettingsForm {

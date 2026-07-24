@@ -15,6 +15,7 @@ app:
   jwt:
     secret: ${APP_JWT_SECRET:change-this-development-secret-key-before-production-use}
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+
   upload:
     cv:
       storage-dir: ${APP_CV_UPLOAD_DIR:uploads/cvs}
@@ -23,16 +24,6 @@ app:
 springdoc:
   api-docs:
     path: /v3/api-docs
+
   swagger-ui:
     path: /swagger-ui.html
-
----
-spring:
-  config:
-    activate:
-      on-profile: no-db
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration

@@ -1,0 +1,25 @@
+# Performance Run Metadata
+
+- Run ID: TBD
+- Timestamp/timezone: TBD
+- Git branch: `perf/api-db-baseline`
+- Git commit: TBD
+- Working tree state: TBD
+- Machine CPU: TBD
+- Machine RAM: TBD
+- Operating system: TBD
+- Docker version/resources: TBD
+- Java version: TBD
+- Spring Boot version: `3.5.16`
+- PostgreSQL version: TBD
+- k6 version: TBD
+- Active Spring profile: `performance`
+- Database: `student_job_recommendation_perf`
+- Database user: `perf_user`
+- Latest Flyway migration: `12`
+- Dataset verification result: TBD
+- Dataset checksum/version: TBD
+- Warm-up procedure: TBD
+- Cache state: TBD
+- Background workload notes: TBD
+- Warnings/failures: TBD

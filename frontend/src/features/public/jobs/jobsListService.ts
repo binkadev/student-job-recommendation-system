@@ -32,14 +32,12 @@ interface PublicJobResponse {
   location: string | null;
   jobType: BackendJobType | null;
   workingModel: BackendWorkingModel | null;
-  status: BackendJobStatus;
   salaryMin: number | string | null;
   salaryMax: number | string | null;
   currency: string | null;
   deadline: string | null;
   skills?: JobSkillResponse[] | null;
   publishedAt: string | null;
-  createdAt?: string | null;
   applicantCount?: number | null;
   applicationCount?: number | null;
   applicants?: number | null;
@@ -52,7 +50,6 @@ interface PublicJobResponse {
 
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type BackendWorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
-type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
 
 const pageSize = 6;
 
@@ -78,11 +75,10 @@ export function getJobsFilterOptions(): JobsFilterOptions {
 }
 
 export async function getPublicJobs(filters: JobsListFilters): Promise<JobsListResult> {
-  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobResponse>>>("/jobs", {
+  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobResponse>>>("/public/jobs", {
     params: {
       page: filters.page,
       size: pageSize,
-      status: "ACTIVE",
       keyword: filters.keyword || undefined,
       location: filters.location || undefined,
       jobType: filters.jobType || undefined,
@@ -119,7 +115,7 @@ function mapJob(job: PublicJobResponse): PublicJobListItem {
     jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
     workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
     skills,
-    postedAt: formatDate(job.publishedAt || job.createdAt),
+    postedAt: formatDate(job.publishedAt),
     deadline: formatDate(job.deadline),
     applicants: getApplicantCount(job),
     status: job.deadline && daysUntil(job.deadline) <= 7 ? "urgent" : "published",

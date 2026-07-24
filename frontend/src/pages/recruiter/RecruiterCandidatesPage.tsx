@@ -73,6 +73,24 @@ interface CompanyResponse {
   id: number;
 }
 
+interface SavedCandidateResponse {
+  id: number;
+  applicationId: number;
+  studentId: number;
+  studentName: string | null;
+  studentEmail: string | null;
+  university: string | null;
+  major: string | null;
+  headline: string | null;
+  jobId: number;
+  jobTitle: string;
+  cvFileId: number | null;
+  cvFileName: string | null;
+  note: string | null;
+  savedAt: string;
+  updatedAt: string;
+}
+
 interface ApplicationListQuery {
   page: number;
   size: number;
@@ -150,8 +168,8 @@ function ApplicationsListPage({
   const [selectedApplication, setSelectedApplication] = useState<ApplicationResponse | null>(null);
   const [nextStatus, setNextStatus] = useState<ApplicationStatus>("REVIEWED");
   const [updating, setUpdating] = useState(false);
-  const [savedIds, setSavedIds] = useState(() => new Set(readSavedCandidates().map((application) => application.id)));
   const [sortOrder, setSortOrder] = useState("appliedAt,desc");
+  const [savedReloadKey, setSavedReloadKey] = useState(0);
 
   const dateRangeError = appliedFrom && appliedTo && appliedFrom > appliedTo ? "Từ ngày phải nhỏ hơn hoặc bằng đến ngày." : "";
   const jobOptions = useMemo(() => jobs.slice().sort((left, right) => left.title.localeCompare(right.title)), [jobs]);
@@ -167,6 +185,8 @@ function ApplicationsListPage({
   }), [page, query, statusFilter, jobFilter, sortOrder, jobIdsKey, reloadKey]);
   const applicationsPage = applicationsQuery.data;
   const applications = applicationsPage?.items ?? [];
+  const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
+  const savedApplicationIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.applicationId));
   const filteredApplications = useMemo(() => {
     if (dateRangeError) return [];
     return applications.filter((application) => {
@@ -196,10 +216,14 @@ function ApplicationsListPage({
     }
   }
 
-  function saveCandidate(application: ApplicationResponse) {
-    saveCandidateProfile(application);
-    setSavedIds(new Set(readSavedCandidates().map((item) => item.id)));
-    showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
+  async function saveCandidate(application: ApplicationResponse) {
+    try {
+      await saveCandidateByApplication(application.id);
+      setSavedReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getErrorMessage(error) });
+    }
   }
 
   return (
@@ -242,7 +266,7 @@ function ApplicationsListPage({
                 { key: "job", header: "Tin ứng tuyển", render: (application) => <div><p className="font-medium text-slate-900">{application.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(application.appliedAt)}</p></div> },
                 { key: "cv", header: "CV", render: (application) => application.cvFileName ? <StatusBadge label={application.cvFileName} /> : "Chưa có CV" },
                 { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /> },
-                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedIds.has(application.id)} onSave={saveCandidate} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
+                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedApplicationIds.has(application.id)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
               ]}
             />
             <Pagination page={applicationsPage?.page ?? page} totalPages={applicationsPage?.totalPages ?? 1} onPageChange={setPage} />
@@ -276,7 +300,9 @@ function ApplicationDetailPage({
   const application = applicationQuery.data;
   const [nextStatus, setNextStatus] = useState<ApplicationStatus>("REVIEWED");
   const [updating, setUpdating] = useState(false);
-  const [savedIds, setSavedIds] = useState(() => new Set(readSavedCandidates().map((item) => item.id)));
+  const [savedReloadKey, setSavedReloadKey] = useState(0);
+  const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
+  const savedApplicationIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.applicationId));
 
   useEffect(() => {
     if (application) setNextStatus(getDefaultNextStatus(application.status));
@@ -301,10 +327,14 @@ function ApplicationDetailPage({
     }
   }
 
-  function saveCandidate(application: ApplicationResponse) {
-    saveCandidateProfile(application);
-    setSavedIds(new Set(readSavedCandidates().map((item) => item.id)));
-    showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
+  async function saveCandidate(application: ApplicationResponse) {
+    try {
+      await saveCandidateByApplication(application.id);
+      setSavedReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getErrorMessage(error) });
+    }
   }
 
   if (applicationQuery.loading) {
@@ -329,8 +359,8 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
-        <Button variant="secondary" icon={savedIds.has(application.id) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => saveCandidate(application)}>
-          {savedIds.has(application.id) ? "Đã lưu hồ sơ" : "Lưu hồ sơ"}
+        <Button variant="secondary" icon={savedApplicationIds.has(application.id) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
+          {savedApplicationIds.has(application.id) ? "Đã lưu hồ sơ" : "Lưu hồ sơ"}
         </Button>
         <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
       </div>
@@ -399,6 +429,59 @@ function PipelineSummary({ applications }: { applications: ApplicationResponse[]
 
 function SavedCandidatesPage() {
   const { showToast } = useToast();
+  const [page, setPage] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
+  const savedCandidatesQuery = useAsyncData(() => getSavedCandidatesPage(page), [page, reloadKey]);
+  const result = savedCandidatesQuery.data;
+  const savedCandidates = result?.items ?? [];
+
+  async function removeSavedCandidate(savedCandidateId: number) {
+    try {
+      await deleteSavedCandidate(savedCandidateId);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "success", title: "Đã bỏ lưu hồ sơ ứng viên" });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể bỏ lưu hồ sơ", message: getErrorMessage(error) });
+    }
+  }
+
+  return (
+    <PageContainer>
+      <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu từ API backend." />
+      <Card>
+        <SectionHeader title="Danh sách hồ sơ" description={`${result?.totalItems ?? 0} hồ sơ đã lưu`} />
+        {savedCandidatesQuery.loading ? <LoadingState /> : null}
+        {savedCandidatesQuery.error ? <EmptyState message={savedCandidatesQuery.error} /> : null}
+        {!savedCandidatesQuery.loading && !savedCandidatesQuery.error && savedCandidates.length === 0 ? <EmptyState message="Chưa có hồ sơ ứng viên nào được lưu." /> : null}
+        {savedCandidates.length > 0 ? (
+          <Table
+            rows={savedCandidates}
+            getRowKey={(candidate) => String(candidate.id)}
+            columns={[
+              { key: "candidate", header: "Ứng viên", render: (candidate) => <SavedCandidateCell candidate={candidate} /> },
+              { key: "job", header: "Tin ứng tuyển", render: (candidate) => <div><p className="font-medium text-slate-900">{candidate.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(candidate.savedAt)}</p></div> },
+              { key: "cv", header: "CV", render: (candidate) => candidate.cvFileName ? <StatusBadge label={candidate.cvFileName} /> : "Chưa có CV" },
+              {
+                key: "actions",
+                header: "Thao tác",
+                render: (candidate) => (
+                  <div className="flex flex-wrap gap-2">
+                    <Link to={`/recruiter/candidates/${candidate.applicationId}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
+                    <Button variant="secondary" size="sm" onClick={() => void removeSavedCandidate(candidate.id)}>Bỏ lưu</Button>
+                  </div>
+                ),
+              },
+            ]}
+          />
+        ) : null}
+        <Pagination page={result?.page ?? page} totalPages={result?.totalPages ?? 1} onPageChange={setPage} />
+      </Card>
+    </PageContainer>
+  );
+}
+
+function LegacySavedCandidatesPage() {
+  const { showToast } = useToast();
   const [savedCandidates, setSavedCandidates] = useState(() => readSavedCandidates());
 
   function removeSavedCandidate(applicationId: number) {
@@ -449,6 +532,20 @@ function CandidateCell({ application }: { application: ApplicationResponse }) {
       <div>
         <p className="font-medium text-slate-900">{name}</p>
         <p className="text-xs text-slate-500">{application.studentEmail || "Chưa có email"}</p>
+      </div>
+    </div>
+  );
+}
+
+function SavedCandidateCell({ candidate }: { candidate: SavedCandidateResponse }) {
+  const name = candidate.studentName || candidate.studentEmail || "Ứng viên";
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar name={name} />
+      <div>
+        <p className="font-medium text-slate-900">{name}</p>
+        <p className="text-xs text-slate-500">{candidate.studentEmail || "Chưa có email"}</p>
+        {candidate.headline ? <p className="text-xs text-slate-500">{candidate.headline}</p> : null}
       </div>
     </div>
   );
@@ -603,6 +700,35 @@ async function getCompanyApplicationDetail(applicationId: number) {
   return response.data.data;
 }
 
+async function getSavedCandidatesPage(page: number) {
+  const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
+    params: { page, size: 10, sort: "savedAt,desc" },
+  });
+  return response.data.data;
+}
+
+async function getAllSavedCandidates(page = 1, items: SavedCandidateResponse[] = []): Promise<SavedCandidateResponse[]> {
+  const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
+    params: { page, size: 100, sort: "savedAt,desc" },
+  });
+  const data = response.data.data;
+  const nextItems = [...items, ...data.items];
+  if (data.page < data.totalPages) return getAllSavedCandidates(page + 1, nextItems);
+  return nextItems;
+}
+
+async function saveCandidateByApplication(applicationId: number) {
+  const response = await httpClient.post<ApiResponse<SavedCandidateResponse>>("/companies/me/saved-candidates", {
+    applicationId,
+    note: null,
+  });
+  return response.data.data;
+}
+
+async function deleteSavedCandidate(savedCandidateId: number) {
+  await httpClient.delete<ApiResponse<null>>(`/companies/me/saved-candidates/${savedCandidateId}`);
+}
+
 async function getCompanyJobs() {
   const [companyResponse, jobsResponse] = await Promise.all([
     httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
@@ -684,7 +810,7 @@ function formatDateTime(value?: string | null) {
 async function openApplicationCv(application: ApplicationResponse, showToast: ReturnType<typeof useToast>["showToast"]) {
   if (application.cvFileId) {
     try {
-      const response = await httpClient.get<Blob>(`/companies/me/applications/${application.id}/cv`, {
+      const response = await httpClient.get<Blob>(`/companies/me/applications/${application.id}/cv/file`, {
         responseType: "blob",
       });
       const blobUrl = window.URL.createObjectURL(response.data);

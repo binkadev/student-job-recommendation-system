@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.cv.service;
 
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +15,10 @@ public interface CvService {
     CvFileResponse getActiveCv(Long userId);
 
     CvFileResponse getMyCvFile(Long userId, Long id);
+
+    CvFileDownload getMyCvFileDownload(Long userId, Long cvId);
+
+    void deleteMyCvFile(Long userId, Long cvId);
 
     CvFileResponse activateCv(Long userId, Long id);
 }

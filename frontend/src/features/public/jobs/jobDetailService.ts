@@ -28,16 +28,12 @@ interface JobDetailResponse {
   location: string | null;
   jobType: BackendJobType | null;
   workingModel: BackendWorkingModel | null;
-  status: BackendJobStatus;
   salaryMin: number | string | null;
   salaryMax: number | string | null;
   currency: string | null;
   deadline: string | null;
   skills: JobSkillResponse[];
   publishedAt: string | null;
-  closedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
   applicantCount?: number | null;
   applicationCount?: number | null;
   applicants?: number | null;
@@ -65,7 +61,6 @@ interface PublicCompanyDetailResponse {
 
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type BackendWorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
-type BackendJobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
 
 const JOB_TYPE_LABELS: Record<BackendJobType, string> = {
   FULL_TIME: "Toàn thời gian",
@@ -82,7 +77,7 @@ const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
 
 export async function getPublicJobDetail(jobId: string): Promise<JobDetailResult | null> {
   if (!jobId) return null;
-  const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`);
+  const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/public/jobs/${jobId}`);
   const job = response.data.data;
   const company = await getPublicCompanyDetailOrNull(job.companyId);
   return {
@@ -118,7 +113,7 @@ function mapJobDetail(job: JobDetailResponse, company: PublicCompanyDetailRespon
     jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
     workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
     skills,
-    postedAt: formatDate(job.publishedAt || job.createdAt),
+    postedAt: formatDate(job.publishedAt),
     deadline: formatDate(job.deadline),
     applicants: getApplicantCount(job),
     status: job.deadline && daysUntil(job.deadline) <= 7 ? "urgent" : "published",
@@ -141,10 +136,10 @@ function mapJobDetail(job: JobDetailResponse, company: PublicCompanyDetailRespon
     workplace: job.location || "Chưa cập nhật",
     workingTime: "Chưa cập nhật",
     recruitmentProcess: [],
-    apiStatus: getStatusLabel(job.status),
-    publishedAt: formatDate(job.publishedAt || job.createdAt),
-    updatedAt: formatDate(job.updatedAt),
-    closedAt: formatDate(job.closedAt),
+    apiStatus: "Đang tuyển",
+    publishedAt: formatDate(job.publishedAt),
+    updatedAt: "Chưa cập nhật",
+    closedAt: "Chưa cập nhật",
     detailStatus: mapDetailStatus(job),
   };
 }
@@ -153,7 +148,7 @@ function getApplicantCount(job: JobDetailResponse) {
   return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
 }
 
-function getStatusLabel(status: BackendJobStatus) {
+function getStatusLabel(status: string) {
   if (status === "ACTIVE") return "Đang tuyển";
   if (status === "DRAFT") return "Bản nháp";
   if (status === "PENDING_APPROVAL") return "Chờ duyệt";
@@ -163,12 +158,8 @@ function getStatusLabel(status: BackendJobStatus) {
 }
 
 function mapDetailStatus(job: JobDetailResponse): PublicJobDetail["detailStatus"] {
-  if (job.status === "ACTIVE") {
-    if (job.deadline && daysUntil(job.deadline) < 0) return "expired";
-    return "open";
-  }
-  if (job.status === "EXPIRED") return "expired";
-  return "closed";
+  if (job.deadline && daysUntil(job.deadline) < 0) return "expired";
+  return "open";
 }
 
 function splitContent(value?: string | null) {
