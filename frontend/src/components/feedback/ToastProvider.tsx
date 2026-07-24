@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback(
     (toast: Omit<Toast, "id">) => {
-      const id = crypto.randomUUID();
+      const id = createToastId();
       setToasts((current) => [{ ...toast, id }, ...current].slice(0, 4));
       window.setTimeout(() => removeToast(id), 3500);
     },
@@ -60,6 +60,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
+}
+
+function createToastId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function useToast() {

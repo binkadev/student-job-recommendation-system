@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/Textarea";
+import { useAuth } from "../../app/providers/AuthProvider";
 import { useToast } from "../../hooks/useToast";
 import { registerRequest } from "../../services/auth/authService";
 import type { RegisterRequest } from "../../types/auth";
@@ -49,6 +50,7 @@ function getErrorMessage(error: unknown) {
 export function AuthFlowPage({ type }: AuthFlowPageProps) {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { logout } = useAuth();
   const page = copy[type];
   const [loading, setLoading] = useState(false);
 
@@ -90,8 +92,18 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       setLoading(true);
       try {
         await registerRequest(payload);
-        showToast({ type: "success", title: "Bạn đã đăng ký thành công", message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký." });
-        navigate("/login");
+        const successTitle = type === "recruiter" ? "Đăng ký doanh nghiệp thành công" : "Đăng ký ứng viên thành công";
+        window.sessionStorage.setItem("registrationSuccessMessage", "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.");
+        window.sessionStorage.setItem("registrationSuccessTitle", successTitle);
+        logout();
+        navigate("/login", {
+          replace: true,
+          state: {
+            registrationSuccess: true,
+            title: successTitle,
+            message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.",
+          },
+        });
       } catch (error) {
         showToast({ type: "error", title: "Đăng ký thất bại", message: getErrorMessage(error) });
       } finally {

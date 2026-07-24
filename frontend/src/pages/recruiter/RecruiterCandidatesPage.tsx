@@ -19,7 +19,6 @@ import { Textarea } from "../../components/ui/Textarea";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
-import { getStorageItem, setStorageItem } from "../../utils/localStorage";
 
 interface RecruiterCandidatesPageProps {
   mode?: "list" | "detail" | "evaluation" | "pipeline" | "recommended" | "saved" | "search";
@@ -110,8 +109,6 @@ const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   REJECTED: "Từ chối",
   WITHDRAWN: "Ứng viên rút đơn",
 };
-
-const SAVED_CANDIDATES_STORAGE_KEY = "recruiter-saved-candidates";
 
 export function RecruiterCandidatesPage({ mode = "list" }: RecruiterCandidatesPageProps) {
   const { candidateId } = useParams();
@@ -359,7 +356,7 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
-        <Button variant="secondary" icon={savedApplicationIds.has(application.id) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
+        <Button variant="secondary" disabled={savedApplicationIds.has(application.id)} icon={savedApplicationIds.has(application.id) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
           {savedApplicationIds.has(application.id) ? "Đã lưu hồ sơ" : "Lưu hồ sơ"}
         </Button>
         <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
@@ -480,50 +477,6 @@ function SavedCandidatesPage() {
   );
 }
 
-function LegacySavedCandidatesPage() {
-  const { showToast } = useToast();
-  const [savedCandidates, setSavedCandidates] = useState(() => readSavedCandidates());
-
-  function removeSavedCandidate(applicationId: number) {
-    const nextCandidates = savedCandidates.filter((application) => application.id !== applicationId);
-    setSavedCandidates(nextCandidates);
-    writeSavedCandidates(nextCandidates);
-    showToast({ type: "success", title: "Đã bỏ lưu hồ sơ ứng viên" });
-  }
-
-  return (
-    <PageContainer>
-      <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu từ các đơn ứng tuyển thật của công ty." />
-      <Card>
-        <SectionHeader title="Danh sách hồ sơ" description={`${savedCandidates.length} hồ sơ đã lưu`} />
-        {savedCandidates.length === 0 ? <EmptyState message="Chưa có hồ sơ ứng viên nào được lưu." /> : null}
-        {savedCandidates.length > 0 ? (
-          <Table
-            rows={savedCandidates}
-            getRowKey={(application) => String(application.id)}
-            columns={[
-              { key: "candidate", header: "Ứng viên", render: (application) => <CandidateCell application={application} /> },
-              { key: "job", header: "Tin ứng tuyển", render: (application) => <div><p className="font-medium text-slate-900">{application.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(application.appliedAt)}</p></div> },
-              { key: "cv", header: "CV", render: (application) => application.cvFileName ? <StatusBadge label={application.cvFileName} /> : "Chưa có CV" },
-              { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /> },
-              {
-                key: "actions",
-                header: "Thao tác",
-                render: (application) => (
-                  <div className="flex flex-wrap gap-2">
-                    <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
-                    <Button variant="secondary" size="sm" onClick={() => removeSavedCandidate(application.id)}>Bỏ lưu</Button>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        ) : null}
-      </Card>
-    </PageContainer>
-  );
-}
-
 function CandidateCell({ application }: { application: ApplicationResponse }) {
   const name = application.studentName || application.studentEmail || "Ứng viên";
   return (
@@ -565,7 +518,7 @@ function ApplicationActions({
   return (
     <div className="flex flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
-      <Button variant="secondary" size="sm" icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
+      <Button variant="secondary" size="sm" disabled={saved} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
         {saved ? "Đã lưu" : "Lưu hồ sơ"}
       </Button>
       <Button variant="secondary" size="sm" icon={<UserCheck size={14} />} disabled={application.status === "WITHDRAWN"} onClick={() => onOpenStatus(application)}>Trạng thái</Button>
@@ -702,14 +655,14 @@ async function getCompanyApplicationDetail(applicationId: number) {
 
 async function getSavedCandidatesPage(page: number) {
   const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
-    params: { page, size: 10, sort: "savedAt,desc" },
+    params: { page, size: 10, sort: "createdAt,desc" },
   });
   return response.data.data;
 }
 
 async function getAllSavedCandidates(page = 1, items: SavedCandidateResponse[] = []): Promise<SavedCandidateResponse[]> {
   const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
-    params: { page, size: 100, sort: "savedAt,desc" },
+    params: { page, size: 100, sort: "createdAt,desc" },
   });
   const data = response.data.data;
   const nextItems = [...items, ...data.items];
@@ -783,23 +736,6 @@ function sortApplicationsForRecruiter(applications: ApplicationResponse[], sort:
     if (left.status !== "ACCEPTED" && right.status === "ACCEPTED") return -1;
     return (new Date(left.appliedAt).getTime() - new Date(right.appliedAt).getTime()) * direction;
   });
-}
-
-function readSavedCandidates() {
-  return getStorageItem<ApplicationResponse[]>(SAVED_CANDIDATES_STORAGE_KEY, []);
-}
-
-function writeSavedCandidates(candidates: ApplicationResponse[]) {
-  setStorageItem(SAVED_CANDIDATES_STORAGE_KEY, candidates);
-}
-
-function saveCandidateProfile(application: ApplicationResponse) {
-  const savedCandidates = readSavedCandidates();
-  const nextCandidates = [
-    application,
-    ...savedCandidates.filter((savedApplication) => savedApplication.id !== application.id),
-  ];
-  writeSavedCandidates(nextCandidates);
 }
 
 function formatDateTime(value?: string | null) {

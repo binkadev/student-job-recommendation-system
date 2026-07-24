@@ -1,7 +1,7 @@
 import { isAxiosError } from "axios";
 import type { FormEvent } from "react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -33,10 +33,27 @@ function getErrorMessage(error: unknown) {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [prefill, setPrefill] = useState({ email: "", password: "" });
+
+  useEffect(() => {
+    const state = location.state as { registrationSuccess?: boolean; title?: string; message?: string } | null;
+    const storedMessage = window.sessionStorage.getItem("registrationSuccessMessage");
+    const storedTitle = window.sessionStorage.getItem("registrationSuccessTitle");
+    if (!state?.registrationSuccess && !storedMessage) return;
+
+    showToast({
+      type: "success",
+      title: state?.title ?? storedTitle ?? "Đăng ký thành công",
+      message: state?.message ?? storedMessage ?? "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.",
+    });
+    window.sessionStorage.removeItem("registrationSuccessMessage");
+    window.sessionStorage.removeItem("registrationSuccessTitle");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate, showToast]);
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

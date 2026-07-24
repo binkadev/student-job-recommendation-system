@@ -101,7 +101,7 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
         }
 
         Long studentId = application.getStudent().getId();
-        if (savedCandidateRepository.existsByCompanyIdAndStudentId(company.getId(), studentId)) {
+        if (savedCandidateRepository.existsByCompanyIdAndApplicationId(company.getId(), application.getId())) {
             throw new AppException(ErrorCode.SAVED_CANDIDATE_ALREADY_EXISTS);
         }
 

@@ -99,13 +99,17 @@ export function HomePage() {
             Tìm kiếm việc làm, tải CV và nhận gợi ý theo kỹ năng, kinh nghiệm, địa điểm mong muốn và mục tiêu nghề nghiệp của bạn.
           </p>
 
-          <form onSubmit={handleSearch} className="mt-6 grid gap-3 rounded-lg bg-white p-3 text-slate-900 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_130px_150px] xl:items-end">
-            <Input label="Từ khóa" name="keyword" placeholder="Frontend, Java, Data..." />
-            <Select label="Địa điểm" name="location" options={locationOptions} />
-            <Button type="submit" className="h-10 w-full self-end whitespace-nowrap" icon={<Search size={16} />}>Tìm việc</Button>
-            <Button type="button" variant="secondary" className="h-10 w-full self-end whitespace-nowrap px-3" icon={<FileUp size={16} />} onClick={handleUploadCv}>
-              Tải CV
-            </Button>
+          <form onSubmit={handleSearch} className="mt-6 grid gap-3 rounded-lg bg-white p-3 text-slate-900">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input label="Từ khóa" name="keyword" placeholder="Frontend, Java, Data..." />
+              <Select label="Địa điểm" name="location" options={locationOptions} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button type="submit" className="h-10 w-full whitespace-nowrap" icon={<Search size={16} />}>Tìm việc</Button>
+              <Button type="button" variant="secondary" className="h-10 w-full whitespace-nowrap px-3" icon={<FileUp size={16} />} onClick={handleUploadCv}>
+                Tải CV
+              </Button>
+            </div>
           </form>
         </div>
 

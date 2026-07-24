@@ -77,7 +77,7 @@ class SavedCandidateServiceImplTest {
         SavedCandidateResponse response = SavedCandidateResponse.builder().id(11L).build();
         when(companyRepository.findByUserId(2L)).thenReturn(Optional.of(company));
         when(applicationRepository.findDetailedById(7L)).thenReturn(Optional.of(application));
-        when(savedCandidateRepository.existsByCompanyIdAndStudentId(3L, 5L)).thenReturn(false);
+        when(savedCandidateRepository.existsByCompanyIdAndApplicationId(3L, 7L)).thenReturn(false);
         when(savedCandidateRepository.saveAndFlush(org.mockito.ArgumentMatchers.any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(studentProfileRepository.findByStudentId(5L)).thenReturn(Optional.empty());
@@ -113,10 +113,10 @@ class SavedCandidateServiceImplTest {
     }
 
     @Test
-    void duplicateCompanyStudentReturnsStableConflictCode() {
+    void duplicateCompanyApplicationReturnsStableConflictCode() {
         when(companyRepository.findByUserId(2L)).thenReturn(Optional.of(company));
         when(applicationRepository.findDetailedById(7L)).thenReturn(Optional.of(application));
-        when(savedCandidateRepository.existsByCompanyIdAndStudentId(3L, 5L)).thenReturn(true);
+        when(savedCandidateRepository.existsByCompanyIdAndApplicationId(3L, 7L)).thenReturn(true);
 
         assertThatThrownBy(() -> savedCandidateService.saveCandidate(2L, request(7L, null)))
                 .isInstanceOfSatisfying(AppException.class, exception ->
