@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+pdfplumber
+python-docx
+underthesea
+scikit-learn
+numpy
+pytest
+httpx
