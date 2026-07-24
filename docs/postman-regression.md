@@ -1,4 +1,4 @@
-# BE Core Regression Cases
+﻿# BE Core Regression Cases
 
 Use the dev profile and the local database defaults unless overridden:
 

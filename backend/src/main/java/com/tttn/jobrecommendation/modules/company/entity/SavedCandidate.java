@@ -31,8 +31,8 @@ import java.time.LocalDateTime;
 @Table(
         name = "saved_candidates",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_saved_candidates_company_student",
-                columnNames = {"company_id", "student_id"}
+                name = "uk_saved_candidates_company_application",
+                columnNames = {"company_id", "application_id"}
         )
 )
 public class SavedCandidate {

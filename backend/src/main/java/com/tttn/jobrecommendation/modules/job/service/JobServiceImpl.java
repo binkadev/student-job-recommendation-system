@@ -245,7 +245,7 @@ public class JobServiceImpl implements JobService {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (role == UserRole.STUDENT) {
+            if (role == null || role == UserRole.STUDENT) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE));
             } else if (role == UserRole.COMPANY) {
                 Predicate activeJobs = criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE);

@@ -1,8 +1,8 @@
 package com.tttn.jobrecommendation.modules.job.repository;
 
-import com.tttn.jobrecommendation.modules.job.entity.Job;
-import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.modules.job.entity.Job;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,8 +12,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Collection;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +24,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     Page<Job> findAll(Specification<Job> specification, Pageable pageable);
 
     Optional<Job> findFirstByCompanyIdAndTitleOrderByIdAsc(Long companyId, String title);
+
+    long countByStatus(JobStatus status);
 
     long countByCompanyIdAndStatus(Long companyId, JobStatus status);
 

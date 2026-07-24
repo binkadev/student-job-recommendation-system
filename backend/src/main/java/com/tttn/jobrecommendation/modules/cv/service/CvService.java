@@ -1,7 +1,7 @@
 package com.tttn.jobrecommendation.modules.cv.service;
 
-import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
+import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

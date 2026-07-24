@@ -1,20 +1,32 @@
-﻿# IntelliJ IDEA
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build
+dist/
+frontend/dist/
+.next/
+out/
+
+# IDE
 .idea/
+.vscode/
 *.iml
 *.iws
 *.ipr
-
-# Visual Studio Code local configuration
-.vscode/
 
 # Java / Maven build output
 **/target/
 
 # Runtime files
 **/uploads/
+
+# Logs
 *.log
 
-# Local environment files
+# Environment
+.env
+.env.*
 **/.env
 **/.env.*
 !**/.env.example
