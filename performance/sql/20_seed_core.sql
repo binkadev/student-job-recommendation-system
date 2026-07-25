@@ -24,6 +24,9 @@ BEGIN
         + (SELECT count(*) FROM recommendation_runs)
         + (SELECT count(*) FROM recommendation_results)
         + (SELECT count(*) FROM notifications)
+        + (SELECT count(*) FROM user_notification_settings)
+        + (SELECT count(*) FROM saved_candidates)
+        + (SELECT count(*) FROM saved_searches)
     INTO existing_rows;
 
     IF existing_rows <> 0 THEN
@@ -441,6 +444,49 @@ SELECT
     END
 FROM application_source;
 
+-- Controlled recommendation history for the canonical student account.
+-- The 20 runs exercise the optimized grouped result-count query without
+-- invoking the AI service. Result counts repeat 0, 1, 2, 3, 4.
+INSERT INTO recommendation_runs (
+    id, student_id, cv_file_id, source_type, status, started_at,
+    finished_at, error_message, created_at, updated_at
+)
+SELECT
+    run_number,
+    1,
+    CASE WHEN run_number % 3 = 1 THEN NULL ELSE 1 END,
+    (ARRAY['PROFILE', 'CV', 'PROFILE_AND_CV'])[1 + ((run_number - 1) % 3)],
+    'SUCCESS',
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day',
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day' + INTERVAL '2 seconds',
+    NULL,
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day',
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day' + INTERVAL '2 seconds'
+FROM generate_series(1, 20) AS runs(run_number);
+
+WITH result_source AS (
+    SELECT
+        run_number,
+        rank_position,
+        row_number() OVER (ORDER BY run_number, rank_position) AS result_id
+    FROM generate_series(1, 20) AS runs(run_number)
+    CROSS JOIN LATERAL generate_series(1, ((run_number - 1) % 5)) AS ranks(rank_position)
+)
+INSERT INTO recommendation_results (
+    id, run_id, job_id, score, matched_keywords, rank_position,
+    created_at, updated_at
+)
+SELECT
+    result_id,
+    run_number,
+    (run_number - 1) * 10 + rank_position,
+    0.95000 - rank_position * 0.01000,
+    jsonb_build_array('java', 'spring boot', format('rank-%s', rank_position)),
+    rank_position,
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day' + INTERVAL '2 seconds',
+    TIMESTAMP '2026-01-01 08:00:00' + run_number * INTERVAL '1 day' + INTERVAL '2 seconds'
+FROM result_source;
+
 SELECT setval(pg_get_serial_sequence('public.users', 'id'), 1101, TRUE);
 SELECT setval(pg_get_serial_sequence('public.students', 'id'), 1000, TRUE);
 SELECT setval(pg_get_serial_sequence('public.student_profiles', 'id'), 1000, TRUE);
@@ -452,6 +498,8 @@ SELECT setval(pg_get_serial_sequence('public.job_skills', 'id'), 50000, TRUE);
 SELECT setval(pg_get_serial_sequence('public.saved_jobs', 'id'), 20000, TRUE);
 SELECT setval(pg_get_serial_sequence('public.cv_files', 'id'), 1200, TRUE);
 SELECT setval(pg_get_serial_sequence('public.applications', 'id'), 50000, TRUE);
+SELECT setval(pg_get_serial_sequence('public.recommendation_runs', 'id'), 20, TRUE);
+SELECT setval(pg_get_serial_sequence('public.recommendation_results', 'id'), 40, TRUE);
 
 COMMIT;
 

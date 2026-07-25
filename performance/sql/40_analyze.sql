@@ -17,6 +17,9 @@ ANALYZE applications;
 ANALYZE recommendation_runs;
 ANALYZE recommendation_results;
 ANALYZE notifications;
+ANALYZE user_notification_settings;
+ANALYZE saved_candidates;
+ANALYZE saved_searches;
 
 \echo ''
 \echo 'Planner statistics confirmation:'
@@ -29,7 +32,8 @@ WHERE schemaname = 'public'
   AND relname IN (
       'users', 'students', 'student_profiles', 'companies', 'skills',
       'student_skills', 'jobs', 'job_skills', 'saved_jobs', 'cv_files',
-      'applications', 'recommendation_runs', 'recommendation_results', 'notifications'
+      'applications', 'recommendation_runs', 'recommendation_results', 'notifications',
+      'user_notification_settings', 'saved_candidates', 'saved_searches'
   )
 ORDER BY relname;
 

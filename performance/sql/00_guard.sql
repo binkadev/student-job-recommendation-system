@@ -21,7 +21,7 @@ BEGIN
 
     IF to_regclass('public.flyway_schema_history') IS NULL THEN
         RAISE EXCEPTION
-            'SAFETY GUARD FAILED: public.flyway_schema_history does not exist; start the backend so Flyway V1-V12 can run';
+            'SAFETY GUARD FAILED: public.flyway_schema_history does not exist; start the backend so Flyway V1-V14 can run';
     END IF;
 
     IF EXISTS (SELECT 1 FROM public.flyway_schema_history WHERE success = FALSE) THEN
@@ -37,9 +37,9 @@ BEGIN
     ORDER BY installed_rank DESC
     LIMIT 1;
 
-    IF latest_version IS DISTINCT FROM '12' THEN
+    IF latest_version IS DISTINCT FROM '14' THEN
         RAISE EXCEPTION
-            'SAFETY GUARD FAILED: expected latest Flyway migration 12, found %',
+            'SAFETY GUARD FAILED: expected latest Flyway migration 14, found %',
             COALESCE(latest_version, '<none>');
     END IF;
 
@@ -59,7 +59,10 @@ BEGIN
         ('applications'),
         ('recommendation_runs'),
         ('recommendation_results'),
-        ('notifications')
+        ('notifications'),
+        ('saved_candidates'),
+        ('user_notification_settings'),
+        ('saved_searches')
     ) AS required(required_table)
     WHERE to_regclass(format('public.%I', required_table)) IS NULL;
 
