@@ -45,6 +45,21 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
             @Param("today") LocalDate today
     );
 
+    @EntityGraph(attributePaths = {"company"})
+    @Query("""
+            select job
+            from Job job
+            where job.status = :jobStatus
+              and job.company.status = :companyStatus
+              and (job.deadline is null or job.deadline >= :today)
+            order by job.id asc
+            """)
+    List<Job> findEligibleForRecommendation(
+            @Param("jobStatus") JobStatus jobStatus,
+            @Param("companyStatus") CompanyStatus companyStatus,
+            @Param("today") LocalDate today
+    );
+
     @Query("""
             select j.company.id as companyId, count(j.id) as openJobs
             from Job j

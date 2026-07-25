@@ -6,20 +6,20 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
-public class RecommendationRunResponse {
+public class RecommendationRunDetailResponse {
 
     private Long id;
     private Long cvId;
     private RecommendationSourceType sourceType;
-    private String algorithm;
-    private String algorithmVersion;
-    private Integer totalJobsScanned;
-    private Integer totalRecommended;
     private RecommendationRunStatus status;
+    private Integer totalRecommended;
+    private String errorMessage;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private LocalDateTime createdAt;
+    private List<RecommendationResultResponse> results;
 }

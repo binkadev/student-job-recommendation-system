@@ -1,7 +1,10 @@
 package com.tttn.jobrecommendation.modules.recommendation.service.impl;
 
+import com.tttn.jobrecommendation.common.exception.AppException;
+import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.modules.recommendation.dto.response.RecommendationResultResponse;
+import com.tttn.jobrecommendation.modules.recommendation.dto.response.RecommendationRunDetailResponse;
 import com.tttn.jobrecommendation.modules.recommendation.dto.response.RecommendationRunResponse;
 import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
 import com.tttn.jobrecommendation.modules.recommendation.mapper.RecommendationMapper;
@@ -45,6 +48,16 @@ public class RecommendationQueryServiceImpl implements RecommendationQueryServic
         return recommendationRunRepository.findFirstByStudentIdOrderByCreatedAtDesc(student.getId())
                 .map(this::getResultsByRun)
                 .orElse(List.of());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RecommendationRunDetailResponse getMyRecommendationRun(Long userId, Long runId) {
+        Student student = getStudentByUserId(userId);
+        RecommendationRun run = recommendationRunRepository.findByIdAndStudentId(runId, student.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECOMMENDATION_RUN_NOT_FOUND));
+        List<RecommendationResultResponse> results = getResultsByRun(run);
+        return recommendationMapper.toRecommendationRunDetailResponse(run, results);
     }
 
     private List<RecommendationResultResponse> getResultsByRun(RecommendationRun run) {
