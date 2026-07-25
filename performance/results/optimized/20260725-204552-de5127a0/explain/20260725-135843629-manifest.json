@@ -1,0 +1,83 @@
+﻿{
+    "phase":  "optimized branch EXPLAIN ANALYZE BUFFERS capture",
+    "capturedAtUtc":  "2026-07-25T13:58:43.6317865Z",
+    "database":  "student_job_recommendation_perf",
+    "user":  "perf_user",
+    "plans":  [
+                  {
+                      "endpoint":  "jobs-list",
+                      "kind":  "content",
+                      "file":  "20260725-135843629-jobs-list-content.json"
+                  },
+                  {
+                      "endpoint":  "jobs-list",
+                      "kind":  "count",
+                      "file":  "20260725-135843629-jobs-list-count.json"
+                  },
+                  {
+                      "endpoint":  "jobs-list",
+                      "kind":  "secondary",
+                      "file":  "20260725-135843629-jobs-list-secondary.json"
+                  },
+                  {
+                      "endpoint":  "company-applications",
+                      "kind":  "content",
+                      "file":  "20260725-135843629-company-applications-content.json"
+                  },
+                  {
+                      "endpoint":  "company-applications",
+                      "kind":  "count",
+                      "file":  "20260725-135843629-company-applications-count.json"
+                  },
+                  {
+                      "endpoint":  "company-applications",
+                      "kind":  "secondary",
+                      "file":  "20260725-135843629-company-applications-secondary.json"
+                  },
+                  {
+                      "endpoint":  "public-companies",
+                      "kind":  "content",
+                      "file":  "20260725-135843629-public-companies-content.json"
+                  },
+                  {
+                      "endpoint":  "public-companies",
+                      "kind":  "count",
+                      "file":  "20260725-135843629-public-companies-count.json"
+                  },
+                  {
+                      "endpoint":  "public-companies",
+                      "kind":  "secondary",
+                      "file":  "20260725-135843629-public-companies-secondary.json"
+                  },
+                  {
+                      "endpoint":  "saved-jobs",
+                      "kind":  "content",
+                      "file":  "20260725-135843629-saved-jobs-content.json"
+                  },
+                  {
+                      "endpoint":  "saved-jobs",
+                      "kind":  "count",
+                      "file":  "20260725-135843629-saved-jobs-count.json"
+                  },
+                  {
+                      "endpoint":  "saved-jobs",
+                      "kind":  "secondary",
+                      "file":  "20260725-135843629-saved-jobs-secondary.json"
+                  },
+                  {
+                      "endpoint":  "recommendation-runs",
+                      "kind":  "content",
+                      "file":  "20260725-135843629-recommendation-runs-content.json"
+                  },
+                  {
+                      "endpoint":  "recommendation-runs",
+                      "kind":  "count",
+                      "file":  "20260725-135843629-recommendation-runs-count.json"
+                  },
+                  {
+                      "endpoint":  "recommendation-runs",
+                      "kind":  "secondary",
+                      "file":  "20260725-135843629-recommendation-runs-secondary.json"
+                  }
+              ]
+}

@@ -1,0 +1,42 @@
+﻿{
+    "run":  2,
+    "startedAtUtc":  "2026-07-25T14:01:27.1576717Z",
+    "endpoints":  [
+                      {
+                          "endpoint":  "jobs-list",
+                          "measuredStartedAtUtc":  "2026-07-25T14:01:28.2908207Z",
+                          "measuredCompletedAtUtc":  "2026-07-25T14:02:09.8154569Z",
+                          "sqlCallsPerRequest":  6,
+                          "serviceSqlCallsPerRequest":  3
+                      },
+                      {
+                          "endpoint":  "company-applications",
+                          "measuredStartedAtUtc":  "2026-07-25T14:02:11.2303592Z",
+                          "measuredCompletedAtUtc":  "2026-07-25T14:02:50.7257370Z",
+                          "sqlCallsPerRequest":  6,
+                          "serviceSqlCallsPerRequest":  3
+                      },
+                      {
+                          "endpoint":  "public-companies",
+                          "measuredStartedAtUtc":  "2026-07-25T14:02:51.7536317Z",
+                          "measuredCompletedAtUtc":  "2026-07-25T14:03:08.5289657Z",
+                          "sqlCallsPerRequest":  4,
+                          "serviceSqlCallsPerRequest":  3
+                      },
+                      {
+                          "endpoint":  "saved-jobs",
+                          "measuredStartedAtUtc":  "2026-07-25T14:03:09.6383942Z",
+                          "measuredCompletedAtUtc":  "2026-07-25T14:03:24.9534024Z",
+                          "sqlCallsPerRequest":  6,
+                          "serviceSqlCallsPerRequest":  3
+                      },
+                      {
+                          "endpoint":  "recommendation-runs",
+                          "measuredStartedAtUtc":  "2026-07-25T14:03:26.0538834Z",
+                          "measuredCompletedAtUtc":  "2026-07-25T14:03:41.4821699Z",
+                          "sqlCallsPerRequest":  6,
+                          "serviceSqlCallsPerRequest":  3
+                      }
+                  ],
+    "completedAtUtc":  "2026-07-25T14:03:41.7108817Z"
+}

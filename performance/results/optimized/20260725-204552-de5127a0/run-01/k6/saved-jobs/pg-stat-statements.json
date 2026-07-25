@@ -1,0 +1,79 @@
+﻿{
+    "endpoint":  "saved-jobs",
+    "measuredRequests":  10000,
+    "resetImmediatelyBeforeMeasuredPhase":  true,
+    "measuredStartedAtUtc":  "2026-07-25T14:00:55.3207821Z",
+    "measuredCompletedAtUtc":  "2026-07-25T14:01:10.8904227Z",
+    "sqlCallsPerRequest":  6,
+    "jwtUserLookupCallsPerRequest":  1,
+    "transactionControlCallsPerRequest":  2,
+    "serviceSqlCallsPerRequest":  3,
+    "queryStatistics":  {
+                            "totalRows":  230000,
+                            "sharedBlockHits":  1590000,
+                            "sharedBlockReads":  0,
+                            "totalExecutionMs":  2994.904,
+                            "serviceStatements":  30000,
+                            "totalSqlStatements":  60000,
+                            "jwtUserLookupStatements":  10000,
+                            "uniqueNormalizedStatements":  5,
+                            "transactionControlStatements":  20000
+                        },
+    "statements":  [
+                       {
+                           "rows":  200000,
+                           "calls":  10000,
+                           "query_id":  "-6500452587724634273",
+                           "normalized_sql":  "select sj1_0.id,sj1_0.created_at,sj1_0.job_id,j1_0.id,j1_0.benefits,j1_0.closed_at,j1_0.company_id,c1_0.id,c1_0.address,c1_0.company_name,c1_0.company_size,c1_0.created_at,c1_0.description,c1_0.industry,c1_0.logo_url,c1_0.phone,c1_0.status,c1_0.tax_code,c1_0.updated_at,c1_0.user_id,c1_0.website_url,j1_0.created_at,j1_0.currency,j1_0.deadline,j1_0.description,j1_0.job_type,j1_0.location,j1_0.published_at,j1_0.requirements,j1_0.salary_max,j1_0.salary_min,j1_0.status,j1_0.title,j1_0.updated_at,j1_0.working_model,sj1_0.student_id,sj1_0.updated_at from saved_jobs sj1_0 join students s1_0 on s1_0.id=sj1_0.student_id join jobs j1_0 on j1_0.id=sj1_0.job_id join companies c1_0 on c1_0.id=j1_0.company_id where s1_0.id=$1 order by sj1_0.created_at desc,sj1_0.created_at desc fetch first $2 rows only",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.207,
+                           "shared_block_hits":  1250000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  2068.193
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "101348941875690526",
+                           "normalized_sql":  "select count(sj1_0.id) from saved_jobs sj1_0 join students s1_0 on s1_0.id=sj1_0.student_id where s1_0.id=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.040,
+                           "shared_block_hits":  250000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  402.426
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-805448383793017071",
+                           "normalized_sql":  "select s1_0.id,s1_0.created_at,s1_0.graduation_year,s1_0.location,s1_0.major,s1_0.student_code,s1_0.university,s1_0.updated_at,s1_0.user_id from students s1_0 join users u1_0 on u1_0.id=s1_0.user_id where u1_0.id=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.020,
+                           "shared_block_hits":  60000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  203.414
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-4313940598091379112",
+                           "normalized_sql":  "select u1_0.id,u1_0.created_at,u1_0.email,u1_0.full_name,u1_0.last_login_at,u1_0.password_hash,u1_0.phone,u1_0.role,u1_0.status,u1_0.updated_at from users u1_0 where u1_0.email=$1",
+                           "statement_class":  "jwt_user_lookup",
+                           "mean_execution_ms":  0.019,
+                           "shared_block_hits":  30000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  193.519
+                       },
+                       {
+                           "rows":  0,
+                           "calls":  20000,
+                           "query_id":  "2869606018209600839",
+                           "normalized_sql":  "BEGIN READ ONLY",
+                           "statement_class":  "transaction_control",
+                           "mean_execution_ms":  0.006,
+                           "shared_block_hits":  0,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  127.352
+                       }
+                   ]
+}

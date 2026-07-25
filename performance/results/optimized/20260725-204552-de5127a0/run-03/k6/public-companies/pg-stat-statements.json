@@ -1,0 +1,68 @@
+﻿{
+    "endpoint":  "public-companies",
+    "measuredRequests":  10000,
+    "resetImmediatelyBeforeMeasuredPhase":  true,
+    "measuredStartedAtUtc":  "2026-07-25T14:05:06.8708414Z",
+    "measuredCompletedAtUtc":  "2026-07-25T14:05:24.2671758Z",
+    "sqlCallsPerRequest":  4,
+    "jwtUserLookupCallsPerRequest":  0,
+    "transactionControlCallsPerRequest":  1,
+    "serviceSqlCallsPerRequest":  3,
+    "queryStatistics":  {
+                            "totalRows":  410000,
+                            "sharedBlockHits":  1570000,
+                            "sharedBlockReads":  0,
+                            "totalExecutionMs":  6314.757,
+                            "serviceStatements":  30000,
+                            "totalSqlStatements":  40000,
+                            "jwtUserLookupStatements":  0,
+                            "uniqueNormalizedStatements":  4,
+                            "transactionControlStatements":  10000
+                        },
+    "statements":  [
+                       {
+                           "rows":  200000,
+                           "calls":  10000,
+                           "query_id":  "-7055601842731219444",
+                           "normalized_sql":  "select j1_0.company_id,count(j1_0.id) from jobs j1_0 where j1_0.company_id in ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) and j1_0.status=$21 group by j1_0.company_id",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.504,
+                           "shared_block_hits":  1470000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  5040.332
+                       },
+                       {
+                           "rows":  200000,
+                           "calls":  10000,
+                           "query_id":  "9206734704401764715",
+                           "normalized_sql":  "select c1_0.id,c1_0.address,c1_0.company_name,c1_0.company_size,c1_0.created_at,c1_0.description,c1_0.industry,c1_0.logo_url,c1_0.phone,c1_0.status,c1_0.tax_code,c1_0.updated_at,c1_0.user_id,c1_0.website_url from companies c1_0 where c1_0.status=$1 order by c1_0.created_at desc offset $2 rows fetch first $3 rows only",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.091,
+                           "shared_block_hits":  50000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  906.212
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-1657961985009543009",
+                           "normalized_sql":  "select count(c1_0.id) from companies c1_0 where c1_0.status=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.029,
+                           "shared_block_hits":  50000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  292.146
+                       },
+                       {
+                           "rows":  0,
+                           "calls":  10000,
+                           "query_id":  "2869606018209600839",
+                           "normalized_sql":  "BEGIN READ ONLY",
+                           "statement_class":  "transaction_control",
+                           "mean_execution_ms":  0.008,
+                           "shared_block_hits":  0,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  76.067
+                       }
+                   ]
+}
