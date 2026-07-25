@@ -156,7 +156,7 @@ class SavedCandidateApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
-    void duplicateCompanyApplicationSaveReturnsConflict() throws Exception {
+    void duplicateCompanyStudentSaveReturnsConflict() throws Exception {
         String body = "{\"applicationId\": %d}".formatted(aliceApplication.getId());
         mockMvc.perform(post("/api/companies/me/saved-candidates")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(acme.getUser()))

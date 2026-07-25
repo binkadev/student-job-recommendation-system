@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface SavedCandidateRepository
         extends JpaRepository<SavedCandidate, Long>, JpaSpecificationExecutor<SavedCandidate> {
 
-    boolean existsByCompanyIdAndApplicationId(Long companyId, Long applicationId);
+    boolean existsByCompanyIdAndStudentId(Long companyId, Long studentId);
 
     Optional<SavedCandidate> findByIdAndCompanyId(Long id, Long companyId);
 

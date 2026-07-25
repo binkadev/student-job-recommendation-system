@@ -183,7 +183,7 @@ function ApplicationsListPage({
   const applicationsPage = applicationsQuery.data;
   const applications = applicationsPage?.items ?? [];
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
-  const savedApplicationIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.applicationId));
+  const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
   const filteredApplications = useMemo(() => {
     if (dateRangeError) return [];
     return applications.filter((application) => {
@@ -263,7 +263,7 @@ function ApplicationsListPage({
                 { key: "job", header: "Tin ứng tuyển", render: (application) => <div><p className="font-medium text-slate-900">{application.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(application.appliedAt)}</p></div> },
                 { key: "cv", header: "CV", render: (application) => application.cvFileName ? <StatusBadge label={application.cvFileName} /> : "Chưa có CV" },
                 { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /> },
-                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedApplicationIds.has(application.id)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
+                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedStudentIds.has(application.studentId)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
               ]}
             />
             <Pagination page={applicationsPage?.page ?? page} totalPages={applicationsPage?.totalPages ?? 1} onPageChange={setPage} />
@@ -299,7 +299,7 @@ function ApplicationDetailPage({
   const [updating, setUpdating] = useState(false);
   const [savedReloadKey, setSavedReloadKey] = useState(0);
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
-  const savedApplicationIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.applicationId));
+  const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
 
   useEffect(() => {
     if (application) setNextStatus(getDefaultNextStatus(application.status));
@@ -356,8 +356,8 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
-        <Button variant="secondary" disabled={savedApplicationIds.has(application.id)} icon={savedApplicationIds.has(application.id) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
-          {savedApplicationIds.has(application.id) ? "Đã lưu hồ sơ" : "Lưu hồ sơ"}
+        <Button variant="secondary" disabled={savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
+          {savedStudentIds.has(application.studentId) ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
         </Button>
         <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
       </div>
@@ -519,7 +519,7 @@ function ApplicationActions({
     <div className="flex flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
       <Button variant="secondary" size="sm" disabled={saved} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
-        {saved ? "Đã lưu" : "Lưu hồ sơ"}
+        {saved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
       </Button>
       <Button variant="secondary" size="sm" icon={<UserCheck size={14} />} disabled={application.status === "WITHDRAWN"} onClick={() => onOpenStatus(application)}>Trạng thái</Button>
     </div>
