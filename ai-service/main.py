@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 
 import extractors
@@ -31,6 +31,9 @@ app.add_middleware(
 
 class CvPayload(BaseModel):
     """CV data passed in from the Java orchestrator."""
+    model_config = ConfigDict(extra="forbid")
+
+    id: int = Field(gt=0, description="CV record ID — must be a positive integer")
     processedText: str
     skills: List[str]
 
@@ -47,8 +50,8 @@ class RecommendationRequest(BaseModel):
     requestId: str
     cv: CvPayload
     jobs: List[JobDocument]
-    threshold: float = 0.1
-    limit: int = 20
+    threshold: float = Field(default=0.1, ge=0.0, le=1.0, description="Minimum cosine similarity score [0.0, 1.0]")
+    limit: int = Field(default=20, ge=1, le=100, description="Maximum number of results [1, 100]")
 
 
 # ---------------------------------------------------------------------------

@@ -104,6 +104,7 @@ class TestCvParseEndpoint:
 # ===========================================================================
 
 SAMPLE_CV = {
+    "id": 1,
     "processedText": "Java Spring Boot REST API Docker Kubernetes PostgreSQL Agile Scrum",
     "skills": ["Java", "Spring Boot", "Docker", "Kubernetes", "PostgreSQL"],
 }
