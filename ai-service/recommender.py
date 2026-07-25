@@ -58,7 +58,6 @@ def generate_recommendations(
     # [1..n]   = job documents (corpus)
     # -----------------------------------------------------------------------
     job_texts = [job.get("processedText", "") for job in jobs]
-    all_docs = [cv_processed_text] + job_texts
 
     # ngram_range=(1,2) captures two-word IT phrases like "spring boot"
     # stop_words=None  because our NLP module already removed stopwords
@@ -70,13 +69,20 @@ def generate_recommendations(
     )
 
     try:
-        tfidf_matrix = vectorizer.fit_transform(all_docs)
+        # Step A: Fit vocabulary and IDF weights on the jobs corpus ONLY.
+        # The CV must not influence the IDF scores (correct IR query model).
+        job_vectors = vectorizer.fit_transform(job_texts)
     except ValueError:
-        # Empty vocabulary — all texts are empty or contain only stopwords
+        # Empty vocabulary — all job texts are empty or contain only stopwords
         return []
 
-    cv_vector = tfidf_matrix[0]
-    job_vectors = tfidf_matrix[1:]
+    try:
+        # Step B: Project the CV into the jobs vocabulary space.
+        # Terms in the CV absent from all jobs will have zero weight (correct).
+        cv_vector = vectorizer.transform([cv_processed_text])
+    except ValueError:
+        # CV text is empty or produces no valid tokens
+        return []
 
     # -----------------------------------------------------------------------
     # Compute cosine similarities
