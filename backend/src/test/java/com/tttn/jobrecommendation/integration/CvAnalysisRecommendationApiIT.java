@@ -15,6 +15,7 @@ import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.job.entity.JobSkill;
 import com.tttn.jobrecommendation.modules.job.repository.JobSkillRepository;
+import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationResult;
 import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationResultRepository;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationRunRepository;
@@ -513,8 +514,11 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
             executor.shutdownNow();
         }
         List<RecommendationRun> runs = recommendationRunRepository.findAll();
+        List<RecommendationResult> results = recommendationResultRepository.findAll();
         assertThat(runs).hasSize(2).allSatisfy(run ->
-                assertThat(recommendationResultRepository.countByRunId(run.getId())).isEqualTo(1));
+                assertThat(results)
+                        .filteredOn(result -> result.getRun().getId().equals(run.getId()))
+                        .hasSize(1));
 
         Long runId = runs.getFirst().getId();
         mockMvc.perform(get("/api/students/me/recommendation-runs/{runId}", runId)
