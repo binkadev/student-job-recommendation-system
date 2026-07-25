@@ -135,7 +135,10 @@ SELECT jsonb_build_object(
     'applications', (SELECT count(*) FROM applications),
     'recommendation_runs', (SELECT count(*) FROM recommendation_runs),
     'recommendation_results', (SELECT count(*) FROM recommendation_results),
-    'notifications', (SELECT count(*) FROM notifications)
+    'notifications', (SELECT count(*) FROM notifications),
+    'user_notification_settings', (SELECT count(*) FROM user_notification_settings),
+    'saved_candidates', (SELECT count(*) FROM saved_candidates),
+    'saved_searches', (SELECT count(*) FROM saved_searches)
   )
 )::text;
 "@
@@ -162,7 +165,9 @@ catch {
 $endpoints = @(
     [ordered]@{ name = 'jobs-list'; method = 'GET'; path = '/api/jobs?page=1&size=20'; authentication = 'STUDENT' },
     [ordered]@{ name = 'company-applications'; method = 'GET'; path = '/api/companies/me/applications?page=1&size=20&sort=appliedAt,desc'; authentication = 'COMPANY' },
-    [ordered]@{ name = 'public-companies'; method = 'GET'; path = '/api/public/companies?page=1&size=20&sort=createdAt,desc'; authentication = 'none' }
+    [ordered]@{ name = 'public-companies'; method = 'GET'; path = '/api/public/companies?page=1&size=20&sort=createdAt,desc'; authentication = 'none' },
+    [ordered]@{ name = 'saved-jobs'; method = 'GET'; path = '/api/students/me/saved-jobs?page=1&size=20'; authentication = 'STUDENT' },
+    [ordered]@{ name = 'recommendation-runs'; method = 'GET'; path = '/api/students/me/recommendation-runs'; authentication = 'STUDENT' }
 )
 
 $metadata = [ordered]@{
@@ -186,7 +191,7 @@ $metadata = [ordered]@{
     database = $database
     baseUrl = $BaseUrl
     endpoints = $endpoints
-    phase = 'B1 measurement tooling validation; not a final baseline'
+    phase = 'optimized branch HTTP end-to-end remeasurement'
 }
 
 $metadataJsonPath = Join-Path $ResultDirectory 'metadata.json'
@@ -196,9 +201,9 @@ $metadata | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $metadataJsonPat
 $rowLines = $database.rowCounts.PSObject.Properties | ForEach-Object { "| ``$($_.Name)`` | $($_.Value) |" }
 $endpointLines = $endpoints | ForEach-Object { "| $($_.name) | ``$($_.method) $($_.path)`` | $($_.authentication) |" }
 $markdown = @"
-# Phase B1 Environment Metadata
+# Optimized Branch Environment Metadata
 
-> Correctness/tooling validation only. This is not a final performance baseline.
+> End-to-end HTTP remeasurement against the deterministic isolated performance dataset.
 
 - Test timestamp (UTC): ``$($metadata.testTimestamp)``
 - Git SHA: ``$gitSha``
@@ -233,7 +238,7 @@ $($rowLines -join "`n")
 |---|---|---|
 $($endpointLines -join "`n")
 
-Final p50, p95, p99, error rate, throughput, response bytes, and query-count fields remain **TBD**.
+Latency, throughput, correctness, and query-count evidence are stored alongside this manifest.
 "@
 $markdown | Set-Content -LiteralPath $metadataMarkdownPath -Encoding utf8
 

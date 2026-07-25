@@ -51,14 +51,14 @@ if ($LASTEXITCODE -ne 0 -or $health.Trim() -ne 'healthy') { throw 'Performance P
 $composeArguments = @('compose', '--env-file', $environmentFile, '-f', $composeFile)
 $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmssfff')
 $manifest = [ordered]@{
-    phase = 'B1 EXPLAIN tooling validation; not a final baseline conclusion'
+    phase = 'optimized branch EXPLAIN ANALYZE BUFFERS capture'
     capturedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
     database = $env:POSTGRES_DB
     user = $env:POSTGRES_USER
     plans = @()
 }
 
-foreach ($endpoint in @('jobs-list', 'company-applications', 'public-companies')) {
+foreach ($endpoint in @('jobs-list', 'company-applications', 'public-companies', 'saved-jobs', 'recommendation-runs')) {
     $containerFile = "/performance/sql/explain/$endpoint.sql"
     $rawOutput = (& docker @composeArguments exec -T postgres psql `
         --username $env:POSTGRES_USER `

@@ -45,13 +45,22 @@ BEGIN
     IF actual_count <> 50000 THEN RAISE EXCEPTION 'Expected 50000 applications, found %', actual_count; END IF;
 
     SELECT count(*) INTO actual_count FROM recommendation_runs;
-    IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 recommendation_runs, found %', actual_count; END IF;
+    IF actual_count <> 20 THEN RAISE EXCEPTION 'Expected 20 recommendation_runs, found %', actual_count; END IF;
 
     SELECT count(*) INTO actual_count FROM recommendation_results;
-    IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 recommendation_results, found %', actual_count; END IF;
+    IF actual_count <> 40 THEN RAISE EXCEPTION 'Expected 40 recommendation_results, found %', actual_count; END IF;
 
     SELECT count(*) INTO actual_count FROM notifications;
     IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 notifications, found %', actual_count; END IF;
+
+    SELECT count(*) INTO actual_count FROM user_notification_settings;
+    IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 user_notification_settings, found %', actual_count; END IF;
+
+    SELECT count(*) INTO actual_count FROM saved_candidates;
+    IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 saved_candidates, found %', actual_count; END IF;
+
+    SELECT count(*) INTO actual_count FROM saved_searches;
+    IF actual_count <> 0 THEN RAISE EXCEPTION 'Expected 0 saved_searches, found %', actual_count; END IF;
 
     SELECT count(*) INTO violation_count
     FROM (SELECT email FROM users GROUP BY email HAVING count(*) > 1) duplicates;
@@ -99,6 +108,39 @@ BEGIN
 
     SELECT count(*) INTO actual_count FROM applications WHERE cv_file_id IS NOT NULL;
     IF actual_count <> 40000 THEN RAISE EXCEPTION 'Expected 40000 applications with CV metadata, found %', actual_count; END IF;
+
+    SELECT count(*) INTO violation_count
+    FROM recommendation_runs
+    WHERE student_id <> 1
+       OR status <> 'SUCCESS';
+    IF violation_count <> 0 THEN
+        RAISE EXCEPTION 'Recommendation fixture contains % run(s) outside the canonical successful student history', violation_count;
+    END IF;
+
+    SELECT count(*) INTO actual_count
+    FROM recommendation_runs run
+    WHERE NOT EXISTS (SELECT 1 FROM recommendation_results result WHERE result.run_id = run.id);
+    IF actual_count <> 4 THEN RAISE EXCEPTION 'Expected 4 recommendation runs with 0 results, found %', actual_count; END IF;
+
+    SELECT count(*) INTO actual_count
+    FROM (
+        SELECT run.id
+        FROM recommendation_runs run
+        JOIN recommendation_results result ON result.run_id = run.id
+        GROUP BY run.id
+        HAVING count(result.id) = 1
+    ) one_result_runs;
+    IF actual_count <> 4 THEN RAISE EXCEPTION 'Expected 4 recommendation runs with 1 result, found %', actual_count; END IF;
+
+    SELECT count(*) INTO actual_count
+    FROM (
+        SELECT run.id
+        FROM recommendation_runs run
+        JOIN recommendation_results result ON result.run_id = run.id
+        GROUP BY run.id
+        HAVING count(result.id) > 1
+    ) many_result_runs;
+    IF actual_count <> 12 THEN RAISE EXCEPTION 'Expected 12 recommendation runs with multiple results, found %', actual_count; END IF;
 
     SELECT count(*) INTO violation_count
     FROM (
@@ -249,7 +291,10 @@ UNION ALL SELECT 'cv_files', count(*) FROM cv_files
 UNION ALL SELECT 'applications', count(*) FROM applications
 UNION ALL SELECT 'recommendation_runs', count(*) FROM recommendation_runs
 UNION ALL SELECT 'recommendation_results', count(*) FROM recommendation_results
-UNION ALL SELECT 'notifications', count(*) FROM notifications;
+UNION ALL SELECT 'notifications', count(*) FROM notifications
+UNION ALL SELECT 'user_notification_settings', count(*) FROM user_notification_settings
+UNION ALL SELECT 'saved_candidates', count(*) FROM saved_candidates
+UNION ALL SELECT 'saved_searches', count(*) FROM saved_searches;
 
 \echo ''
 \echo 'Company status distribution:'

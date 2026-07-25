@@ -1,0 +1,82 @@
+﻿{
+    "phase":  "optimized branch isolated HTTP query-count measurement",
+    "endpoint":  "company-applications",
+    "request":  "GET /api/companies/me/applications?page=1\u0026size=20\u0026sort=appliedAt,desc",
+    "authentication":  "COMPANY",
+    "requestStartedUtc":  "2026-07-25T13:58:27.7799332Z",
+    "requestCompletedUtc":  "2026-07-25T13:58:27.8450035Z",
+    "http":  {
+                 "status":  200,
+                 "responseBodyBytes":  15203,
+                 "itemCount":  20,
+                 "responseKind":  "page"
+             },
+    "queryStatistics":  {
+                            "totalRows":  23,
+                            "sharedBlockHits":  9051,
+                            "sharedBlockReads":  0,
+                            "totalExecutionMs":  11.971,
+                            "serviceStatements":  3,
+                            "totalSqlStatements":  6,
+                            "jwtUserLookupStatements":  1,
+                            "uniqueNormalizedStatements":  5,
+                            "transactionControlStatements":  2
+                        },
+    "statements":  [
+                       {
+                           "rows":  20,
+                           "calls":  1,
+                           "query_id":  "6968946572497340691",
+                           "normalized_sql":  "select ja1_0.id,ja1_0.applied_at,ja1_0.cover_letter,ja1_0.created_at,cf1_0.id,cf1_0.is_active,cf1_0.content_type,cf1_0.created_at,cf1_0.extracted_text,cf1_0.file_name,cf1_0.file_path,cf1_0.file_size,cf1_0.file_url,cf1_0.original_file_name,cf1_0.processed_text,cf1_0.stored_file_name,cf1_0.student_id,cf1_0.updated_at,cf1_0.uploaded_at,ja1_0.job_id,j1_0.id,j1_0.benefits,j1_0.closed_at,j1_0.company_id,c1_0.id,c1_0.address,c1_0.company_name,c1_0.company_size,c1_0.created_at,c1_0.description,c1_0.industry,c1_0.logo_url,c1_0.phone,c1_0.status,c1_0.tax_code,c1_0.updated_at,c1_0.user_id,c1_0.website_url,j1_0.created_at,j1_0.currency,j1_0.deadline,j1_0.description,j1_0.job_type,j1_0.location,j1_0.published_at,j1_0.requirements,j1_0.salary_max,j1_0.salary_min,j1_0.status,j1_0.title,j1_0.updated_at,j1_0.working_model,ja1_0.reviewed_at,ja1_0.status,ja1_0.student_id,s2_0.id,s2_0.created_at,s2_0.graduation_year,s2_0.location,s2_0.major,s2_0.student_code,s2_0.university,s2_0.updated_at,s2_0.user_id,u2_0.id,u2_0.created_at,u2_0.email,u2_0.full_name,u2_0.last_login_at,u2_0.password_hash,u2_0.phone,u2_0.role,u2_0.status,u2_0.updated_at,ja1_0.updated_at from applications ja1_0 left join cv_files cf1_0 on cf1_0.id=ja1_0.cv_file_id join jobs j1_0 on j1_0.id=ja1_0.job_id join companies c1_0 on c1_0.id=j1_0.company_id join students s2_0 on s2_0.id=ja1_0.student_id join users u2_0 on u2_0.id=s2_0.user_id where j1_0.company_id=$1 order by ja1_0.applied_at desc offset $2 rows fetch first $3 rows only",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  10.578,
+                           "shared_block_hits":  4577,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  10.578
+                       },
+                       {
+                           "rows":  1,
+                           "calls":  1,
+                           "query_id":  "6834610797021832706",
+                           "normalized_sql":  "select count(ja1_0.id) from applications ja1_0 join jobs j1_0 on j1_0.id=ja1_0.job_id where j1_0.company_id=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  1.307,
+                           "shared_block_hits":  4462,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  1.307
+                       },
+                       {
+                           "rows":  1,
+                           "calls":  1,
+                           "query_id":  "682714314509167520",
+                           "normalized_sql":  "select c1_0.id,c1_0.address,c1_0.company_name,c1_0.company_size,c1_0.created_at,c1_0.description,c1_0.industry,c1_0.logo_url,c1_0.phone,c1_0.status,c1_0.tax_code,c1_0.updated_at,c1_0.user_id,c1_0.website_url from companies c1_0 join users u1_0 on u1_0.id=c1_0.user_id where u1_0.id=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.038,
+                           "shared_block_hits":  8,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  0.038
+                       },
+                       {
+                           "rows":  1,
+                           "calls":  1,
+                           "query_id":  "-4313940598091379112",
+                           "normalized_sql":  "select u1_0.id,u1_0.created_at,u1_0.email,u1_0.full_name,u1_0.last_login_at,u1_0.password_hash,u1_0.phone,u1_0.role,u1_0.status,u1_0.updated_at from users u1_0 where u1_0.email=$1",
+                           "statement_class":  "jwt_user_lookup",
+                           "mean_execution_ms":  0.030,
+                           "shared_block_hits":  4,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  0.030
+                       },
+                       {
+                           "rows":  0,
+                           "calls":  2,
+                           "query_id":  "2869606018209600839",
+                           "normalized_sql":  "BEGIN READ ONLY",
+                           "statement_class":  "transaction_control",
+                           "mean_execution_ms":  0.009,
+                           "shared_block_hits":  0,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  0.018
+                       }
+                   ]
+}

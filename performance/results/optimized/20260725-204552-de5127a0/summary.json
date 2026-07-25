@@ -1,0 +1,573 @@
+﻿{
+    "phase":  "optimized branch HTTP end-to-end remeasurement",
+    "generatedAtUtc":  "2026-07-25T14:11:08.9698770Z",
+    "resultDirectory":  "performance/results/optimized/20260725-204552-de5127a0",
+    "git":  {
+                "sha":  "de5127a0ada0e02d78eb970c0e51c3aa8ce2cfe4",
+                "branch":  "perf/remove-query-fanout",
+                "state":  "dirty"
+            },
+    "environment":  {
+                        "runtime":  {
+                                        "java":  "openjdk version \"21.0.11\" 2026-04-21 LTS OpenJDK Runtime Environment Microsoft-13877171 (build 21.0.11+10-LTS) OpenJDK 64-Bit Server VM Microsoft-13877171 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                                        "springBoot":  "3.5.16",
+                                        "docker":  "client=29.5.3; server=29.5.3",
+                                        "dockerCompose":  "5.1.4",
+                                        "k6":  "k6.exe v2.1.0 (commit/83a87a41e2, go1.26.4, windows/amd64)",
+                                        "k6Runner":  "native",
+                                        "k6DockerImage":  null
+                                    },
+                        "host":  {
+                                     "operatingSystem":  "Microsoft Windows 11 Home 10.0.26200",
+                                     "cpuModel":  "12th Gen Intel(R) Core(TM) i7-12700H",
+                                     "logicalCpuCount":  20,
+                                     "totalRamBytes":  34070847488
+                                 },
+                        "database":  {
+                                         "user":  "perf_user",
+                                         "database":  "student_job_recommendation_perf",
+                                         "rowCounts":  {
+                                                           "jobs":  10000,
+                                                           "users":  1101,
+                                                           "skills":  250,
+                                                           "cv_files":  1200,
+                                                           "students":  1000,
+                                                           "companies":  100,
+                                                           "job_skills":  50000,
+                                                           "saved_jobs":  20000,
+                                                           "applications":  50000,
+                                                           "notifications":  0,
+                                                           "saved_searches":  0,
+                                                           "student_skills":  8000,
+                                                           "saved_candidates":  0,
+                                                           "student_profiles":  1000,
+                                                           "recommendation_runs":  20,
+                                                           "recommendation_results":  40,
+                                                           "user_notification_settings":  0
+                                                       },
+                                         "postgresVersion":  "17.10 (Debian 17.10-1.pgdg13+1)",
+                                         "latestFlywayMigration":  14
+                                     }
+                    },
+    "methodology":  {
+                        "independentRuns":  3,
+                        "virtualUsers":  10,
+                        "iterationsPerEndpointPerRun":  10000,
+                        "warmup":  "1 VU x 20 iterations per endpoint before each measured run",
+                        "pgStatStatementsReset":  "after warm-up and immediately before measured requests"
+                    },
+    "endpoints":  [
+                      {
+                          "endpoint":  "jobs-list",
+                          "request":  "GET /api/jobs?page=1\u0026size=20",
+                          "before":  {
+                                         "sqlCalls":  66,
+                                         "serviceSqlCalls":  63,
+                                         "sqlScope":  "HTTP",
+                                         "p50Ms":  71.7433,
+                                         "p95Ms":  81.305875,
+                                         "p99Ms":  88.773907,
+                                         "throughputPerSecond":  117.73193731746802
+                                     },
+                          "after":  {
+                                        "p50Ms":  20.32455,
+                                        "p95Ms":  28.300194999999984,
+                                        "p99Ms":  37.759361000000006,
+                                        "throughputPerSecond":  238.62784237169657,
+                                        "httpFailureRate":  0,
+                                        "failedChecks":  0,
+                                        "droppedIterations":  0,
+                                        "responseBodyBytesAverage":  23897,
+                                        "sqlCallsPerRequest":  6,
+                                        "jwtUserLookupCallsPerRequest":  1,
+                                        "transactionControlCallsPerRequest":  2,
+                                        "serviceSqlCallsPerRequest":  3,
+                                        "loadSqlCallsPerRequestMedian":  6
+                                    },
+                          "beforeQueryShape":  "JWT lookup + pageable job content/count + per-item job-skill, skill, and company fan-out",
+                          "afterQueryShape":  "JWT lookup + pageable content with company + count + one batched job-skill/skill query",
+                          "runs":  [
+                                       {
+                                           "run":  "run-01",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  21.8512,
+                                           "p95Ms":  34.243354999999994,
+                                           "p99Ms":  45.034605000000006,
+                                           "throughputPerSecond":  227.2972417968397,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  23897,
+                                           "sqlCallsPerRequest":  6.0008,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-02",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  20.0982,
+                                           "p95Ms":  26.504834999999996,
+                                           "p99Ms":  34.967636999999996,
+                                           "throughputPerSecond":  243.35069592689803,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  23897,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-03",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  20.32455,
+                                           "p95Ms":  28.300194999999984,
+                                           "p99Ms":  37.759361000000006,
+                                           "throughputPerSecond":  238.62784237169657,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  23897,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                          "isolatedQueryCountEvidence":  "20260725-135825998-jobs-list.json"
+                      },
+                      {
+                          "endpoint":  "company-applications",
+                          "request":  "GET /api/companies/me/applications?page=1\u0026size=20\u0026sort=appliedAt,desc",
+                          "before":  {
+                                         "sqlCalls":  53,
+                                         "serviceSqlCalls":  50,
+                                         "sqlScope":  "HTTP V12 baseline",
+                                         "p50Ms":  53.88745,
+                                         "p95Ms":  63.217439999999982,
+                                         "p99Ms":  70.22372,
+                                         "throughputPerSecond":  160.28605187378531
+                                     },
+                          "after":  {
+                                        "p50Ms":  26.4992,
+                                        "p95Ms":  34.5256,
+                                        "p99Ms":  44.924657000000025,
+                                        "throughputPerSecond":  257.49186087539664,
+                                        "httpFailureRate":  0,
+                                        "failedChecks":  0,
+                                        "droppedIterations":  0,
+                                        "responseBodyBytesAverage":  15203,
+                                        "sqlCallsPerRequest":  6,
+                                        "jwtUserLookupCallsPerRequest":  1,
+                                        "transactionControlCallsPerRequest":  2,
+                                        "serviceSqlCallsPerRequest":  3,
+                                        "loadSqlCallsPerRequestMedian":  6
+                                    },
+                          "beforeQueryShape":  "Historical V12 HTTP capture with application mapping fan-out",
+                          "afterQueryShape":  "JWT lookup + company ownership lookup + pageable EntityGraph content + count",
+                          "runs":  [
+                                       {
+                                           "run":  "run-01",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  25.85505,
+                                           "p95Ms":  34.5256,
+                                           "p99Ms":  45.642462000000016,
+                                           "throughputPerSecond":  261.48319533531554,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  15203,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-02",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  26.4992,
+                                           "p95Ms":  36.531755,
+                                           "p99Ms":  44.924657000000025,
+                                           "throughputPerSecond":  256.017716262114,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  15203,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-03",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  26.604550000000003,
+                                           "p95Ms":  33.463625,
+                                           "p99Ms":  43.346192000000023,
+                                           "throughputPerSecond":  257.49186087539664,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  15203,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                          "isolatedQueryCountEvidence":  "20260725-135827779-company-applications.json"
+                      },
+                      {
+                          "endpoint":  "public-companies",
+                          "request":  "GET /api/public/companies?page=1\u0026size=20\u0026sort=createdAt,desc",
+                          "before":  {
+                                         "sqlCalls":  4,
+                                         "serviceSqlCalls":  3,
+                                         "sqlScope":  "HTTP",
+                                         "p50Ms":  7.0604999999999993,
+                                         "p95Ms":  8.6116,
+                                         "p99Ms":  9.596142,
+                                         "throughputPerSecond":  700.343657932604
+                                     },
+                          "after":  {
+                                        "p50Ms":  8.5186999999999991,
+                                        "p95Ms":  11.857664999999992,
+                                        "p99Ms":  14.286153,
+                                        "throughputPerSecond":  590.27443186454855,
+                                        "httpFailureRate":  0,
+                                        "failedChecks":  0,
+                                        "droppedIterations":  0,
+                                        "responseBodyBytesAverage":  9094,
+                                        "sqlCallsPerRequest":  4,
+                                        "jwtUserLookupCallsPerRequest":  0,
+                                        "transactionControlCallsPerRequest":  1,
+                                        "serviceSqlCallsPerRequest":  3,
+                                        "loadSqlCallsPerRequestMedian":  4
+                                    },
+                          "beforeQueryShape":  "Public pageable company content/count + grouped open-job counts",
+                          "afterQueryShape":  "Unchanged public pageable company content/count + grouped open-job counts",
+                          "runs":  [
+                                       {
+                                           "run":  "run-01",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  8.5186999999999991,
+                                           "p95Ms":  12.040409999999998,
+                                           "p99Ms":  14.608573000000009,
+                                           "throughputPerSecond":  590.27443186454855,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  9094,
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-02",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  8.2137999999999991,
+                                           "p95Ms":  11.337224999999997,
+                                           "p99Ms":  13.433832,
+                                           "throughputPerSecond":  611.52765589182263,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  9094,
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-03",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  8.642949999999999,
+                                           "p95Ms":  11.857664999999992,
+                                           "p99Ms":  14.286153,
+                                           "throughputPerSecond":  588.95723789986471,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  9094,
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                          "isolatedQueryCountEvidence":  "20260725-135829563-public-companies.json"
+                      },
+                      {
+                          "endpoint":  "saved-jobs",
+                          "request":  "GET /api/students/me/saved-jobs?page=1\u0026size=20",
+                          "before":  {
+                                         "sqlCalls":  null,
+                                         "serviceSqlCalls":  27,
+                                         "sqlScope":  "integration-test service evidence",
+                                         "p50Ms":  null,
+                                         "p95Ms":  null,
+                                         "p99Ms":  null,
+                                         "throughputPerSecond":  null
+                                     },
+                          "after":  {
+                                        "p50Ms":  10.85345,
+                                        "p95Ms":  14.387204999999998,
+                                        "p99Ms":  16.777607000000007,
+                                        "throughputPerSecond":  661.501959249733,
+                                        "httpFailureRate":  0,
+                                        "failedChecks":  0,
+                                        "droppedIterations":  0,
+                                        "responseBodyBytesAverage":  4872,
+                                        "sqlCallsPerRequest":  6,
+                                        "jwtUserLookupCallsPerRequest":  1,
+                                        "transactionControlCallsPerRequest":  2,
+                                        "serviceSqlCallsPerRequest":  3,
+                                        "loadSqlCallsPerRequestMedian":  6
+                                    },
+                          "beforeQueryShape":  "Student lookup + pageable content/count + lazy job/company fan-out",
+                          "afterQueryShape":  "JWT lookup + student lookup + pageable EntityGraph content with job/company + count",
+                          "runs":  [
+                                       {
+                                           "run":  "run-01",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  10.85345,
+                                           "p95Ms":  14.387204999999998,
+                                           "p99Ms":  16.777607000000007,
+                                           "throughputPerSecond":  661.501959249733,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  4872,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-02",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  10.78665,
+                                           "p95Ms":  13.930424999999994,
+                                           "p99Ms":  16.073272000000003,
+                                           "throughputPerSecond":  671.81495485887217,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  4872,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-03",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  11.1584,
+                                           "p95Ms":  14.5358,
+                                           "p99Ms":  17.031921000000004,
+                                           "throughputPerSecond":  644.11345901416848,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  4872,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                          "isolatedQueryCountEvidence":  "20260725-135831276-saved-jobs.json"
+                      },
+                      {
+                          "endpoint":  "recommendation-runs",
+                          "request":  "GET /api/students/me/recommendation-runs",
+                          "before":  {
+                                         "sqlCalls":  null,
+                                         "serviceSqlCalls":  22,
+                                         "sqlScope":  "N + 2 service formula at N=20",
+                                         "p50Ms":  null,
+                                         "p95Ms":  null,
+                                         "p99Ms":  null,
+                                         "throughputPerSecond":  null
+                                     },
+                          "after":  {
+                                        "p50Ms":  10.2538,
+                                        "p95Ms":  13.033749999999994,
+                                        "p99Ms":  15.264561000000016,
+                                        "throughputPerSecond":  690.48356697789677,
+                                        "httpFailureRate":  0,
+                                        "failedChecks":  0,
+                                        "droppedIterations":  0,
+                                        "responseBodyBytesAverage":  5081,
+                                        "sqlCallsPerRequest":  6,
+                                        "jwtUserLookupCallsPerRequest":  1,
+                                        "transactionControlCallsPerRequest":  2,
+                                        "serviceSqlCallsPerRequest":  3,
+                                        "loadSqlCallsPerRequestMedian":  6
+                                    },
+                          "beforeQueryShape":  "Student lookup + run list + one COUNT per run (N + 2)",
+                          "afterQueryShape":  "JWT lookup + student lookup + ordered run list + one grouped result-count aggregate",
+                          "runs":  [
+                                       {
+                                           "run":  "run-01",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  10.2538,
+                                           "p95Ms":  13.033749999999994,
+                                           "p99Ms":  15.201085000000004,
+                                           "throughputPerSecond":  690.48356697789677,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  5081,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-02",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  10.58865,
+                                           "p95Ms":  13.955819999999996,
+                                           "p99Ms":  16.723550000000003,
+                                           "throughputPerSecond":  666.91336236549466,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  5081,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "run":  "run-03",
+                                           "measuredRequests":  10000,
+                                           "p50Ms":  9.86005,
+                                           "p95Ms":  12.73795,
+                                           "p99Ms":  15.264561000000016,
+                                           "throughputPerSecond":  717.14592787976073,
+                                           "httpFailureRate":  0,
+                                           "failedChecks":  0,
+                                           "droppedIterations":  0,
+                                           "responseBodyBytesAverage":  5081,
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                          "isolatedQueryCountEvidence":  "20260725-135832996-recommendation-runs.json"
+                      }
+                  ],
+    "explainPlans":  [
+                         {
+                             "file":  "20260725-135843629-company-applications-content.json",
+                             "rootNode":  "Limit",
+                             "actualRows":  20,
+                             "planningMs":  1.691,
+                             "executionMs":  7.299,
+                             "sharedBlockHits":  4580,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-company-applications-count.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  1,
+                             "planningMs":  0.159,
+                             "executionMs":  1.589,
+                             "sharedBlockHits":  4462,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-company-applications-secondary.json",
+                             "rootNode":  "Seq Scan",
+                             "actualRows":  1,
+                             "planningMs":  0.057,
+                             "executionMs":  0.048,
+                             "sharedBlockHits":  5,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-jobs-list-content.json",
+                             "rootNode":  "Limit",
+                             "actualRows":  20,
+                             "planningMs":  0.76,
+                             "executionMs":  5.638,
+                             "sharedBlockHits":  723,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-jobs-list-count.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  1,
+                             "planningMs":  0.054,
+                             "executionMs":  1.816,
+                             "sharedBlockHits":  715,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-jobs-list-secondary.json",
+                             "rootNode":  "Sort",
+                             "actualRows":  100,
+                             "planningMs":  0.603,
+                             "executionMs":  2.476,
+                             "sharedBlockHits":  1058,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-public-companies-content.json",
+                             "rootNode":  "Limit",
+                             "actualRows":  20,
+                             "planningMs":  0.201,
+                             "executionMs":  0.086,
+                             "sharedBlockHits":  8,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-public-companies-count.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  1,
+                             "planningMs":  0.044,
+                             "executionMs":  0.038,
+                             "sharedBlockHits":  5,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-public-companies-secondary.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  20,
+                             "planningMs":  0.208,
+                             "executionMs":  0.64,
+                             "sharedBlockHits":  147,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-recommendation-runs-content.json",
+                             "rootNode":  "Sort",
+                             "actualRows":  20,
+                             "planningMs":  0.193,
+                             "executionMs":  0.035,
+                             "sharedBlockHits":  4,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-recommendation-runs-count.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  16,
+                             "planningMs":  0.41,
+                             "executionMs":  0.057,
+                             "sharedBlockHits":  2,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-recommendation-runs-secondary.json",
+                             "rootNode":  "Index Scan",
+                             "actualRows":  1,
+                             "planningMs":  0.083,
+                             "executionMs":  0.028,
+                             "sharedBlockHits":  6,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-saved-jobs-content.json",
+                             "rootNode":  "Limit",
+                             "actualRows":  20,
+                             "planningMs":  0.751,
+                             "executionMs":  0.254,
+                             "sharedBlockHits":  128,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-saved-jobs-count.json",
+                             "rootNode":  "Aggregate",
+                             "actualRows":  1,
+                             "planningMs":  0.042,
+                             "executionMs":  0.035,
+                             "sharedBlockHits":  22,
+                             "sharedBlockReads":  0
+                         },
+                         {
+                             "file":  "20260725-135843629-saved-jobs-secondary.json",
+                             "rootNode":  "Index Scan",
+                             "actualRows":  1,
+                             "planningMs":  0.125,
+                             "executionMs":  0.02,
+                             "sharedBlockHits":  3,
+                             "sharedBlockReads":  0
+                         }
+                     ]
+}

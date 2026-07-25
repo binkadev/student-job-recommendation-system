@@ -38,8 +38,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -64,8 +67,12 @@ public class JobServiceImpl implements JobService {
 
         Company currentCompany = role == UserRole.COMPANY ? getCompanyByUserId(userId) : null;
         Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany), pageable);
+        Map<Long, List<JobSkill>> skillsByJobId = getSkillsByJobId(page.getContent());
         List<JobResponse> items = page.getContent().stream()
-                .map(job -> jobMapper.toJobResponse(job, getJobSkills(job)))
+                .map(job -> jobMapper.toJobResponse(
+                        job,
+                        skillsByJobId.getOrDefault(job.getId(), List.of())
+                ))
                 .toList();
 
         return new PageResponse<>(
@@ -239,6 +246,23 @@ public class JobServiceImpl implements JobService {
 
     private List<JobSkill> getJobSkills(Job job) {
         return jobSkillRepository.findByJobIdOrderByIdAsc(job.getId());
+    }
+
+    private Map<Long, List<JobSkill>> getSkillsByJobId(List<Job> jobs) {
+        if (jobs.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> jobIds = jobs.stream()
+                .map(Job::getId)
+                .toList();
+        return jobSkillRepository.findByJobIdInOrderByJobIdAscIdAsc(jobIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        jobSkill -> jobSkill.getJob().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
     }
 
     private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany) {

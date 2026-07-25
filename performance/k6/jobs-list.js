@@ -1,10 +1,10 @@
-import { buildOptions, login, measuredGet, writeSummary } from './lib/common.js';
+import { buildOptions, measuredGet, resolveToken, writeSummary } from './lib/common.js';
 
 const ENDPOINT = 'jobs-list';
 export const options = buildOptions(ENDPOINT);
 
 export function setup() {
-  return { token: login(__ENV.STUDENT_EMAIL || 'perf.student.0001@example.test') };
+  return { token: resolveToken(__ENV.STUDENT_EMAIL || 'perf.student.0001@example.test') };
 }
 
 export default function (data) {

@@ -80,6 +80,18 @@ function Test-PagedResponse($Response, [string]$EndpointName) {
     return $body
 }
 
+function Test-ListResponse($Response, [string]$EndpointName) {
+    if ($Response.StatusCode -ne 200) { throw "$EndpointName returned HTTP $($Response.StatusCode)." }
+    try { $body = $Response.Content | ConvertFrom-Json }
+    catch { throw "$EndpointName did not return valid JSON." }
+    if ($body.success -ne $true -or $null -eq $body.data -or $body.data -isnot [array]) {
+        throw "$EndpointName returned an invalid API/list structure."
+    }
+    if (@($body.data).Count -eq 0) { throw "$EndpointName returned empty list content." }
+    if ($body.errorCode -in @('UNAUTHORIZED', 'ACCESS_DENIED')) { throw "$EndpointName returned an authentication error." }
+    return $body
+}
+
 $performanceRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = Split-Path -Parent $performanceRoot
 $environmentFile = Join-Path $performanceRoot '.env'
@@ -124,9 +136,11 @@ try {
     $companyToken = Invoke-Login $CompanyEmail
 
 $endpoints = @(
-    [ordered]@{ name = 'jobs-list'; path = '/api/jobs?page=1&size=20'; token = $studentToken; role = 'STUDENT' },
-    [ordered]@{ name = 'company-applications'; path = '/api/companies/me/applications?page=1&size=20&sort=appliedAt%2Cdesc'; token = $companyToken; role = 'COMPANY' },
-    [ordered]@{ name = 'public-companies'; path = '/api/public/companies?page=1&size=20&sort=createdAt%2Cdesc'; token = $null; role = 'none' }
+    [ordered]@{ name = 'jobs-list'; path = '/api/jobs?page=1&size=20'; token = $studentToken; role = 'STUDENT'; responseKind = 'page' },
+    [ordered]@{ name = 'company-applications'; path = '/api/companies/me/applications?page=1&size=20&sort=appliedAt%2Cdesc'; token = $companyToken; role = 'COMPANY'; responseKind = 'page' },
+    [ordered]@{ name = 'public-companies'; path = '/api/public/companies?page=1&size=20&sort=createdAt%2Cdesc'; token = $null; role = 'none'; responseKind = 'page' },
+    [ordered]@{ name = 'saved-jobs'; path = '/api/students/me/saved-jobs?page=1&size=20'; token = $studentToken; role = 'STUDENT'; responseKind = 'page' },
+    [ordered]@{ name = 'recommendation-runs'; path = '/api/students/me/recommendation-runs'; token = $studentToken; role = 'STUDENT'; responseKind = 'list' }
 )
 
 $statsSql = @"
@@ -178,7 +192,12 @@ FROM captured;
         if ($null -ne $endpoint.token) { $headers.Authorization = "Bearer $($endpoint.token)" }
         $startedAt = (Get-Date).ToUniversalTime()
         $response = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))$($endpoint.path)" -Headers $headers -UseBasicParsing
-        $body = Test-PagedResponse $response $endpoint.name
+        $body = if ($endpoint.responseKind -eq 'page') {
+            Test-PagedResponse $response $endpoint.name
+        }
+        else {
+            Test-ListResponse $response $endpoint.name
+        }
         $completedAt = (Get-Date).ToUniversalTime()
         Assert-NoConcurrentMeasurement
 
@@ -186,7 +205,7 @@ FROM captured;
         if ($stats.summary.totalSqlStatements -lt 1) { throw "No SQL statements captured for $($endpoint.name)." }
 
         $evidence = [ordered]@{
-            phase = 'B1 query-count validation; not a latency baseline'
+            phase = 'optimized branch isolated HTTP query-count measurement'
             endpoint = $endpoint.name
             request = "GET $($endpoint.path.Replace('%2C', ','))"
             authentication = $endpoint.role
@@ -195,7 +214,8 @@ FROM captured;
             http = [ordered]@{
                 status = [int]$response.StatusCode
                 responseBodyBytes = [Text.Encoding]::UTF8.GetByteCount($response.Content)
-                pageItems = @($body.data.items).Count
+                itemCount = if ($endpoint.responseKind -eq 'page') { @($body.data.items).Count } else { @($body.data).Count }
+                responseKind = $endpoint.responseKind
             }
             queryStatistics = $stats.summary
             statements = $stats.statements

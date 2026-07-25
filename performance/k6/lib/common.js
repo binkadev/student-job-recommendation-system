@@ -10,7 +10,7 @@ export function buildOptions(endpoint) {
     iterations: positiveInteger(__ENV.ITERATIONS, 5, 'ITERATIONS'),
     summaryTrendStats: ['min', 'avg', 'med', 'p(50)', 'p(95)', 'p(99)', 'max'],
     systemTags: ['status', 'method', 'name', 'scenario'],
-    tags: { phase: 'b1-tooling' },
+    tags: { phase: __ENV.WORKLOAD_KIND === 'smoke' ? 'warmup' : 'optimized-remeasurement' },
     thresholds: {
       'checks{measured:true}': ['rate==1'],
       'http_req_failed{measured:true}': ['rate==0'],
@@ -60,7 +60,25 @@ export function login(email) {
   return body.data.token;
 }
 
+export function resolveToken(email) {
+  const injectedToken = __ENV.AUTH_TOKEN;
+  if (typeof injectedToken === 'string' && injectedToken.length > 0) {
+    return injectedToken;
+  }
+  return login(email);
+}
+
 export function measuredGet(path, endpoint, token) {
+  const response = executeMeasuredGet(path, endpoint, token);
+  validatePagedApiResponse(response, endpoint);
+}
+
+export function measuredListGet(path, endpoint, token) {
+  const response = executeMeasuredGet(path, endpoint, token);
+  validateListApiResponse(response, endpoint);
+}
+
+function executeMeasuredGet(path, endpoint, token) {
   const headers = { Accept: 'application/json' };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -73,7 +91,7 @@ export function measuredGet(path, endpoint, token) {
   });
 
   recordMeasuredResponse(response, endpoint);
-  validatePagedApiResponse(response, endpoint);
+  return response;
 }
 
 export function validatePagedApiResponse(response, endpoint) {
@@ -109,6 +127,42 @@ export function validatePagedApiResponse(response, endpoint) {
       && parsed.data
       && Array.isArray(parsed.data.items)
       && parsed.data.items.length > 0,
+    [`${endpoint}: no authentication error`]: response.status !== 401
+      && response.status !== 403
+      && (!validJson || !parsed || !['UNAUTHORIZED', 'ACCESS_DENIED'].includes(parsed.errorCode)),
+  };
+
+  Object.entries(results).forEach(([name, passed]) => {
+    check(response, { [name]: () => passed }, { endpoint, measured: 'true' });
+    recordCheckResult(passed, endpoint);
+  });
+}
+
+export function validateListApiResponse(response, endpoint) {
+  let parsed;
+  let validJson = true;
+  try {
+    parsed = response.json();
+  } catch (error) {
+    validJson = false;
+  }
+
+  const results = {
+    [`${endpoint}: expected HTTP 200`]: response.status === 200,
+    [`${endpoint}: valid JSON`]: validJson,
+    [`${endpoint}: successful API envelope`]: validJson
+      && parsed !== null
+      && typeof parsed === 'object'
+      && parsed.success === true
+      && typeof parsed.message === 'string'
+      && Object.prototype.hasOwnProperty.call(parsed, 'errorCode'),
+    [`${endpoint}: expected list structure`]: validJson
+      && parsed
+      && Array.isArray(parsed.data),
+    [`${endpoint}: non-empty list content`]: validJson
+      && parsed
+      && Array.isArray(parsed.data)
+      && parsed.data.length > 0,
     [`${endpoint}: no authentication error`]: response.status !== 401
       && response.status !== 403
       && (!validJson || !parsed || !['UNAUTHORIZED', 'ACCESS_DENIED'].includes(parsed.errorCode)),

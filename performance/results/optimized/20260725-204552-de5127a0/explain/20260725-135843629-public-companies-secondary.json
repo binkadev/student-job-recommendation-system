@@ -1,0 +1,82 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Aggregate",
+      "Strategy": "Sorted",
+      "Partial Mode": "Simple",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 0.29,
+      "Total Cost": 211.14,
+      "Plan Rows": 100,
+      "Plan Width": 16,
+      "Actual Startup Time": 0.057,
+      "Actual Total Time": 0.627,
+      "Actual Rows": 20,
+      "Actual Loops": 1,
+      "Group Key": ["company_id"],
+      "Shared Hit Blocks": 147,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0,
+      "Plans": [
+        {
+          "Node Type": "Index Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "idx_jobs_company_id",
+          "Relation Name": "jobs",
+          "Alias": "j",
+          "Startup Cost": 0.29,
+          "Total Cost": 203.14,
+          "Plan Rows": 1400,
+          "Plan Width": 16,
+          "Actual Startup Time": 0.022,
+          "Actual Total Time": 0.552,
+          "Actual Rows": 1400,
+          "Actual Loops": 1,
+          "Index Cond": "(company_id = ANY ('{61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80}'::bigint[]))",
+          "Rows Removed by Index Recheck": 0,
+          "Filter": "((status)::text = 'ACTIVE'::text)",
+          "Rows Removed by Filter": 600,
+          "Shared Hit Blocks": 147,
+          "Shared Read Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Dirtied Blocks": 0,
+          "Local Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        }
+      ]
+    },
+    "Settings": {
+    },
+    "Planning": {
+      "Shared Hit Blocks": 107,
+      "Shared Read Blocks": 0,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0,
+      "Local Hit Blocks": 0,
+      "Local Read Blocks": 0,
+      "Local Dirtied Blocks": 0,
+      "Local Written Blocks": 0,
+      "Temp Read Blocks": 0,
+      "Temp Written Blocks": 0
+    },
+    "Planning Time": 0.208,
+    "Triggers": [
+    ],
+    "Execution Time": 0.640
+  }
+]

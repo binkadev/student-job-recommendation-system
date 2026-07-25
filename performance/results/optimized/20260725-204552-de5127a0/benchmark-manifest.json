@@ -1,0 +1,165 @@
+﻿{
+    "phase":  "optimized branch HTTP end-to-end remeasurement",
+    "startedAtUtc":  "2026-07-25T13:59:09.2596343Z",
+    "resultDirectory":  "performance/results/optimized/20260725-204552-de5127a0",
+    "virtualUsers":  10,
+    "iterationsPerEndpoint":  10000,
+    "independentRuns":  3,
+    "warmup":  {
+                   "virtualUsers":  1,
+                   "iterationsPerEndpoint":  20,
+                   "tokenProvisionedBeforeStatisticsReset":  true
+               },
+    "statisticsReset":  "after each endpoint warm-up and immediately before its measured k6 process",
+    "workloads":  [
+                      {
+                          "script":  "jobs-list.js",
+                          "endpoint":  "jobs-list"
+                      },
+                      {
+                          "script":  "company-applications.js",
+                          "endpoint":  "company-applications"
+                      },
+                      {
+                          "script":  "public-companies.js",
+                          "endpoint":  "public-companies"
+                      },
+                      {
+                          "script":  "saved-jobs.js",
+                          "endpoint":  "saved-jobs"
+                      },
+                      {
+                          "script":  "recommendation-runs.js",
+                          "endpoint":  "recommendation-runs"
+                      }
+                  ],
+    "runs":  [
+                 {
+                     "run":  1,
+                     "startedAtUtc":  "2026-07-25T13:59:09.2789477Z",
+                     "endpoints":  [
+                                       {
+                                           "endpoint":  "jobs-list",
+                                           "measuredStartedAtUtc":  "2026-07-25T13:59:10.8888648Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T13:59:55.4240913Z",
+                                           "sqlCallsPerRequest":  6.0008,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "company-applications",
+                                           "measuredStartedAtUtc":  "2026-07-25T13:59:56.9946137Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:00:35.6618978Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "public-companies",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:00:36.7890423Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:00:54.1642877Z",
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "saved-jobs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:00:55.3207821Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:01:10.8904227Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "recommendation-runs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:01:11.9965643Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:01:26.9229382Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                     "completedAtUtc":  "2026-07-25T14:01:27.1506113Z"
+                 },
+                 {
+                     "run":  2,
+                     "startedAtUtc":  "2026-07-25T14:01:27.1576717Z",
+                     "endpoints":  [
+                                       {
+                                           "endpoint":  "jobs-list",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:01:28.2908207Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:02:09.8154569Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "company-applications",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:02:11.2303592Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:02:50.7257370Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "public-companies",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:02:51.7536317Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:03:08.5289657Z",
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "saved-jobs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:03:09.6383942Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:03:24.9534024Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "recommendation-runs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:03:26.0538834Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:03:41.4821699Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                     "completedAtUtc":  "2026-07-25T14:03:41.7108817Z"
+                 },
+                 {
+                     "run":  3,
+                     "startedAtUtc":  "2026-07-25T14:03:41.7128812Z",
+                     "endpoints":  [
+                                       {
+                                           "endpoint":  "jobs-list",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:03:42.8808277Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:04:25.2149976Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "company-applications",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:04:26.6209045Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:05:05.8560751Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "public-companies",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:05:06.8708414Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:05:24.2671758Z",
+                                           "sqlCallsPerRequest":  4,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "saved-jobs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:05:25.3163343Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:05:41.2483355Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       },
+                                       {
+                                           "endpoint":  "recommendation-runs",
+                                           "measuredStartedAtUtc":  "2026-07-25T14:05:42.2765224Z",
+                                           "measuredCompletedAtUtc":  "2026-07-25T14:05:56.6646594Z",
+                                           "sqlCallsPerRequest":  6,
+                                           "serviceSqlCallsPerRequest":  3
+                                       }
+                                   ],
+                     "completedAtUtc":  "2026-07-25T14:05:56.8776907Z"
+                 }
+             ],
+    "completedAtUtc":  "2026-07-25T14:05:56.8782164Z"
+}
