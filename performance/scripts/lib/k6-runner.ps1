@@ -68,7 +68,8 @@ function Invoke-K6Endpoint {
         [Parameter(Mandatory = $true)][int]$Iterations,
         [Parameter(Mandatory = $true)][string]$PerformancePassword,
         [Parameter(Mandatory = $true)][ValidateSet('smoke', 'baseline')][string]$WorkloadKind,
-        [Parameter(Mandatory = $true)]$K6Runtime
+        [Parameter(Mandatory = $true)]$K6Runtime,
+        [string]$AuthToken
     )
 
     $repositoryRoot = Get-RepositoryRoot
@@ -78,9 +79,10 @@ function Invoke-K6Endpoint {
     $endpointDirectory = Join-Path (Join-Path $RunDirectory $(if ($WorkloadKind -eq 'smoke') { 'smoke' } else { 'k6' })) $EndpointName
     [IO.Directory]::CreateDirectory($endpointDirectory) | Out-Null
     $consolePath = Join-Path $endpointDirectory 'console.txt'
+    $rawSummaryPath = Join-Path $endpointDirectory 'raw-summary.json'
 
     $savedEnvironment = @{}
-    foreach ($name in @('BASE_URL', 'VUS', 'ITERATIONS', 'RESULT_DIRECTORY', 'STUDENT_EMAIL', 'COMPANY_EMAIL', 'PERFORMANCE_PASSWORD', 'WORKLOAD_KIND')) {
+    foreach ($name in @('BASE_URL', 'VUS', 'ITERATIONS', 'RESULT_DIRECTORY', 'STUDENT_EMAIL', 'COMPANY_EMAIL', 'PERFORMANCE_PASSWORD', 'WORKLOAD_KIND', 'AUTH_TOKEN')) {
         $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
 
@@ -92,6 +94,7 @@ function Invoke-K6Endpoint {
         $env:COMPANY_EMAIL = if ([string]::IsNullOrWhiteSpace($env:COMPANY_EMAIL)) { 'perf.company.001@example.test' } else { $env:COMPANY_EMAIL }
         $env:PERFORMANCE_PASSWORD = $PerformancePassword
         $env:WORKLOAD_KIND = $WorkloadKind
+        [Environment]::SetEnvironmentVariable('AUTH_TOKEN', $(if ([string]::IsNullOrWhiteSpace($AuthToken)) { $null } else { $AuthToken }), 'Process')
 
         if ($null -eq $K6Runtime.PSObject.Properties['Kind'] -or $K6Runtime.Kind -notin @('native', 'docker')) {
             throw 'Invoke-K6Endpoint requires a validated native or Docker k6 runtime.'
@@ -107,7 +110,7 @@ function Invoke-K6Endpoint {
             try {
                 $savedErrorPreference = $ErrorActionPreference
                 $ErrorActionPreference = 'Continue'
-                & $K6Runtime.Executable run --summary-mode=full $relativeScript 2>&1 | Tee-Object -FilePath $consolePath
+                & $K6Runtime.Executable run --summary-mode=full --summary-export $rawSummaryPath $relativeScript 2>&1 | Tee-Object -FilePath $consolePath
                 $exitCode = $LASTEXITCODE
                 $ErrorActionPreference = $savedErrorPreference
             }
@@ -130,6 +133,7 @@ function Invoke-K6Endpoint {
 
             $relativeScript = (Get-CompatibleRelativePath -BasePath $repositoryRoot -TargetPath $scriptPath).Replace('\', '/')
             $relativeResult = (Get-CompatibleRelativePath -BasePath $repositoryRoot -TargetPath $endpointDirectory).Replace('\', '/')
+            $dockerRawSummaryPath = "/workspace/$relativeResult/raw-summary.json"
             $env:BASE_URL = $dockerBaseUrl
             $env:RESULT_DIRECTORY = "/workspace/$relativeResult"
 
@@ -140,8 +144,9 @@ function Invoke-K6Endpoint {
                 '--volume', "${repositoryRoot}:/workspace", '--workdir', '/workspace',
                 '--env', 'BASE_URL', '--env', 'VUS', '--env', 'ITERATIONS',
                 '--env', 'RESULT_DIRECTORY', '--env', 'STUDENT_EMAIL', '--env', 'COMPANY_EMAIL',
-                '--env', 'PERFORMANCE_PASSWORD', '--env', 'WORKLOAD_KIND',
-                $K6Runtime.DockerImage, 'run', '--summary-mode=full', $relativeScript
+                '--env', 'PERFORMANCE_PASSWORD', '--env', 'WORKLOAD_KIND', '--env', 'AUTH_TOKEN',
+                $K6Runtime.DockerImage, 'run', '--summary-mode=full',
+                '--summary-export', $dockerRawSummaryPath, $relativeScript
             )
             $savedErrorPreference = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
@@ -155,6 +160,14 @@ function Invoke-K6Endpoint {
         if (-not (Test-Path -LiteralPath $summaryPath -PathType Leaf)) {
             throw "k6 did not create $summaryPath."
         }
+        if (-not (Test-Path -LiteralPath $rawSummaryPath -PathType Leaf)) {
+            throw "k6 did not create $rawSummaryPath."
+        }
+        $rawSummary = Get-Content -LiteralPath $rawSummaryPath -Raw | ConvertFrom-Json
+        if ($null -ne $rawSummary.PSObject.Properties['setup_data']) {
+            $rawSummary.PSObject.Properties.Remove('setup_data')
+        }
+        $rawSummary | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $rawSummaryPath -Encoding utf8
     }
     finally {
         foreach ($entry in $savedEnvironment.GetEnumerator()) {

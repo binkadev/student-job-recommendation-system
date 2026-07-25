@@ -35,7 +35,9 @@ try {
     foreach ($workload in @(
         @{ Script = 'jobs-list.js'; Endpoint = 'jobs-list' },
         @{ Script = 'company-applications.js'; Endpoint = 'company-applications' },
-        @{ Script = 'public-companies.js'; Endpoint = 'public-companies' }
+        @{ Script = 'public-companies.js'; Endpoint = 'public-companies' },
+        @{ Script = 'saved-jobs.js'; Endpoint = 'saved-jobs' },
+        @{ Script = 'recommendation-runs.js'; Endpoint = 'recommendation-runs' }
     )) {
         Invoke-K6Endpoint `
             -ScriptName $workload.Script `

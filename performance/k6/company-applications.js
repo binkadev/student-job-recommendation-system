@@ -1,10 +1,10 @@
-import { buildOptions, login, measuredGet, writeSummary } from './lib/common.js';
+import { buildOptions, measuredGet, resolveToken, writeSummary } from './lib/common.js';
 
 const ENDPOINT = 'company-applications';
 export const options = buildOptions(ENDPOINT);
 
 export function setup() {
-  return { token: login(__ENV.COMPANY_EMAIL || 'perf.company.001@example.test') };
+  return { token: resolveToken(__ENV.COMPANY_EMAIL || 'perf.company.001@example.test') };
 }
 
 export default function (data) {

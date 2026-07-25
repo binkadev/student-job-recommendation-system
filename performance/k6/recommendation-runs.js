@@ -1,6 +1,11 @@
-import { buildOptions, measuredGet, resolveToken, writeSummary } from './lib/common.js';
+import {
+  buildOptions,
+  measuredListGet,
+  resolveToken,
+  writeSummary,
+} from './lib/common.js';
 
-const ENDPOINT = 'jobs-list';
+const ENDPOINT = 'recommendation-runs';
 export const options = buildOptions(ENDPOINT);
 
 export function setup() {
@@ -8,10 +13,9 @@ export function setup() {
 }
 
 export default function (data) {
-  measuredGet('/api/jobs?page=1&size=20', ENDPOINT, data.token);
+  measuredListGet('/api/students/me/recommendation-runs', ENDPOINT, data.token);
 }
 
 export function handleSummary(data) {
   return writeSummary(data);
 }
-
