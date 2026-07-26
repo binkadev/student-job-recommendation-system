@@ -84,9 +84,9 @@ def test_default_catalog_has_expected_version_and_counts() -> None:
     catalog = load_default_catalog()
 
     assert catalog.catalog_version == "skills-v1"
-    assert catalog.canonical_count == 84
-    assert catalog.lookup_key_count == 123
-    assert catalog.non_canonical_alias_count == 39
+    assert catalog.canonical_count == 89
+    assert catalog.lookup_key_count == 146
+    assert catalog.non_canonical_alias_count == 57
 
 
 def test_all_backend_seeded_skills_map_exactly_to_themselves() -> None:
@@ -136,6 +136,31 @@ def test_required_aliases_and_technical_punctuation(
     assert load_default_catalog().canonicalize_one(supplied) == expected
 
 
+@pytest.mark.parametrize(
+    ("supplied", "expected"),
+    [
+        ("học máy", "machine learning"),
+        ("hoc may", "machine learning"),
+        ("trí tuệ nhân tạo", "artificial intelligence"),
+        ("tri tue nhan tao", "artificial intelligence"),
+        ("cơ sở dữ liệu", "database"),
+        ("co so du lieu", "database"),
+        ("điện toán đám mây", "cloud computing"),
+        ("dien toan dam may", "cloud computing"),
+        ("kiến trúc vi dịch vụ", "microservices"),
+        ("vi dịch vụ", "microservices"),
+        ("lập trình hướng đối tượng", "object oriented programming"),
+        ("kiểm thử phần mềm", "software testing"),
+        ("quản lý dự án", "project management"),
+    ],
+)
+def test_vietnamese_aliases_share_the_canonical_namespace(
+    supplied: str,
+    expected: str,
+) -> None:
+    assert load_default_catalog().canonicalize_one(supplied) == expected
+
+
 def test_normalization_uses_nfc_casefold_and_unicode_whitespace_collapse() -> None:
     decomposed = "  CAFE\u0301\u2003DATA\t "
 
@@ -149,8 +174,8 @@ def test_unknown_skills_use_only_syntactic_normalization() -> None:
     catalog = load_default_catalog()
 
     assert catalog.canonicalize_one("  Unknown\u2003Skill  ") == "unknown skill"
-    assert catalog.canonicalize_one("  HỌC   MÁY  ") == "học máy"
-    assert "học máy" not in catalog.alias_to_canonical
+    assert catalog.canonicalize_one("  HỌC   MÁY  ") == "machine learning"
+    assert catalog.canonicalize_one("  Chuyên môn mới  ") == "chuyên môn mới"
 
 
 def test_canonicalize_many_uses_complete_input_and_deduplicates() -> None:

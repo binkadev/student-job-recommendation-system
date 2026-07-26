@@ -1,4 +1,4 @@
-"""Safe single-read CV parsing for the English V2 baseline."""
+"""Safe single-read CV parsing for supported V2 languages."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from .http_errors import (
     unsupported_file_type_error,
     unsupported_language_error,
 )
-from .preprocessor import UnsupportedLanguageError, preprocess_english
+from .preprocessor import UnsupportedLanguageError, preprocess_supported
 from .schemas import CvParseResponse
 from .skill_extractor import SkillExtractor
 
@@ -143,7 +143,7 @@ class CvParsingService:
             raise document_too_large_error()
 
         try:
-            preprocessing = preprocess_english(raw_text)
+            preprocessing = preprocess_supported(raw_text)
         except UnsupportedLanguageError as error:
             raise unsupported_language_error() from error
         if not preprocessing.processed_text:

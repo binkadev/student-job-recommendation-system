@@ -117,6 +117,36 @@ def test_does_not_fuzzy_match_or_match_inside_words(
     assert extractor.extract(text) == ()
 
 
+def test_extracts_longest_vietnamese_aliases_without_generic_false_positives(
+    extractor: SkillExtractor,
+) -> None:
+    text = (
+        "Trí tuệ nhân tạo, học máy, cơ sở dữ liệu, điện toán đám mây, "
+        "kiến trúc vi dịch vụ, lập trình hướng đối tượng, kiểm thử phần mềm "
+        "và quản lý dự án."
+    )
+
+    assert extractor.extract(text) == (
+        "artificial intelligence",
+        "cloud computing",
+        "database",
+        "machine learning",
+        "microservices",
+        "object oriented programming",
+        "project management",
+        "software testing",
+    )
+
+
+def test_generic_vietnamese_words_are_not_skills(
+    extractor: SkillExtractor,
+) -> None:
+    assert extractor.extract(
+        "hệ thống ứng dụng dữ liệu dịch vụ web phần mềm phát triển quản lý "
+        "kiểm thử đám mây"
+    ) == ()
+
+
 def test_output_is_sorted_before_the_200_skill_cap() -> None:
     aliases = {
         f"skill{index:03d}": f"skill{index:03d}"

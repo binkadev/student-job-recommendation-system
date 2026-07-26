@@ -1,4 +1,4 @@
-"""Deterministic same-language TF-IDF and canonical-skill scoring."""
+"""Deterministic same-language and cross-language recommendation scoring."""
 
 from dataclasses import dataclass
 from decimal import Context, Decimal, localcontext
@@ -8,7 +8,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from .constants import PUBLIC_SCORE_QUANTUM, PUBLIC_SCORE_ROUNDING
-from .reason_generator import generate_same_language_reason
+from .reason_generator import (
+    generate_cross_language_reason,
+    generate_same_language_reason,
+)
+from .schemas import LanguageCode
 
 
 _TEXT_WEIGHT = Decimal("0.65")
@@ -37,7 +41,7 @@ class ScoredRecommendation:
 
     job_id: int
     score: Decimal
-    text_score: Decimal
+    text_score: Decimal | None
     skill_score: Decimal
     full_matched_skills: tuple[str, ...]
     full_missing_skills: tuple[str, ...]
@@ -115,6 +119,7 @@ def score_same_language_recommendations(
     jobs: tuple[PreparedJob, ...],
     threshold: Decimal,
     limit: int,
+    language_code: LanguageCode = LanguageCode.ENGLISH,
 ) -> tuple[ScoredRecommendation, ...]:
     """Score confidently English CV and Job documents deterministically."""
 
@@ -169,19 +174,85 @@ def score_same_language_recommendations(
         if score < threshold:
             continue
 
-        reason = generate_same_language_reason(
-            text_score=text_score,
-            skill_score=skill_score,
-            full_matched_skills=full_matched_skills,
-            matched_count=matched_count,
-            missing_count=missing_count,
-            job_skill_count=job_skill_count,
-        )
+        reason_arguments = {
+            "text_score": text_score,
+            "skill_score": skill_score,
+            "full_matched_skills": full_matched_skills,
+            "matched_count": matched_count,
+            "missing_count": missing_count,
+            "job_skill_count": job_skill_count,
+        }
+        if language_code is LanguageCode.VIETNAMESE:
+            reason_arguments["language_code"] = language_code
+        reason = generate_same_language_reason(**reason_arguments)
         candidates.append(
             ScoredRecommendation(
                 job_id=job.job_id,
                 score=score,
                 text_score=text_score,
+                skill_score=skill_score,
+                full_matched_skills=full_matched_skills,
+                full_missing_skills=full_missing_skills,
+                reason=reason,
+            )
+        )
+
+    candidates.sort(key=lambda candidate: candidate.job_id)
+    candidates.sort(key=lambda candidate: candidate.score, reverse=True)
+    return tuple(candidates[:limit])
+
+
+def score_cross_language_recommendations(
+    *,
+    cv_canonical_skills: frozenset[str],
+    jobs: tuple[PreparedJob, ...],
+    threshold: Decimal,
+    limit: int,
+    reason_language: LanguageCode,
+) -> tuple[ScoredRecommendation, ...]:
+    """Score unsafe-language pairs using complete canonical skills only."""
+
+    _validate_scoring_controls(threshold=threshold, limit=limit)
+    if not isinstance(cv_canonical_skills, frozenset):
+        raise TypeError("CV canonical skills must be a frozenset")
+    if not isinstance(jobs, tuple):
+        raise TypeError("Prepared Jobs must be a tuple")
+
+    candidates: list[ScoredRecommendation] = []
+    for job in jobs:
+        full_matched_skills = tuple(
+            sorted(cv_canonical_skills & job.canonical_skills)
+        )
+        full_missing_skills = tuple(
+            sorted(job.canonical_skills - cv_canonical_skills)
+        )
+        matched_count = len(full_matched_skills)
+        missing_count = len(full_missing_skills)
+        job_skill_count = len(job.canonical_skills)
+        with localcontext(_SCORING_DECIMAL_CONTEXT):
+            raw_skill_score = (
+                Decimal(matched_count) / Decimal(job_skill_count)
+                if job_skill_count
+                else _ZERO
+            )
+        skill_score = project_public_score(raw_skill_score)
+        score = skill_score
+        if score < threshold:
+            continue
+
+        reason = generate_cross_language_reason(
+            skill_score=skill_score,
+            full_matched_skills=full_matched_skills,
+            matched_count=matched_count,
+            missing_count=missing_count,
+            job_skill_count=job_skill_count,
+            language_code=reason_language,
+        )
+        candidates.append(
+            ScoredRecommendation(
+                job_id=job.job_id,
+                score=score,
+                text_score=None,
                 skill_score=skill_score,
                 full_matched_skills=full_matched_skills,
                 full_missing_skills=full_missing_skills,

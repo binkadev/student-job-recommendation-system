@@ -1,4 +1,4 @@
-"""Deterministic catalog-backed skill extraction from English CV text."""
+"""Deterministic catalog-backed skill extraction from bilingual CV text."""
 
 from __future__ import annotations
 

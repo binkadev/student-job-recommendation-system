@@ -168,18 +168,32 @@ VIETNAMESE_SIGNAL_WORDS = frozenset(
 # diacritics. Each distinct phrase contributes two evidence points.
 VIETNAMESE_RESUME_MARKER_PHRASES = frozenset(
     {
+        ("cơ", "sở", "dữ", "liệu"),
+        ("co", "so", "du", "lieu"),
         ("dự", "án"),
         ("du", "an"),
+        ("điện", "toán", "đám", "mây"),
+        ("dien", "toan", "dam", "may"),
         ("kinh", "nghiệm"),
         ("kinh", "nghiem"),
+        ("kiến", "trúc", "vi", "dịch", "vụ"),
+        ("kien", "truc", "vi", "dich", "vu"),
         ("kỹ", "năng"),
         ("ky", "nang"),
         ("kỹ", "sư"),
         ("ky", "su"),
+        ("lập", "trình", "viên"),
+        ("lap", "trinh", "vien"),
         ("phần", "mềm"),
         ("phan", "mem"),
         ("phát", "triển"),
         ("phat", "trien"),
+        ("quản", "lý", "dự", "án"),
+        ("quan", "ly", "du", "an"),
+        ("trí", "tuệ", "nhân", "tạo"),
+        ("tri", "tue", "nhan", "tao"),
+        ("vi", "dịch", "vụ"),
+        ("vi", "dich", "vu"),
     }
 )
 
@@ -195,6 +209,12 @@ _LONG_NUMERIC_IDENTIFIER_PATTERN = re.compile(
     r"(?<!\w)\d(?:[-._/]*\d){5,}(?!\w)"
 )
 _WORD_PATTERN = re.compile(r"[^\W_]+", flags=re.UNICODE)
+_VIETNAMESE_SPECIFIC_CHARACTER_PATTERN = re.compile(
+    r"[ăâđêôơưĂÂĐÊÔƠƯ]|"
+    r"[àáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩ"
+    r"òóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]",
+    flags=re.UNICODE,
+)
 _CONFIDENCE_QUANTUM = Decimal("0.00000001")
 _MIN_SIGNAL_COUNT = 2
 _FULL_STRENGTH_SIGNAL_COUNT = 6
@@ -277,6 +297,14 @@ def detect_language(text: str) -> LanguageDetection:
             VIETNAMESE_RESUME_MARKER_PHRASES,
         )
     )
+    # A capped character signal is only a fallback when the fixed Vietnamese
+    # words and phrases found no evidence. One accented character contributes
+    # only one point and therefore cannot classify a document by itself.
+    if vietnamese_count == 0 and len(tokens) >= 2:
+        vietnamese_count = min(
+            len(set(_VIETNAMESE_SPECIFIC_CHARACTER_PATTERN.findall(evidence))),
+            2,
+        )
     total = english_count + vietnamese_count
 
     if total < _MIN_SIGNAL_COUNT:

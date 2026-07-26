@@ -19,7 +19,7 @@
     },
     {
       "canonical": "artificial intelligence",
-      "aliases": ["ai", "artificial intelligence"]
+      "aliases": ["ai", "artificial intelligence", "tri tue nhan tao", "trí tuệ nhân tạo"]
     },
     {
       "canonical": "asp.net",
@@ -54,8 +54,16 @@
       "aliases": ["ci/cd", "cicd"]
     },
     {
+      "canonical": "cloud computing",
+      "aliases": ["cloud computing", "dien toan dam may", "điện toán đám mây"]
+    },
+    {
       "canonical": "css",
       "aliases": ["css"]
+    },
+    {
+      "canonical": "database",
+      "aliases": ["co so du lieu", "cơ sở dữ liệu", "database"]
     },
     {
       "canonical": "deep learning",
@@ -171,7 +179,7 @@
     },
     {
       "canonical": "machine learning",
-      "aliases": ["machine learning", "ml"]
+      "aliases": ["hoc may", "học máy", "machine learning", "ml"]
     },
     {
       "canonical": "matlab",
@@ -179,7 +187,7 @@
     },
     {
       "canonical": "microservices",
-      "aliases": ["microservices"]
+      "aliases": ["kien truc vi dich vu", "kiến trúc vi dịch vụ", "microservices", "vi dich vu", "vi dịch vụ"]
     },
     {
       "canonical": "mongodb",
@@ -210,6 +218,10 @@
       "aliases": ["numpy"]
     },
     {
+      "canonical": "object oriented programming",
+      "aliases": ["lap trinh huong doi tuong", "lập trình hướng đối tượng", "object oriented programming"]
+    },
+    {
       "canonical": "nuxt.js",
       "aliases": ["nuxt.js", "nuxtjs"]
     },
@@ -228,6 +240,10 @@
     {
       "canonical": "postgresql",
       "aliases": ["postgres", "postgresql"]
+    },
+    {
+      "canonical": "project management",
+      "aliases": ["project management", "quan ly du an", "quản lý dự án"]
     },
     {
       "canonical": "python",
@@ -288,6 +304,10 @@
     {
       "canonical": "scrum",
       "aliases": ["scrum"]
+    },
+    {
+      "canonical": "software testing",
+      "aliases": ["kiem thu phan mem", "kiểm thử phần mềm", "software testing"]
     },
     {
       "canonical": "spark",
