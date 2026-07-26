@@ -98,7 +98,6 @@ class RestAiServiceClientTest {
                         "textScore": 0.70,
                         "skillScore": 0.85,
                         "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                        "rank": 1,
                         "matchedSkills": ["Java"],
                         "missingSkills": [],
                         "reason": "Matched Java"

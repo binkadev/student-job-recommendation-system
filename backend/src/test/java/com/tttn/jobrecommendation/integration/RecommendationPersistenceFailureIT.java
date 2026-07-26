@@ -78,8 +78,8 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
                             "tfidf-cosine-hybrid",
                             "bilingual-recommendation-v2",
                             List.of(
-                                    result(firstJob.getId(), 1),
-                                    result(secondJob.getId(), 2)
+                                    result(firstJob.getId()),
+                                    result(secondJob.getId())
                             )
                     );
                 });
@@ -111,14 +111,13 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
                 .doesNotContain("jdbc", "secret", "internal", "raw AI response");
     }
 
-    private AiRecommendationResponse.Result result(Long jobId, int rank) {
+    private AiRecommendationResponse.Result result(Long jobId) {
         return new AiRecommendationResponse.Result(
                 jobId,
                 0.75,
                 0.70,
                 0.85,
                 RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID,
-                rank,
                 List.of("java"),
                 List.of("docker"),
                 "Strong Java overlap"

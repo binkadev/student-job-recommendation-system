@@ -1008,7 +1008,6 @@ Contract V2 response:
       "textScore": 0.65,
       "skillScore": 0.85,
       "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-      "rank": 1,
       "matchedSkills": ["java", "spring boot"],
       "missingSkills": ["docker"],
       "reason": "Strong Java and Spring Boot overlap."
@@ -1055,7 +1054,11 @@ A successful response is a completed run detail:
 
 `matchedKeywords` is retained for frontend compatibility and semantically represents `matchedSkills`; no duplicate public `matchedSkills` field is added.
 
-The backend requires matching `requestId`, non-blank bounded algorithm metadata, a non-null result list within the requested limit, eligible unique job IDs, unique positive ranks continuous from 1, and finite component scores within `[0,1]`. `skillScore` and strategy are required. `SAME_LANGUAGE_HYBRID` requires `textScore`; `CROSS_LANGUAGE_SKILL_BASED` permits null `textScore`. Matched and missing skills are non-null and defensively normalized. A non-null reason is trimmed and limited to 2,000 characters. Valid AI rank is preserved rather than recalculated, and persisted results are queried by `rank_position`.
+The backend requires matching `requestId`, non-blank bounded algorithm metadata, a non-null result list within the requested limit, eligible unique job IDs, and finite required `score` and `skillScore` values within `[0,1]`. Every raw result score must be greater than or equal to the requested threshold; one result below the threshold invalidates the whole response, marks the run `FAILED`, and persists no partial results. Threshold comparison uses the raw `BigDecimal` conversion before scores are rounded to `NUMERIC(8,5)` for persistence.
+
+`SAME_LANGUAGE_HYBRID` requires a finite `textScore` in `[0,1]`. `CROSS_LANGUAGE_SKILL_BASED` requires `textScore: null`; any non-null value is invalid. Matched and missing skills are non-null and defensively normalized. A non-null reason is trimmed and limited to 2,000 characters.
+
+AI V2 does not return rank. After all results pass validation, the backend sorts them by `score DESC`, then `jobId ASC` for deterministic ties, and assigns continuous `rankPosition` values from 1. The backend is the sole source of truth for ranking; persisted and public results continue to use `rankPosition`.
 
 AI timeout, unavailability, invalid response, orchestration error, or transactional persistence failure marks the run `FAILED` in an independent transaction, sets `finishedAt`, stores only a sanitized error, and leaves no partial result rows.
 
@@ -1121,6 +1124,13 @@ Role: `STUDENT`.
 Returns persisted results for the current student's latest `SUCCESS` run. The repository filters status in the database; a newer `FAILED` or `PROCESSING` run never hides the latest successful results. Calling this read-only endpoint never triggers generation.
 
 Historical runs retain algorithm metadata, jobs scanned, component scores, strategy, matched/missing skills, reason, and their CV identifier. They do not retain immutable snapshots of the uploaded file, CV/job text, or entire eligible corpus. Later CV/job/profile edits do not rewrite persisted results, but the exact historical input cannot be reconstructed.
+
+Deferred P1 TODOs, intentionally not implemented in this contract-locking change:
+
+- Semantically validate that matched skills are a subset of CV/job intersection, missing skills are a subset of job-minus-CV skills, and the two sets are disjoint.
+- Define concurrent-reanalysis control using a row lock, rejection while `PROCESSING`, or an `analysisAttemptId`.
+- Add job-skill `importance` and `minLevel` to a future AI contract revision.
+- Add internal service authentication before production deployment.
 
 ### Deployment order and known limitations
 

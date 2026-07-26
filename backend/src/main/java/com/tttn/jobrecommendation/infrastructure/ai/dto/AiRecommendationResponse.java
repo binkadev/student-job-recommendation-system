@@ -18,7 +18,6 @@ public record AiRecommendationResponse(
             Double textScore,
             Double skillScore,
             RecommendationScoringStrategy scoringStrategy,
-            Integer rank,
             List<String> matchedSkills,
             List<String> missingSkills,
             String reason

@@ -112,7 +112,7 @@ public class RecommendationTransactionService {
                         .matchedKeywords(result.matchedSkills())
                         .missingSkills(result.missingSkills())
                         .reason(result.reason())
-                        .rankPosition(result.rank())
+                        .rankPosition(result.rankPosition())
                         .build())
                 .toList();
         recommendationResultRepository.saveAllAndFlush(results);

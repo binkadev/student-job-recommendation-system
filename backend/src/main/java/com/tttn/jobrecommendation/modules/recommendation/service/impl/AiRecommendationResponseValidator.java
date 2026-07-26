@@ -29,12 +29,18 @@ public class AiRecommendationResponseValidator {
     public ValidatedRecommendationResponse validate(
             UUID expectedRequestId,
             Set<Long> eligibleJobIds,
+            BigDecimal requestedThreshold,
             int requestedLimit,
             AiRecommendationResponse response
     ) {
         if (response == null
                 || response.requestId() == null
                 || !response.requestId().equals(expectedRequestId)
+                || eligibleJobIds == null
+                || requestedThreshold == null
+                || requestedThreshold.compareTo(BigDecimal.ZERO) < 0
+                || requestedThreshold.compareTo(BigDecimal.ONE) > 0
+                || requestedLimit <= 0
                 || response.results() == null
                 || response.results().size() > requestedLimit) {
             throw invalidResponse();
@@ -46,39 +52,37 @@ public class AiRecommendationResponseValidator {
                 MAX_ALGORITHM_VERSION_LENGTH
         );
         Set<Long> seenJobIds = new HashSet<>();
-        Set<Integer> seenRanks = new HashSet<>();
-        List<ValidatedRecommendationResponse.Result> validated = new ArrayList<>();
+        List<ValidatedResult> validated = new ArrayList<>();
         for (AiRecommendationResponse.Result result : response.results()) {
-            validated.add(validateResult(result, eligibleJobIds, seenJobIds, seenRanks));
+            validated.add(validateResult(
+                    result,
+                    eligibleJobIds,
+                    seenJobIds,
+                    requestedThreshold
+            ));
         }
-        for (int expectedRank = 1; expectedRank <= validated.size(); expectedRank++) {
-            if (!seenRanks.contains(expectedRank)) {
-                throw invalidResponse();
-            }
-        }
-
-        validated.sort(Comparator.comparing(ValidatedRecommendationResponse.Result::rank));
+        validated.sort(Comparator
+                .comparing(ValidatedResult::score)
+                .reversed()
+                .thenComparing(ValidatedResult::jobId));
 
         return new ValidatedRecommendationResponse(
                 algorithm,
                 algorithmVersion,
-                List.copyOf(validated)
+                toRankedResults(validated)
         );
     }
 
-    private ValidatedRecommendationResponse.Result validateResult(
+    private ValidatedResult validateResult(
             AiRecommendationResponse.Result result,
             Set<Long> eligibleJobIds,
             Set<Long> seenJobIds,
-            Set<Integer> seenRanks
+            BigDecimal requestedThreshold
     ) {
         if (result == null
                 || result.jobId() == null
                 || !eligibleJobIds.contains(result.jobId())
                 || !seenJobIds.add(result.jobId())
-                || result.rank() == null
-                || result.rank() <= 0
-                || !seenRanks.add(result.rank())
                 || result.scoringStrategy() == null
                 || result.matchedSkills() == null
                 || result.missingSkills() == null
@@ -88,25 +92,52 @@ public class AiRecommendationResponseValidator {
             throw invalidResponse();
         }
 
-        BigDecimal score = validateScore(result.score(), true);
-        BigDecimal textScore = validateScore(result.textScore(), false);
-        BigDecimal skillScore = validateScore(result.skillScore(), true);
-        if (result.scoringStrategy() == RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID
-                && textScore == null) {
+        BigDecimal score = validateRequiredRawScore(result.score());
+        if (score.compareTo(requestedThreshold) < 0) {
             throw invalidResponse();
         }
+        BigDecimal textScore = switch (result.scoringStrategy()) {
+            case SAME_LANGUAGE_HYBRID -> validateRequiredRawScore(result.textScore());
+            case CROSS_LANGUAGE_SKILL_BASED -> {
+                if (result.textScore() != null) {
+                    throw invalidResponse();
+                }
+                yield null;
+            }
+        };
+        BigDecimal skillScore = validateRequiredRawScore(result.skillScore());
 
-        return new ValidatedRecommendationResponse.Result(
+        return new ValidatedResult(
                 result.jobId(),
                 score,
                 textScore,
                 skillScore,
                 result.scoringStrategy(),
-                result.rank(),
                 normalizeSkills(result.matchedSkills()),
                 normalizeSkills(result.missingSkills()),
                 normalizeReason(result.reason())
         );
+    }
+
+    private List<ValidatedRecommendationResponse.Result> toRankedResults(
+            List<ValidatedResult> validated
+    ) {
+        List<ValidatedRecommendationResponse.Result> ranked = new ArrayList<>(validated.size());
+        for (int index = 0; index < validated.size(); index++) {
+            ValidatedResult result = validated.get(index);
+            ranked.add(new ValidatedRecommendationResponse.Result(
+                    result.jobId(),
+                    scaleForPersistence(result.score()),
+                    scaleForPersistence(result.textScore()),
+                    scaleForPersistence(result.skillScore()),
+                    result.scoringStrategy(),
+                    index + 1,
+                    result.matchedSkills(),
+                    result.missingSkills(),
+                    result.reason()
+            ));
+        }
+        return List.copyOf(ranked);
     }
 
     private List<String> normalizeSkills(List<String> skills) {
@@ -124,17 +155,18 @@ public class AiRecommendationResponseValidator {
         return SkillNameNormalizer.normalize(skill);
     }
 
-    private BigDecimal validateScore(Double score, boolean required) {
+    private BigDecimal validateRequiredRawScore(Double score) {
         if (score == null) {
-            if (required) {
-                throw invalidResponse();
-            }
-            return null;
+            throw invalidResponse();
         }
         if (!Double.isFinite(score) || score < 0.0d || score > 1.0d) {
             throw invalidResponse();
         }
-        return BigDecimal.valueOf(score).setScale(5, RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(score);
+    }
+
+    private BigDecimal scaleForPersistence(BigDecimal score) {
+        return score == null ? null : score.setScale(5, RoundingMode.HALF_UP);
     }
 
     private String normalizeRequiredMetadata(String value, int maxLength) {
@@ -150,5 +182,17 @@ public class AiRecommendationResponseValidator {
 
     private AppException invalidResponse() {
         return new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+    }
+
+    private record ValidatedResult(
+            Long jobId,
+            BigDecimal score,
+            BigDecimal textScore,
+            BigDecimal skillScore,
+            RecommendationScoringStrategy scoringStrategy,
+            List<String> matchedSkills,
+            List<String> missingSkills,
+            String reason
+    ) {
     }
 }

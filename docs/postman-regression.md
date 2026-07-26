@@ -268,10 +268,10 @@ Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `h
 193. Eligible corpus: include only `ACTIVE` jobs of `VERIFIED` companies with null/today/future deadlines, ordered by id and loaded with bounded skill queries.
 194. Exact job input: require field `text`, not `processedText`, with `TITLE`, `DESCRIPTION`, `REQUIREMENTS`, and `SKILLS` in fixed order/newlines; exclude salary, location, benefits, timestamps, company data, status, deadline, working model, and counts.
 195. No JWT forwarding: recommendation headers/body contain no access token, `studentId`, `userId`, or database authority.
-196. Full result persistence: algorithm/version, total jobs scanned, score components, strategy, AI rank, matched/missing skills, and trimmed reason survive persistence and query.
+196. Full result persistence: algorithm/version, total jobs scanned, score components, strategy, backend-generated `rankPosition`, matched/missing skills, and trimmed reason survive persistence and query.
 197. Public compatibility: results expose `matchedKeywords` as matched skills plus V2 metadata, with no duplicate public `matchedSkills` field.
-198. V2 validation: cover request-id mismatch, duplicate/unknown job id, duplicate/non-positive/non-contiguous rank, result limit, all score bounds/finite checks, required `skillScore`, strategy rules, skill lists, and reason length.
-199. Rank preservation: valid AI ranks are persisted unchanged and detail results are ordered by `rank_position`, not reranked by score.
+198. V2 validation: cover request-id mismatch, duplicate/unknown job id, result limit, all score bounds/finite checks, requested-threshold enforcement before persistence rounding, required `skillScore`, strict strategy-specific `textScore`, skill lists, and reason length.
+199. Backend-owned ranking: reverse AI result order and verify identical results sorted by `score DESC`, then `jobId ASC`, with continuous backend-generated `rankPosition` values from 1.
 200. Empty corpus: expect configured non-null algorithm/version, `SUCCESS`, zero jobs scanned/recommended, empty results, finish time, null error, and no AI call.
 201. Failure atomicity: AI/persistence failures leave no partial results and commit `FAILED`, finish time, and a message containing no body, class, internal URL, credential/token, local path, or CV text.
 202. Latest success: newer `FAILED` and `PROCESSING` runs do not hide the latest `SUCCESS` results.

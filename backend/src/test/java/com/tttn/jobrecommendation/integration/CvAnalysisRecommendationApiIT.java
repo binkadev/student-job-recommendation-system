@@ -606,7 +606,6 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                           "textScore": 0.7,
                           "skillScore": 0.9,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "rank": 1,
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "first"
@@ -617,7 +616,6 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                           "textScore": 0.6,
                           "skillScore": 0.8,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "rank": 2,
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "duplicate"
@@ -645,7 +643,70 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
-    void exactBoundaryScoresRemainWithinDatabaseScaleAndKeepAiRanks() throws Exception {
+    void oneResultBelowRequestedThresholdFailsRunWithoutPersistingAnyResult() throws Exception {
+        Student student = createStudent("threshold-response@example.test");
+        CvFile cvFile = readyCv(student, "threshold-response.pdf");
+        Company company = createCompany(
+                "threshold-company@example.test",
+                "Threshold",
+                CompanyStatus.VERIFIED
+        );
+        Job acceptedJob = createJob(company, "Above threshold", JobStatus.ACTIVE);
+        Job rejectedJob = createJob(company, "Below threshold", JobStatus.ACTIVE);
+        RECOMMEND_HANDLER.set(exchange -> {
+            JsonNode request = readRequest(exchange);
+            respond(exchange, 200, """
+                    {
+                      "requestId": "%s",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "results": [
+                        {
+                          "jobId": %d,
+                          "score": 0.9,
+                          "textScore": 0.8,
+                          "skillScore": 0.9,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+                          "matchedSkills": ["Java"],
+                          "missingSkills": [],
+                          "reason": "above"
+                        },
+                        {
+                          "jobId": %d,
+                          "score": 0.599999,
+                          "textScore": 0.5,
+                          "skillScore": 0.7,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+                          "matchedSkills": ["Java"],
+                          "missingSkills": [],
+                          "reason": "below"
+                        }
+                      ]
+                    }
+                    """.formatted(
+                    request.get("requestId").asText(),
+                    acceptedJob.getId(),
+                    rejectedJob.getId()
+            ));
+        });
+
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + cvFile.getId() + ",\"threshold\":0.6,\"limit\":2}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorCode").value("AI_SERVICE_INVALID_RESPONSE"))
+                .andExpect(jsonPath("$.message").value("AI service returned an invalid response"));
+
+        RecommendationRun failedRun = recommendationRunRepository.findAll().getFirst();
+        assertThat(failedRun.getStatus()).isEqualTo(RecommendationRunStatus.FAILED);
+        assertThat(failedRun.getFinishedAt()).isNotNull();
+        assertThat(failedRun.getErrorMessage()).isEqualTo("AI service returned an invalid response");
+        assertThat(recommendationResultRepository.count()).isZero();
+    }
+
+    @Test
+    void exactBoundaryScoresArePersistedAndRankedByBackendScoreDescending() throws Exception {
         Student student = createStudent("boundary-score@example.test");
         CvFile cvFile = readyCv(student, "boundary-score.pdf");
         Company company = createCompany("boundary-company@example.test", "Boundary", CompanyStatus.VERIFIED);
@@ -665,7 +726,6 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                           "textScore": null,
                           "skillScore": 0.0,
                           "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
-                          "rank": 1,
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "zero"
@@ -676,7 +736,6 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                           "textScore": 1.0,
                           "skillScore": 1.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "rank": 2,
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "one"
@@ -691,17 +750,17 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cvId\":" + cvFile.getId() + ",\"threshold\":0.0,\"limit\":2}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.results[0].jobId").value(firstJob.getId()))
-                .andExpect(jsonPath("$.data.results[0].score").value(0.0))
+                .andExpect(jsonPath("$.data.results[0].jobId").value(secondJob.getId()))
+                .andExpect(jsonPath("$.data.results[0].score").value(1.0))
                 .andExpect(jsonPath("$.data.results[0].rankPosition").value(1))
-                .andExpect(jsonPath("$.data.results[1].jobId").value(secondJob.getId()))
-                .andExpect(jsonPath("$.data.results[1].score").value(1.0))
+                .andExpect(jsonPath("$.data.results[1].jobId").value(firstJob.getId()))
+                .andExpect(jsonPath("$.data.results[1].score").value(0.0))
                 .andExpect(jsonPath("$.data.results[1].rankPosition").value(2));
 
         Long runId = recommendationRunRepository.findAll().getFirst().getId();
         assertThat(recommendationResultRepository.findByRunIdOrderByRankPositionAsc(runId))
                 .extracting(result -> result.getScore().toPlainString())
-                .containsExactly("0.00000", "1.00000");
+                .containsExactly("1.00000", "0.00000");
     }
 
     @Test
@@ -962,12 +1021,11 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                       "textScore": 0.4,
                       "skillScore": 0.6,
                       "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                      "rank": %d,
                       "matchedSkills": ["Java"],
                       "missingSkills": ["Docker"],
                       "reason": " Matched Java "
                     }
-                    """.formatted(jobIds.get(index), index + 1));
+                    """.formatted(jobIds.get(index)));
         }
         respond(exchange, 200, """
                 {

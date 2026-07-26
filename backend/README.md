@@ -97,13 +97,15 @@ Parsed skills belong to the selected CV and are stored in `cv_files.extracted_sk
 
 The extracted-data PATCH remains for compatibility but is intentionally unsupported in the MVP. Authentication and CV ownership are checked first; an owned CV returns `501 FEATURE_NOT_SUPPORTED` and no text is changed. Reanalysis always reads the original uploaded file, so a manually edited text value would otherwise be overwritten.
 
-Recommendation generation accepts only a `READY` CV with non-blank extracted and processed text. Contract V2 sends the original extracted CV text and that CV's extracted skills. Only `ACTIVE` jobs for `VERIFIED` companies with null, current, or future deadlines are submitted, using a fixed `TITLE`/`DESCRIPTION`/`REQUIREMENTS`/`SKILLS` document. Valid AI ranks are preserved and full algorithm, component-score, strategy, matched/missing-skill, and reason metadata is persisted. `matchedKeywords` remains the public field name and semantically means matched skills.
+Recommendation generation accepts only a `READY` CV with non-blank extracted and processed text. Contract V2 sends the original extracted CV text and that CV's extracted skills. Only `ACTIVE` jobs for `VERIFIED` companies with null, current, or future deadlines are submitted, using a fixed `TITLE`/`DESCRIPTION`/`REQUIREMENTS`/`SKILLS` document. AI V2 does not return rank: the backend rejects any score below the requested threshold, sorts valid results by `score DESC` then `jobId ASC`, assigns continuous `rankPosition` values, and persists full algorithm, component-score, strategy, matched/missing-skill, and reason metadata. `SAME_LANGUAGE_HYBRID` requires `textScore`; `CROSS_LANGUAGE_SKILL_BASED` requires it to be null. `matchedKeywords` remains the public field name and semantically means matched skills.
 
 An empty eligible corpus still creates a successful run, uses the configured algorithm metadata, records zero jobs scanned and zero recommendations, and does not call AI. The latest-results endpoint selects the latest `SUCCESS` run in the database, so newer `FAILED` or `PROCESSING` runs do not hide the last successful results.
 
 The V2 backend must not be merged or deployed before AI V2 is available. Release order is: add V2 while retaining V1 in the AI service, deploy AI, verify `/health` and V2 fixtures, deploy this backend, then run end-to-end regression. The legacy `/internal/v1` contract is not redefined by this backend change.
 
 Known MVP limitations: no manual extracted-text editing, semantic alias dictionary, Vietnamese NLP, OCR, embeddings, or message queue in the backend. Historical runs keep their persisted result metadata and CV reference, but not immutable snapshots of the source file, CV/job documents, or eligible corpus.
+
+Deferred P1 TODOs, not implemented in this PR: semantic subset/disjoint validation for matched and missing skills; concurrent reanalysis protection with a row lock, `PROCESSING` rejection, or `analysisAttemptId`; job-skill `importance`/`minLevel` in a later AI contract; and internal service authentication for production.
 
 ## Demo Accounts
 

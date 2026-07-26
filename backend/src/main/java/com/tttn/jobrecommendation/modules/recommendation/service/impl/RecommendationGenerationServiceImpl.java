@@ -41,6 +41,7 @@ public class RecommendationGenerationServiceImpl implements RecommendationGenera
                 validated = responseValidator.validate(
                         context.request().requestId(),
                         context.eligibleJobIds(),
+                        context.request().threshold(),
                         context.request().limit(),
                         response
                 );

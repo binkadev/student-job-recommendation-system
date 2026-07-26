@@ -17,7 +17,7 @@ public record ValidatedRecommendationResponse(
             BigDecimal textScore,
             BigDecimal skillScore,
             RecommendationScoringStrategy scoringStrategy,
-            Integer rank,
+            Integer rankPosition,
             List<String> matchedSkills,
             List<String> missingSkills,
             String reason
