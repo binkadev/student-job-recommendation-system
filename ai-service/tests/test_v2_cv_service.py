@@ -230,14 +230,43 @@ def test_empty_and_whitespace_documents_are_rejected(
     assert empty_text.value.error_code == "EMPTY_DOCUMENT"
 
 
+def test_vietnamese_language_is_parsed(
+    extractor: SkillExtractor,
+) -> None:
+    raw_text = "Kỹ sư phần mềm phát triển dự án và có kinh nghiệm với Java."
+    service = _service(
+        extractor,
+        pdf_decoder=lambda _payload: raw_text,
+    )
+
+    response = _run(service.parse_document(
+        UploadedDocument("resume.pdf", "application/pdf", b"pdf")
+    ))
+
+    assert response.rawText == raw_text
+    assert response.languageCode.value == "vi"
+    assert response.languageConfidence >= 0.65
+    assert response.skills == ["java"]
+
+
+@pytest.mark.parametrize(
+    "raw_text",
+    [
+        (
+            "Software Engineer developed REST APIs. "
+            "Kỹ sư phần mềm phát triển dự án."
+        ),
+        "Java Spring Boot PostgreSQL Docker C++ .NET Node.js CI/CD",
+        "This is Java.",
+    ],
+)
 def test_unsupported_language_is_rejected(
     extractor: SkillExtractor,
+    raw_text: str,
 ) -> None:
     service = _service(
         extractor,
-        pdf_decoder=lambda _payload: (
-            "Kỹ sư phần mềm phát triển dự án và có kinh nghiệm."
-        ),
+        pdf_decoder=lambda _payload: raw_text,
     )
 
     with pytest.raises(V2ApiError) as raised:
@@ -247,6 +276,9 @@ def test_unsupported_language_is_rejected(
 
     assert raised.value.status_code == 422
     assert raised.value.error_code == "UNSUPPORTED_LANGUAGE"
+    assert raised.value.public_message == (
+        "English input with confidence of at least 0.65 is required."
+    )
 
 
 def test_no_skills_returns_stable_warning(

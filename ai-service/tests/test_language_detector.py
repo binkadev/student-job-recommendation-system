@@ -1,6 +1,7 @@
 """Tests for deterministic fixed-lexicon language detection."""
 
 import math
+import unicodedata
 
 import pytest
 
@@ -261,6 +262,44 @@ def test_signal_lexicons_are_fixed_immutable_and_non_overlapping() -> None:
 def test_detection_is_repeatable() -> None:
     first = detect_language(MIXED_TEXT)
     assert all(detect_language(MIXED_TEXT) == first for _ in range(10))
+
+
+def test_vietnamese_with_english_technologies_remains_vietnamese() -> None:
+    detection = detect_language(
+        "Kỹ sư phần mềm có kinh nghiệm phát triển dự án và kiến trúc vi "
+        "dịch vụ bằng Java Spring Boot PostgreSQL Docker Kubernetes FastAPI."
+    )
+
+    assert detection.language_code is LanguageCode.VIETNAMESE
+    assert detection.confidence >= 0.65
+
+
+def test_english_with_a_vietnamese_label_remains_english() -> None:
+    detection = detect_language(
+        "KỸ NĂNG: Software engineer developed and maintained reliable "
+        "services for our users with project experience and knowledge."
+    )
+
+    assert detection.language_code is LanguageCode.ENGLISH
+    assert detection.confidence >= 0.65
+
+
+def test_nfc_and_decomposed_vietnamese_have_identical_detection() -> None:
+    source = (
+        "Kỹ sư phần mềm có kinh nghiệm phát triển dự án và làm việc với "
+        "nhóm của chúng tôi."
+    )
+
+    assert detect_language(unicodedata.normalize("NFC", source)) == (
+        detect_language(unicodedata.normalize("NFD", source))
+    )
+
+
+def test_one_accented_character_does_not_classify_vietnamese() -> None:
+    detection = detect_language("résumé technology")
+
+    assert detection.language_code is LanguageCode.UNKNOWN
+    assert detection.confidence == 0.0
 
 
 def test_detection_rejects_non_string_input() -> None:

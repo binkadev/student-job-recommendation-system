@@ -298,16 +298,18 @@ def test_preprocessing_result_is_immutable() -> None:
         result.processed_text = "changed"  # type: ignore[misc]
 
 
-def test_phase_1b1_modules_neither_import_nor_reference_underthesea() -> None:
-    production_modules = (
+def test_underthesea_is_confined_to_the_vietnamese_preprocessor() -> None:
+    non_tokenizer_modules = (
         constants_module,
         job_document_module,
         language_detector_module,
-        preprocessor_module,
         skill_canonicalizer_module,
     )
 
-    for module in production_modules:
+    assert "from underthesea import word_tokenize" in inspect.getsource(
+        preprocessor_module
+    )
+    for module in non_tokenizer_modules:
         source = inspect.getsource(module)
         assert "underthesea" not in source.casefold()
 
