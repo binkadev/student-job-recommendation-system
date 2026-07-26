@@ -1,0 +1,15 @@
+# Runtime
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+pydantic==2.13.4
+python-multipart==0.0.32
+pdfplumber==0.11.10
+python-docx==1.2.0
+underthesea==9.5.0
+scikit-learn==1.9.0
+# NumPy 2.5.1 requires Python >=3.12; 2.4.6 passed the CPython 3.11.9 binary/ABI checks.
+numpy==2.4.6
+
+# Test/dev
+pytest==9.1.1
+httpx==0.28.1
