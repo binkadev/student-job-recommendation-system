@@ -1,12 +1,12 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 
 import extractors
 import nlp_processor
 import recommender
+from v2.constants import ALGORITHM_VERSION, PROCESSING_VERSION
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -15,14 +15,6 @@ app = FastAPI(
     title="Job Recommendation AI Service",
     description="Stateless AI compute engine — Integration Contract v1.0",
     version="tfidf-cosine-v1",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 # ---------------------------------------------------------------------------
@@ -65,6 +57,9 @@ def health_check():
         "status": "ok",
         "service": "job-recommendation-ai",
         "version": "tfidf-cosine-v1",
+        "supportedContracts": ["v1"],
+        "recommendationVersion": ALGORITHM_VERSION,
+        "processingVersion": PROCESSING_VERSION,
     }
 
 
