@@ -1,9 +1,12 @@
 package com.tttn.jobrecommendation.modules.recommendation.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 public record ValidatedRecommendationResponse(
+        String algorithm,
         String algorithmVersion,
         List<Result> results
 ) {
@@ -11,8 +14,13 @@ public record ValidatedRecommendationResponse(
     public record Result(
             Long jobId,
             BigDecimal score,
+            BigDecimal textScore,
+            BigDecimal skillScore,
+            RecommendationScoringStrategy scoringStrategy,
             Integer rank,
-            List<String> matchedSkills
+            List<String> matchedSkills,
+            List<String> missingSkills,
+            String reason
     ) {
     }
 }

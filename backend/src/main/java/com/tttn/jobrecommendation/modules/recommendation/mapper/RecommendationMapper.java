@@ -17,9 +17,9 @@ public class RecommendationMapper {
                 .id(run.getId())
                 .cvId(run.getCvFile() == null ? null : run.getCvFile().getId())
                 .sourceType(run.getSourceType())
-                .algorithm(null)
-                .algorithmVersion(null)
-                .totalJobsScanned(null)
+                .algorithm(run.getAlgorithm())
+                .algorithmVersion(run.getAlgorithmVersion())
+                .totalJobsScanned(run.getTotalJobsScanned())
                 .totalRecommended(totalRecommended)
                 .status(run.getStatus())
                 .startedAt(run.getStartedAt())
@@ -36,6 +36,9 @@ public class RecommendationMapper {
                 .id(run.getId())
                 .cvId(run.getCvFile() == null ? null : run.getCvFile().getId())
                 .sourceType(run.getSourceType())
+                .algorithm(run.getAlgorithm())
+                .algorithmVersion(run.getAlgorithmVersion())
+                .totalJobsScanned(run.getTotalJobsScanned())
                 .status(run.getStatus())
                 .totalRecommended(results.size())
                 .errorMessage(run.getErrorMessage())
@@ -54,9 +57,17 @@ public class RecommendationMapper {
                 .companyName(result.getJob().getCompany().getCompanyName())
                 .rankPosition(result.getRankPosition())
                 .score(result.getScore())
-                .matchedKeywords(result.getMatchedKeywords())
-                .reason(null)
+                .textScore(result.getTextScore())
+                .skillScore(result.getSkillScore())
+                .scoringStrategy(result.getScoringStrategy())
+                .matchedKeywords(copyOrEmpty(result.getMatchedKeywords()))
+                .missingSkills(copyOrEmpty(result.getMissingSkills()))
+                .reason(result.getReason())
                 .createdAt(result.getCreatedAt())
                 .build();
+    }
+
+    private List<String> copyOrEmpty(List<String> values) {
+        return values == null ? List.of() : List.copyOf(values);
     }
 }

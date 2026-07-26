@@ -15,6 +15,9 @@ public class RecommendationRunDetailResponse {
     private Long id;
     private Long cvId;
     private RecommendationSourceType sourceType;
+    private String algorithm;
+    private String algorithmVersion;
+    private Integer totalJobsScanned;
     private RecommendationRunStatus status;
     private Integer totalRecommended;
     private String errorMessage;

@@ -8,7 +8,10 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties(AiServiceProperties.class)
+@EnableConfigurationProperties({
+        AiServiceProperties.class,
+        AiRecommendationProperties.class
+})
 public class AiServiceConfig {
 
     @Bean

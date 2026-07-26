@@ -3,6 +3,7 @@ package com.tttn.jobrecommendation.modules.recommendation.service.impl;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.infrastructure.ai.client.AiServiceClient;
+import com.tttn.jobrecommendation.infrastructure.ai.config.AiRecommendationProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationResponse;
 import com.tttn.jobrecommendation.modules.recommendation.dto.request.GenerateRecommendationRequest;
 import com.tttn.jobrecommendation.modules.recommendation.dto.response.RecommendationRunDetailResponse;
@@ -10,6 +11,8 @@ import com.tttn.jobrecommendation.modules.recommendation.service.RecommendationG
 import com.tttn.jobrecommendation.modules.recommendation.service.RecommendationQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,19 +22,29 @@ public class RecommendationGenerationServiceImpl implements RecommendationGenera
     private final AiServiceClient aiServiceClient;
     private final AiRecommendationResponseValidator responseValidator;
     private final RecommendationQueryService recommendationQueryService;
+    private final AiRecommendationProperties recommendationProperties;
 
     @Override
     public RecommendationRunDetailResponse generate(Long userId, GenerateRecommendationRequest request) {
         RecommendationGenerationContext context = transactionService.createProcessingRun(userId, request);
 
         try {
-            AiRecommendationResponse response = aiServiceClient.recommend(context.request());
-            ValidatedRecommendationResponse validated = responseValidator.validate(
-                    context.request().requestId(),
-                    context.eligibleJobIds(),
-                    context.request().limit(),
-                    response
-            );
+            ValidatedRecommendationResponse validated;
+            if (context.request().jobs().isEmpty()) {
+                validated = new ValidatedRecommendationResponse(
+                        recommendationProperties.getAlgorithm(),
+                        recommendationProperties.getAlgorithmVersion(),
+                        List.of()
+                );
+            } else {
+                AiRecommendationResponse response = aiServiceClient.recommend(context.request());
+                validated = responseValidator.validate(
+                        context.request().requestId(),
+                        context.eligibleJobIds(),
+                        context.request().limit(),
+                        response
+                );
+            }
             transactionService.completeSuccess(context.runId(), validated);
             return recommendationQueryService.getMyRecommendationRun(userId, context.runId());
         } catch (RuntimeException exception) {

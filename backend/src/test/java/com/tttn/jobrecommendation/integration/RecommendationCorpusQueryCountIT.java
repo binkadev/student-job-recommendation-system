@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.integration;
 
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.SkillImportance;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
@@ -22,6 +23,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,7 +50,10 @@ class RecommendationCorpusQueryCountIT extends AbstractPostgresIntegrationTest {
     void increasingEligibleJobsDoesNotAddOneSkillQueryPerJob() {
         Student student = createStudent("query-count-student@example.test");
         CvFile cvFile = createCv(student, "query-count.pdf", true);
+        cvFile.setExtractedText("Java Spring CV");
         cvFile.setProcessedText("java spring");
+        cvFile.setExtractedSkills(List.of("java", "spring"));
+        cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
         cvFileRepository.saveAndFlush(cvFile);
         Company company = createCompany(
                 "query-count-company@example.test",

@@ -1,11 +1,11 @@
 package com.tttn.jobrecommendation.modules.recommendation.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationSourceType;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
-import com.tttn.jobrecommendation.common.utils.SkillNameNormalizer;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
@@ -16,8 +16,6 @@ import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRe
 import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationResultRepository;
 import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationRunRepository;
-import com.tttn.jobrecommendation.modules.skill.entity.StudentSkill;
-import com.tttn.jobrecommendation.modules.skill.repository.StudentSkillRepository;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +39,6 @@ public class RecommendationTransactionService {
 
     private final StudentRepository studentRepository;
     private final CvFileRepository cvFileRepository;
-    private final StudentSkillRepository studentSkillRepository;
     private final JobRepository jobRepository;
     private final RecommendationRunRepository recommendationRunRepository;
     private final RecommendationResultRepository recommendationResultRepository;
@@ -58,28 +55,22 @@ public class RecommendationTransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
         CvFile cvFile = cvFileRepository.findByIdAndStudentId(generationRequest.getCvId(), student.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV file not found"));
-        if (!StringUtils.hasText(cvFile.getProcessedText())) {
+        if (cvFile.getAnalysisStatus() != CvAnalysisStatus.READY
+                || !StringUtils.hasText(cvFile.getExtractedText())
+                || !StringUtils.hasText(cvFile.getProcessedText())) {
             throw new AppException(ErrorCode.CV_ANALYSIS_NOT_READY);
         }
 
-        List<String> normalizedStudentSkills = studentSkillRepository.findByStudentIdOrderByIdAsc(student.getId())
-                .stream()
-                .map(StudentSkill::getSkill)
-                .map(skill -> StringUtils.hasText(skill.getNormalizedName())
-                        ? skill.getNormalizedName()
-                        : skill.getName())
-                .map(SkillNameNormalizer::normalize)
-                .filter(StringUtils::hasText)
-                .distinct()
-                .sorted()
-                .toList();
+        List<String> extractedSkills = cvFile.getExtractedSkills() == null
+                ? List.of()
+                : List.copyOf(cvFile.getExtractedSkills());
         List<AiRecommendationRequest.JobInput> jobs = eligibleJobCorpusBuilder.build(LocalDate.now());
         UUID requestId = UUID.randomUUID();
         AiRecommendationRequest aiRequest = requestMapper.toRequest(
                 requestId,
                 cvFile.getId(),
-                cvFile.getProcessedText().strip(),
-                normalizedStudentSkills,
+                cvFile.getExtractedText(),
+                extractedSkills,
                 jobs,
                 generationRequest.getThreshold(),
                 generationRequest.getLimit()
@@ -90,6 +81,7 @@ public class RecommendationTransactionService {
                 .cvFile(cvFile)
                 .sourceType(RecommendationSourceType.CV)
                 .status(RecommendationRunStatus.PROCESSING)
+                .totalJobsScanned(jobs.size())
                 .build());
         Set<Long> eligibleJobIds = jobs.stream()
                 .map(AiRecommendationRequest.JobInput::id)
@@ -114,12 +106,19 @@ public class RecommendationTransactionService {
                         .run(run)
                         .job(jobsById.get(result.jobId()))
                         .score(result.score())
+                        .textScore(result.textScore())
+                        .skillScore(result.skillScore())
+                        .scoringStrategy(result.scoringStrategy())
                         .matchedKeywords(result.matchedSkills())
+                        .missingSkills(result.missingSkills())
+                        .reason(result.reason())
                         .rankPosition(result.rank())
                         .build())
                 .toList();
         recommendationResultRepository.saveAllAndFlush(results);
 
+        run.setAlgorithm(validatedResponse.algorithm());
+        run.setAlgorithmVersion(validatedResponse.algorithmVersion());
         run.setStatus(RecommendationRunStatus.SUCCESS);
         run.setFinishedAt(LocalDateTime.now());
         run.setErrorMessage(null);

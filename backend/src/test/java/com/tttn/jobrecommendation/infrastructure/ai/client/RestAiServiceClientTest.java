@@ -56,14 +56,18 @@ class RestAiServiceClientTest {
     void sendsMultipartParseRequestAndMapsSuccess() {
         AtomicReference<String> contentType = new AtomicReference<>();
         AtomicReference<String> body = new AtomicReference<>();
-        server.createContext("/internal/v1/cv/parse", exchange -> {
+        server.createContext("/internal/v2/cv/parse", exchange -> {
             contentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
             body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.ISO_8859_1));
             respond(exchange, 200, """
                     {
                       "rawText": "Java resume",
                       "processedText": "java spring boot",
-                      "skills": ["Java", "Spring Boot"]
+                      "skills": ["Java", "Spring Boot"],
+                      "languageCode": "en",
+                      "languageConfidence": 0.98,
+                      "processingVersion": "bilingual-nlp-v2",
+                      "warnings": []
                     }
                     """);
         });
@@ -83,7 +87,7 @@ class RestAiServiceClientTest {
     @Test
     void mapsSuccessfulAndEmptyRecommendationResponses() {
         AtomicInteger calls = new AtomicInteger();
-        server.createContext("/internal/v1/recommendations", exchange -> {
+        server.createContext("/internal/v2/recommendations", exchange -> {
             JsonNode request = OBJECT_MAPPER.readTree(exchange.getRequestBody());
             String requestId = request.get("requestId").asText();
             String results = calls.getAndIncrement() == 0
@@ -91,6 +95,9 @@ class RestAiServiceClientTest {
                       [{
                         "jobId": 101,
                         "score": 0.75,
+                        "textScore": 0.70,
+                        "skillScore": 0.85,
+                        "scoringStrategy": "SAME_LANGUAGE_HYBRID",
                         "rank": 1,
                         "matchedSkills": ["Java"],
                         "missingSkills": [],
@@ -101,7 +108,8 @@ class RestAiServiceClientTest {
             respond(exchange, 200, """
                     {
                       "requestId": "%s",
-                      "algorithmVersion": "tfidf-cosine-v1",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
                       "results": %s
                     }
                     """.formatted(requestId, results));
@@ -111,13 +119,14 @@ class RestAiServiceClientTest {
         var response = client(Duration.ofSeconds(2)).recommend(firstRequest);
 
         assertThat(response.requestId()).isEqualTo(firstRequest.requestId());
+        assertThat(response.algorithm()).isEqualTo("tfidf-cosine-hybrid");
         assertThat(response.results()).hasSize(1);
         assertThat(client(Duration.ofSeconds(2)).recommend(recommendationRequest()).results()).isEmpty();
     }
 
     @Test
     void mapsTimeoutConnectionFailureAndHttpErrors() throws IOException {
-        server.createContext("/internal/v1/recommendations", exchange -> {
+        server.createContext("/internal/v2/recommendations", exchange -> {
             try {
                 Thread.sleep(300);
                 respond(exchange, 200, "{}");
@@ -130,7 +139,7 @@ class RestAiServiceClientTest {
                 ErrorCode.AI_SERVICE_TIMEOUT
         );
 
-        server.createContext("/internal/v1/cv/parse", exchange -> {
+        server.createContext("/internal/v2/cv/parse", exchange -> {
             try {
                 Thread.sleep(300);
                 respond(exchange, 200, "{}");
@@ -160,9 +169,9 @@ class RestAiServiceClientTest {
 
     @Test
     void mapsHttp4xxHttp5xxAndMalformedJsonWithoutLeakingBodies() {
-        server.createContext("/internal/v1/cv/parse", exchange ->
+        server.createContext("/internal/v2/cv/parse", exchange ->
                 respond(exchange, 400, "{\"detail\":\"raw CV must never escape\"}"));
-        server.createContext("/internal/v1/recommendations", exchange ->
+        server.createContext("/internal/v2/recommendations", exchange ->
                 respond(exchange, 400, "{\"detail\":\"request rejected\"}"));
 
         assertError(
@@ -173,8 +182,8 @@ class RestAiServiceClientTest {
                 ),
                 ErrorCode.AI_SERVICE_INVALID_RESPONSE
         );
-        server.removeContext("/internal/v1/cv/parse");
-        server.createContext("/internal/v1/cv/parse", exchange -> respond(exchange, 200, "{broken-json"));
+        server.removeContext("/internal/v2/cv/parse");
+        server.createContext("/internal/v2/cv/parse", exchange -> respond(exchange, 200, "{broken-json"));
         assertError(
                 () -> client(Duration.ofSeconds(2)).parseCv(
                         new ByteArrayResource(new byte[]{1}),
@@ -187,16 +196,16 @@ class RestAiServiceClientTest {
                 () -> client(Duration.ofSeconds(2)).recommend(recommendationRequest()),
                 ErrorCode.AI_SERVICE_INVALID_RESPONSE
         );
-        server.removeContext("/internal/v1/recommendations");
-        server.createContext("/internal/v1/recommendations", exchange ->
+        server.removeContext("/internal/v2/recommendations");
+        server.createContext("/internal/v2/recommendations", exchange ->
                 respond(exchange, 500, "{\"detail\":\"internal stack trace\"}"));
         assertError(
                 () -> client(Duration.ofSeconds(2)).recommend(recommendationRequest()),
                 ErrorCode.AI_SERVICE_UNAVAILABLE
         );
 
-        server.removeContext("/internal/v1/recommendations");
-        server.createContext("/internal/v1/recommendations", exchange -> respond(exchange, 200, "{broken-json"));
+        server.removeContext("/internal/v2/recommendations");
+        server.createContext("/internal/v2/recommendations", exchange -> respond(exchange, 200, "{broken-json"));
         assertError(
                 () -> client(Duration.ofSeconds(2)).recommend(recommendationRequest()),
                 ErrorCode.AI_SERVICE_INVALID_RESPONSE
