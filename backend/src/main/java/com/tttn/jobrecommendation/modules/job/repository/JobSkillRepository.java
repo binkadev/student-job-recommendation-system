@@ -14,7 +14,7 @@ public interface JobSkillRepository extends JpaRepository<JobSkill, Long> {
     @EntityGraph(attributePaths = {"skill"})
     List<JobSkill> findByJobIdOrderByIdAsc(Long jobId);
 
-    @EntityGraph(attributePaths = {"skill"})
+    @EntityGraph(attributePaths = {"job", "skill"})
     List<JobSkill> findByJobIdInOrderByJobIdAscIdAsc(Collection<Long> jobIds);
 
     void deleteByJobId(Long jobId);

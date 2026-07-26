@@ -12,11 +12,14 @@ import java.time.LocalDateTime;
 public class RecommendationRunResponse {
 
     private Long id;
+    private Long cvId;
     private RecommendationSourceType sourceType;
     private String algorithm;
     private String algorithmVersion;
     private Integer totalJobsScanned;
     private Integer totalRecommended;
     private RecommendationRunStatus status;
+    private LocalDateTime startedAt;
+    private LocalDateTime finishedAt;
     private LocalDateTime createdAt;
 }

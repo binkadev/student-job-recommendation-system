@@ -19,31 +19,12 @@ public class SecurityUtils {
         return getCurrentUserDetails().getUser().getRole();
     }
 
-    public Long getCurrentUserIdOrNull() {
-        CustomUserDetails userDetails = getCurrentUserDetailsOrNull();
-        return userDetails == null ? null : userDetails.getId();
-    }
-
-    public UserRole getCurrentUserRoleOrNull() {
-        CustomUserDetails userDetails = getCurrentUserDetailsOrNull();
-        return userDetails == null ? null : userDetails.getUser().getRole();
-    }
-
     private CustomUserDetails getCurrentUserDetails() {
-        CustomUserDetails userDetails = getCurrentUserDetailsOrNull();
-        if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-
-        return userDetails;
-    }
-
-    private CustomUserDetails getCurrentUserDetailsOrNull() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null
                 || !authentication.isAuthenticated()
                 || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            return null;
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         return userDetails;
