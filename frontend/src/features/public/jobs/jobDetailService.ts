@@ -1,6 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
 import type { JobDetailResult, PublicJobDetail } from "./jobDetailTypes";
-import type { PublicJobListItem } from "./jobsListTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -148,6 +147,7 @@ function getApplicantCount(job: JobDetailResponse) {
   return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getStatusLabel(status: string) {
   if (status === "ACTIVE") return "Đang tuyển";
   if (status === "DRAFT") return "Bản nháp";

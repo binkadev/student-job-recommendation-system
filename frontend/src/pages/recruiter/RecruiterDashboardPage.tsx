@@ -1,5 +1,5 @@
 import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock, FileWarning, Handshake, Users } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -73,6 +73,7 @@ const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   WITHDRAWN: "Ứng viên rút đơn",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   DRAFT: "Bản nháp",
   PENDING_APPROVAL: "Chờ duyệt",

@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, Building2, CalendarDays, Copy, MapPin, Users, Wallet } from "lucide-react";
+import { BriefcaseBusiness, Building2, CalendarDays, Copy, MapPin, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";

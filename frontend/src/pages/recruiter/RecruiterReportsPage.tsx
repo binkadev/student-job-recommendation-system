@@ -97,6 +97,7 @@ const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   WITHDRAWN: "Ứng viên rút đơn",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   DRAFT: "Bản nháp",
   PENDING_APPROVAL: "Chờ duyệt",

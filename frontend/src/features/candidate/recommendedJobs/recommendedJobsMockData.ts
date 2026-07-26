@@ -17,21 +17,15 @@ const scores = [
 ];
 
 export const recommendedJobs: CandidateRecommendedJob[] = scores
-  .map((score) => {
+  .flatMap((score) => {
     const job = publicJobs.find((item) => item.id === score.id);
-    if (!job) return null;
-    return {
+    if (!job) return [];
+    return [{
       ...job,
       matchScore: score.matchScore,
-      skillScore: score.skillScore,
-      experienceScore: score.experienceScore,
-      educationScore: score.educationScore,
-      locationScore: score.locationScore,
-      salaryScore: score.salaryScore,
-      workModeScore: score.workModeScore,
+      rankPosition: null,
       matchedSkills: score.matchedSkills,
       missingSkills: score.missingSkills,
       recommendationReasons: score.reasons,
-    };
-  })
-  .filter((item): item is CandidateRecommendedJob => Boolean(item));
+    }];
+  });

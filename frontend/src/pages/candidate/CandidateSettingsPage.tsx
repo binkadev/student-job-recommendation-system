@@ -66,15 +66,6 @@ const INITIAL_PRIVACY_SETTINGS = {
   publicExperience: false,
 };
 
-const INITIAL_NOTIFICATION_SETTINGS = {
-  jobMatchEmail: false,
-  applicationStatusEmail: false,
-  interviewEmail: false,
-  invitationEmail: false,
-  inApp: false,
-  message: false,
-};
-
 export function CandidateSettingsPage({ section = "account" }: { section?: "main" | SettingsTab }) {
   const { showToast } = useToast();
   const [tab, setTab] = useState<SettingsTab>(section === "main" ? "account" : section);
