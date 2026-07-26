@@ -243,6 +243,42 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
+    void blankRawTextResponseIsRejectedAndCannotPersistReadyState() throws Exception {
+        Student student = createStudent("invalid-raw-text@example.test");
+        CvFile cvFile = readyCv(student, "invalid-raw-text.pdf");
+        writeCvFile(cvFile, "%PDF-invalid-raw".getBytes(StandardCharsets.UTF_8));
+        PARSE_HANDLER.set(exchange -> respond(exchange, 200, """
+                {
+                  "rawText": "   ",
+                  "processedText": "java spring boot",
+                  "skills": ["java", "spring boot"],
+                  "languageCode": "en",
+                  "languageConfidence": 0.98,
+                  "processingVersion": "bilingual-nlp-v2",
+                  "warnings": []
+                }
+                """));
+
+        mockMvc.perform(post("/api/students/me/cv/{cvId}/reanalyze", cvFile.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorCode").value("AI_SERVICE_INVALID_RESPONSE"))
+                .andExpect(jsonPath("$.message").value("AI service returned an invalid response"));
+
+        CvFile failed = cvFileRepository.findById(cvFile.getId()).orElseThrow();
+        assertThat(failed.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.FAILED);
+        assertThat(failed.getAnalysisStatus()).isNotEqualTo(CvAnalysisStatus.READY);
+        assertThat(failed.getProcessedText()).isNull();
+        assertThat(failed.getExtractedSkills()).isEmpty();
+        assertThat(failed.getLanguageCode()).isNull();
+        assertThat(failed.getLanguageConfidence()).isNull();
+        assertThat(failed.getProcessingVersion()).isNull();
+        assertThat(failed.getAnalysisWarnings()).isEmpty();
+        assertThat(failed.getAnalyzedAt()).isNull();
+        assertThat(failed.getAnalysisError()).isEqualTo("AI service returned an invalid response");
+    }
+
+    @Test
     void twoCvsKeepDifferentExtractedSkillsAndGenerationUsesTheSelectedCv() throws Exception {
         Student student = createStudent("per-cv-skills@example.test");
         CvFile javaCv = readyCv(student, "java.pdf");

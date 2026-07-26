@@ -34,11 +34,7 @@ public class AiCvParseResponseValidator {
             throw invalidResponse();
         }
 
-        String rawText = trimToNull(response.rawText());
-        if (response.rawText() != null && response.rawText().length() > MAX_TEXT_LENGTH) {
-            throw invalidResponse();
-        }
-
+        String rawText = requireTrimmedText(response.rawText(), MAX_TEXT_LENGTH);
         String processedText = requireTrimmedText(response.processedText(), MAX_TEXT_LENGTH);
 
         if (response.skills() == null || response.skills().size() > MAX_SKILLS) {
@@ -108,13 +104,6 @@ public class AiCvParseResponseValidator {
         }
         String trimmed = value.strip();
         return trimmed;
-    }
-
-    private String trimToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        return value.strip();
     }
 
     private AppException invalidResponse() {

@@ -17,6 +17,23 @@ class AiCvParseResponseValidatorTest {
     private final AiCvParseResponseValidator validator = new AiCvParseResponseValidator();
 
     @Test
+    void rejectsNullRawText() {
+        assertInvalid(responseWithRawText(null));
+    }
+
+    @Test
+    void rejectsBlankRawText() {
+        assertInvalid(responseWithRawText(" \t\r\n "));
+    }
+
+    @Test
+    void trimsAndKeepsValidRawText() {
+        AiCvParseResponse validated = validator.validate(responseWithRawText("  Raw CV text  "));
+
+        assertThat(validated.rawText()).isEqualTo("Raw CV text");
+    }
+
+    @Test
     void normalizesAndKeepsEveryV2Field() {
         AiCvParseResponse validated = validator.validate(new AiCvParseResponse(
                 " raw text ",
@@ -152,6 +169,18 @@ class AiCvParseResponseValidatorTest {
                 languageConfidence,
                 processingVersion,
                 warnings
+        );
+    }
+
+    private AiCvParseResponse responseWithRawText(String rawText) {
+        return new AiCvParseResponse(
+                rawText,
+                "processed",
+                List.of("java"),
+                "en",
+                0.5d,
+                "v2",
+                List.of()
         );
     }
 
