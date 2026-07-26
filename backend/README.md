@@ -134,6 +134,7 @@ Additional backend endpoints for frontend integration:
 
 - Public: `GET /api/public/companies`, `GET /api/public/companies/{id}`
 - Public jobs: `GET /api/public/jobs`, `GET /api/public/jobs/{jobId}`
+- Public statistics: `GET /api/public/statistics`
 - Admin users: `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PATCH /api/admin/users/{id}/status`
 - Admin companies: `GET /api/admin/companies`, `GET /api/admin/companies/{id}`, `PATCH /api/admin/companies/{id}/status`
 - Company applications: `GET /api/companies/me/applications`, `GET /api/companies/me/applications/{id}`
