@@ -175,6 +175,37 @@ Response company fields: `id`, `companyName`, `industry`, `address`, `websiteUrl
 
 Job summary fields: `id`, `title`, `location`, `jobType`, `workingModel`, `status`, `salaryMin`, `salaryMax`, `currency`, `deadline`, `publishedAt`.
 
+## Public Statistics
+
+### GET `/api/public/statistics`
+
+Role: public. No JWT is required.
+
+Returns platform-wide public statistics in the standard `ApiResponse` envelope:
+
+```json
+{
+  "success": true,
+  "message": "Success",
+  "errorCode": null,
+  "data": {
+    "totalJobs": 125,
+    "totalCompanies": 18,
+    "totalStudents": 420,
+    "totalApplications": 932
+  }
+}
+```
+
+Response semantics:
+
+- `totalJobs`: jobs with status `ACTIVE` whose company is `VERIFIED` and whose deadline is null, today, or in the future.
+- `totalCompanies`: companies with status `VERIFIED`.
+- `totalStudents`: students whose associated user has status `ACTIVE`.
+- `totalApplications`: all application records, including `WITHDRAWN` applications.
+
+An empty database returns zero for all four fields. The response contains only aggregate counts and never returns personal data, credentials, CV metadata, filenames, or storage paths.
+
 ## Public Jobs
 
 Public job APIs require no authentication. A job is visible only when its status is `ACTIVE`, its company is `VERIFIED`, and its deadline is null, today, or later. Every non-active status, a non-verified company, or a past deadline hides the job. Hidden detail and absent ids both return `404 RESOURCE_NOT_FOUND`.
