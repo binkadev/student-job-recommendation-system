@@ -19,7 +19,7 @@ from .schemas import (
     RecommendationResult,
     ScoringStrategy,
 )
-from .skill_canonicalizer import load_default_catalog
+from .skill_canonicalizer import SkillCatalog, load_default_catalog
 
 
 DocumentKind = Literal["cv", "job"]
@@ -50,6 +50,8 @@ class EnglishBaselinePreconditionError(ValueError):
 
 def recommend_english(
     request: RecommendationRequest,
+    *,
+    catalog: SkillCatalog | None = None,
 ) -> RecommendationResponse:
     """Return deterministic same-language recommendations for English input."""
 
@@ -77,13 +79,15 @@ def recommend_english(
         for job in request.jobs
     ]
 
-    catalog = load_default_catalog()
-    cv_canonical_skills = catalog.canonicalize_many(request.cv.skills)
+    active_catalog = load_default_catalog() if catalog is None else catalog
+    if not isinstance(active_catalog, SkillCatalog):
+        raise TypeError("catalog must be a SkillCatalog")
+    cv_canonical_skills = active_catalog.canonicalize_many(request.cv.skills)
     prepared_jobs = tuple(
         PreparedJob(
             job_id=job.id,
             processed_text=job_result.processed_text,
-            canonical_skills=catalog.canonicalize_many(job.skills),
+            canonical_skills=active_catalog.canonicalize_many(job.skills),
         )
         for job, job_result in zip(request.jobs, job_results, strict=True)
     )
