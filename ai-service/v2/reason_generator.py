@@ -3,6 +3,7 @@
 from decimal import Context, Decimal, localcontext
 
 from .constants import PUBLIC_SCORE_ROUNDING
+from .schemas import LanguageCode
 
 
 _MAX_REASON_LENGTH = 2_000
@@ -73,6 +74,7 @@ def generate_same_language_reason(
     matched_count: int,
     missing_count: int,
     job_skill_count: int,
+    language_code: LanguageCode = LanguageCode.ENGLISH,
 ) -> str:
     """Build one bounded reason from complete same-language scoring evidence."""
 
@@ -82,6 +84,8 @@ def generate_same_language_reason(
     _validate_count("missing_count", missing_count)
     _validate_count("job_skill_count", job_skill_count)
     _validate_matched_skills(full_matched_skills, matched_count)
+    if language_code not in {LanguageCode.ENGLISH, LanguageCode.VIETNAMESE}:
+        raise ValueError("same-language reason requires en or vi")
 
     if matched_count + missing_count != job_skill_count:
         raise ValueError(
@@ -91,7 +95,30 @@ def generate_same_language_reason(
         raise ValueError("skill_score must be zero when the Job has no skills")
 
     text_percentage = _format_percentage(text_score)
-    if job_skill_count == 0:
+    if language_code is LanguageCode.VIETNAMESE:
+        displayed_skills = ", ".join(sorted(full_matched_skills)[:3])
+        if job_skill_count == 0:
+            reason = (
+                "Công việc không có kỹ năng chuẩn hóa nên điểm chỉ dựa trên "
+                "độ tương đồng văn bản cùng ngôn ngữ. Đã khớp 0/0 kỹ năng; "
+                f"độ tương đồng văn bản: {text_percentage}%; "
+                "độ bao phủ kỹ năng: 0%."
+            )
+        elif matched_count == 0:
+            reason = (
+                f"Chưa có kỹ năng chuẩn hóa trùng khớp; đã khớp 0/"
+                f"{job_skill_count} kỹ năng và còn thiếu {missing_count}. "
+                f"Độ tương đồng văn bản cùng ngôn ngữ: {text_percentage}%; "
+                f"độ bao phủ kỹ năng: {_format_percentage(skill_score)}%."
+            )
+        else:
+            reason = (
+                f"Đã khớp {matched_count}/{job_skill_count} kỹ năng: "
+                f"{displayed_skills}. Còn thiếu {missing_count} kỹ năng. "
+                f"Độ tương đồng văn bản cùng ngôn ngữ: {text_percentage}%; "
+                f"độ bao phủ kỹ năng: {_format_percentage(skill_score)}%."
+            )
+    elif job_skill_count == 0:
         reason = (
             "No canonical job skills were provided, so scoring is text-only. "
             "Matched 0 of 0 job skills; missing job skills: 0. "
@@ -114,6 +141,71 @@ def generate_same_language_reason(
             f"Same-language text similarity: {text_percentage}%. "
             f"Canonical skill coverage: {_format_percentage(skill_score)}%."
         )
+
+    if len(reason) > _MAX_REASON_LENGTH:
+        raise ValueError(
+            f"generated reason must contain at most {_MAX_REASON_LENGTH} "
+            "characters"
+        )
+    return reason
+
+
+def generate_cross_language_reason(
+    *,
+    skill_score: Decimal,
+    full_matched_skills: tuple[str, ...],
+    matched_count: int,
+    missing_count: int,
+    job_skill_count: int,
+    language_code: LanguageCode,
+) -> str:
+    """Build a deterministic skill-only reason in the CV's safe language."""
+
+    _validate_score("skill_score", skill_score)
+    _validate_count("matched_count", matched_count)
+    _validate_count("missing_count", missing_count)
+    _validate_count("job_skill_count", job_skill_count)
+    _validate_matched_skills(full_matched_skills, matched_count)
+    if matched_count + missing_count != job_skill_count:
+        raise ValueError(
+            "matched_count plus missing_count must equal job_skill_count"
+        )
+    if job_skill_count == 0 and skill_score != 0:
+        raise ValueError("skill_score must be zero when the Job has no skills")
+
+    displayed_skills = ", ".join(sorted(full_matched_skills)[:3])
+    use_vietnamese = language_code is LanguageCode.VIETNAMESE
+    if use_vietnamese:
+        if matched_count:
+            reason = (
+                f"Đề xuất dựa trên {matched_count}/{job_skill_count} kỹ năng "
+                f"chuẩn hóa tương đồng: {displayed_skills}. "
+                f"Còn thiếu {missing_count} kỹ năng. Không sử dụng độ tương "
+                "đồng văn bản vì ngôn ngữ không phù hợp để so sánh an toàn."
+            )
+        else:
+            reason = (
+                f"Chưa có kỹ năng chuẩn hóa trùng khớp trong "
+                f"{job_skill_count} kỹ năng công việc; còn thiếu "
+                f"{missing_count}. Không sử dụng độ tương đồng văn bản vì "
+                "ngôn ngữ không phù hợp để so sánh an toàn."
+            )
+    else:
+        if matched_count:
+            reason = (
+                f"Skill-only matching found {matched_count} of "
+                f"{job_skill_count} canonical job skills: "
+                f"{displayed_skills}. Missing job skills: {missing_count}. "
+                "Text similarity was not used because the document languages "
+                "were not safe for same-language comparison."
+            )
+        else:
+            reason = (
+                f"No canonical skill overlap across {job_skill_count} job "
+                f"skills; missing job skills: {missing_count}. Text similarity "
+                "was not used because the document languages were not safe "
+                "for same-language comparison."
+            )
 
     if len(reason) > _MAX_REASON_LENGTH:
         raise ValueError(

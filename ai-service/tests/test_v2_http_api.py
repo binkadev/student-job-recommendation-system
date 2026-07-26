@@ -406,7 +406,7 @@ def test_recommendation_success_threshold_equality_and_no_rank_fields() -> None:
         assert "rankPosition" not in rendered
 
 
-def test_unsupported_job_fails_the_complete_recommendation_request() -> None:
+def test_vietnamese_job_uses_cross_language_strategy() -> None:
     payload = _recommendation_payload()
     payload["jobs"].append(
         {
@@ -418,14 +418,13 @@ def test_unsupported_job_fails_the_complete_recommendation_request() -> None:
 
     response = CLIENT.post("/internal/v2/recommendations", json=payload)
 
-    assert response.status_code == 422
-    assert response.json() == {
-        "errorCode": "UNSUPPORTED_LANGUAGE",
-        "message": (
-            "English input with confidence of at least 0.65 is required."
-        ),
-    }
-    assert "results" not in response.json()
+    assert response.status_code == 200
+    result = next(
+        item for item in response.json()["results"] if item["jobId"] == 12
+    )
+    assert result["scoringStrategy"] == "CROSS_LANGUAGE_SKILL_BASED"
+    assert result["textScore"] is None
+    assert result["score"] == result["skillScore"]
 
 
 def test_non_decoder_value_error_maps_to_generic_internal_error(

@@ -12,7 +12,6 @@ from v2.constants import ALGORITHM, ALGORITHM_VERSION
 from v2.language_detector import LanguageDetection
 from v2.preprocessor import (
     EnglishPreprocessingResult,
-    UnsupportedLanguageError,
 )
 from v2.schemas import (
     LanguageCode,
@@ -21,7 +20,6 @@ from v2.schemas import (
     ScoringStrategy,
 )
 from v2.service import (
-    EnglishBaselinePreconditionError,
     recommend_english,
 )
 
@@ -285,171 +283,105 @@ def test_actual_service_response_is_schema_valid_and_deterministic() -> None:
         assert "rankPosition" not in result.model_dump()
 
 
+def test_english_service_golden_output_remains_exact() -> None:
+    response = recommend_english(
+        _request(
+            cv_skills=["Java", "Golang"],
+            job_skills=[["Java", "Go", "Docker"]],
+        )
+    )
+
+    assert response.model_dump(mode="json") == {
+        "requestId": REQUEST_ID,
+        "algorithm": "tfidf-cosine-hybrid",
+        "algorithmVersion": "bilingual-recommendation-v2",
+        "results": [
+            {
+                "jobId": 100,
+                "score": 0.60109824,
+                "textScore": 0.56579216,
+                "skillScore": 0.66666667,
+                "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+                "matchedSkills": ["go", "java"],
+                "missingSkills": ["docker"],
+                "reason": (
+                    "Matched 2 of 3 job skills: go, java. "
+                    "Missing job skills: 1. "
+                    "Same-language text similarity: 56.579216%. "
+                    "Canonical skill coverage: 66.666667%."
+                ),
+            }
+        ],
+    }
+
+
 @pytest.mark.parametrize(
-    ("kind", "code", "confidence"),
+    "cv_text",
     [
-        ("cv", LanguageCode.VIETNAMESE, 1.0),
-        ("cv", LanguageCode.MIXED, 0.8),
-        ("cv", LanguageCode.UNKNOWN, 0.0),
-        ("cv", LanguageCode.ENGLISH, 0.33333333),
-        ("job", LanguageCode.VIETNAMESE, 1.0),
-        ("job", LanguageCode.MIXED, 0.8),
-        ("job", LanguageCode.UNKNOWN, 0.0),
-        ("job", LanguageCode.ENGLISH, 0.33333333),
+        "Kỹ sư phần mềm Java Spring Boot PostgreSQL",
+        "Software Engineer developed REST APIs. Kỹ sư phần mềm.",
+        "Java Spring Boot PostgreSQL Docker C++ .NET Node.js CI/CD",
+        "This is Java.",
     ],
 )
-def test_all_unsupported_language_conditions_raise_named_precondition(
-    monkeypatch,
-    kind: str,
-    code: LanguageCode,
-    confidence: float,
+def test_non_confident_or_unsafe_cv_uses_skill_only_fallback(
+    cv_text: str,
 ) -> None:
-    detection = LanguageDetection(
-        language_code=code,
-        confidence=confidence,
-        english_signal_count=1 if code is LanguageCode.ENGLISH else 0,
-        vietnamese_signal_count=1 if code is LanguageCode.VIETNAMESE else 0,
+    response = recommend_english(
+        _request(
+            cv_text=cv_text,
+            cv_skills=["Java"],
+            job_texts=[ENGLISH_JOB_TEXT],
+            job_skills=[["Java"]],
+        )
     )
 
-    def unsupported(_text: str):
-        raise UnsupportedLanguageError(detection)
-
-    if kind == "cv":
-        monkeypatch.setattr(
-            service_module,
-            "preprocess_english",
-            unsupported,
-        )
-    else:
-        monkeypatch.setattr(
-            service_module,
-            "preprocess_english",
-            lambda _text: _english_result(),
-        )
-        monkeypatch.setattr(
-            service_module,
-            "preprocess_english_job",
-            unsupported,
-        )
-    monkeypatch.setattr(
-        service_module,
-        "load_default_catalog",
-        _raise_if_called,
-    )
-
-    with pytest.raises(EnglishBaselinePreconditionError) as captured:
-        recommend_english(_request())
-
-    error = captured.value
-    assert error.kind == kind
-    assert error.id == (7 if kind == "cv" else 100)
-    assert error.input_id == error.id
-    assert error.code is code
-    assert error.language_code is code
-    assert error.confidence == confidence
-    assert f"{kind} id={error.id}" in str(error)
-    assert f"language={code.value}" in str(error)
-    assert error.__cause__ is not None
+    result = response.results[0]
+    assert result.scoringStrategy is ScoringStrategy.CROSS_LANGUAGE_SKILL_BASED
+    assert result.textScore is None
+    assert result.score == result.skillScore == 1.0
 
 
-@pytest.mark.parametrize("kind", ["cv", "job"])
 @pytest.mark.parametrize(
-    ("text", "expected_code", "expected_confidence"),
+    "job_text",
     [
-        (
-            "Ky su phan mem Java Spring Boot PostgreSQL",
-            LanguageCode.VIETNAMESE,
-            0.66666667,
-        ),
-        (
-            "Software Engineer Developed REST APIs "
-            "Ky su phan mem Java Spring Boot",
-            LanguageCode.MIXED,
-            1.0,
-        ),
-        (
-            "Java Spring Boot PostgreSQL Docker C++ .NET Node.js CI/CD",
-            LanguageCode.UNKNOWN,
-            0.0,
-        ),
-        (
-            "This is Java.",
-            LanguageCode.ENGLISH,
-            0.33333333,
-        ),
+        "Kỹ sư phần mềm phát triển dự án và có kinh nghiệm.",
+        "Software Engineer developed REST APIs. Kỹ sư phần mềm.",
+        "Java Spring Boot PostgreSQL Docker",
+        "This is Java.",
     ],
 )
-def test_real_unsupported_documents_fail_the_service_precondition(
-    kind: str,
-    text: str,
-    expected_code: LanguageCode,
-    expected_confidence: float,
-) -> None:
-    request = (
-        _request(cv_text=text)
-        if kind == "cv"
-        else _request(job_texts=[text])
-    )
-
-    with pytest.raises(EnglishBaselinePreconditionError) as captured:
-        recommend_english(request)
-
-    error = captured.value
-    assert error.kind == kind
-    assert error.code is expected_code
-    assert error.confidence == expected_confidence
-
-
-def test_invalid_job_fails_without_being_skipped_or_scored(
-    monkeypatch,
+def test_unsafe_job_uses_skill_only_strategy_without_failing(
+    job_text: str,
 ) -> None:
     request = _request(
-        job_texts=[ENGLISH_JOB_TEXT, "unsupported", ENGLISH_JOB_TEXT],
-        job_skills=[["Java"], ["Java"], ["Java"]],
-    )
-    visited: list[str] = []
-
-    monkeypatch.setattr(
-        service_module,
-        "preprocess_english",
-        lambda _text: _english_result(),
+        job_texts=[job_text],
+        job_skills=[["Java", "Docker"]],
     )
 
-    def preprocess_job(text: str) -> EnglishPreprocessingResult:
-        visited.append(text)
-        if text == "unsupported":
-            raise UnsupportedLanguageError(
-                LanguageDetection(
-                    language_code=LanguageCode.UNKNOWN,
-                    confidence=0.0,
-                    english_signal_count=0,
-                    vietnamese_signal_count=0,
-                )
-            )
-        return _english_result()
+    result = recommend_english(request).results[0]
 
-    monkeypatch.setattr(
-        service_module,
-        "preprocess_english_job",
-        preprocess_job,
-    )
-    monkeypatch.setattr(
-        service_module,
-        "load_default_catalog",
-        _raise_if_called,
-    )
-    monkeypatch.setattr(
-        service_module,
-        "score_same_language_recommendations",
-        _raise_if_called,
+    assert result.scoringStrategy is ScoringStrategy.CROSS_LANGUAGE_SKILL_BASED
+    assert result.textScore is None
+    assert result.skillScore == 0.5
+    assert result.score == result.skillScore
+
+
+def test_unknown_cv_uses_skill_only_for_every_job() -> None:
+    response = recommend_english(
+        _request(
+            cv_text="Java Spring Boot PostgreSQL Docker",
+            cv_skills=["Java"],
+            job_texts=[ENGLISH_JOB_TEXT],
+            job_skills=[["Java"]],
+        )
     )
 
-    with pytest.raises(EnglishBaselinePreconditionError) as captured:
-        recommend_english(request)
-
-    assert captured.value.kind == "job"
-    assert captured.value.id == 101
-    assert visited == [ENGLISH_JOB_TEXT, "unsupported"]
+    assert response.results[0].scoringStrategy is (
+        ScoringStrategy.CROSS_LANGUAGE_SKILL_BASED
+    )
+    assert response.results[0].textScore is None
+    assert response.results[0].score == 1.0
 
 
 @pytest.mark.parametrize(
