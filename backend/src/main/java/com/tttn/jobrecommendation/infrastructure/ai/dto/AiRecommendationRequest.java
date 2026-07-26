@@ -14,14 +14,14 @@ public record AiRecommendationRequest(
 
     public record CvInput(
             Long id,
-            String processedText,
+            String text,
             List<String> skills
     ) {
     }
 
     public record JobInput(
             Long id,
-            String processedText,
+            String text,
             List<String> skills
     ) {
     }

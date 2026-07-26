@@ -249,33 +249,35 @@ Use verified and non-verified companies, jobs in multiple statuses with past/nul
 
 ## CV Analysis and Recommendation Integration
 
-Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `http://localhost:8000`). The stub must expose multipart `POST /internal/v1/cv/parse` and JSON `POST /internal/v1/recommendations`. Use two students, one company and admin, verified/pending companies, jobs across statuses/deadlines, and CVs with physical test files.
+Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `http://localhost:8000`). It must expose multipart `POST /internal/v2/cv/parse` and JSON `POST /internal/v2/recommendations`. Keep V1 only for older deployed backends; never return a V1 shape from a V2 path. Use two students with two CVs each, verified/pending companies, varied jobs, and physical PDF/DOCX fixtures.
 
-179. Analysis owner read: student token calls `GET /api/students/me/cv/{cvId}/analysis`; expect owned CV text, normalized current student skills, derived `READY`/`NOT_READY`, timestamps, and no storage or ownership identifiers.
-180. Analysis hidden ownership: another student and a missing id call the same endpoint; expect byte-identical `404 RESOURCE_NOT_FOUND` envelopes.
-181. Extracted-data patch: owner sends trimmed `extractedText` and/or `processedText` to `PATCH /api/students/me/cv/{cvId}/extracted-data`; expect only supplied supported fields updated.
-182. Extracted-data strict JSON: send `skills`, `studentId`, `userId`, or another unknown field; expect `400 BAD_REQUEST` and no update.
-183. Extracted-data size/empty validation: exceed 1,000,000 characters or send no supported field; expect `400` and unchanged persisted text.
-184. Reanalysis success: configure parse success with `rawText`, `processedText`, and `skills`; call `POST /api/students/me/cv/{cvId}/reanalyze`; expect text persisted and an updated analysis response.
-185. Reanalysis multipart privacy: inspect the stub request; expect only the CV multipart file and content metadata, with no JWT, database credential, student id, storage directory, or absolute path.
-186. Reanalysis preserves skills: create manual and existing CV-derived student skills, reanalyze, and verify none are inserted, replaced, or deleted because the current schema has no CV-to-skill association.
-187. Reanalysis failure atomicity: return timeout, connection failure, HTTP 4xx/5xx, malformed JSON, blank/oversized processed text, null skills, or invalid skill values; expect a mapped AI error and unchanged persisted CV text.
-188. Generate validation/defaults: send only positive `cvId`; inspect the stub request for `threshold: 0.1` and `limit: 20`. Test threshold outside `0.0..1.0`, limit outside `1..100`, and non-positive/missing CV id; expect `400`.
-189. Generate strict ownership: send `studentId`, `userId`, or another unknown property; expect `400 BAD_REQUEST`. Select another student's CV and an absent CV; expect indistinguishable `404 RESOURCE_NOT_FOUND` responses and no run.
-190. Generate role: company/admin tokens call generation; expect `403 ACCESS_DENIED`.
-191. Analysis readiness: select a CV with null/blank `processedText`; expect `409 CV_ANALYSIS_NOT_READY` and no run.
-192. Eligible corpus: create active verified null/today/future-deadline jobs plus draft, closed, expired, and unverified-company jobs; inspect the AI request and expect only the first group, deterministically ordered by job id.
-193. Corpus text/skills: verify each submitted job combines title, description, requirements, and sorted normalized skill names; increasing job count must not add one database skill query per job.
-194. No JWT forwarding: inspect recommendation request headers/body; expect no user access token, `studentId`, or `userId`.
-195. Processing visibility: block the AI stub after it receives the request; from a separate database connection verify a committed `PROCESSING` run, then release the response.
-196. Successful generation: return a valid matching `requestId`; expect a `SUCCESS` run, non-null `finishedAt`, and one stored result per returned eligible job.
-197. Empty success: return `results: []`; expect `SUCCESS`, zero stored results, and `totalRecommended: 0`.
-198. Deterministic ranking: return valid results in arbitrary order with score ties; expect storage and response sorted by score descending then job id ascending and ranks recalculated from 1.
-199. Score storage: exercise exact `0.0`, exact `1.0`, and an in-range fractional score; expect PostgreSQL `NUMERIC(8,5)` values from `0.00000` through `1.00000`.
-200. Invalid recommendation contract: separately return mismatched request id, null results, null/unknown/duplicate job id, null/out-of-range/NaN/infinite score, null/non-positive/duplicate/non-contiguous rank, excessive results, and null/oversized matched skill; expect `AI_SERVICE_INVALID_RESPONSE`.
-201. Failure atomicity: after case 200, expect no partial results, a `FAILED` run with `finishedAt`, and a fixed sanitized message containing no response body, exception class, URL credential, local path, JWT, or CV text.
-202. Transport mapping: exercise timeout, connection refusal, HTTP 4xx, HTTP 5xx, and malformed JSON; expect the documented `AI_SERVICE_TIMEOUT`, `AI_SERVICE_UNAVAILABLE`, or `AI_SERVICE_INVALID_RESPONSE` envelope and a `FAILED` run.
-203. Independent runs: send two concurrent valid generation requests; expect two independent runs and no cross-run result corruption.
-204. Run detail owner: call `GET /api/students/me/recommendation-runs/{runId}`; expect run lifecycle fields and ordered results.
-205. Run detail hidden ownership: another student and an absent id call detail; expect byte-identical `404 RECOMMENDATION_RUN_NOT_FOUND` envelopes.
-206. Existing history compatibility: after generation, call `GET /api/students/me/recommendation-runs` and `GET /api/students/me/recommendation-results/latest`; expect the persisted run/results through the existing response envelope.
+179. New analysis state: upload a CV; expect persisted `NOT_READY`, null text/language/version/error timestamps, and empty skills/warnings.
+180. Analysis privacy/ownership: owner sees only safe analysis metadata; another student and a missing id receive indistinguishable `404 RESOURCE_NOT_FOUND` responses with no paths or stored filename.
+181. Extracted-data security order: unauthenticated PATCH returns `401`; a foreign/missing CV returns `404`; only an owned CV returns `501 FEATURE_NOT_SUPPORTED`.
+182. Extracted-data immutability: send supported-looking and unknown fields as owner; verify extracted/processed text and all other database fields remain unchanged.
+183. Reanalysis processing: hold the parse response and verify `PROCESSING` plus reset derived metadata is committed before the AI call completes.
+184. Reanalysis success: return all V2 parse fields; expect `READY`, both texts, CV-specific normalized skills, language code/confidence, processing version, warnings, and `analyzedAt`.
+185. Reanalysis transaction/privacy: verify the original PDF/DOCX multipart request contains no JWT, database credential, student id, storage directory, or absolute path, and the HTTP call occurs outside a database transaction.
+186. Per-CV skill isolation: two CVs for one student retain different extracted skills; manual `student_skills` remain unchanged and are never substituted or merged.
+187. Parse validation: cover trim/lowercase/whitespace collapse/distinct/sort plus null/blank/over-limit text, skills, language, confidence, version, and warnings.
+188. Reanalysis failure: file load, timeout, unavailable AI, malformed/invalid response, or runtime error commits `FAILED`, clears processed text plus skills/language/version/warnings/time, and stores only a sanitized error. Any retained old extracted text is invalid while status is not `READY`.
+189. Reanalysis hidden ownership: another student and a missing id receive the same `404` response and cause no state change or AI call.
+190. Generate validation/ownership: verify default threshold `0.1`, limit `20`, strict unknown-field rejection, role enforcement, and indistinguishable foreign/missing CV responses.
+191. READY gate: reject `NOT_READY`, `PROCESSING`, and `FAILED` with `CV_ANALYSIS_NOT_READY`, even when legacy text remains; `READY` also requires non-blank extracted and processed text.
+192. Selected CV input: V2 `cv.text` is raw `extractedText` and `cv.skills` is that CV's extracted skills, never `processedText` or `student_skills`.
+193. Eligible corpus: include only `ACTIVE` jobs of `VERIFIED` companies with null/today/future deadlines, ordered by id and loaded with bounded skill queries.
+194. Exact job input: require field `text`, not `processedText`, with `TITLE`, `DESCRIPTION`, `REQUIREMENTS`, and `SKILLS` in fixed order/newlines; exclude salary, location, benefits, timestamps, company data, status, deadline, working model, and counts.
+195. No JWT forwarding: recommendation headers/body contain no access token, `studentId`, `userId`, or database authority.
+196. Full result persistence: algorithm/version, total jobs scanned, score components, strategy, backend-generated `rankPosition`, matched/missing skills, and trimmed reason survive persistence and query.
+197. Public compatibility: results expose `matchedKeywords` as matched skills plus V2 metadata, with no duplicate public `matchedSkills` field.
+198. V2 validation: cover request-id mismatch, duplicate/unknown job id, result limit, all score bounds/finite checks, requested-threshold enforcement before persistence rounding, required `skillScore`, strict strategy-specific `textScore`, skill lists, and reason length.
+199. Backend-owned ranking: reverse AI result order and verify identical results sorted by `score DESC`, then `jobId ASC`, with continuous backend-generated `rankPosition` values from 1.
+200. Empty corpus: expect configured non-null algorithm/version, `SUCCESS`, zero jobs scanned/recommended, empty results, finish time, null error, and no AI call.
+201. Failure atomicity: AI/persistence failures leave no partial results and commit `FAILED`, finish time, and a message containing no body, class, internal URL, credential/token, local path, or CV text.
+202. Latest success: newer `FAILED` and `PROCESSING` runs do not hide the latest `SUCCESS` results.
+203. Run detail status/ownership: owned `PROCESSING`, `FAILED`, and `SUCCESS` runs remain readable; foreign/missing ids return indistinguishable `404 RECOMMENDATION_RUN_NOT_FOUND`.
+204. Legacy row compatibility: pre-V2 results retain score/rank/matched keywords; new nullable metadata remains null and missing skills defaults to empty.
+
+Semantic alias equivalence is an AI-service test, not a backend test: `học máy`/`hoc may`/`machine learning`, `K8s`/`Kubernetes`, and `SpringBoot`/`spring-boot`/`Spring Boot`.
+
+Deploy AI V2 while retaining V1, verify `/health` and fixtures, deploy Backend V2, then run end-to-end regression. Do not merge or deploy Backend V2 first.

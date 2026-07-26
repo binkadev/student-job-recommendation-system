@@ -57,25 +57,34 @@ public class EligibleJobCorpusBuilder {
                             .toList();
                     return new AiRecommendationRequest.JobInput(
                             job.getId(),
-                            buildProcessedText(job, skills),
+                            buildJobText(job, skills),
                             skills
                     );
                 })
                 .toList();
     }
 
-    String buildProcessedText(Job job, List<String> normalizedSkills) {
-        List<String> parts = new ArrayList<>();
-        addPart(parts, job.getTitle());
-        addPart(parts, job.getDescription());
-        addPart(parts, job.getRequirements());
-        addPart(parts, String.join(" ", normalizedSkills));
-        return String.join(" ", parts);
+    String buildJobText(Job job, List<String> normalizedSkills) {
+        return """
+                TITLE:
+                %s
+
+                DESCRIPTION:
+                %s
+
+                REQUIREMENTS:
+                %s
+
+                SKILLS:
+                %s""".formatted(
+                normalizeSection(job.getTitle()),
+                normalizeSection(job.getDescription()),
+                normalizeSection(job.getRequirements()),
+                String.join(", ", normalizedSkills)
+        );
     }
 
-    private void addPart(List<String> parts, String value) {
-        if (StringUtils.hasText(value)) {
-            parts.add(value.strip().replaceAll("\\s+", " "));
-        }
+    private String normalizeSection(String value) {
+        return value == null ? "" : value.strip();
     }
 }

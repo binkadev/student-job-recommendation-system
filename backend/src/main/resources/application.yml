@@ -25,6 +25,11 @@ app:
     connect-timeout: ${APP_AI_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${APP_AI_SERVICE_READ_TIMEOUT:15s}
 
+  ai:
+    recommendation:
+      algorithm: ${APP_AI_RECOMMENDATION_ALGORITHM:tfidf-cosine-hybrid}
+      algorithm-version: ${APP_AI_RECOMMENDATION_ALGORITHM_VERSION:bilingual-recommendation-v2}
+
 springdoc:
   api-docs:
     path: /v3/api-docs

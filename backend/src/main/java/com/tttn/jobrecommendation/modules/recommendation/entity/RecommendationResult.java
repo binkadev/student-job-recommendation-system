@@ -1,8 +1,11 @@
 package com.tttn.jobrecommendation.modules.recommendation.entity;
 
+import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -52,9 +55,27 @@ public class RecommendationResult {
     @Column(name = "score", nullable = false, precision = 8, scale = 5)
     private BigDecimal score;
 
+    @Column(name = "text_score", precision = 8, scale = 5)
+    private BigDecimal textScore;
+
+    @Column(name = "skill_score", precision = 8, scale = 5)
+    private BigDecimal skillScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scoring_strategy", length = 50)
+    private RecommendationScoringStrategy scoringStrategy;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "matched_keywords", columnDefinition = "jsonb")
     private List<String> matchedKeywords;
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "missing_skills", nullable = false, columnDefinition = "jsonb")
+    private List<String> missingSkills = List.of();
+
+    @Column(name = "reason", columnDefinition = "TEXT")
+    private String reason;
 
     @Column(name = "rank_position", nullable = false)
     private Integer rankPosition;

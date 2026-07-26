@@ -4,7 +4,6 @@ import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.infrastructure.ai.client.AiServiceClient;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCvParseResponse;
-import com.tttn.jobrecommendation.modules.cv.dto.request.UpdateCvExtractedDataRequest;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvAnalysisResponse;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
@@ -28,20 +27,16 @@ public class CvAnalysisServiceImpl implements CvAnalysisService {
     }
 
     @Override
-    public CvAnalysisResponse updateExtractedData(
-            Long userId,
-            Long cvId,
-            UpdateCvExtractedDataRequest request
-    ) {
-        return persistenceService.updateExtractedData(userId, cvId, request);
+    public void updateExtractedData(Long userId, Long cvId) {
+        persistenceService.rejectExtractedDataUpdate(userId, cvId);
     }
 
     @Override
     public CvAnalysisResponse reanalyze(Long userId, Long cvId) {
-        CvFile cvFile = persistenceService.getFileForReanalysis(userId, cvId);
-        CvFileDownload download = cvStorageService.load(cvFile);
+        CvFile cvFile = persistenceService.markProcessing(userId, cvId);
 
         try {
+            CvFileDownload download = cvStorageService.load(cvFile);
             AiCvParseResponse response = aiServiceClient.parseCv(
                     download.resource(),
                     download.originalFileName(),
@@ -49,9 +44,11 @@ public class CvAnalysisServiceImpl implements CvAnalysisService {
             );
             AiCvParseResponse validatedResponse = responseValidator.validate(response);
             return persistenceService.saveParsedAnalysis(userId, cvId, validatedResponse);
-        } catch (AppException exception) {
-            throw exception;
         } catch (RuntimeException exception) {
+            persistenceService.markFailed(userId, cvId, exception);
+            if (exception instanceof AppException appException) {
+                throw appException;
+            }
             throw new AppException(ErrorCode.CV_ANALYSIS_FAILED);
         }
     }

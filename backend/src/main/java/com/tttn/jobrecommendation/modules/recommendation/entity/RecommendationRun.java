@@ -54,6 +54,16 @@ public class RecommendationRun {
     @Column(name = "status", nullable = false, length = 50)
     private RecommendationRunStatus status;
 
+    @Column(name = "algorithm", length = 100)
+    private String algorithm;
+
+    @Column(name = "algorithm_version", length = 100)
+    private String algorithmVersion;
+
+    @Builder.Default
+    @Column(name = "total_jobs_scanned", nullable = false)
+    private Integer totalJobsScanned = 0;
+
     @CreationTimestamp
     @Column(name = "started_at", nullable = false, updatable = false)
     private LocalDateTime startedAt;

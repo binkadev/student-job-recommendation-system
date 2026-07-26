@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationSourceType;
 import com.tttn.jobrecommendation.common.enums.SkillImportance;
 import com.tttn.jobrecommendation.common.enums.SkillLevel;
 import com.tttn.jobrecommendation.common.enums.SkillSource;
@@ -37,7 +39,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -45,6 +49,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,6 +65,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     private static final AtomicReference<StubHandler> PARSE_HANDLER = new AtomicReference<>();
     private static final AtomicReference<StubHandler> RECOMMEND_HANDLER = new AtomicReference<>();
     private static final AtomicReference<JsonNode> LAST_RECOMMENDATION_REQUEST = new AtomicReference<>();
+    private static final AtomicInteger RECOMMENDATION_CALLS = new AtomicInteger();
     private static final ExecutorService AI_EXECUTOR = Executors.newCachedThreadPool();
     private static final HttpServer AI_SERVER = startAiServer();
 
@@ -91,11 +97,16 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     @BeforeEach
     void resetAiStub() {
         LAST_RECOMMENDATION_REQUEST.set(null);
+        RECOMMENDATION_CALLS.set(0);
         PARSE_HANDLER.set(exchange -> respond(exchange, 200, """
                 {
                   "rawText": "Raw Java CV",
                   "processedText": "java spring boot postgresql",
-                  "skills": ["Java", "Spring Boot", "PostgreSQL"]
+                  "skills": [" Java ", "Spring   Boot", "PostgreSQL", "java"],
+                  "languageCode": "EN",
+                  "languageConfidence": 0.98,
+                  "processingVersion": "bilingual-nlp-v2",
+                  "warnings": [" Layout fallback used "]
                 }
                 """));
         RECOMMEND_HANDLER.set(this::respondWithDeterministicRecommendations);
@@ -108,11 +119,11 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
-    void cvOwnerCanReadAndPatchWhileForeignAndMissingIdsAreIndistinguishable() throws Exception {
+    void cvOwnerCanReadWhileManualPatchIsOwnershipFirstAndUnsupported() throws Exception {
         Student owner = createStudent("analysis-owner@example.test");
         Student other = createStudent("analysis-other@example.test");
         CvFile cvFile = readyCv(owner, "analysis-owner.pdf");
-        addStudentSkill(owner, "Java", SkillSource.MANUAL);
+        addStudentSkill(owner, "Docker", SkillSource.MANUAL);
 
         mockMvc.perform(get("/api/students/me/cv/{cvId}/analysis", cvFile.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser())))
@@ -121,6 +132,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("READY"))
                 .andExpect(jsonPath("$.data.skills[0]").value("java"))
                 .andExpect(jsonPath("$.data.filePath").doesNotExist())
+                .andExpect(jsonPath("$.data.storedFileName").doesNotExist())
                 .andExpect(jsonPath("$.data.studentId").doesNotExist());
 
         mockMvc.perform(patch("/api/students/me/cv/{cvId}/extracted-data", cvFile.getId())
@@ -132,19 +144,18 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                                   "processedText": "  updated processed text  "
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.extractedText").value("updated raw text"))
-                .andExpect(jsonPath("$.data.processedText").value("updated processed text"));
+                .andExpect(status().isNotImplemented())
+                .andExpect(jsonPath("$.errorCode").value("FEATURE_NOT_SUPPORTED"));
         CvFile updated = cvFileRepository.findById(cvFile.getId()).orElseThrow();
-        assertThat(updated.getExtractedText()).isEqualTo("updated raw text");
-        assertThat(updated.getProcessedText()).isEqualTo("updated processed text");
+        assertThat(updated.getExtractedText()).isEqualTo("existing raw");
+        assertThat(updated.getProcessedText()).isEqualTo("java spring boot");
 
         mockMvc.perform(patch("/api/students/me/cv/{cvId}/extracted-data", cvFile.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"skills\":[\"Injected\"]}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
+                .andExpect(status().isNotImplemented())
+                .andExpect(jsonPath("$.errorCode").value("FEATURE_NOT_SUPPORTED"));
 
         MvcResult foreign = mockMvc.perform(get("/api/students/me/cv/{cvId}/analysis", cvFile.getId())
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(other.getUser())))
@@ -156,10 +167,27 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andReturn();
         assertThat(foreign.getResponse().getContentAsString())
                 .isEqualTo(missing.getResponse().getContentAsString());
+
+        mockMvc.perform(patch("/api/students/me/cv/{cvId}/extracted-data", cvFile.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(other.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"extractedText\":\"probe\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+
+        mockMvc.perform(patch("/api/students/me/cv/{cvId}/extracted-data", cvFile.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"extractedText\":\"probe\"}"))
+                .andExpect(status().isUnauthorized());
+
+        CvFile unchanged = cvFileRepository.findById(cvFile.getId()).orElseThrow();
+        assertThat(unchanged.getExtractedText()).isEqualTo("existing raw");
+        assertThat(unchanged.getProcessedText()).isEqualTo("java spring boot");
+        assertThat(unchanged.getExtractedSkills()).containsExactly("java", "spring boot");
     }
 
     @Test
-    void reanalysisPersistsBothTextsAndFailureDoesNotPartiallyUpdateOrReplaceSkills() throws Exception {
+    void reanalysisPersistsCvSpecificMetadataAndFailureClearsDerivedAnalysis() throws Exception {
         Student student = createStudent("reanalyze@example.test");
         CvFile cvFile = readyCv(student, "reanalyze.pdf");
         writeCvFile(cvFile, "%PDF-test".getBytes(StandardCharsets.UTF_8));
@@ -170,10 +198,25 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.extractedText").value("Raw Java CV"))
                 .andExpect(jsonPath("$.data.processedText").value("java spring boot postgresql"))
-                .andExpect(jsonPath("$.data.skills[0]").value("docker"));
+                .andExpect(jsonPath("$.data.skills[0]").value("java"))
+                .andExpect(jsonPath("$.data.skills[1]").value("postgresql"))
+                .andExpect(jsonPath("$.data.skills[2]").value("spring boot"))
+                .andExpect(jsonPath("$.data.status").value("READY"))
+                .andExpect(jsonPath("$.data.languageCode").value("en"))
+                .andExpect(jsonPath("$.data.languageConfidence").value(0.98))
+                .andExpect(jsonPath("$.data.processingVersion").value("bilingual-nlp-v2"))
+                .andExpect(jsonPath("$.data.warnings[0]").value("Layout fallback used"))
+                .andExpect(jsonPath("$.data.analyzedAt").isNotEmpty());
         CvFile analyzed = cvFileRepository.findById(cvFile.getId()).orElseThrow();
         assertThat(analyzed.getExtractedText()).isEqualTo("Raw Java CV");
         assertThat(analyzed.getProcessedText()).isEqualTo("java spring boot postgresql");
+        assertThat(analyzed.getExtractedSkills()).containsExactly("java", "postgresql", "spring boot");
+        assertThat(analyzed.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.READY);
+        assertThat(analyzed.getLanguageCode()).isEqualTo("en");
+        assertThat(analyzed.getLanguageConfidence()).isEqualByComparingTo("0.9800");
+        assertThat(analyzed.getProcessingVersion()).isEqualTo("bilingual-nlp-v2");
+        assertThat(analyzed.getAnalysisWarnings()).containsExactly("Layout fallback used");
+        assertThat(analyzed.getAnalyzedAt()).isNotNull();
         assertThat(studentSkillRepository.findByStudentIdOrderByIdAsc(student.getId()))
                 .extracting(StudentSkill::getId)
                 .containsExactly(manualSkill.getId());
@@ -186,7 +229,119 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(jsonPath("$.message").value("AI service is unavailable"));
         CvFile afterFailure = cvFileRepository.findById(cvFile.getId()).orElseThrow();
         assertThat(afterFailure.getExtractedText()).isEqualTo("Raw Java CV");
-        assertThat(afterFailure.getProcessedText()).isEqualTo("java spring boot postgresql");
+        assertThat(afterFailure.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.FAILED);
+        assertThat(afterFailure.getProcessedText()).isNull();
+        assertThat(afterFailure.getExtractedSkills()).isEmpty();
+        assertThat(afterFailure.getLanguageCode()).isNull();
+        assertThat(afterFailure.getLanguageConfidence()).isNull();
+        assertThat(afterFailure.getProcessingVersion()).isNull();
+        assertThat(afterFailure.getAnalysisWarnings()).isEmpty();
+        assertThat(afterFailure.getAnalyzedAt()).isNull();
+        assertThat(afterFailure.getAnalysisError())
+                .isEqualTo("AI service is unavailable")
+                .doesNotContain("private", "stack", "http");
+    }
+
+    @Test
+    void blankRawTextResponseIsRejectedAndCannotPersistReadyState() throws Exception {
+        Student student = createStudent("invalid-raw-text@example.test");
+        CvFile cvFile = readyCv(student, "invalid-raw-text.pdf");
+        writeCvFile(cvFile, "%PDF-invalid-raw".getBytes(StandardCharsets.UTF_8));
+        PARSE_HANDLER.set(exchange -> respond(exchange, 200, """
+                {
+                  "rawText": "   ",
+                  "processedText": "java spring boot",
+                  "skills": ["java", "spring boot"],
+                  "languageCode": "en",
+                  "languageConfidence": 0.98,
+                  "processingVersion": "bilingual-nlp-v2",
+                  "warnings": []
+                }
+                """));
+
+        mockMvc.perform(post("/api/students/me/cv/{cvId}/reanalyze", cvFile.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorCode").value("AI_SERVICE_INVALID_RESPONSE"))
+                .andExpect(jsonPath("$.message").value("AI service returned an invalid response"));
+
+        CvFile failed = cvFileRepository.findById(cvFile.getId()).orElseThrow();
+        assertThat(failed.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.FAILED);
+        assertThat(failed.getAnalysisStatus()).isNotEqualTo(CvAnalysisStatus.READY);
+        assertThat(failed.getProcessedText()).isNull();
+        assertThat(failed.getExtractedSkills()).isEmpty();
+        assertThat(failed.getLanguageCode()).isNull();
+        assertThat(failed.getLanguageConfidence()).isNull();
+        assertThat(failed.getProcessingVersion()).isNull();
+        assertThat(failed.getAnalysisWarnings()).isEmpty();
+        assertThat(failed.getAnalyzedAt()).isNull();
+        assertThat(failed.getAnalysisError()).isEqualTo("AI service returned an invalid response");
+    }
+
+    @Test
+    void twoCvsKeepDifferentExtractedSkillsAndGenerationUsesTheSelectedCv() throws Exception {
+        Student student = createStudent("per-cv-skills@example.test");
+        CvFile javaCv = readyCv(student, "java.pdf");
+        CvFile pythonCv = readyCv(student, "python.pdf", false);
+        writeCvFile(javaCv, "%PDF-java".getBytes(StandardCharsets.UTF_8));
+        writeCvFile(pythonCv, "%PDF-python".getBytes(StandardCharsets.UTF_8));
+        addStudentSkill(student, "Student Profile Only", SkillSource.MANUAL);
+
+        AtomicInteger parseNumber = new AtomicInteger();
+        PARSE_HANDLER.set(exchange -> {
+            boolean first = parseNumber.getAndIncrement() == 0;
+            respond(exchange, 200, first ? """
+                    {
+                      "rawText": "Java CV raw",
+                      "processedText": "java spring boot",
+                      "skills": ["Java", "Spring Boot"],
+                      "languageCode": "en",
+                      "languageConfidence": 0.97,
+                      "processingVersion": "bilingual-nlp-v2",
+                      "warnings": []
+                    }
+                    """ : """
+                    {
+                      "rawText": "Python CV raw",
+                      "processedText": "python fastapi",
+                      "skills": ["Python", "FastAPI"],
+                      "languageCode": "en",
+                      "languageConfidence": 0.96,
+                      "processingVersion": "bilingual-nlp-v2",
+                      "warnings": []
+                    }
+                    """);
+        });
+
+        mockMvc.perform(post("/api/students/me/cv/{cvId}/reanalyze", javaCv.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/students/me/cv/{cvId}/reanalyze", pythonCv.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk());
+
+        CvFile persistedJava = cvFileRepository.findById(javaCv.getId()).orElseThrow();
+        CvFile persistedPython = cvFileRepository.findById(pythonCv.getId()).orElseThrow();
+        assertThat(persistedJava.getExtractedSkills()).containsExactly("java", "spring boot");
+        assertThat(persistedPython.getExtractedSkills()).containsExactly("fastapi", "python");
+
+        createJob(
+                createCompany("per-cv-company@example.test", "Per CV Company", CompanyStatus.VERIFIED),
+                "Per CV Job",
+                JobStatus.ACTIVE
+        );
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + pythonCv.getId() + "}"))
+                .andExpect(status().isOk());
+
+        JsonNode cvInput = LAST_RECOMMENDATION_REQUEST.get().get("cv");
+        assertThat(cvInput.get("id").asLong()).isEqualTo(pythonCv.getId());
+        assertThat(cvInput.get("text").asText()).isEqualTo("Python CV raw");
+        assertThat(idsOfText(cvInput.get("skills"))).containsExactly("fastapi", "python");
+        assertThat(LAST_RECOMMENDATION_REQUEST.get().toString())
+                .doesNotContain("Student Profile Only", "java", "spring boot");
     }
 
     @Test
@@ -244,14 +399,48 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
+    void generationRejectsFailedAndProcessingCvEvenWhenLegacyTextRemains() throws Exception {
+        Student student = createStudent("analysis-state-gate@example.test");
+        CvFile cvFile = readyCv(student, "state-gate.pdf");
+
+        cvFile.setAnalysisStatus(CvAnalysisStatus.FAILED);
+        cvFileRepository.saveAndFlush(cvFile);
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + cvFile.getId() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("CV_ANALYSIS_NOT_READY"));
+
+        cvFile.setAnalysisStatus(CvAnalysisStatus.PROCESSING);
+        cvFileRepository.saveAndFlush(cvFile);
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + cvFile.getId() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("CV_ANALYSIS_NOT_READY"));
+
+        assertThat(recommendationRunRepository.count()).isZero();
+        assertThat(RECOMMENDATION_CALLS).hasValue(0);
+    }
+
+    @Test
     void generationSubmitsOnlyEligibleJobsAndPersistsDeterministicSuccess() throws Exception {
         Student student = createStudent("eligible-student@example.test");
         CvFile cvFile = readyCv(student, "eligible.pdf");
-        addStudentSkill(student, "Java", SkillSource.MANUAL);
+        addStudentSkill(student, "Student Skill Must Not Leak", SkillSource.MANUAL);
         Company verified = createCompany("eligible-verified@example.test", "Verified", CompanyStatus.VERIFIED);
         Company unverified = createCompany("eligible-pending@example.test", "Pending", CompanyStatus.PENDING);
 
-        Job nullDeadline = createJob(verified, "Null deadline", JobStatus.ACTIVE);
+        Job nullDeadline = createJob(verified, "Backend Developer", JobStatus.ACTIVE);
+        nullDeadline.setDescription("Build bilingual APIs");
+        nullDeadline.setRequirements("Java and PostgreSQL");
+        nullDeadline.setBenefits("SECRET_BENEFITS");
+        nullDeadline.setLocation("SECRET_LOCATION");
+        nullDeadline.setSalaryMin(new BigDecimal("12345.67"));
+        nullDeadline.setPublishedAt(LocalDateTime.of(2026, 7, 1, 12, 0));
+        jobRepository.saveAndFlush(nullDeadline);
         Job todayDeadline = createJob(verified, "Today deadline", JobStatus.ACTIVE);
         todayDeadline.setDeadline(LocalDate.now());
         jobRepository.saveAndFlush(todayDeadline);
@@ -272,9 +461,15 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         .content("{\"cvId\":" + cvFile.getId() + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v2"))
+                .andExpect(jsonPath("$.data.totalJobsScanned").value(3))
                 .andExpect(jsonPath("$.data.totalRecommended").value(3))
                 .andExpect(jsonPath("$.data.results[0].jobId").value(nullDeadline.getId()))
                 .andExpect(jsonPath("$.data.results[0].score").value(0.5))
+                .andExpect(jsonPath("$.data.results[0].textScore").value(0.4))
+                .andExpect(jsonPath("$.data.results[0].skillScore").value(0.6))
+                .andExpect(jsonPath("$.data.results[0].scoringStrategy").value("SAME_LANGUAGE_HYBRID"))
                 .andExpect(jsonPath("$.data.results[0].rankPosition").value(1));
 
         JsonNode request = LAST_RECOMMENDATION_REQUEST.get();
@@ -283,15 +478,53 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(ids(request.get("jobs")))
                 .containsExactly(nullDeadline.getId(), todayDeadline.getId(), futureDeadline.getId())
                 .doesNotContain(expired.getId(), draft.getId(), closed.getId(), pendingCompany.getId());
-        assertThat(request.toString()).doesNotContain("studentId", "userId", "Bearer");
+        assertThat(request.get("cv").get("text").asText()).isEqualTo("existing raw");
+        assertThat(request.get("cv").has("processedText")).isFalse();
+        assertThat(idsOfText(request.get("cv").get("skills")))
+                .containsExactly("java", "spring boot");
+        JsonNode firstJobInput = request.get("jobs").get(0);
+        assertThat(firstJobInput.has("processedText")).isFalse();
+        assertThat(firstJobInput.get("text").asText()).isEqualTo("""
+                TITLE:
+                Backend Developer
+
+                DESCRIPTION:
+                Build bilingual APIs
+
+                REQUIREMENTS:
+                Java and PostgreSQL
+
+                SKILLS:
+                java""");
+        assertThat(firstJobInput.get("text").asText())
+                .doesNotContain(
+                        "SECRET_BENEFITS",
+                        "SECRET_LOCATION",
+                        "12345.67",
+                        "Verified",
+                        "2026-07-01",
+                        "REMOTE"
+                );
+        assertThat(request.toString())
+                .doesNotContain("studentId", "userId", "Bearer", "Student Skill Must Not Leak");
 
         RecommendationRun run = recommendationRunRepository.findAll().getFirst();
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
+        assertThat(run.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
+        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v2");
+        assertThat(run.getTotalJobsScanned()).isEqualTo(3);
         assertThat(run.getFinishedAt()).isNotNull();
         assertThat(recommendationResultRepository.findByRunIdOrderByRankPositionAsc(run.getId()))
                 .hasSize(3)
-                .allSatisfy(result -> assertThat(result.getScore())
-                        .isBetween(new java.math.BigDecimal("0.00000"), new java.math.BigDecimal("1.00000")));
+                .allSatisfy(result -> {
+                    assertThat(result.getScore()).isEqualByComparingTo("0.50000");
+                    assertThat(result.getTextScore()).isEqualByComparingTo("0.40000");
+                    assertThat(result.getSkillScore()).isEqualByComparingTo("0.60000");
+                    assertThat(result.getScoringStrategy().name()).isEqualTo("SAME_LANGUAGE_HYBRID");
+                    assertThat(result.getMatchedKeywords()).containsExactly("java");
+                    assertThat(result.getMissingSkills()).containsExactly("docker");
+                    assertThat(result.getReason()).isEqualTo("Matched Java");
+                });
 
         mockMvc.perform(get("/api/students/me/recommendation-runs")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
@@ -364,12 +597,15 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
             respond(exchange, 200, """
                     {
                       "requestId": "%s",
-                      "algorithmVersion": "tfidf-cosine-v1",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
                       "results": [
                         {
                           "jobId": %d,
                           "score": 0.8,
-                          "rank": 1,
+                          "textScore": 0.7,
+                          "skillScore": 0.9,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "first"
@@ -377,7 +613,9 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         {
                           "jobId": %d,
                           "score": 0.7,
-                          "rank": 2,
+                          "textScore": 0.6,
+                          "skillScore": 0.8,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "duplicate"
@@ -405,7 +643,70 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
-    void exactBoundaryScoresRemainWithinDatabaseScaleAndAreReranked() throws Exception {
+    void oneResultBelowRequestedThresholdFailsRunWithoutPersistingAnyResult() throws Exception {
+        Student student = createStudent("threshold-response@example.test");
+        CvFile cvFile = readyCv(student, "threshold-response.pdf");
+        Company company = createCompany(
+                "threshold-company@example.test",
+                "Threshold",
+                CompanyStatus.VERIFIED
+        );
+        Job acceptedJob = createJob(company, "Above threshold", JobStatus.ACTIVE);
+        Job rejectedJob = createJob(company, "Below threshold", JobStatus.ACTIVE);
+        RECOMMEND_HANDLER.set(exchange -> {
+            JsonNode request = readRequest(exchange);
+            respond(exchange, 200, """
+                    {
+                      "requestId": "%s",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "results": [
+                        {
+                          "jobId": %d,
+                          "score": 0.9,
+                          "textScore": 0.8,
+                          "skillScore": 0.9,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+                          "matchedSkills": ["Java"],
+                          "missingSkills": [],
+                          "reason": "above"
+                        },
+                        {
+                          "jobId": %d,
+                          "score": 0.599999,
+                          "textScore": 0.5,
+                          "skillScore": 0.7,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+                          "matchedSkills": ["Java"],
+                          "missingSkills": [],
+                          "reason": "below"
+                        }
+                      ]
+                    }
+                    """.formatted(
+                    request.get("requestId").asText(),
+                    acceptedJob.getId(),
+                    rejectedJob.getId()
+            ));
+        });
+
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + cvFile.getId() + ",\"threshold\":0.6,\"limit\":2}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorCode").value("AI_SERVICE_INVALID_RESPONSE"))
+                .andExpect(jsonPath("$.message").value("AI service returned an invalid response"));
+
+        RecommendationRun failedRun = recommendationRunRepository.findAll().getFirst();
+        assertThat(failedRun.getStatus()).isEqualTo(RecommendationRunStatus.FAILED);
+        assertThat(failedRun.getFinishedAt()).isNotNull();
+        assertThat(failedRun.getErrorMessage()).isEqualTo("AI service returned an invalid response");
+        assertThat(recommendationResultRepository.count()).isZero();
+    }
+
+    @Test
+    void exactBoundaryScoresArePersistedAndRankedByBackendScoreDescending() throws Exception {
         Student student = createStudent("boundary-score@example.test");
         CvFile cvFile = readyCv(student, "boundary-score.pdf");
         Company company = createCompany("boundary-company@example.test", "Boundary", CompanyStatus.VERIFIED);
@@ -416,12 +717,15 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
             respond(exchange, 200, """
                     {
                       "requestId": "%s",
-                      "algorithmVersion": "tfidf-cosine-v1",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
                       "results": [
                         {
                           "jobId": %d,
                           "score": 0.0,
-                          "rank": 1,
+                          "textScore": null,
+                          "skillScore": 0.0,
+                          "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "zero"
@@ -429,7 +733,9 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         {
                           "jobId": %d,
                           "score": 1.0,
-                          "rank": 2,
+                          "textScore": 1.0,
+                          "skillScore": 1.0,
+                          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
                           "matchedSkills": ["Java"],
                           "missingSkills": [],
                           "reason": "one"
@@ -468,8 +774,19 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         .content("{\"cvId\":" + cvFile.getId() + "}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v2"))
+                .andExpect(jsonPath("$.data.totalJobsScanned").value(0))
                 .andExpect(jsonPath("$.data.totalRecommended").value(0))
                 .andExpect(jsonPath("$.data.results.length()").value(0));
+        assertThat(RECOMMENDATION_CALLS).hasValue(0);
+        RecommendationRun emptyRun = recommendationRunRepository.findAll().getFirst();
+        assertThat(emptyRun.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
+        assertThat(emptyRun.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
+        assertThat(emptyRun.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v2");
+        assertThat(emptyRun.getTotalJobsScanned()).isZero();
+        assertThat(emptyRun.getFinishedAt()).isNotNull();
+        assertThat(emptyRun.getErrorMessage()).isNull();
 
         createJob(
                 createCompany("transport-company@example.test", "Transport", CompanyStatus.VERIFIED),
@@ -483,6 +800,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         .content("{\"cvId\":" + cvFile.getId() + "}"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errorCode").value("AI_SERVICE_UNAVAILABLE"));
+        assertThat(RECOMMENDATION_CALLS).hasValue(1);
 
         List<RecommendationRun> runs = recommendationRunRepository.findByStudentIdOrderByCreatedAtDesc(student.getId());
         assertThat(runs).extracting(RecommendationRun::getStatus)
@@ -491,6 +809,98 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .isEqualTo("AI service is unavailable")
                 .doesNotContain("secret", "stack");
         assertThat(recommendationResultRepository.count()).isZero();
+    }
+
+    @Test
+    void latestResultsIgnoreNewerFailedAndProcessingRunsWhileDetailsRemainReadable() throws Exception {
+        Student student = createStudent("latest-success@example.test");
+        CvFile cvFile = readyCv(student, "latest-success.pdf");
+        Job successfulJob = createJob(
+                createCompany("latest-company@example.test", "Latest Company", CompanyStatus.VERIFIED),
+                "Successful Recommendation",
+                JobStatus.ACTIVE
+        );
+
+        mockMvc.perform(post("/api/students/me/recommendations/generate")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cvId\":" + cvFile.getId() + "}"))
+                .andExpect(status().isOk());
+
+        RecommendationRun failed = recommendationRunRepository.saveAndFlush(RecommendationRun.builder()
+                .student(student)
+                .cvFile(cvFile)
+                .sourceType(RecommendationSourceType.CV)
+                .status(RecommendationRunStatus.FAILED)
+                .totalJobsScanned(1)
+                .finishedAt(LocalDateTime.now())
+                .errorMessage("AI service is unavailable")
+                .build());
+        RecommendationRun processing = recommendationRunRepository.saveAndFlush(RecommendationRun.builder()
+                .student(student)
+                .cvFile(cvFile)
+                .sourceType(RecommendationSourceType.CV)
+                .status(RecommendationRunStatus.PROCESSING)
+                .totalJobsScanned(1)
+                .build());
+
+        mockMvc.perform(get("/api/students/me/recommendation-results/latest")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].jobId").value(successfulJob.getId()))
+                .andExpect(jsonPath("$.data[0].reason").value("Matched Java"));
+
+        mockMvc.perform(get("/api/students/me/recommendation-runs/{runId}", failed.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("FAILED"))
+                .andExpect(jsonPath("$.data.errorMessage").value("AI service is unavailable"))
+                .andExpect(jsonPath("$.data.results.length()").value(0));
+        mockMvc.perform(get("/api/students/me/recommendation-runs/{runId}", processing.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PROCESSING"))
+                .andExpect(jsonPath("$.data.results.length()").value(0));
+    }
+
+    @Test
+    void legacyRecommendationRowsWithNullV2MetadataRemainReadable() throws Exception {
+        Student student = createStudent("legacy-result@example.test");
+        CvFile cvFile = readyCv(student, "legacy-result.pdf");
+        Job job = createJob(
+                createCompany("legacy-result-company@example.test", "Legacy Result", CompanyStatus.VERIFIED),
+                "Legacy Job",
+                JobStatus.ACTIVE
+        );
+        RecommendationRun run = recommendationRunRepository.saveAndFlush(RecommendationRun.builder()
+                .student(student)
+                .cvFile(cvFile)
+                .sourceType(RecommendationSourceType.CV)
+                .status(RecommendationRunStatus.SUCCESS)
+                .finishedAt(LocalDateTime.now())
+                .build());
+        recommendationResultRepository.saveAndFlush(RecommendationResult.builder()
+                .run(run)
+                .job(job)
+                .score(new BigDecimal("0.75000"))
+                .matchedKeywords(null)
+                .missingSkills(List.of())
+                .rankPosition(1)
+                .build());
+
+        mockMvc.perform(get("/api/students/me/recommendation-runs/{runId}", run.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.algorithm").doesNotExist())
+                .andExpect(jsonPath("$.data.algorithmVersion").doesNotExist())
+                .andExpect(jsonPath("$.data.totalJobsScanned").value(0))
+                .andExpect(jsonPath("$.data.results[0].score").value(0.75))
+                .andExpect(jsonPath("$.data.results[0].textScore").doesNotExist())
+                .andExpect(jsonPath("$.data.results[0].skillScore").doesNotExist())
+                .andExpect(jsonPath("$.data.results[0].scoringStrategy").doesNotExist())
+                .andExpect(jsonPath("$.data.results[0].matchedKeywords.length()").value(0))
+                .andExpect(jsonPath("$.data.results[0].missingSkills.length()").value(0));
     }
 
     @Test
@@ -560,9 +970,15 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     private CvFile readyCv(Student student, String fileName) {
-        CvFile cvFile = createCv(student, fileName, true);
+        return readyCv(student, fileName, true);
+    }
+
+    private CvFile readyCv(Student student, String fileName, boolean active) {
+        CvFile cvFile = createCv(student, fileName, active);
         cvFile.setExtractedText("existing raw");
         cvFile.setProcessedText("java spring boot");
+        cvFile.setExtractedSkills(List.of("java", "spring boot"));
+        cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
         return cvFileRepository.saveAndFlush(cvFile);
     }
 
@@ -597,22 +1013,25 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         LAST_RECOMMENDATION_REQUEST.set(request);
         List<Long> jobIds = ids(request.get("jobs"));
         List<String> results = new ArrayList<>();
-        for (int index = jobIds.size() - 1; index >= 0; index--) {
+        for (int index = 0; index < jobIds.size(); index++) {
             results.add("""
                     {
                       "jobId": %d,
                       "score": 0.5,
-                      "rank": %d,
+                      "textScore": 0.4,
+                      "skillScore": 0.6,
+                      "scoringStrategy": "SAME_LANGUAGE_HYBRID",
                       "matchedSkills": ["Java"],
-                      "missingSkills": [],
-                      "reason": "Matched Java"
+                      "missingSkills": ["Docker"],
+                      "reason": " Matched Java "
                     }
-                    """.formatted(jobIds.get(index), jobIds.size() - index));
+                    """.formatted(jobIds.get(index)));
         }
         respond(exchange, 200, """
                 {
                   "requestId": "%s",
-                  "algorithmVersion": "tfidf-cosine-v1",
+                  "algorithm": "tfidf-cosine-hybrid",
+                  "algorithmVersion": "bilingual-recommendation-v2",
                   "results": [%s]
                 }
                 """.formatted(request.get("requestId").asText(), String.join(",", results)));
@@ -624,6 +1043,12 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         return ids;
     }
 
+    private static List<String> idsOfText(JsonNode array) {
+        List<String> values = new ArrayList<>();
+        array.forEach(node -> values.add(node.asText()));
+        return values;
+    }
+
     private static JsonNode readRequest(HttpExchange exchange) throws IOException {
         return STUB_MAPPER.readTree(exchange.getRequestBody());
     }
@@ -631,8 +1056,11 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     private static HttpServer startAiServer() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-            server.createContext("/internal/v1/cv/parse", exchange -> dispatch(PARSE_HANDLER, exchange));
-            server.createContext("/internal/v1/recommendations", exchange -> dispatch(RECOMMEND_HANDLER, exchange));
+            server.createContext("/internal/v2/cv/parse", exchange -> dispatch(PARSE_HANDLER, exchange));
+            server.createContext("/internal/v2/recommendations", exchange -> {
+                RECOMMENDATION_CALLS.incrementAndGet();
+                dispatch(RECOMMEND_HANDLER, exchange);
+            });
             server.setExecutor(AI_EXECUTOR);
             server.start();
             return server;

@@ -2,7 +2,6 @@ package com.tttn.jobrecommendation.modules.cv.controller;
 
 import com.tttn.jobrecommendation.common.response.ApiResponse;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
-import com.tttn.jobrecommendation.modules.cv.dto.request.UpdateCvExtractedDataRequest;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvAnalysisResponse;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
@@ -10,7 +9,6 @@ import com.tttn.jobrecommendation.modules.cv.service.CvAnalysisService;
 import com.tttn.jobrecommendation.modules.cv.service.CvService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -77,16 +74,11 @@ public class CvController {
         return ApiResponse.success(cvAnalysisService.getAnalysis(securityUtils.getCurrentUserId(), cvId));
     }
 
-    @Operation(summary = "Update supported extracted CV data")
+    @Operation(summary = "Manual extracted CV data updates are not supported in the MVP")
     @PatchMapping("/{cvId}/extracted-data")
-    public ApiResponse<CvAnalysisResponse> updateExtractedData(
-            @PathVariable Long cvId,
-            @Valid @RequestBody UpdateCvExtractedDataRequest request
-    ) {
-        return ApiResponse.success(
-                "CV extracted data updated successfully",
-                cvAnalysisService.updateExtractedData(securityUtils.getCurrentUserId(), cvId, request)
-        );
+    public ApiResponse<Void> updateExtractedData(@PathVariable Long cvId) {
+        cvAnalysisService.updateExtractedData(securityUtils.getCurrentUserId(), cvId);
+        return ApiResponse.success(null);
     }
 
     @Operation(summary = "Reanalyze a stored CV")
