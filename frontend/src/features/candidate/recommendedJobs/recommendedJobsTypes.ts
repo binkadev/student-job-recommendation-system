@@ -15,12 +15,16 @@ export interface CandidateRecommendedJob extends PublicJobListItem {
 
 export interface RecommendationRun {
   id: string;
+  cvId: string | null;
   sourceType: string;
   algorithm: string;
   algorithmVersion: string;
   totalJobsScanned: number;
   totalRecommended: number;
   status: string;
+  errorMessage?: string | null;
+  startedAt: string;
+  finishedAt: string;
   createdAt: string;
 }
 
@@ -29,6 +33,12 @@ export interface CandidateCvOption {
   name: string;
   active: boolean;
   uploadedAt: string;
+}
+
+export interface GenerateRecommendationPayload {
+  cvId: string;
+  threshold: number;
+  limit: number;
 }
 
 export interface RecommendedJobFilters {

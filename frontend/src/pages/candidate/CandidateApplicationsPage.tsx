@@ -62,10 +62,12 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [reloadKey] = useState(0);
+  const detailMode = mode === "detail" || mode === "status";
 
-  const applicationsQuery = useAsyncData(() => getMyApplications(), [reloadKey]);
-  const applications = applicationsQuery.data ?? [];
-  const selectedApplication = applicationId ? applications.find((application) => String(application.id) === applicationId) : applications[0];
+  const applicationsQuery = useAsyncData(() => detailMode ? Promise.resolve([]) : getMyApplications(), [detailMode, reloadKey]);
+  const applicationDetailQuery = useAsyncData(() => detailMode && applicationId ? getMyApplicationDetail(applicationId) : Promise.resolve(null), [applicationId, detailMode, reloadKey]);
+  const applications = useMemo(() => applicationsQuery.data ?? [], [applicationsQuery.data]);
+  const selectedApplication = detailMode ? applicationDetailQuery.data : applicationId ? applications.find((application) => String(application.id) === applicationId) : applications[0];
 
   const filteredApplications = useMemo(() => {
     return applications
@@ -88,7 +90,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
     setPage(1);
   }
 
-  if (applicationsQuery.loading) {
+  if (applicationsQuery.loading || applicationDetailQuery.loading) {
     return (
       <PageContainer>
         <LoadingState />
@@ -96,10 +98,10 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
     );
   }
 
-  if (applicationsQuery.error) {
+  if (applicationsQuery.error || applicationDetailQuery.error) {
     return (
       <PageContainer>
-        <ErrorState message={applicationsQuery.error} />
+        <ErrorState message={applicationsQuery.error ?? applicationDetailQuery.error ?? "Không thể tải dữ liệu ứng tuyển."} />
       </PageContainer>
     );
   }
@@ -257,6 +259,11 @@ function ApplicationDetail({ application }: { application: ApplicationResponse }
 
 async function getMyApplications() {
   const response = await httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications");
+  return response.data.data;
+}
+
+async function getMyApplicationDetail(applicationId: string) {
+  const response = await httpClient.get<ApiResponse<ApplicationResponse>>(`/students/me/applications/${applicationId}`);
   return response.data.data;
 }
 

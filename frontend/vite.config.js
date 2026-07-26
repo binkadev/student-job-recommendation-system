@@ -11,6 +11,11 @@ export default defineConfig(function (_a) {
                 "/api": {
                     target: apiProxyTarget,
                     changeOrigin: true,
+                    configure: function (proxy) {
+                        proxy.on("proxyReq", function (proxyReq) {
+                            proxyReq.removeHeader("origin");
+                        });
+                    },
                 },
             },
         },

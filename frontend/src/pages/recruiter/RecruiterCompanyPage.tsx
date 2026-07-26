@@ -184,7 +184,9 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
       <div className="mt-5 flex flex-wrap gap-2">
         <Link to="/recruiter/company/edit"><Button icon={<Pencil size={16} />}>Chỉnh sửa</Button></Link>
         <Link to="/recruiter/company/verification"><Button variant="secondary" icon={<ShieldCheck size={16} />}>Xác thực doanh nghiệp</Button></Link>
-        <Button variant="secondary" icon={<ExternalLink size={16} />} onClick={() => notifyUnsupported("Trang công khai công ty")}>Xem trang công khai</Button>
+        <Link to={`/companies/${company.id}`}>
+          <Button variant="secondary" icon={<ExternalLink size={16} />}>Xem trang công khai</Button>
+        </Link>
       </div>
 
       <VerificationNotice company={company} />

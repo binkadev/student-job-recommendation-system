@@ -19,8 +19,8 @@ const dashboardByRole: Record<UserRole, string> = {
 };
 
 const demoAccounts = [
-  { label: "Ứng viên", email: "candidate@example.com", password: "123456" },
-  { label: "Nhà tuyển dụng", email: "recruiter@example.com", password: "123456" },
+  { label: "Ứng viên", email: "student@example.com", password: "123456" },
+  { label: "Nhà tuyển dụng", email: "company@example.com", password: "123456" },
   { label: "Quản trị viên", email: "admin@example.com", password: "123456" },
 ];
 
@@ -117,8 +117,8 @@ export function LoginPage() {
         <Card>
           <h2 className="text-base font-semibold text-slate-900">Tài khoản demo</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-700">
-            <p><strong>Ứng viên:</strong> candidate@example.com / 123456</p>
-            <p><strong>Nhà tuyển dụng:</strong> recruiter@example.com / 123456</p>
+            <p><strong>Ứng viên:</strong> student@example.com / 123456</p>
+            <p><strong>Nhà tuyển dụng:</strong> company@example.com / 123456</p>
             <p><strong>Quản trị viên:</strong> admin@example.com / 123456</p>
           </div>
           <div className="mt-5">

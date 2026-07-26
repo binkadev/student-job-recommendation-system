@@ -29,6 +29,7 @@ interface PublicJobResponse {
   companyId: number;
   companyName: string;
   title: string;
+  description?: string | null;
   location: string | null;
   jobType: BackendJobType | null;
   workingModel: BackendWorkingModel | null;
@@ -103,6 +104,7 @@ function mapJob(job: PublicJobResponse): PublicJobListItem {
     id: String(job.id),
     logo: getInitials(job.companyName),
     title: job.title,
+    description: job.description || "",
     companyId: String(job.companyId),
     companyName: job.companyName,
     salary: formatSalary(job),

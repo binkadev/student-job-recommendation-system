@@ -130,6 +130,7 @@ function mapFeaturedJob(job: PublicJobListItem): FeaturedHomeJob {
     id: job.id,
     logo: job.logo,
     title: job.title,
+    description: job.description,
     companyName: job.companyName,
     salary: job.salary,
     location: job.location,

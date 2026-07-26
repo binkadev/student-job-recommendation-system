@@ -10,6 +10,7 @@ export interface FeaturedHomeJob {
   id: string;
   logo: string;
   title: string;
+  description?: string;
   companyName: string;
   salary: string;
   location: string;

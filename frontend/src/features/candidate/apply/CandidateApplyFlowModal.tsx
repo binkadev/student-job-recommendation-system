@@ -37,6 +37,7 @@ interface ScreeningAnswers {
 const steps = ["Chọn CV", "Thư giới thiệu", "Câu hỏi sàng lọc", "Xem lại", "Thành công"];
 const coverTemplate =
   "Kính gửi nhà tuyển dụng, em quan tâm đến vị trí này vì công việc phù hợp với kỹ năng, định hướng nghề nghiệp và kinh nghiệm dự án hiện tại. Em mong có cơ hội trao đổi thêm để trình bày rõ hơn về năng lực của mình.";
+const maxExpectedSalary = 1_000_000_000;
 
 const cvStatusLabels: Record<Cv["status"], { label: string; tone: "neutral" | "success" | "warning" | "danger" }> = {
   uploaded: { label: "Đã tải lên", tone: "neutral" },
@@ -55,8 +56,6 @@ interface ApiResponse<T> {
 interface BackendCvFileResponse {
   id: number;
   originalFileName?: string | null;
-  storedFileName?: string | null;
-  filePath?: string | null;
   contentType?: string | null;
   fileSize?: number | null;
   active?: boolean;
@@ -117,11 +116,15 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       if (selectedCv && ["analyzing", "failed"].includes(selectedCv.status)) nextErrors.cv = "Không thể chọn CV đang phân tích hoặc lỗi.";
     }
     if (currentStep === 2) {
+      const years = Number(answers.years);
+      const salary = Number(answers.salary);
+      const tomorrow = getTomorrowDateValue();
       if (!answers.years.trim()) nextErrors.years = "Vui lòng nhập số năm kinh nghiệm.";
-      if (answers.years.trim() && (Number.isNaN(Number(answers.years)) || Number(answers.years) < 0)) nextErrors.years = "Số năm kinh nghiệm phải là số hợp lệ.";
+      if (answers.years.trim() && (!Number.isInteger(years) || years < 0 || years > 100)) nextErrors.years = "Số năm kinh nghiệm phải là số nguyên từ 0 đến 100.";
       if (!answers.startDate) nextErrors.startDate = "Vui lòng chọn ngày có thể bắt đầu.";
+      if (answers.startDate && answers.startDate < tomorrow) nextErrors.startDate = "Ngày có thể bắt đầu phải lớn hơn ngày hiện tại.";
       if (!answers.salary.trim()) nextErrors.salary = "Vui lòng nhập mức lương mong muốn.";
-      if (answers.salary.trim() && (Number.isNaN(Number(answers.salary)) || Number(answers.salary) <= 0)) nextErrors.salary = "Mức lương phải là số hợp lệ.";
+      if (answers.salary.trim() && (!Number.isInteger(salary) || salary <= 0 || salary > maxExpectedSalary)) nextErrors.salary = "Mức lương phải là số nguyên dương và không vượt quá 1.000.000.000 đồng.";
       if (!answers.onsite) nextErrors.onsite = "Vui lòng chọn câu trả lời.";
     }
     if (currentStep === 3 && !confirmed) nextErrors.confirmed = "Bạn cần xác nhận thông tin chính xác trước khi gửi.";
@@ -248,9 +251,9 @@ function ScreeningStep({ answers, errors, onChange }: { answers: ScreeningAnswer
   return (
     <div className="space-y-4">
       <SectionHeader title="Câu hỏi sàng lọc" description="Các câu hỏi bắt buộc giúp nhà tuyển dụng đánh giá nhanh mức độ phù hợp." />
-      <Input label="Bạn có bao nhiêu năm kinh nghiệm?" type="number" min="0" value={answers.years} error={errors.years} onChange={(event) => update("years", event.target.value)} />
-      <Input label="Khi nào bạn có thể bắt đầu?" type="date" value={answers.startDate} error={errors.startDate} onChange={(event) => update("startDate", event.target.value)} />
-      <Input label="Mức lương mong muốn? (triệu đồng)" type="number" min="1" value={answers.salary} error={errors.salary} onChange={(event) => update("salary", event.target.value)} />
+      <Input label="Bạn có bao nhiêu năm kinh nghiệm?" type="number" min="0" max="100" step="1" value={answers.years} error={errors.years} onChange={(event) => update("years", event.target.value)} />
+      <Input label="Khi nào bạn có thể bắt đầu?" type="date" min={getTomorrowDateValue()} value={answers.startDate} error={errors.startDate} onChange={(event) => update("startDate", event.target.value)} />
+      <Input label="Mức lương mong muốn? (đồng)" type="number" min="1" max={String(maxExpectedSalary)} step="1" value={answers.salary} error={errors.salary} onChange={(event) => update("salary", event.target.value)} />
       <Select
         label="Bạn có sẵn sàng onsite 3 ngày mỗi tuần không?"
         value={answers.onsite}
@@ -304,7 +307,7 @@ function ReviewStep({
         <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
           <ReviewItem label="Số năm kinh nghiệm" value={`${answers.years} năm`} />
           <ReviewItem label="Ngày có thể bắt đầu" value={formatDate(answers.startDate)} />
-          <ReviewItem label="Lương mong muốn" value={`${answers.salary} triệu đồng`} />
+          <ReviewItem label="Lương mong muốn" value={formatCurrencyVnd(answers.salary)} />
           <ReviewItem label="Onsite 3 ngày/tuần" value={answers.onsite} />
         </div>
       </Card>
@@ -348,6 +351,18 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
+function getTomorrowDateValue() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().slice(0, 10);
+}
+
+function formatCurrencyVnd(value: string) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "Chưa cập nhật";
+  return `${new Intl.NumberFormat("vi-VN").format(amount)} đồng`;
+}
+
 async function getSelectableCvs(open: boolean): Promise<{ items: Cv[] }> {
   if (!open) return { items: [] };
   const response = await httpClient.get<ApiResponse<BackendCvFileResponse[]>>("/students/me/cv");
@@ -358,7 +373,7 @@ function mapBackendCvFile(cv: BackendCvFileResponse): Cv {
   return {
     id: String(cv.id),
     candidateId: "",
-    fileName: cv.originalFileName ?? cv.storedFileName ?? `CV #${cv.id}`,
+    fileName: cv.originalFileName ?? `CV #${cv.id}`,
     uploadedAt: cv.uploadedAt ?? "",
     status: "analyzed",
     score: 0,

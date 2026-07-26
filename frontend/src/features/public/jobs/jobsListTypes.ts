@@ -2,6 +2,7 @@ export interface PublicJobListItem {
   id: string;
   logo: string;
   title: string;
+  description?: string;
   companyId?: string;
   companyName: string;
   salary: string;

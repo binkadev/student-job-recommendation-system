@@ -55,6 +55,8 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
         </span>
       </div>
 
+      {job.description ? <p className="mt-4 line-clamp-2 break-words text-sm leading-6 text-slate-600">{truncateDescription(job.description)}</p> : null}
+
       <div className="mt-4 flex flex-wrap gap-2">
         {job.skills.slice(0, 4).map((skill) => (
           <StatusBadge key={skill} label={skill} />
@@ -72,4 +74,9 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
       </div>
     </article>
   );
+}
+
+function truncateDescription(value: string) {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length > 150 ? `${normalized.slice(0, 150).trimEnd()}...` : normalized;
 }

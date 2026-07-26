@@ -34,8 +34,6 @@ interface CvFileResponse {
   id: number;
   fileName?: string | null;
   originalFileName: string;
-  storedFileName?: string | null;
-  filePath?: string | null;
   contentType?: string | null;
   fileSize?: number | null;
   extractedText?: string | null;
@@ -44,6 +42,16 @@ interface CvFileResponse {
   isActive?: boolean;
   uploadedAt?: string | null;
   createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface CvAnalysisResponse {
+  cvId: number;
+  extractedText?: string | null;
+  processedText?: string | null;
+  skills?: string[] | null;
+  status?: string | null;
+  uploadedAt?: string | null;
   updatedAt?: string | null;
 }
 
@@ -248,7 +256,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
               <p>Upload: {formatDateTime(cv.uploadedAt)}</p>
-              <p>Stored file: {cv.storedFileName || "Chưa cập nhật"}</p>
+              <p>Tên file: {cv.originalFileName || cv.fileName || "Chưa cập nhật"}</p>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -297,12 +305,10 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
               <SummaryItem label="Tên file gốc" value={cv.originalFileName} />
-              <SummaryItem label="Tên file lưu trữ" value={cv.storedFileName || "Chưa cập nhật"} />
               <SummaryItem label="Content type" value={cv.contentType || "Chưa cập nhật"} />
               <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
               <SummaryItem label="Ngày upload" value={formatDateTime(cv.uploadedAt)} />
               <SummaryItem label="Active" value={isActiveCv(cv) ? "Có" : "Không"} />
-              <SummaryItem label="Đường dẫn" value={cv.filePath || "Chưa cập nhật"} />
             </div>
           </Card>
         </main>
@@ -339,29 +345,6 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function UnsupportedCvFeature({ mode, cv }: { mode: Exclude<NonNullable<CandidateCvsPageProps["mode"]>, "list" | "upload" | "detail">; cv?: CvFileResponse }) {
-  const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Review CV";
-  return (
-    <PageContainer>
-      <PageHeader title={title} description="Backend hiện chưa có API cho chức năng này." />
-      <Card>
-        <EmptyState message="Chức năng này chưa có endpoint backend nên không hiển thị dữ liệu mock." />
-        {cv ? (
-          <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
-            <p><strong>CV hiện tại:</strong> {cv.originalFileName}</p>
-            <p><strong>ID:</strong> {cv.id}</p>
-          </div>
-        ) : null}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link to="/candidate/cvs"><Button variant="secondary">Quay lại danh sách CV</Button></Link>
-          <Link to="/candidate/cvs/upload"><Button>Upload CV mới</Button></Link>
-        </div>
-      </Card>
-    </PageContainer>
-  );
-}
-
 async function getCandidateCvs() {
   const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
   return response.data.data;
@@ -383,20 +366,25 @@ function CvAnalysisView({
   const [saving, setSaving] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const cvQuery = useAsyncData(() => (cvId ? getCandidateCvDetail(Number(cvId)) : Promise.resolve(fallbackCv)), [cvId, reloadKey]);
+  const analysisQuery = useAsyncData(() => (cvId ? getCandidateCvAnalysis(Number(cvId)) : Promise.resolve(null)), [cvId, reloadKey]);
   const cv = cvQuery.data ?? fallbackCv;
   const [extractedText, setExtractedText] = useState("");
+  const [processedText, setProcessedText] = useState("");
   const title = mode === "analysis" ? "Phan tich CV" : mode === "edit-extracted" ? "Chinh du lieu trich xuat" : "Review CV";
 
   useEffect(() => {
-    if (!cv) return;
-    setExtractedText(cv.extractedText ?? cv.processedText ?? "");
-  }, [cv]);
+    if (!analysisQuery.data) return;
+    setExtractedText(analysisQuery.data.extractedText ?? "");
+    setProcessedText(analysisQuery.data.processedText ?? "");
+  }, [analysisQuery.data]);
 
   async function reanalyzeCv() {
     if (!cv) return;
     setReanalyzing(true);
     try {
-      await reanalyzeCandidateCv(cv.id);
+      const analysis = await reanalyzeCandidateCv(cv.id);
+      setExtractedText(analysis.extractedText ?? "");
+      setProcessedText(analysis.processedText ?? "");
       showToast({ type: "success", title: "Da gui yeu cau phan tich lai", message: cv.originalFileName });
       setReloadKey((current) => current + 1);
       onReload();
@@ -411,9 +399,10 @@ function CvAnalysisView({
     if (!cv) return;
     setSaving(true);
     try {
-      const updatedCv = await updateCandidateCvExtractedData(cv.id, extractedText);
-      setExtractedText(updatedCv.extractedText ?? updatedCv.processedText ?? "");
-      showToast({ type: "success", title: "Da luu du lieu trich xuat", message: updatedCv.originalFileName });
+      const analysis = await updateCandidateCvExtractedData(cv.id, { extractedText, processedText });
+      setExtractedText(analysis.extractedText ?? "");
+      setProcessedText(analysis.processedText ?? "");
+      showToast({ type: "success", title: "Da luu du lieu trich xuat", message: cv.originalFileName });
       setReloadKey((current) => current + 1);
       onReload();
     } catch (error) {
@@ -423,7 +412,7 @@ function CvAnalysisView({
     }
   }
 
-  if (cvQuery.loading) {
+  if (cvQuery.loading || analysisQuery.loading) {
     return (
       <PageContainer>
         <Card><p className="text-sm text-slate-600">Dang tai du lieu CV...</p></Card>
@@ -435,6 +424,14 @@ function CvAnalysisView({
     return (
       <PageContainer>
         <ErrorState message={cvQuery.error} />
+      </PageContainer>
+    );
+  }
+
+  if (analysisQuery.error) {
+    return (
+      <PageContainer>
+        <ErrorState message={analysisQuery.error} />
       </PageContainer>
     );
   }
@@ -464,18 +461,32 @@ function CvAnalysisView({
               <SummaryItem label="Content type" value={cv.contentType || "Chua cap nhat"} />
               <SummaryItem label="Dung luong" value={formatFileSize(cv.fileSize)} />
               <SummaryItem label="Active" value={isActiveCv(cv) ? "Co" : "Khong"} />
-              <SummaryItem label="Ngay upload" value={formatDateTime(cv.uploadedAt)} />
+              <SummaryItem label="Trang thai phan tich" value={analysisQuery.data?.status ?? "Chua cap nhat"} />
+              <SummaryItem label="Ngay upload" value={formatDateTime(analysisQuery.data?.uploadedAt ?? cv.uploadedAt)} />
               <SummaryItem label="Ngay tao" value={formatDateTime(cv.createdAt)} />
-              <SummaryItem label="Cap nhat" value={formatDateTime(cv.updatedAt)} />
+              <SummaryItem label="Cap nhat" value={formatDateTime(analysisQuery.data?.updatedAt ?? cv.updatedAt)} />
             </div>
           </Card>
 
           <Card>
             <SectionHeader title="Processed text" />
-            {cv.processedText ? (
-              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{cv.processedText}</pre>
+            {mode === "edit-extracted" ? (
+              <Textarea label="processedText" value={processedText} onChange={(event) => setProcessedText(event.target.value)} className="min-h-[260px]" />
+            ) : analysisQuery.data?.processedText ? (
+              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.processedText}</pre>
             ) : (
               <EmptyState message="Backend chua tra ve processedText cho CV nay." />
+            )}
+          </Card>
+
+          <Card>
+            <SectionHeader title="Ky nang trich xuat" />
+            {analysisQuery.data?.skills?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {analysisQuery.data.skills.map((skill) => <StatusBadge key={skill} label={skill} tone="success" />)}
+              </div>
+            ) : (
+              <EmptyState message="Backend chua tra ve skills cho CV nay." />
             )}
           </Card>
 
@@ -486,8 +497,8 @@ function CvAnalysisView({
                 <Textarea label="extractedText" value={extractedText} onChange={(event) => setExtractedText(event.target.value)} className="min-h-[260px]" />
                 <Button loading={saving} disabled={saving} onClick={() => void saveExtractedData()} icon={<Save size={16} />}>Luu du lieu trich xuat</Button>
               </div>
-            ) : cv.extractedText ? (
-              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{cv.extractedText}</pre>
+            ) : analysisQuery.data?.extractedText ? (
+              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.extractedText}</pre>
             ) : (
               <EmptyState message="Backend chua tra ve extractedText cho CV nay." />
             )}
@@ -499,14 +510,15 @@ function CvAnalysisView({
             <SectionHeader title="Trang thai" />
             <div className="flex flex-wrap gap-2">
               {isActiveCv(cv) ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
-              <StatusBadge label={cv.extractedText || cv.processedText ? "Co du lieu phan tich" : "Chua co du lieu"} tone={cv.extractedText || cv.processedText ? "success" : "warning"} />
+              <StatusBadge label={analysisQuery.data?.status ?? "Chua cap nhat"} tone={analysisQuery.data?.status === "READY" ? "success" : "warning"} />
+              <StatusBadge label={analysisQuery.data?.extractedText || analysisQuery.data?.processedText ? "Co du lieu phan tich" : "Chua co du lieu"} tone={analysisQuery.data?.extractedText || analysisQuery.data?.processedText ? "success" : "warning"} />
             </div>
           </Card>
           <Card>
             <SectionHeader title="Thao tac" />
             <div className="grid gap-2">
               <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phan tich lai</Button>
-              {mode !== "edit-extracted" ? <Link to={`/candidate/cvs/${cv.id}/edit-extracted`}><Button variant="secondary" className="w-full">Chinh du lieu trich xuat</Button></Link> : null}
+              {mode !== "edit-extracted" ? <Link to={`/candidate/cvs/${cv.id}/edit-extracted-data`}><Button variant="secondary" className="w-full">Chinh du lieu trich xuat</Button></Link> : null}
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiet CV</Button></Link>
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lai danh sach</Button></Link>
             </div>
@@ -519,6 +531,11 @@ function CvAnalysisView({
 
 async function getCandidateCvDetail(cvId: number) {
   const response = await httpClient.get<ApiResponse<CvFileResponse>>(`/students/me/cv/${cvId}`);
+  return response.data.data;
+}
+
+async function getCandidateCvAnalysis(cvId: number) {
+  const response = await httpClient.get<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
   return response.data.data;
 }
 
@@ -538,12 +555,12 @@ async function activateCandidateCv(cvId: number) {
 }
 
 async function reanalyzeCandidateCv(cvId: number) {
-  const response = await httpClient.post<ApiResponse<CvFileResponse>>(`/students/me/cv/${cvId}/reanalyze`);
+  const response = await httpClient.post<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/reanalyze`);
   return response.data.data;
 }
 
-async function updateCandidateCvExtractedData(cvId: number, extractedText: string) {
-  const response = await httpClient.patch<ApiResponse<CvFileResponse>>(`/students/me/cv/${cvId}/extracted-data`, { extractedText });
+async function updateCandidateCvExtractedData(cvId: number, payload: { extractedText: string; processedText: string }) {
+  const response = await httpClient.patch<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/extracted-data`, payload);
   return response.data.data;
 }
 
@@ -613,3 +630,4 @@ function getErrorMessage(error: unknown) {
   }
   return "Vui lòng thử lại.";
 }
+

@@ -1,8 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
-import { getStorageItem, setStorageItem } from "../../../utils/localStorage";
-import type { CandidateCvOption, CandidateRecommendedJob, RecommendationRun, RecommendedJobFilters } from "./recommendedJobsTypes";
-
-const HIDDEN_KEY = "candidate-hidden-recommended-jobs";
+import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun, RecommendedJobFilters } from "./recommendedJobsTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -29,13 +26,18 @@ interface RecommendationResultResponse {
 
 interface RecommendationRunResponse {
   id: number;
+  cvId?: number | null;
   sourceType?: string | null;
   algorithm?: string | null;
   algorithmVersion?: string | null;
   totalJobsScanned?: number | null;
   totalRecommended?: number | null;
   status?: string | null;
+  errorMessage?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
   createdAt?: string | null;
+  results?: RecommendationResultResponse[] | null;
 }
 
 interface CvFileResponse {
@@ -49,13 +51,13 @@ interface CvFileResponse {
 
 export function getRecommendedJobState() {
   return {
-    hiddenIds: getStorageItem<string[]>(HIDDEN_KEY, []),
+    hiddenIds: [],
     notInterestedIds: [],
   };
 }
 
 export function saveRecommendedJobState(hiddenIds: string[], notInterestedIds: string[]) {
-  setStorageItem(HIDDEN_KEY, hiddenIds);
+  void hiddenIds;
   void notInterestedIds;
 }
 
@@ -82,22 +84,41 @@ export async function getRecommendedJobs(filters: RecommendedJobFilters, hiddenI
 
 export async function getRecommendationRuns(): Promise<RecommendationRun[]> {
   const response = await httpClient.get<ApiResponse<RecommendationRunResponse[]>>("/students/me/recommendation-runs");
-  return (response.data.data ?? []).map((run) => ({
+  return (response.data.data ?? []).map(mapRecommendationRun);
+}
+
+export async function getRecommendationRun(runId: string) {
+  const response = await httpClient.get<ApiResponse<RecommendationRunResponse>>(`/students/me/recommendation-runs/${runId}`);
+  return {
+    run: mapRecommendationRun(response.data.data),
+    results: (response.data.data.results ?? []).map(mapRecommendationResult),
+  };
+}
+
+function mapRecommendationRun(run: RecommendationRunResponse): RecommendationRun {
+  return {
     id: String(run.id),
+    cvId: run.cvId == null ? null : String(run.cvId),
     sourceType: run.sourceType ?? "Chua cap nhat",
     algorithm: run.algorithm ?? "Chua cap nhat",
     algorithmVersion: run.algorithmVersion ?? "Chua cap nhat",
     totalJobsScanned: run.totalJobsScanned ?? 0,
     totalRecommended: run.totalRecommended ?? 0,
     status: run.status ?? "UNKNOWN",
+    errorMessage: run.errorMessage ?? null,
+    startedAt: formatDateTime(run.startedAt),
+    finishedAt: formatDateTime(run.finishedAt),
     createdAt: formatDateTime(run.createdAt),
-  }));
+  };
 }
 
-export async function generateRecommendations(cvFileId?: string) {
-  const payload = cvFileId ? { cvFileId: Number(cvFileId) } : {};
-  const response = await httpClient.post<ApiResponse<unknown>>("/students/me/recommendations/generate", payload);
-  return response.data;
+export async function generateRecommendations(payload: GenerateRecommendationPayload) {
+  const response = await httpClient.post<ApiResponse<RecommendationRunResponse>>("/students/me/recommendations/generate", {
+    cvId: Number(payload.cvId),
+    threshold: payload.threshold,
+    limit: payload.limit,
+  });
+  return response.data.data;
 }
 
 export async function getCandidateCvOptions(): Promise<CandidateCvOption[]> {

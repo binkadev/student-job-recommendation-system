@@ -10,6 +10,7 @@ import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import { Modal } from "../../../components/ui/Modal";
+import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
@@ -19,6 +20,7 @@ import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateAp
 import {
   generateRecommendations,
   getCandidateCvOptions,
+  getRecommendationRun,
   getRecommendationRuns,
   getRecommendedFilterOptions,
   getRecommendedJobs,
@@ -65,6 +67,9 @@ export function CandidateRecommendedJobsPage() {
   const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const [hideTarget, setHideTarget] = useState<CandidateRecommendedJob | null>(null);
   const [selectedCvId, setSelectedCvId] = useState("");
+  const [threshold, setThreshold] = useState("0.1");
+  const [limit, setLimit] = useState("20");
+  const [selectedRunId, setSelectedRunId] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [generating, setGenerating] = useState(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
@@ -73,6 +78,7 @@ export function CandidateRecommendedJobsPage() {
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
   const runsQuery = useAsyncData(() => getRecommendationRuns(), [reloadKey]);
+  const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
   const jobsQuery = useAsyncData(() => getRecommendedJobs(filters, showHidden ? [] : hiddenIds), [filters, hiddenIds, showHidden, reloadKey]);
   const options = useMemo(() => getRecommendedFilterOptions(jobsQuery.data ?? []), [jobsQuery.data]);
   const latestRun = runsQuery.data?.[0];
@@ -122,9 +128,24 @@ export function CandidateRecommendedJobsPage() {
   }
 
   async function refreshRecommendations() {
+    if (!selectedCvId) {
+      showToast({ type: "error", title: "Chua chon CV", message: "Vui long chon CV truoc khi tao goi y." });
+      return;
+    }
+    const thresholdValue = Number(threshold);
+    const limitValue = Number(limit);
+    if (!Number.isFinite(thresholdValue) || thresholdValue < 0 || thresholdValue > 1) {
+      showToast({ type: "error", title: "Threshold khong hop le", message: "Threshold phai nam trong khoang 0 den 1." });
+      return;
+    }
+    if (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 100) {
+      showToast({ type: "error", title: "Limit khong hop le", message: "Limit phai nam trong khoang 1 den 100." });
+      return;
+    }
     setGenerating(true);
     try {
-      await generateRecommendations(selectedCvId || undefined);
+      const run = await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
+      setSelectedRunId(String(run.id));
       showToast({ type: "success", title: "Da gui yeu cau cap nhat goi y", message: "Danh sach se duoc tai lai tu backend." });
       setReloadKey((current) => current + 1);
     } catch (error) {
@@ -154,16 +175,18 @@ export function CandidateRecommendedJobsPage() {
       <PageHeader title="Viec lam goi y" description="Ket qua goi y lay tu recommendation API cua backend." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_160px_160px_190px_160px]">
           <Select
             label="CV dung de goi y"
             value={selectedCvId}
             onChange={(event) => setSelectedCvId(event.target.value)}
             options={[
-              { label: cvsQuery.loading ? "Dang tai CV..." : "Dung CV active/backend", value: "" },
+              { label: cvsQuery.loading ? "Dang tai CV..." : "Chon CV", value: "" },
               ...((cvsQuery.data ?? []).map((cv) => ({ label: `${cv.name}${cv.active ? " (active)" : ""}`, value: cv.id }))),
             ]}
           />
+          <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
+          <Input label="Limit" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
           <Button className="mt-6 w-full" loading={generating} disabled={generating} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
             Cap nhat goi y
           </Button>
@@ -177,6 +200,23 @@ export function CandidateRecommendedJobsPage() {
           <InfoPill label="So viec da goi y" value={String(latestRun?.totalRecommended ?? (jobsQuery.data?.length ?? 0))} />
           <InfoPill label="Thoi gian" value={latestRun?.createdAt ?? "Chua cap nhat"} />
         </div>
+        {runsQuery.data?.length ? (
+          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <Select
+              label="Xem chi tiet run"
+              value={selectedRunId}
+              onChange={(event) => setSelectedRunId(event.target.value)}
+              options={[
+                { label: "Chon run", value: "" },
+                ...runsQuery.data.map((run) => ({ label: `#${run.id} - ${run.status} - ${run.createdAt}`, value: run.id })),
+              ]}
+            />
+            <div className="mt-6">
+              <StatusBadge label={runDetailQuery.loading ? "Dang tai run" : runDetailQuery.data?.run.status ?? "Chua chon run"} tone={runDetailQuery.data?.run.status === "SUCCESS" ? "success" : undefined} />
+            </div>
+          </div>
+        ) : null}
+        {runDetailQuery.data?.run.errorMessage ? <p className="mt-3 text-sm text-red-600">{runDetailQuery.data.run.errorMessage}</p> : null}
       </Card>
 
       <Card className="mb-5">

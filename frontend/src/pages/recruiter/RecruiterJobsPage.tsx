@@ -154,6 +154,76 @@ const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   BLOCKED: "Bị khóa",
 };
 
+const maxJobTitleLength = 50;
+const maxJobContentLength = 150;
+const maxSalaryAmount = 1_000_000_000;
+
+const VIETNAM_PROVINCES = [
+  "An Giang",
+  "Bà Rịa - Vũng Tàu",
+  "Bắc Giang",
+  "Bắc Kạn",
+  "Bạc Liêu",
+  "Bắc Ninh",
+  "Bến Tre",
+  "Bình Định",
+  "Bình Dương",
+  "Bình Phước",
+  "Bình Thuận",
+  "Cà Mau",
+  "Cần Thơ",
+  "Cao Bằng",
+  "Đà Nẵng",
+  "Đắk Lắk",
+  "Đắk Nông",
+  "Điện Biên",
+  "Đồng Nai",
+  "Đồng Tháp",
+  "Gia Lai",
+  "Hà Giang",
+  "Hà Nam",
+  "Hà Nội",
+  "Hà Tĩnh",
+  "Hải Dương",
+  "Hải Phòng",
+  "Hậu Giang",
+  "Hòa Bình",
+  "Hưng Yên",
+  "Khánh Hòa",
+  "Kiên Giang",
+  "Kon Tum",
+  "Lai Châu",
+  "Lâm Đồng",
+  "Lạng Sơn",
+  "Lào Cai",
+  "Long An",
+  "Nam Định",
+  "Nghệ An",
+  "Ninh Bình",
+  "Ninh Thuận",
+  "Phú Thọ",
+  "Phú Yên",
+  "Quảng Bình",
+  "Quảng Nam",
+  "Quảng Ngãi",
+  "Quảng Ninh",
+  "Quảng Trị",
+  "Sóc Trăng",
+  "Sơn La",
+  "Tây Ninh",
+  "Thái Bình",
+  "Thái Nguyên",
+  "Thanh Hóa",
+  "Thừa Thiên Huế",
+  "Tiền Giang",
+  "TP. Hồ Chí Minh",
+  "Trà Vinh",
+  "Tuyên Quang",
+  "Vĩnh Long",
+  "Vĩnh Phúc",
+  "Yên Bái",
+];
+
 export function RecruiterJobsPage({ mode = "list" }: RecruiterJobsPageProps) {
   const { jobId } = useParams();
   const { showToast } = useToast();
@@ -338,6 +408,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
   const skillsQuery = useAsyncData(() => getSkills(), []);
   const editing = mode === "edit";
   const verifiedCompany = Boolean(company && isCompanyVerified(company));
+  const deadlineMinDate = getNextDateValue(job?.createdAt);
 
   useEffect(() => {
     if (job) setForm(mapJobToForm(job));
@@ -360,10 +431,18 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
   function validate() {
     const nextErrors: Record<string, string> = {};
     if (!form.title.trim()) nextErrors.title = "Vui lòng nhập tiêu đề tin.";
+    if (form.title.trim().length > maxJobTitleLength) nextErrors.title = `Tiêu đề tối đa ${maxJobTitleLength} ký tự.`;
+    if (!form.location) nextErrors.location = "Vui lòng chọn tỉnh/thành.";
     if (!form.description.trim()) nextErrors.description = "Vui lòng nhập mô tả công việc.";
+    if (form.description.trim().length > maxJobContentLength) nextErrors.description = `Mô tả công việc tối đa ${maxJobContentLength} ký tự.`;
+    if (form.requirements.trim().length > maxJobContentLength) nextErrors.requirements = `Yêu cầu tối đa ${maxJobContentLength} ký tự.`;
+    if (form.benefits.trim().length > maxJobContentLength) nextErrors.benefits = `Quyền lợi tối đa ${maxJobContentLength} ký tự.`;
     if (form.salaryMin && !isPositiveIntegerMoney(form.salaryMin)) nextErrors.salaryMin = "Lương tối thiểu phải là số nguyên dương.";
     if (form.salaryMax && !isPositiveIntegerMoney(form.salaryMax)) nextErrors.salaryMax = "Lương tối đa phải là số nguyên dương.";
+    if (form.salaryMax && parseMoneyInput(form.salaryMax) > maxSalaryAmount) nextErrors.salaryMax = "Lương tối đa không được vượt quá 1.000.000.000 đồng.";
     if (form.salaryMin && form.salaryMax && parseMoneyInput(form.salaryMin) > parseMoneyInput(form.salaryMax)) nextErrors.salaryMax = "Lương tối đa phải lớn hơn lương tối thiểu.";
+    if (!form.deadline) nextErrors.deadline = "Vui lòng chọn hạn nộp.";
+    if (form.deadline && form.deadline < deadlineMinDate) nextErrors.deadline = "Hạn nộp phải lớn hơn ngày tạo tin.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -405,23 +484,26 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
           <Card>
             <SectionHeader title="Thông tin cơ bản" />
             <div className="grid gap-4 md:grid-cols-2">
-              <Input label="Tiêu đề" value={form.title} error={errors.title} onChange={(event) => update("title", event.target.value)} />
-              <Input label="Địa điểm" value={form.location} onChange={(event) => update("location", event.target.value)} />
+              <div>
+                <Input label="Tiêu đề" value={form.title} maxLength={maxJobTitleLength} error={errors.title} onChange={(event) => update("title", limitText(event.target.value, maxJobTitleLength))} />
+                <FieldCounter value={form.title} max={maxJobTitleLength} />
+              </div>
+              <Select label="Địa điểm" value={form.location} error={errors.location} onChange={(event) => update("location", event.target.value)} options={[{ label: "Chọn tỉnh/thành", value: "" }, ...VIETNAM_PROVINCES.map((province) => ({ label: province, value: province }))]} />
               <Select label="Loại việc" value={form.jobType} onChange={(event) => update("jobType", event.target.value as JobType)} options={Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
               <Select label="Hình thức làm việc" value={form.workingModel} onChange={(event) => update("workingModel", event.target.value as WorkingModel)} options={Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label }))} />
               <Input label="Lương tối thiểu" inputMode="numeric" value={form.salaryMin} error={errors.salaryMin} onChange={(event) => update("salaryMin", formatMoneyInput(event.target.value))} />
-              <Input label="Lương tối đa" inputMode="numeric" value={form.salaryMax} error={errors.salaryMax} onChange={(event) => update("salaryMax", formatMoneyInput(event.target.value))} />
+              <Input label="Lương tối đa" inputMode="numeric" value={form.salaryMax} error={errors.salaryMax} onChange={(event) => update("salaryMax", formatMoneyInput(event.target.value, maxSalaryAmount))} />
               <Input label="Đơn vị" value="đồng" disabled />
-              <Input label="Hạn nộp" type="date" value={form.deadline} onChange={(event) => update("deadline", event.target.value)} />
+              <Input label="Hạn nộp" type="date" min={deadlineMinDate} value={form.deadline} error={errors.deadline} onChange={(event) => update("deadline", event.target.value)} />
             </div>
           </Card>
 
           <Card>
             <SectionHeader title="Nội dung tin" />
             <div className="grid gap-4">
-              <Textarea label="Mô tả công việc" value={form.description} error={errors.description} onChange={(event) => update("description", event.target.value)} />
-              <Textarea label="Yêu cầu" value={form.requirements} onChange={(event) => update("requirements", event.target.value)} />
-              <Textarea label="Quyền lợi" value={form.benefits} onChange={(event) => update("benefits", event.target.value)} />
+              <LimitedTextarea label="Mô tả công việc" value={form.description} error={errors.description} onChange={(value) => update("description", value)} />
+              <LimitedTextarea label="Yêu cầu" value={form.requirements} error={errors.requirements} onChange={(value) => update("requirements", value)} />
+              <LimitedTextarea label="Quyền lợi" value={form.benefits} error={errors.benefits} onChange={(value) => update("benefits", value)} />
             </div>
           </Card>
 
@@ -489,6 +571,35 @@ function VerificationRequiredView({ company }: { company: CompanyResponse }) {
       </Card>
     </PageContainer>
   );
+}
+
+function LimitedTextarea({
+  label,
+  value,
+  error,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <Textarea
+        label={label}
+        value={value}
+        maxLength={maxJobContentLength}
+        error={error}
+        onChange={(event) => onChange(limitText(event.target.value, maxJobContentLength))}
+      />
+      <FieldCounter value={value} max={maxJobContentLength} />
+    </div>
+  );
+}
+
+function FieldCounter({ value, max }: { value: string; max: number }) {
+  return <p className="mt-1 text-right text-xs text-slate-500">{value.length}/{max} ký tự</p>;
 }
 
 function TextBlock({ title, value }: { title: string; value?: string | null }) {
@@ -641,7 +752,7 @@ function mapJobToForm(job: JobDetailResponse): JobFormState {
     salaryMin: job.salaryMin == null ? "" : formatMoneyInput(String(job.salaryMin)),
     salaryMax: job.salaryMax == null ? "" : formatMoneyInput(String(job.salaryMax)),
     currency: "đồng",
-    deadline: job.deadline || "",
+    deadline: job.deadline ? job.deadline.slice(0, 10) : "",
     skillIds: job.skills?.map((skill) => String(skill.skillId)) ?? [],
   };
 }
@@ -702,10 +813,11 @@ function formatMoney(value: number | string) {
   return new Intl.NumberFormat("vi-VN").format(numberValue);
 }
 
-function formatMoneyInput(value: string) {
+function formatMoneyInput(value: string, max?: number) {
   const digits = value.replace(/\D/g, "");
   if (!digits) return "";
-  return new Intl.NumberFormat("vi-VN").format(Number(digits));
+  const amount = max == null ? Number(digits) : Math.min(Number(digits), max);
+  return new Intl.NumberFormat("vi-VN").format(amount);
 }
 
 function parseMoneyInput(value: string) {
@@ -716,6 +828,29 @@ function parseMoneyInput(value: string) {
 function isPositiveIntegerMoney(value: string) {
   const amount = parseMoneyInput(value);
   return Number.isInteger(amount) && amount > 0;
+}
+
+function limitText(value: string, max: number) {
+  return value.slice(0, max);
+}
+
+function getNextDateValue(value?: string | null) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return getDateValue(addDays(new Date(), 1));
+  return getDateValue(addDays(date, 1));
+}
+
+function addDays(value: Date, days: number) {
+  const next = new Date(value);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function getDateValue(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(value?: string | null) {

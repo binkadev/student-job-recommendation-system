@@ -51,10 +51,6 @@ interface ApplicationResponse {
   companyName: string;
   cvFileId: number | null;
   cvFileName: string | null;
-  cvFileUrl?: string | null;
-  cvFilePath?: string | null;
-  fileUrl?: string | null;
-  filePath?: string | null;
   appliedAt: string;
   reviewedAt: string | null;
   createdAt: string;
@@ -180,7 +176,7 @@ function ApplicationsListPage({
     jobIds: jobs.map((job) => job.id),
   }), [page, query, statusFilter, jobFilter, sortOrder, jobIdsKey, reloadKey]);
   const applicationsPage = applicationsQuery.data;
-  const applications = applicationsPage?.items ?? [];
+  const applications = useMemo(() => applicationsPage?.items ?? [], [applicationsPage?.items]);
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
   const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
   const filteredApplications = useMemo(() => {
@@ -399,9 +395,9 @@ function ApplicationDetailPage({
             <SectionHeader title="Trạng thái ứng tuyển" />
             <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} />
             <div className="mt-4 grid gap-3">
-              <Select label="Chuyển trạng thái" value={nextStatus} disabled={application.status === "WITHDRAWN"} onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)} options={getAllowedStatusOptions(application.status)} />
-              <Button loading={updating} disabled={application.status === "WITHDRAWN"} onClick={() => void changeStatus()}>Cập nhật trạng thái</Button>
-              {application.status === "WITHDRAWN" ? <p className="text-xs text-slate-500">Ứng viên đã rút đơn nên không thể cập nhật trạng thái khác.</p> : null}
+              <Select label="Chuyển trạng thái" value={nextStatus} disabled={!hasAllowedStatusTransition(application.status)} onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)} options={getAllowedStatusOptions(application.status)} />
+              <Button loading={updating} disabled={!hasAllowedStatusTransition(application.status)} onClick={() => void changeStatus()}>Cập nhật trạng thái</Button>
+              {!hasAllowedStatusTransition(application.status) ? <p className="text-xs text-slate-500">Trạng thái hiện tại không còn bước chuyển hợp lệ cho nhà tuyển dụng.</p> : null}
             </div>
           </Card>
         </aside>
@@ -520,7 +516,7 @@ function ApplicationActions({
       <Button variant="secondary" size="sm" disabled={saved} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
         {saved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
       </Button>
-      <Button variant="secondary" size="sm" icon={<UserCheck size={14} />} disabled={application.status === "WITHDRAWN"} onClick={() => onOpenStatus(application)}>Trạng thái</Button>
+      <Button variant="secondary" size="sm" icon={<UserCheck size={14} />} disabled={!hasAllowedStatusTransition(application.status)} onClick={() => onOpenStatus(application)}>Trạng thái</Button>
     </div>
   );
 }
@@ -547,11 +543,11 @@ function StatusModal({
           <p className="text-sm text-slate-600">
             Ứng viên <strong>{application.studentName || application.studentEmail}</strong> ứng tuyển vị trí <strong>{application.jobTitle}</strong>.
           </p>
-          <Select label="Trạng thái mới" value={nextStatus} disabled={application.status === "WITHDRAWN"} onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)} options={getAllowedStatusOptions(application.status)} />
-          {application.status === "WITHDRAWN" ? <p className="text-xs text-slate-500">Ứng viên đã rút đơn nên không thể cập nhật trạng thái khác.</p> : null}
+          <Select label="Trạng thái mới" value={nextStatus} disabled={!hasAllowedStatusTransition(application.status)} onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)} options={getAllowedStatusOptions(application.status)} />
+          {!hasAllowedStatusTransition(application.status) ? <p className="text-xs text-slate-500">Trạng thái hiện tại không còn bước chuyển hợp lệ cho nhà tuyển dụng.</p> : null}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Hủy</Button>
-            <Button loading={loading} disabled={application.status === "WITHDRAWN"} onClick={onConfirm}>Cập nhật</Button>
+            <Button loading={loading} disabled={!hasAllowedStatusTransition(application.status)} onClick={onConfirm}>Cập nhật</Button>
           </div>
         </div>
       ) : null}
@@ -612,9 +608,10 @@ async function getCompanyApplicationsPage(query: ApplicationListQuery) {
       },
     });
     const page = response.data.data;
-    const sortedItems = sortApplicationsForRecruiter(page.items, query.sort);
+    const visibleItems = filterVisibleApplicationsForRecruiter(page.items);
+    const sortedItems = sortApplicationsForRecruiter(visibleItems, query.sort);
     if (page.totalItems > 0 || query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
-      return { ...page, items: sortedItems };
+      return { ...page, items: sortedItems, totalItems: visibleItems.length, totalPages: Math.max(1, Math.ceil(visibleItems.length / query.size)) };
     }
   } catch {
     if (query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
@@ -632,8 +629,9 @@ async function getCompanyApplicationsByJobs(query: ApplicationListQuery): Promis
   const applications = responses
     .flatMap((response) => response.status === "fulfilled" ? response.value.data.data : [])
     .filter((application, index, list) => list.findIndex((item) => item.id === application.id) === index);
-  const sortedApplications = sortApplicationsForRecruiter(applications, query.sort);
-  const totalItems = applications.length;
+  const visibleApplications = filterVisibleApplicationsForRecruiter(applications);
+  const sortedApplications = sortApplicationsForRecruiter(visibleApplications, query.sort);
+  const totalItems = visibleApplications.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / query.size));
   const currentPage = Math.min(Math.max(query.page, 1), totalPages);
   const start = (currentPage - 1) * query.size;
@@ -649,6 +647,9 @@ async function getCompanyApplicationsByJobs(query: ApplicationListQuery): Promis
 
 async function getCompanyApplicationDetail(applicationId: number) {
   const response = await httpClient.get<ApiResponse<ApplicationResponse>>(`/companies/me/applications/${applicationId}`);
+  if (response.data.data.status === "WITHDRAWN") {
+    throw new Error("Hồ sơ ứng tuyển này đã được ứng viên rút và không còn hiển thị cho nhà tuyển dụng.");
+  }
   return response.data.data;
 }
 
@@ -712,11 +713,9 @@ function getAllowedStatusOptions(currentStatus: ApplicationStatus) {
 }
 
 function getAllowedNextStatuses(currentStatus: ApplicationStatus): ApplicationStatus[] {
-  if (currentStatus === "ACCEPTED") return ["WITHDRAWN"];
-  if (currentStatus === "REJECTED") return ["ACCEPTED"];
-  if (currentStatus === "WITHDRAWN") return ["WITHDRAWN"];
-  if (currentStatus === "REVIEWED") return ["ACCEPTED", "REJECTED", "WITHDRAWN"];
-  return ["REVIEWED", "ACCEPTED", "REJECTED", "WITHDRAWN"];
+  if (currentStatus === "PENDING") return ["REVIEWED", "ACCEPTED", "REJECTED"];
+  if (currentStatus === "REVIEWED") return ["ACCEPTED", "REJECTED"];
+  return [];
 }
 
 function getDefaultNextStatus(currentStatus: ApplicationStatus): ApplicationStatus {
@@ -726,6 +725,14 @@ function getDefaultNextStatus(currentStatus: ApplicationStatus): ApplicationStat
 
 function canChangeApplicationStatus(currentStatus: ApplicationStatus, nextStatus: ApplicationStatus) {
   return getAllowedNextStatuses(currentStatus).includes(nextStatus);
+}
+
+function hasAllowedStatusTransition(currentStatus: ApplicationStatus) {
+  return getAllowedNextStatuses(currentStatus).length > 0;
+}
+
+function filterVisibleApplicationsForRecruiter(applications: ApplicationResponse[]) {
+  return applications.filter((application) => application.status !== "WITHDRAWN");
 }
 
 function sortApplicationsForRecruiter(applications: ApplicationResponse[], sort: string) {
@@ -743,43 +750,29 @@ function formatDateTime(value?: string | null) {
 }
 
 async function openApplicationCv(application: ApplicationResponse, showToast: ReturnType<typeof useToast>["showToast"]) {
-  if (application.cvFileId) {
-    try {
-      const response = await httpClient.get<Blob>(`/companies/me/applications/${application.id}/cv/file`, {
-        responseType: "blob",
-      });
-      const blobUrl = window.URL.createObjectURL(response.data);
-      window.open(blobUrl, "_blank", "noopener,noreferrer");
-      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
-      return;
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: "Không thể mở CV",
-        message: getErrorMessage(error),
-      });
-      return;
-    }
-  }
-
-  const cvUrl = resolveCvUrl(application);
-  if (!cvUrl) {
+  if (!application.cvFileId) {
     showToast({
       type: "info",
-      title: "Chưa có link file CV",
-      message: "API ứng tuyển hiện chỉ trả CV file ID/tên file, chưa có fileUrl/filePath hoặc endpoint download để mở file thật.",
+      title: "Chưa có CV đính kèm",
+      message: "Đơn ứng tuyển này chưa có CV để mở.",
     });
     return;
   }
-  window.open(cvUrl, "_blank", "noopener,noreferrer");
-}
 
-function resolveCvUrl(application: ApplicationResponse) {
-  const rawUrl = application.cvFileUrl ?? application.cvFilePath ?? application.fileUrl ?? application.filePath;
-  if (!rawUrl) return "";
-  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
-  if (rawUrl.startsWith("/")) return rawUrl;
-  return `/${rawUrl.replace(/^\/+/, "")}`;
+  try {
+    const response = await httpClient.get<Blob>(`/companies/me/applications/${application.id}/cv/file`, {
+      responseType: "blob",
+    });
+    const blobUrl = window.URL.createObjectURL(response.data);
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+  } catch (error) {
+    showToast({
+      type: "error",
+      title: "Không thể mở CV",
+      message: getErrorMessage(error),
+    });
+  }
 }
 
 function unsupportedToast(showToast: ReturnType<typeof useToast>["showToast"], feature: string) {

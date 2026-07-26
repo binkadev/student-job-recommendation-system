@@ -50,6 +50,8 @@ export function PublicJobListCard({
         <span className="inline-flex items-center gap-2"><Users size={16} />{job.applicants} lượt ứng tuyển</span>
       </div>
 
+      {job.description ? <p className="mt-4 line-clamp-2 break-words text-sm leading-6 text-slate-600">{truncateDescription(job.description)}</p> : null}
+
       <div className="mt-4 flex flex-wrap gap-2">
         <StatusBadge label={job.workMode} />
         <StatusBadge label={job.level} />
@@ -69,4 +71,9 @@ export function PublicJobListCard({
       </div>
     </article>
   );
+}
+
+function truncateDescription(value: string) {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length > 150 ? `${normalized.slice(0, 150).trimEnd()}...` : normalized;
 }

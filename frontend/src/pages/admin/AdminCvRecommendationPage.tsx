@@ -16,7 +16,6 @@ interface CvFileRow {
   id: number;
   studentId: number;
   fileName: string;
-  fileUrl: string;
   contentType: string | null;
   fileSize: number | null;
   isActive: boolean;
@@ -204,7 +203,7 @@ function RecommendationConfigurationPage() {
 function DbFieldsSection() {
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-3">
-      <FieldCard title="cv_files" fields={["id", "student_id", "file_name", "file_url", "content_type", "file_size", "extracted_text", "original_file_name", "stored_file_name", "file_path", "processed_text", "is_active", "uploaded_at", "created_at", "updated_at"]} />
+      <FieldCard title="cv_files" fields={["id", "student_id", "file_name", "content_type", "file_size", "extracted_text", "original_file_name", "processed_text", "is_active", "uploaded_at", "created_at", "updated_at"]} />
       <FieldCard title="recommendation_runs" fields={["id", "student_id", "cv_file_id", "source_type", "status", "started_at", "finished_at", "error_message", "created_at", "updated_at"]} />
       <FieldCard title="recommendation_results" fields={["id", "run_id", "job_id", "score", "matched_keywords", "rank_position", "created_at", "updated_at"]} />
     </div>
@@ -227,7 +226,6 @@ function CvFileCell({ cv }: { cv: CvFileRow }) {
     <div className="min-w-[220px]">
       <p className="font-medium text-slate-900">{cv.fileName}</p>
       <p className="mt-1 text-xs text-slate-500">ID: {cv.id}</p>
-      <p className="mt-1 text-xs text-slate-500">{cv.fileUrl}</p>
     </div>
   );
 }
