@@ -12,6 +12,7 @@ from v2.http_errors import install_v2_error_handlers
 
 
 LEGACY_V1_VERSION = "tfidf-cosine-v1"
+CURRENT_CONTRACT = "v2"
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -20,7 +21,8 @@ app = FastAPI(
     title="Bilingual Job Recommendation AI Service",
     description=(
         "Stateless English/Vietnamese CV parsing and job recommendation "
-        "engine supporting internal Contracts V1 and V2."
+        "engine supporting internal Contract V1 compatibility and current "
+        "Contract V2."
     ),
     version=ALGORITHM_VERSION,
 )
@@ -77,14 +79,29 @@ class RecommendationRequest(BaseModel):
 
 @app.get("/health")
 def health_check():
-    """Liveness probe with legacy V1 and current bilingual V2 metadata."""
+    """Compatibility liveness response retained for existing V1 consumers."""
 
     return {
         "status": "ok",
         "service": "job-recommendation-ai",
-        # Preserved for compatibility with V1 health consumers.
         "version": LEGACY_V1_VERSION,
         "supportedContracts": ["v1", "v2"],
+        "recommendationVersion": ALGORITHM_VERSION,
+        "processingVersion": PROCESSING_VERSION,
+    }
+
+
+@app.get("/health/v2")
+def current_health_check():
+    """Current bilingual service metadata for deployment and readiness checks."""
+
+    return {
+        "status": "ok",
+        "service": "job-recommendation-ai",
+        "version": ALGORITHM_VERSION,
+        "supportedContracts": ["v1", "v2"],
+        "currentContract": CURRENT_CONTRACT,
+        "legacyV1Version": LEGACY_V1_VERSION,
         "recommendationVersion": ALGORITHM_VERSION,
         "processingVersion": PROCESSING_VERSION,
     }
@@ -112,7 +129,7 @@ async def parse_cv(file: UploadFile = File(...)):
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"File extraction failed: {error}",
+            detail="File extraction failed.",
         ) from error
 
     if not raw_text or not raw_text.strip():
@@ -168,4 +185,4 @@ app.include_router(create_v2_router(v2_runtime))
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
