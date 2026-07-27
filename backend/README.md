@@ -2,11 +2,11 @@
 
 Spring Boot backend for the Student Job Recommendation System.
 
-The backend is the system of record. It owns authentication, authorization, business rules, PostgreSQL persistence, Flyway migrations, eligible-job filtering, AI orchestration, AI response validation, recommendation ranking, and public API contracts.
+The backend is the system of record. It owns authentication, authorization, business rules, PostgreSQL persistence, Flyway migrations, eligible-job filtering, AI orchestration, AI response validation, deterministic recommendation ranking, and public API contracts.
 
-## Current Integration Status
+## Current integration status
 
-The backend currently integrates with the stateless bilingual AI Service through Contract V2:
+The backend integrates with the stateless bilingual AI Service through Contract V2:
 
 - English CV ↔ English Job: `SAME_LANGUAGE_HYBRID`
 - Vietnamese CV ↔ Vietnamese Job: `SAME_LANGUAGE_HYBRID`
@@ -19,61 +19,56 @@ Current metadata:
 - Algorithm version: `bilingual-recommendation-v2`
 - Processing version: `bilingual-nlp-v2-skills-v1`
 
-The AI Service returns component scores, strategy, matched skills, missing skills, and an explanation. It does not return `rank` or `rankPosition`; the backend validates the response, sorts by `score DESC` then `jobId ASC`, assigns continuous ranks, and persists the results.
+The AI Service returns component scores, strategy, matched skills, missing skills, and a deterministic explanation. It does not return `rank` or `rankPosition`. The backend validates the response, rejects below-threshold results, sorts by `score DESC` then `jobId ASC`, assigns continuous `rankPosition` values, and persists the result set.
+
+Vietnamese NLP and semantic skill aliases are implemented in the AI Service. The backend intentionally does not duplicate NLP, translation, or semantic alias logic.
 
 ## Requirements
 
 - Java 21
-- Docker Desktop or Docker Engine with Compose
-- Python 3.11 and the AI Service when testing CV analysis or recommendations end to end
+- Maven Wrapper or Maven 3.9.x
+- Docker Desktop or Docker Engine for PostgreSQL/Testcontainers
+- Python 3.11 and the AI Service for end-to-end CV/recommendation testing
 
-## Run Database
+## Docker Compose scope
 
-From the repository root:
+The root `docker-compose.yml` starts PostgreSQL 17 only.
+
+| Component | Included in current Compose |
+|---|---|
+| PostgreSQL | Yes |
+| Backend | No |
+| AI Service | No |
+| Frontend | No |
+
+Run the local database from the repository root:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-PostgreSQL runs on `localhost:5432` with development defaults:
+Development defaults:
 
 - Database: `student_job_recommendation`
 - Username: `postgres`
 - Password: `123456`
+- Host: `localhost:5432`
 
-Override them without editing source:
-
-```powershell
-$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/student_job_recommendation"
-$env:SPRING_DATASOURCE_USERNAME="postgres"
-$env:SPRING_DATASOURCE_PASSWORD="123456"
-```
-
-Docker Compose also supports `.env` values:
-
-```text
-POSTGRES_DB=student_job_recommendation
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=123456
-```
-
-These credentials are development defaults only.
+These are local-development defaults only and must not be reused in production.
 
 ## Run Backend
 
-From the `backend` folder with the development profile:
+From `backend/`:
 
 ```powershell
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-For Git Bash, macOS, or Linux:
+Git Bash, Linux, or macOS:
 
 ```bash
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
-
-The `dev` profile runs the local demo seeder. It creates missing demo users, profiles, skills, jobs, and job skills without duplicating them on restart. Existing demo passwords, roles, and statuses are not reset.
 
 Backend base URL:
 
@@ -81,21 +76,47 @@ Backend base URL:
 http://localhost:8080
 ```
 
-## CV File Storage
+The `dev` profile runs the demo seeder. Demo accounts and password `123456` are for local development only.
 
-CV uploads and downloads resolve files only inside the backend-owned storage directory. The default is `uploads/cvs` relative to the backend working directory.
+## CORS configuration
 
-Override it without editing source:
+CORS is configured through typed `app.cors` properties rather than hard-coded production origins.
+
+Defaults:
+
+```yaml
+app:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173
+    allow-credentials: false
+```
+
+PowerShell override:
+
+```powershell
+$env:APP_CORS_ALLOWED_ORIGINS="http://192.168.1.10:5173,https://demo.example.com"
+$env:APP_CORS_ALLOW_CREDENTIALS="false"
+```
+
+Behavior:
+
+- origins are trimmed and de-duplicated;
+- blank configuration is rejected;
+- wildcard `*` is rejected when credentials are enabled;
+- Bearer JWT is used, so credentials are disabled by default;
+- `Content-Disposition` is exposed for CV preview/download responses.
+
+## CV file storage
+
+The default storage directory is `uploads/cvs` relative to the backend working directory.
 
 ```powershell
 $env:APP_CV_UPLOAD_DIR="C:\path\to\private\cv-storage"
 ```
 
-CV file endpoints preview inline by default. Add `?download=true` to request an attachment. Successful file responses stream raw bytes; JSON error responses retain the common API envelope. Internal storage paths and stored filenames are never returned.
+File endpoints stream bytes and expose only sanitized filenames. They never return `filePath`, `storedFileName`, the storage directory, or an absolute path.
 
-## AI Service Configuration
-
-Configure the synchronous AI client:
+## AI Service configuration
 
 ```powershell
 $env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
@@ -105,16 +126,14 @@ $env:APP_AI_RECOMMENDATION_ALGORITHM="tfidf-cosine-hybrid"
 $env:APP_AI_RECOMMENDATION_ALGORITHM_VERSION="bilingual-recommendation-v2"
 ```
 
-These variables are optional; the shown values are local defaults.
-
 Contract V2 calls:
 
-- `POST /internal/v2/cv/parse` as multipart form data with field `file`
-- `POST /internal/v2/recommendations` as strict JSON containing one CV and the backend-filtered eligible job corpus
+- `POST /internal/v2/cv/parse`
+- `POST /internal/v2/recommendations`
 
-The backend never sends a user JWT or database credentials to the AI Service.
+The backend never sends a user JWT or database credentials to the AI Service. Production service-to-service authentication is not implemented yet.
 
-## CV Analysis Behavior
+## CV analysis behavior
 
 Public student endpoints:
 
@@ -122,32 +141,28 @@ Public student endpoints:
 - `PATCH /api/students/me/cv/{cvId}/extracted-data`
 - `POST /api/students/me/cv/{cvId}/reanalyze`
 
-Each uploaded CV starts at `NOT_READY` with empty extracted skills and warnings.
+State machine:
 
-Reanalysis behavior:
+```text
+NOT_READY → PROCESSING → READY | FAILED
+```
 
-1. Commit `PROCESSING` and clear derived analysis fields.
-2. Reload the original PDF or DOCX.
-3. Call the AI Service without an open database transaction.
-4. Validate the response.
-5. Save a valid response as `READY` in a new transaction.
-6. Save failures as `FAILED` with cleared derived data and a sanitized error message.
+Reanalysis:
 
-A CV is usable for recommendations only when its persisted status is `READY` and its extracted and processed text are non-blank.
+1. commits `PROCESSING` and clears derived analysis fields;
+2. reloads the original PDF/DOCX;
+3. calls AI without an open database transaction;
+4. validates the strict V2 response;
+5. saves success as `READY` in a new transaction;
+6. saves failure as `FAILED` with cleared derived data and a sanitized error.
 
-Parsed skills belong to the selected CV and are stored in `cv_files.extracted_skills`. They neither replace nor fall back to `student_skills`.
+A CV can generate recommendations only when status is `READY` and both extracted and processed text are non-blank.
 
-The AI Service owns semantic alias mapping, including equivalence such as:
+Extracted skills belong to the selected CV in `cv_files.extracted_skills`; they never fall back to `student_skills`.
 
-- `học máy` / `hoc may` / `machine learning`
-- `K8s` / `Kubernetes`
-- `SpringBoot` / `spring-boot` / `Spring Boot`
+The extracted-data PATCH is retained only for compatibility and returns `501 FEATURE_NOT_SUPPORTED` after authentication and ownership checks. Reanalysis always reads the original file.
 
-The backend only performs defensive normalization and contract validation.
-
-The extracted-data PATCH remains for compatibility but is intentionally unsupported in the MVP. An authenticated owner receives `501 FEATURE_NOT_SUPPORTED`, and no extracted text is mutated. Reanalysis always reads the original uploaded file.
-
-## Recommendation Behavior
+## Recommendation behavior
 
 Public student endpoints:
 
@@ -156,102 +171,69 @@ Public student endpoints:
 - `GET /api/students/me/recommendation-runs/{runId}`
 - `GET /api/students/me/recommendation-results/latest`
 
-Recommendation generation uses only:
+Eligible jobs are:
 
-- the selected CV's original extracted text
-- that CV's extracted canonical skills
-- `ACTIVE` jobs
-- jobs owned by `VERIFIED` companies
-- jobs with a null, current, or future deadline
+- `ACTIVE`;
+- owned by a `VERIFIED` company;
+- deadline null, today, or in the future.
 
-For same-language jobs with declared skills:
+Scoring:
 
 ```text
+same language + declared skills:
 score = 0.65 * textScore + 0.35 * skillScore
-```
 
-For same-language jobs without declared skills:
-
-```text
+same language + no declared skills:
 score = textScore
-```
 
-For cross-language or insufficient-confidence pairs:
-
-```text
+cross language / low confidence:
 textScore = null
 score = skillScore
 ```
 
-The backend rejects malformed results, duplicate job IDs, unexpected jobs, invalid score ranges, below-threshold results, incompatible strategy semantics, and other contract violations before persistence.
+The backend rejects malformed results, duplicate or unexpected job IDs, invalid score ranges, scores below the request threshold, and incompatible strategy semantics before persistence.
 
-An empty eligible corpus still creates a successful run with zero jobs scanned and zero results, and does not call the AI Service.
+An empty eligible corpus creates a successful run with zero scanned jobs and zero results without calling AI.
 
-The latest-results endpoint selects the latest `SUCCESS` run. Newer `FAILED` or `PROCESSING` runs do not hide the last successful result set.
-
-## Demo Accounts
-
-All demo accounts use password `123456`.
-
-- Admin: `admin@example.com`
-- Student: `student@example.com`
-- Company: `company@example.com`
+The latest-results endpoint selects the latest `SUCCESS` run. Newer `FAILED` or `PROCESSING` runs do not hide the last successful results.
 
 ## Swagger
-
-Swagger UI:
 
 ```text
 http://localhost:8080/swagger-ui.html
 ```
 
-Use `POST /api/auth/login` with a demo account to get a JWT. Click **Authorize**, enter `Bearer <token>`, and test protected APIs.
+## Tests and CI
 
-## Tests
-
-Run fast smoke and unit tests without Docker or PostgreSQL:
+Fast tests:
 
 ```powershell
 .\mvnw.cmd -B -ntp test
 ```
 
-Run the complete lifecycle, including PostgreSQL integration tests:
+Full PostgreSQL integration lifecycle:
 
 ```powershell
 .\mvnw.cmd -B -ntp clean verify
 ```
 
-The integration-test layer requires Docker. Maven Failsafe starts PostgreSQL 17 through Testcontainers, applies Flyway migrations, and validates Hibernate mappings. It does not use the local development database or its credentials.
+The integration layer uses PostgreSQL 17 through Testcontainers, applies all Flyway migrations, and validates Hibernate mappings.
 
-AI client unit tests use an in-process HTTP stub. PostgreSQL API integration tests also use a controlled stub to cover successful and failed parsing and recommendation orchestration without requiring an external Python process.
+GitHub Actions:
 
-## Important API Groups
+- `.github/workflows/backend-ci.yml` validates Backend changes;
+- `.github/workflows/ai-ci.yml` validates the bilingual AI Service separately.
 
-- Public companies: `GET /api/public/companies`, `GET /api/public/companies/{id}`
-- Public jobs: `GET /api/public/jobs`, `GET /api/public/jobs/{jobId}`
-- Public statistics: `GET /api/public/statistics`
-- Admin users: list, detail, and status update
-- Admin companies: list, detail, and status update
-- Admin applications: list and detail
-- Company applications: list, detail, CV streaming, and status update
-- Saved candidates: list, save by owned application, and delete
-- Notification settings: get and full replacement update
-- Student saved searches: CRUD
-- Password change: `PATCH /api/users/me/password`
-- Student CV: metadata, file streaming, active selection, deletion, analysis, and reanalysis
-- Recommendations: generation, history, run detail, and latest successful results
+See `../docs/api-contract.md` for endpoint details and `../docs/database-schema.md` for the Flyway V1–V15 schema.
 
-See `../docs/api-contract.md` for request parameters, response fields, enum values, privacy constraints, and error semantics.
-
-## Current MVP Limitations
+## Current MVP limitations
 
 - No OCR for image-only CVs
 - No embeddings, semantic vector search, or vector database
-- No asynchronous queue for CV analysis or recommendation generation
+- No asynchronous queue for CV analysis or recommendations
 - No production internal authentication between Backend and AI Service
-- No immutable snapshots of historical CV text, job documents, or eligible corpora
-- No concurrent reanalysis guard such as a row lock or analysis-attempt identifier
+- No immutable historical snapshots of CV text, job documents, or eligible corpora
+- No concurrent reanalysis guard such as a row lock or attempt identifier
 - No manual extracted-text editing
-- Job-skill importance and minimum proficiency are not yet included in the AI V2 scoring contract
-
-Vietnamese NLP and semantic skill aliases are implemented in the AI Service. They are intentionally not duplicated in the backend.
+- Job-skill importance and minimum proficiency are not part of AI V2 scoring
+- No full-stack Docker Compose
