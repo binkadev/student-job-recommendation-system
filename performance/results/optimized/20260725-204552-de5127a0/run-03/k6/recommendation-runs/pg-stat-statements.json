@@ -1,0 +1,79 @@
+﻿{
+    "endpoint":  "recommendation-runs",
+    "measuredRequests":  10000,
+    "resetImmediatelyBeforeMeasuredPhase":  true,
+    "measuredStartedAtUtc":  "2026-07-25T14:05:42.2765224Z",
+    "measuredCompletedAtUtc":  "2026-07-25T14:05:56.6646594Z",
+    "sqlCallsPerRequest":  6,
+    "jwtUserLookupCallsPerRequest":  1,
+    "transactionControlCallsPerRequest":  2,
+    "serviceSqlCallsPerRequest":  3,
+    "queryStatistics":  {
+                            "totalRows":  380000,
+                            "sharedBlockHits":  140000,
+                            "sharedBlockReads":  0,
+                            "totalExecutionMs":  1248.413,
+                            "serviceStatements":  30000,
+                            "totalSqlStatements":  60000,
+                            "jwtUserLookupStatements":  10000,
+                            "uniqueNormalizedStatements":  5,
+                            "transactionControlStatements":  20000
+                        },
+    "statements":  [
+                       {
+                           "rows":  200000,
+                           "calls":  10000,
+                           "query_id":  "-3145124599997766103",
+                           "normalized_sql":  "select rr1_0.id,rr1_0.created_at,rr1_0.cv_file_id,rr1_0.error_message,rr1_0.finished_at,rr1_0.source_type,rr1_0.started_at,rr1_0.status,rr1_0.student_id,rr1_0.updated_at from recommendation_runs rr1_0 join students s1_0 on s1_0.id=rr1_0.student_id where s1_0.id=$1 order by rr1_0.created_at desc",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.039,
+                           "shared_block_hits":  40000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  385.423
+                       },
+                       {
+                           "rows":  160000,
+                           "calls":  10000,
+                           "query_id":  "-8250595832571741536",
+                           "normalized_sql":  "select rr1_0.run_id,count(rr1_0.id) from recommendation_results rr1_0 where rr1_0.run_id in ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) group by rr1_0.run_id",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.037,
+                           "shared_block_hits":  10000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  371.116
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-805448383793017071",
+                           "normalized_sql":  "select s1_0.id,s1_0.created_at,s1_0.graduation_year,s1_0.location,s1_0.major,s1_0.student_code,s1_0.university,s1_0.updated_at,s1_0.user_id from students s1_0 join users u1_0 on u1_0.id=s1_0.user_id where u1_0.id=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.019,
+                           "shared_block_hits":  60000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  193.126
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-4313940598091379112",
+                           "normalized_sql":  "select u1_0.id,u1_0.created_at,u1_0.email,u1_0.full_name,u1_0.last_login_at,u1_0.password_hash,u1_0.phone,u1_0.role,u1_0.status,u1_0.updated_at from users u1_0 where u1_0.email=$1",
+                           "statement_class":  "jwt_user_lookup",
+                           "mean_execution_ms":  0.019,
+                           "shared_block_hits":  30000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  192.619
+                       },
+                       {
+                           "rows":  0,
+                           "calls":  20000,
+                           "query_id":  "2869606018209600839",
+                           "normalized_sql":  "BEGIN READ ONLY",
+                           "statement_class":  "transaction_control",
+                           "mean_execution_ms":  0.005,
+                           "shared_block_hits":  0,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  106.129
+                       }
+                   ]
+}

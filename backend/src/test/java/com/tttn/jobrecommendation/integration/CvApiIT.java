@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.integration;
 
 import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
@@ -10,6 +11,7 @@ import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.nio.charset.StandardCharsets;
@@ -23,6 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +34,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CvApiIT extends AbstractPostgresWebIntegrationTest {
 
     private static final byte[] CV_CONTENTS = "%PDF-student-cv".getBytes(StandardCharsets.UTF_8);
+
+    @Test
+    void uploadInitializesCvAnalysisStateAsNotReady() throws Exception {
+        Student owner = createStudent("cv-upload-owner@example.test");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "resume.pdf",
+                "application/pdf",
+                CV_CONTENTS
+        );
+
+        mockMvc.perform(multipart("/api/students/me/cv")
+                        .file(file)
+                        .param("active", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.extractedText").value(nullValue()))
+                .andExpect(jsonPath("$.data.processedText").value(nullValue()));
+
+        CvFile uploaded = cvFileRepository.findAll().getFirst();
+        assertThat(uploaded.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.NOT_READY);
+        assertThat(uploaded.getExtractedText()).isNull();
+        assertThat(uploaded.getProcessedText()).isNull();
+        assertThat(uploaded.getExtractedSkills()).isEmpty();
+        assertThat(uploaded.getAnalysisError()).isNull();
+        assertThat(uploaded.getLanguageCode()).isNull();
+        assertThat(uploaded.getLanguageConfidence()).isNull();
+        assertThat(uploaded.getProcessingVersion()).isNull();
+        assertThat(uploaded.getAnalysisWarnings()).isEmpty();
+        assertThat(uploaded.getAnalyzedAt()).isNull();
+    }
 
     @Test
     void ownerCanStreamCvInlineByDefaultAndAsAttachment() throws Exception {

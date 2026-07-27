@@ -7,6 +7,9 @@ BEGIN;
 
 TRUNCATE TABLE
     notifications,
+    user_notification_settings,
+    saved_candidates,
+    saved_searches,
     recommendation_results,
     recommendation_runs,
     applications,

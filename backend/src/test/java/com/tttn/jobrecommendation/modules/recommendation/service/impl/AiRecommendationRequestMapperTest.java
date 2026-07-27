@@ -32,7 +32,8 @@ class AiRecommendationRequestMapperTest {
 
         assertThat(request.requestId()).isEqualTo(requestId);
         assertThat(request.cv().id()).isEqualTo(12L);
-        assertThat(request.cv().processedText()).isEqualTo("java spring boot");
+        assertThat(request.cv().text()).isEqualTo("java spring boot");
+        assertThat(request.cv().skills()).containsExactly("java", "spring boot");
         assertThat(request.jobs()).containsExactly(job);
         assertThat(request.threshold()).isEqualByComparingTo("0.1");
         assertThat(request.limit()).isEqualTo(20);

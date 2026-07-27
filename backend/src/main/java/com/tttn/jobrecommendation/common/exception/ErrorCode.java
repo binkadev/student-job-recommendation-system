@@ -10,6 +10,11 @@ public enum ErrorCode {
     ACCESS_DENIED("ACCESS_DENIED", "Access denied", HttpStatus.FORBIDDEN),
     ACCOUNT_DISABLED("ACCOUNT_DISABLED", "Account is not active", HttpStatus.FORBIDDEN),
     EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", "Email already exists", HttpStatus.CONFLICT),
+    FEATURE_NOT_SUPPORTED(
+            "FEATURE_NOT_SUPPORTED",
+            "Feature is not supported",
+            HttpStatus.NOT_IMPLEMENTED
+    ),
     CV_IN_USE("CV_IN_USE", "CV file is in use", HttpStatus.CONFLICT),
     CV_ANALYSIS_NOT_READY(
             "CV_ANALYSIS_NOT_READY",

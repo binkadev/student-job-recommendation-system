@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.recommendation.repository;
 
+import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
 import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,7 +11,10 @@ public interface RecommendationRunRepository extends JpaRepository<Recommendatio
 
     List<RecommendationRun> findByStudentIdOrderByCreatedAtDesc(Long studentId);
 
-    Optional<RecommendationRun> findFirstByStudentIdOrderByCreatedAtDesc(Long studentId);
+    Optional<RecommendationRun> findFirstByStudentIdAndStatusOrderByCreatedAtDescIdDesc(
+            Long studentId,
+            RecommendationRunStatus status
+    );
 
     Optional<RecommendationRun> findByIdAndStudentId(Long id, Long studentId);
 }

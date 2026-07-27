@@ -51,9 +51,31 @@ class EligibleJobCorpusBuilderTest {
 
         assertThat(corpus).extracting(input -> input.id()).containsExactly(10L, 20L);
         assertThat(corpus.getFirst().skills()).containsExactly("java", "spring boot");
-        assertThat(corpus.getFirst().processedText())
-                .isEqualTo("Backend Engineer Build Spring services PostgreSQL java spring boot");
-        assertThat(corpus.get(1).processedText()).isEqualTo("Platform Engineer Docker");
+        assertThat(corpus.getFirst().text()).isEqualTo("""
+                TITLE:
+                Backend Engineer
+
+                DESCRIPTION:
+                Build
+                Spring services
+
+                REQUIREMENTS:
+                PostgreSQL
+
+                SKILLS:
+                java, spring boot""");
+        assertThat(corpus.get(1).text()).isEqualTo("""
+                TITLE:
+                Platform Engineer
+
+                DESCRIPTION:
+                Docker
+
+                REQUIREMENTS:
+
+
+                SKILLS:
+                """);
         verify(jobSkillRepository).findByJobIdInOrderByJobIdAscIdAsc(List.of(10L, 20L));
     }
 }

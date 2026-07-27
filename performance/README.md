@@ -29,7 +29,7 @@ The backend remains the schema owner:
 
 1. The performance PostgreSQL container starts empty.
 2. The backend starts with the external `performance` profile.
-3. Existing Flyway migrations V1-V12 are applied from `backend/src/main/resources/db/migration`.
+3. Existing Flyway migrations V1-V14 are applied from `backend/src/main/resources/db/migration`.
 4. Hibernate validates the migrated mappings.
 5. The standalone performance SQL scripts reset and seed application data.
 
@@ -103,7 +103,7 @@ The existing `DataSeeder` is annotated `@Profile("dev")`. Because only `performa
 Wait for the backend log to confirm:
 
 - Profile `performance` is active.
-- Flyway has applied or validated migration V12.
+- Flyway has applied or validated migration V14.
 - Hibernate EntityManagerFactory initialization completed.
 - Tomcat started on the expected local port.
 - No demo users such as `admin@example.com` were inserted.
@@ -245,7 +245,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\ru
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\start-db.ps1
 ```
 
-The guarded `performance/sql/50_enable_pg_stat_statements.sql` creates the extension only when the database is exactly `student_job_recommendation_perf`, the user is `perf_user`, Flyway V12 is present, and the preload library is active.
+The guarded `performance/sql/50_enable_pg_stat_statements.sql` creates the extension only when the database is exactly `student_job_recommendation_perf`, the user is `perf_user`, Flyway V14 is present, and the preload library is active.
 
 Stop all k6 runs, then capture one endpoint request at a time:
 
@@ -299,6 +299,62 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\co
 
 It records the Git state, Java/Spring/PostgreSQL/Flyway/Docker/k6 versions, the validated k6 runner kind and pinned Docker image when applicable, OS/CPU/RAM, guarded database identity and row counts, timestamp, and canonical endpoint parameters. It does not collect a host name, operating-system user, password, JDBC secret, or token.
 
+## Optimized branch remeasurement
+
+The optimized launcher measures five workloads:
+
+- `GET /api/jobs?page=1&size=20`
+- `GET /api/companies/me/applications?page=1&size=20&sort=appliedAt,desc`
+- `GET /api/public/companies?page=1&size=20&sort=createdAt,desc`
+- `GET /api/students/me/saved-jobs?page=1&size=20`
+- `GET /api/students/me/recommendation-runs`
+
+The recommendation history is seeded directly: the canonical student has 20 ordered runs and 40 results distributed across runs with zero, one, and multiple results. The fixture never calls the AI service.
+
+Run three independent 10-VU × 10,000-iteration measurements:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\run-optimized-benchmark.ps1 `
+  -IndependentRuns 3 `
+  -WarmupIterations 20 `
+  -Vus 10 `
+  -Iterations 10000 `
+  -ResultDirectory performance/results/optimized/<timestamp>-<git-sha>
+```
+
+For every endpoint in every run, the launcher:
+
+1. obtains authentication tokens before measurement;
+2. performs a separate 1-VU warm-up;
+3. resets `pg_stat_statements` immediately before the measured k6 process;
+4. writes normalized and raw k6 summaries;
+5. captures classified top PostgreSQL statements and SQL calls/request.
+
+After isolated query-count and EXPLAIN capture, create the consolidated machine-readable and Markdown summaries:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\performance\scripts\summarize-optimized-results.ps1 `
+  -ResultDirectory performance/results/optimized/<timestamp>-<git-sha>
+```
+
+The optimized result layout is:
+
+```text
+performance/results/optimized/<timestamp>-<git-sha>/
+  metadata.json
+  benchmark-manifest.json
+  query-count/
+  explain/
+  run-01/k6/<endpoint>/
+    summary.json
+    raw-summary.json
+    pg-stat-statements.json
+  run-02/
+  run-03/
+  summary.json
+  summary.md
+```
+
 ## Phase B2 finalized baseline
 
 The valid baseline directory is:
@@ -342,9 +398,12 @@ Do not rerun these 10,000-request workloads merely to read or validate the final
 | `saved_jobs` | 20,000 |
 | `cv_files` | 1,200 |
 | `applications` | 50,000 |
-| `recommendation_runs` | 0 |
-| `recommendation_results` | 0 |
+| `recommendation_runs` | 20 |
+| `recommendation_results` | 40 |
 | `notifications` | 0 |
+| `user_notification_settings` | 0 |
+| `saved_candidates` | 0 |
+| `saved_searches` | 0 |
 
 Important deterministic distributions:
 
@@ -354,13 +413,14 @@ Important deterministic distributions:
 - Exactly 20 saved jobs and 50 applications per student.
 - Exactly 40,000 applications reference a CV belonging to the same student.
 - Company ID 1 owns exactly 5,000 applications and is represented by `perf.company.001@example.test`.
+- Student ID 1 has exactly 20 recommendation runs and 40 deterministic recommendation results, including runs with 0, 1, and multiple results.
 
 ## Safety guarantees
 
 - Server-side SQL checks run before every reset, seed, verification, and analyze operation.
 - The database must be exactly `student_job_recommendation_perf`.
 - The database user must be exactly `perf_user`.
-- Successful Flyway V12 and all required application tables must exist.
+- Successful Flyway V14 and all required application tables must exist.
 - Reset preserves `flyway_schema_history` and all schema objects.
 - Seed refuses to run unless application tables are empty.
 - Scripts never address port 5432 or the normal development Compose project.
@@ -413,7 +473,7 @@ Stop it. Use only `performance/scripts/start-backend.ps1`, which forces `SPRING_
 
 ### Existing volume has incompatible credentials or schema
 
-Delete only the dedicated performance volume, restart PostgreSQL, start the backend to apply Flyway V1-V12, and seed again.
+Delete only the dedicated performance volume, restart PostgreSQL, start the backend to apply Flyway V1-V14, and seed again.
 
 ### SQL script stops during seed
 

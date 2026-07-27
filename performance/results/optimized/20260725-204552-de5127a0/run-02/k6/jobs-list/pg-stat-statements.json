@@ -1,0 +1,79 @@
+﻿{
+    "endpoint":  "jobs-list",
+    "measuredRequests":  10000,
+    "resetImmediatelyBeforeMeasuredPhase":  true,
+    "measuredStartedAtUtc":  "2026-07-25T14:01:28.2908207Z",
+    "measuredCompletedAtUtc":  "2026-07-25T14:02:09.8154569Z",
+    "sqlCallsPerRequest":  6,
+    "jwtUserLookupCallsPerRequest":  1,
+    "transactionControlCallsPerRequest":  2,
+    "serviceSqlCallsPerRequest":  3,
+    "queryStatistics":  {
+                            "totalRows":  1220000,
+                            "sharedBlockHits":  14210000,
+                            "sharedBlockReads":  0,
+                            "totalExecutionMs":  92508.573,
+                            "serviceStatements":  30000,
+                            "totalSqlStatements":  60000,
+                            "jwtUserLookupStatements":  10000,
+                            "uniqueNormalizedStatements":  5,
+                            "transactionControlStatements":  20000
+                        },
+    "statements":  [
+                       {
+                           "rows":  200000,
+                           "calls":  10000,
+                           "query_id":  "253051612140265146",
+                           "normalized_sql":  "select j1_0.id,j1_0.benefits,j1_0.closed_at,j1_0.company_id,c1_0.id,c1_0.address,c1_0.company_name,c1_0.company_size,c1_0.created_at,c1_0.description,c1_0.industry,c1_0.logo_url,c1_0.phone,c1_0.status,c1_0.tax_code,c1_0.updated_at,c1_0.user_id,c1_0.website_url,j1_0.created_at,j1_0.currency,j1_0.deadline,j1_0.description,j1_0.job_type,j1_0.location,j1_0.published_at,j1_0.requirements,j1_0.salary_max,j1_0.salary_min,j1_0.status,j1_0.title,j1_0.updated_at,j1_0.working_model from jobs j1_0 join companies c1_0 on c1_0.id=j1_0.company_id where j1_0.status=$1 order by j1_0.created_at desc offset $2 rows fetch first $3 rows only",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  7.354,
+                           "shared_block_hits":  5970000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  73540.675
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "5143876846033498219",
+                           "normalized_sql":  "select count(j1_0.id) from jobs j1_0 where j1_0.status=$1",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  1.113,
+                           "shared_block_hits":  5920000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  11132.806
+                       },
+                       {
+                           "rows":  1000000,
+                           "calls":  10000,
+                           "query_id":  "-1503542367266258878",
+                           "normalized_sql":  "select js1_0.id,js1_0.created_at,js1_0.importance,js1_0.job_id,j2_0.id,j2_0.benefits,j2_0.closed_at,j2_0.company_id,j2_0.created_at,j2_0.currency,j2_0.deadline,j2_0.description,j2_0.job_type,j2_0.location,j2_0.published_at,j2_0.requirements,j2_0.salary_max,j2_0.salary_min,j2_0.status,j2_0.title,j2_0.updated_at,j2_0.working_model,js1_0.min_level,js1_0.skill_id,s1_0.id,s1_0.category,s1_0.created_at,s1_0.description,s1_0.name,s1_0.normalized_name,s1_0.updated_at,js1_0.updated_at from job_skills js1_0 join jobs j1_0 on j1_0.id=js1_0.job_id join jobs j2_0 on j2_0.id=js1_0.job_id join skills s1_0 on s1_0.id=js1_0.skill_id where j1_0.id in ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) order by j1_0.id,js1_0.id",
+                           "statement_class":  "service",
+                           "mean_execution_ms":  0.745,
+                           "shared_block_hits":  2290000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  7449.200
+                       },
+                       {
+                           "rows":  10000,
+                           "calls":  10000,
+                           "query_id":  "-4313940598091379112",
+                           "normalized_sql":  "select u1_0.id,u1_0.created_at,u1_0.email,u1_0.full_name,u1_0.last_login_at,u1_0.password_hash,u1_0.phone,u1_0.role,u1_0.status,u1_0.updated_at from users u1_0 where u1_0.email=$1",
+                           "statement_class":  "jwt_user_lookup",
+                           "mean_execution_ms":  0.023,
+                           "shared_block_hits":  30000,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  228.522
+                       },
+                       {
+                           "rows":  0,
+                           "calls":  20000,
+                           "query_id":  "2869606018209600839",
+                           "normalized_sql":  "BEGIN READ ONLY",
+                           "statement_class":  "transaction_control",
+                           "mean_execution_ms":  0.008,
+                           "shared_block_hits":  0,
+                           "shared_block_reads":  0,
+                           "total_execution_ms":  157.370
+                       }
+                   ]
+}

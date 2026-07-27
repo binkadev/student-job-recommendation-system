@@ -268,12 +268,12 @@ function Test-GrafanaK6ImageReference {
 
 function Get-IsolationDockerExecutable {
     try {
-        $command = Get-Command docker -CommandType Application -ErrorAction Stop
+        $command = Get-Command docker -CommandType Application -ErrorAction Stop | Select-Object -First 1
     }
     catch {
         throw "Docker cannot be resolved as an executable; isolation cannot be proven: $($_.Exception.Message)"
     }
-    return $command.Source
+    return [string]$command.Source
 }
 
 function Get-RunningDockerContainers {

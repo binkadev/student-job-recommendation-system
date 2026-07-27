@@ -1,0 +1,82 @@
+﻿{
+    "testTimestamp":  "2026-07-25T13:58:08.7609932Z",
+    "git":  {
+                "sha":  "de5127a0ada0e02d78eb970c0e51c3aa8ce2cfe4",
+                "branch":  "perf/remove-query-fanout",
+                "state":  "dirty"
+            },
+    "runtime":  {
+                    "java":  "openjdk version \"21.0.11\" 2026-04-21 LTS OpenJDK Runtime Environment Microsoft-13877171 (build 21.0.11+10-LTS) OpenJDK 64-Bit Server VM Microsoft-13877171 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                    "springBoot":  "3.5.16",
+                    "docker":  "client=29.5.3; server=29.5.3",
+                    "dockerCompose":  "5.1.4",
+                    "k6":  "k6.exe v2.1.0 (commit/83a87a41e2, go1.26.4, windows/amd64)",
+                    "k6Runner":  "native",
+                    "k6DockerImage":  null
+                },
+    "host":  {
+                 "operatingSystem":  "Microsoft Windows 11 Home 10.0.26200",
+                 "cpuModel":  "12th Gen Intel(R) Core(TM) i7-12700H",
+                 "logicalCpuCount":  20,
+                 "totalRamBytes":  34070847488
+             },
+    "database":  {
+                     "user":  "perf_user",
+                     "database":  "student_job_recommendation_perf",
+                     "rowCounts":  {
+                                       "jobs":  10000,
+                                       "users":  1101,
+                                       "skills":  250,
+                                       "cv_files":  1200,
+                                       "students":  1000,
+                                       "companies":  100,
+                                       "job_skills":  50000,
+                                       "saved_jobs":  20000,
+                                       "applications":  50000,
+                                       "notifications":  0,
+                                       "saved_searches":  0,
+                                       "student_skills":  8000,
+                                       "saved_candidates":  0,
+                                       "student_profiles":  1000,
+                                       "recommendation_runs":  20,
+                                       "recommendation_results":  40,
+                                       "user_notification_settings":  0
+                                   },
+                     "postgresVersion":  "17.10 (Debian 17.10-1.pgdg13+1)",
+                     "latestFlywayMigration":  14
+                 },
+    "baseUrl":  "http://localhost:8080",
+    "endpoints":  [
+                      {
+                          "name":  "jobs-list",
+                          "method":  "GET",
+                          "path":  "/api/jobs?page=1\u0026size=20",
+                          "authentication":  "STUDENT"
+                      },
+                      {
+                          "name":  "company-applications",
+                          "method":  "GET",
+                          "path":  "/api/companies/me/applications?page=1\u0026size=20\u0026sort=appliedAt,desc",
+                          "authentication":  "COMPANY"
+                      },
+                      {
+                          "name":  "public-companies",
+                          "method":  "GET",
+                          "path":  "/api/public/companies?page=1\u0026size=20\u0026sort=createdAt,desc",
+                          "authentication":  "none"
+                      },
+                      {
+                          "name":  "saved-jobs",
+                          "method":  "GET",
+                          "path":  "/api/students/me/saved-jobs?page=1\u0026size=20",
+                          "authentication":  "STUDENT"
+                      },
+                      {
+                          "name":  "recommendation-runs",
+                          "method":  "GET",
+                          "path":  "/api/students/me/recommendation-runs",
+                          "authentication":  "STUDENT"
+                      }
+                  ],
+    "phase":  "optimized branch HTTP end-to-end remeasurement"
+}

@@ -13,8 +13,8 @@ public class AiRecommendationRequestMapper {
     public AiRecommendationRequest toRequest(
             UUID requestId,
             Long cvId,
-            String processedText,
-            List<String> normalizedStudentSkills,
+            String text,
+            List<String> extractedSkills,
             List<AiRecommendationRequest.JobInput> jobs,
             BigDecimal threshold,
             Integer limit
@@ -23,8 +23,8 @@ public class AiRecommendationRequestMapper {
                 requestId,
                 new AiRecommendationRequest.CvInput(
                         cvId,
-                        processedText,
-                        List.copyOf(normalizedStudentSkills)
+                        text,
+                        List.copyOf(extractedSkills)
                 ),
                 List.copyOf(jobs),
                 threshold,

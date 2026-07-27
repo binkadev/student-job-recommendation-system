@@ -44,7 +44,7 @@ public class RestAiServiceClient implements AiServiceClient {
 
         try {
             return restClient.post()
-                    .uri("/internal/v1/cv/parse")
+                    .uri("/internal/v2/cv/parse")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -58,7 +58,7 @@ public class RestAiServiceClient implements AiServiceClient {
     public AiRecommendationResponse recommend(AiRecommendationRequest request) {
         try {
             return restClient.post()
-                    .uri("/internal/v1/recommendations")
+                    .uri("/internal/v2/recommendations")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()

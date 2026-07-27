@@ -67,18 +67,20 @@ CV file endpoints preview inline by default. Add `?download=true` to request an 
 
 Spring Boot is the system of record. It owns JWT and role checks, CV/student ownership, PostgreSQL and Flyway access, eligible-job filtering, transaction boundaries, recommendation run state, result persistence, and public API errors. The separate AI service is stateless computation; it receives neither a user's JWT nor database credentials and must not read or write the Spring Boot database.
 
-Configure the synchronous AI client with environment variables:
+Configure the synchronous AI client and the metadata used when an eligible job corpus is empty:
 
 ```powershell
 $env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
 $env:APP_AI_SERVICE_CONNECT_TIMEOUT="2s"
 $env:APP_AI_SERVICE_READ_TIMEOUT="15s"
+$env:APP_AI_RECOMMENDATION_ALGORITHM="tfidf-cosine-hybrid"
+$env:APP_AI_RECOMMENDATION_ALGORITHM_VERSION="bilingual-recommendation-v2"
 ```
 
-These values are optional; the shown values are the safe local defaults. Start the local AI service on port `8000`, then run Spring Boot normally with the `dev` profile. The backend calls:
+These values are optional; the shown values are the local defaults. Contract V2 calls:
 
-- `POST /internal/v1/cv/parse` as multipart form data with field `file`.
-- `POST /internal/v1/recommendations` as typed JSON containing one CV and the backend-filtered eligible job corpus.
+- `POST /internal/v2/cv/parse` as multipart form data with field `file`.
+- `POST /internal/v2/recommendations` as typed JSON containing one CV and the backend-filtered eligible job corpus.
 
 Public student endpoints:
 
@@ -87,10 +89,23 @@ Public student endpoints:
 - `POST /api/students/me/cv/{cvId}/reanalyze`
 - `POST /api/students/me/recommendations/generate`
 - `GET /api/students/me/recommendation-runs/{runId}`
+- `GET /api/students/me/recommendation-results/latest`
 
-Generation commits `PROCESSING`, waits for external computation without an open database transaction, then commits `SUCCESS` plus results or `FAILED` plus a sanitized message. Only `ACTIVE` jobs for `VERIFIED` companies with null, current, or future deadlines are submitted. Scores are validated from `0.0` through `1.0`.
+Each uploaded CV starts at `NOT_READY` with empty extracted skills and warnings. Reanalysis first commits `PROCESSING` and resets derived analysis, then reloads the original PDF/DOCX and calls AI without an open database transaction. A valid response is saved in a new transaction as `READY`; any transport, validation, file-load, or orchestration failure is saved in a separate transaction as `FAILED` with cleared derived data and a sanitized message. `extractedText` from an older analysis may remain while processing, but it is invalid unless the status is `READY`.
 
-The existing skill schema has a source but no CV reference, so reanalysis preserves all current student skills and does not persist parser skill candidates. Historical recommendation runs retain the CV foreign key but not an immutable snapshot of CV text, skills, job documents, algorithm metadata, missing skills, or reasons.
+Parsed skills belong to the selected CV and are stored in `cv_files.extracted_skills`. They neither replace nor fall back to `student_skills`. The AI service owns canonical and semantic alias mapping; the backend only trims, lowercases, collapses whitespace, removes duplicates, sorts, validates limits, and persists the canonical strings returned by AI. For example, equivalence between `học máy`/`hoc may`/`machine learning`, `K8s`/`Kubernetes`, and `SpringBoot`/`spring-boot`/`Spring Boot` must be tested and implemented by the AI service.
+
+The extracted-data PATCH remains for compatibility but is intentionally unsupported in the MVP. Authentication and CV ownership are checked first; an owned CV returns `501 FEATURE_NOT_SUPPORTED` and no text is changed. Reanalysis always reads the original uploaded file, so a manually edited text value would otherwise be overwritten.
+
+Recommendation generation accepts only a `READY` CV with non-blank extracted and processed text. Contract V2 sends the original extracted CV text and that CV's extracted skills. Only `ACTIVE` jobs for `VERIFIED` companies with null, current, or future deadlines are submitted, using a fixed `TITLE`/`DESCRIPTION`/`REQUIREMENTS`/`SKILLS` document. AI V2 does not return rank: the backend rejects any score below the requested threshold, sorts valid results by `score DESC` then `jobId ASC`, assigns continuous `rankPosition` values, and persists full algorithm, component-score, strategy, matched/missing-skill, and reason metadata. `SAME_LANGUAGE_HYBRID` requires `textScore`; `CROSS_LANGUAGE_SKILL_BASED` requires it to be null. `matchedKeywords` remains the public field name and semantically means matched skills.
+
+An empty eligible corpus still creates a successful run, uses the configured algorithm metadata, records zero jobs scanned and zero recommendations, and does not call AI. The latest-results endpoint selects the latest `SUCCESS` run in the database, so newer `FAILED` or `PROCESSING` runs do not hide the last successful results.
+
+The V2 backend must not be merged or deployed before AI V2 is available. Release order is: add V2 while retaining V1 in the AI service, deploy AI, verify `/health` and V2 fixtures, deploy this backend, then run end-to-end regression. The legacy `/internal/v1` contract is not redefined by this backend change.
+
+Known MVP limitations: no manual extracted-text editing, semantic alias dictionary, Vietnamese NLP, OCR, embeddings, or message queue in the backend. Historical runs keep their persisted result metadata and CV reference, but not immutable snapshots of the source file, CV/job documents, or eligible corpus.
+
+Deferred P1 TODOs, not implemented in this PR: semantic subset/disjoint validation for matched and missing skills; concurrent reanalysis protection with a row lock, `PROCESSING` rejection, or `analysisAttemptId`; job-skill `importance`/`minLevel` in a later AI contract; and internal service authentication for production.
 
 ## Demo Accounts
 
@@ -134,6 +149,7 @@ Additional backend endpoints for frontend integration:
 
 - Public: `GET /api/public/companies`, `GET /api/public/companies/{id}`
 - Public jobs: `GET /api/public/jobs`, `GET /api/public/jobs/{jobId}`
+- Public statistics: `GET /api/public/statistics`
 - Admin users: `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PATCH /api/admin/users/{id}/status`
 - Admin companies: `GET /api/admin/companies`, `GET /api/admin/companies/{id}`, `PATCH /api/admin/companies/{id}/status`
 - Company applications: `GET /api/companies/me/applications`, `GET /api/companies/me/applications/{id}`

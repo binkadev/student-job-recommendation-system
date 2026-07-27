@@ -13,9 +13,16 @@ EXPLAIN (
 )
 SELECT
   a.id, a.student_id, a.job_id, a.cv_file_id, a.status, a.cover_letter,
-  a.applied_at, a.reviewed_at, a.created_at, a.updated_at
+  a.applied_at, a.reviewed_at, a.created_at, a.updated_at,
+  s.id, u.id, u.full_name, u.email,
+  j.id, j.title, c.id, c.company_name,
+  cv.id, cv.file_name
 FROM applications AS a
 JOIN jobs AS j ON j.id = a.job_id
+LEFT JOIN students AS s ON s.id = a.student_id
+LEFT JOIN users AS u ON u.id = s.user_id
+LEFT JOIN companies AS c ON c.id = j.company_id
+LEFT JOIN cv_files AS cv ON cv.id = a.cv_file_id
 WHERE j.company_id = 1
 ORDER BY a.applied_at DESC
 OFFSET 0 ROWS FETCH FIRST 20 ROWS ONLY;
@@ -42,12 +49,9 @@ EXPLAIN (
   FORMAT JSON
 )
 SELECT
-  j.id, j.company_id, j.title, j.description, j.requirements, j.benefits,
-  j.location, j.job_type, j.working_model, j.status, j.salary_min,
-  j.salary_max, j.currency, j.deadline, j.published_at, j.closed_at,
-  j.created_at, j.updated_at
-FROM jobs AS j
-WHERE j.id = 30;
+  c.id, c.user_id, c.company_name, c.status
+FROM companies AS c
+WHERE c.user_id = 1002;
 \echo __PLAN_secondary_END__
 
 ROLLBACK;

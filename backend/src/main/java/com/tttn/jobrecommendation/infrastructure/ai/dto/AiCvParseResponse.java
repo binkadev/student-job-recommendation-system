@@ -5,6 +5,10 @@ import java.util.List;
 public record AiCvParseResponse(
         String rawText,
         String processedText,
-        List<String> skills
+        List<String> skills,
+        String languageCode,
+        Double languageConfidence,
+        String processingVersion,
+        List<String> warnings
 ) {
 }

@@ -283,3 +283,40 @@ performance/results/baseline/20260722-203311-680bd870-native/
 ## 15. Interview-ready engineering summary
 
 I built a reproducible baseline by tying three identical 10-VU × 10,000-request k6 runs to a fixed Git SHA, deterministic PostgreSQL dataset, isolated `pg_stat_statements` captures, and read-only JSON EXPLAIN plans. All 90,000 measured requests were correct, with no failures or dropped work. The authenticated endpoints were slower than the public control, but the database plans were buffer-resident and individually fast. Runtime SQL evidence exposed the actual issue: ORM mapping fan-out caused 66 SQL calls for Jobs and 53 for Company applications, versus four for Public companies. That distinction prevented a speculative indexing change. The first optimization should batch the Jobs page dependencies without changing the API or pagination, then compare SQL calls, official three-run median tails and throughput, database time/buffers, correctness, and response invariants against this baseline.
+
+## 16. Optimized branch HTTP remeasurement
+
+This section adds new evidence without changing the V12 baseline above.
+
+- Result directory: `performance/results/optimized/20260725-204552-de5127a0/`
+- Commit: `de5127a0ada0e02d78eb970c0e51c3aa8ce2cfe4`
+- Branch: `perf/remove-query-fanout`
+- Current schema: Flyway V14
+- Dataset: the original 1,000 students, 100 companies, 10,000 jobs, 50,000 applications, and 20,000 saved jobs, plus 20 directly seeded recommendation runs and 40 deterministic recommendation results
+- Workload: three independent runs, 10 VUs, 10,000 requests per endpoint and run
+- Isolation: each endpoint had a separate 20-request warm-up, followed by `pg_stat_statements_reset()` immediately before its measured phase
+- Correctness: 150,000 measured requests, zero HTTP failures, zero failed checks, and zero dropped iterations
+
+### Before/after medians
+
+| Endpoint | HTTP SQL before | HTTP SQL after | Service SQL after | p50 before | p50 after | p95 before | p95 after | p99 before | p99 after | throughput before | throughput after |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Jobs | 66 | 6 | 3 | 71.7433 ms | 20.32455 ms | 81.305875 ms | 28.300195 ms | 88.773907 ms | 37.759361 ms | 117.731937 req/s | 238.627842 req/s |
+| Company applications | 53 | 6 | 3 | 53.88745 ms | 26.4992 ms | 63.21744 ms | 34.5256 ms | 70.22372 ms | 44.924657 ms | 160.286052 req/s | 257.491861 req/s |
+| Public companies | 4 | 4 | 3 | 7.0605 ms | 8.5187 ms | 8.6116 ms | 11.857665 ms | 9.596142 ms | 14.286153 ms | 700.343658 req/s | 590.274432 req/s |
+| Saved jobs | not previously captured at HTTP scope | 6 | 3 | n/a | 10.85345 ms | n/a | 14.387205 ms | n/a | 16.777607 ms | n/a | 661.501959 req/s |
+| Recommendation runs | not previously captured at HTTP scope | 6 | 3 | n/a | 10.2538 ms | n/a | 13.03375 ms | n/a | 15.264561 ms | n/a | 690.483567 req/s |
+
+Jobs dropped from 66 to 6 total HTTP SQL calls: one JWT/security lookup, two transaction-control statements, and three bounded service statements. The three service statements are pageable content with company data, the count query, and one batched job-skill/skill query.
+
+The historical Company-applications baseline remains 53 SQL calls/request. The current branch measures 6 total/3 service calls, but this document does not attribute the full reduction to the performance branch because the application `EntityGraph` existed before it.
+
+Saved-jobs before evidence came from the integration test at 20 items: 27 service statements. Its current HTTP measurement is 6 total/3 service calls. Recommendation-runs previously followed `N + 2`; at 20 runs that is 22 service statements. Its current HTTP measurement is also 6 total/3 service calls due to one grouped aggregate.
+
+### Plan and attribution notes
+
+All 15 captured plans were buffer-resident (`shared read blocks = 0`). Important execution times were 5.638 ms for Jobs content, 2.476 ms for its batched skill query, 7.299 ms for Company-applications content, 0.254 ms for Saved-jobs content, 0.035 ms for Recommendation-run listing, and 0.057 ms for the grouped result-count aggregate. No index or cache change was made.
+
+Jobs median p50/p95/p99 improved by 71.67%/65.19%/57.47%, and throughput increased 102.69%. Company applications improved by 50.82%/45.39%/36.03%, with throughput up 60.65%. The unchanged Public-companies control regressed by 20.65%/37.69%/48.87%, with throughput down 15.72%; therefore latency causality should be interpreted cautiously because host/runtime variance or unrelated branch changes are visible even when query shape is unchanged.
+
+The raw k6 summaries, per-run top `pg_stat_statements`, isolated query classifications, JSON EXPLAIN plans, environment manifest, verification record, and consolidated machine-readable summary are all retained under the new optimized result directory.

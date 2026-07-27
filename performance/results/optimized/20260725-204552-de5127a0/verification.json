@@ -1,0 +1,35 @@
+﻿{
+    "capturedAtUtc":  "2026-07-25T14:09:00.6198745Z",
+    "wrapper":  {
+                    "command":  ".\\mvnw.cmd -B -ntp clean verify",
+                    "exitCode":  1,
+                    "error":  [
+                                  "icm : Cannot index into a null array.",
+                                  "Cannot start maven from wrapper"
+                              ]
+                },
+    "fallback":  {
+                     "maven":  "Apache Maven 3.9.12",
+                     "java":  "21.0.11",
+                     "command":  "cached Maven 3.9.12 -B -ntp clean verify",
+                     "exitCode":  0,
+                     "result":  "BUILD SUCCESS",
+                     "tests":  {
+                                   "reportFiles":  13,
+                                   "tests":  34,
+                                   "failures":  0,
+                                   "errors":  0,
+                                   "skipped":  0
+                               }
+                 },
+    "artifact":  {
+                     "file":  "backend-0.0.1-SNAPSHOT.jar",
+                     "bytes":  62901737,
+                     "sha256":  "8406a4565e37356508df0e8d1814e3f6436e68d727df5fa4b767065e0d2c266d"
+                 },
+    "backendStartup":  {
+                           "java17Attempt":  "failed as expected with UnsupportedClassVersionError (class 65 vs runtime max 61)",
+                           "measuredRuntime":  "Microsoft OpenJDK 21.0.11",
+                           "measuredBackendPid":  9008
+                       }
+}

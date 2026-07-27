@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.recommendation.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
@@ -64,7 +65,10 @@ public class RecommendationQueryServiceImpl implements RecommendationQueryServic
     @Transactional(readOnly = true)
     public List<RecommendationResultResponse> getLatestRecommendationResults(Long userId) {
         Student student = getStudentByUserId(userId);
-        return recommendationRunRepository.findFirstByStudentIdOrderByCreatedAtDesc(student.getId())
+        return recommendationRunRepository.findFirstByStudentIdAndStatusOrderByCreatedAtDescIdDesc(
+                        student.getId(),
+                        RecommendationRunStatus.SUCCESS
+                )
                 .map(this::getResultsByRun)
                 .orElse(List.of());
     }

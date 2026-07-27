@@ -53,3 +53,30 @@ Use these reviewed derivative files:
 - `evidence-manifest.md`: evidence selection, provenance limitations, and raw-artifact SHA-256 hashes.
 
 Raw run metadata and diagnostics retain a stale Phase B1 collector label and are not modified. The explicit `run-1`/`run-2`/`run-3` layout and their 10-VU × 10,000-request summaries establish the Phase B2 workload. Phase B1 smoke latency remains invalid as baseline evidence.
+
+## Optimized remeasurement layout
+
+Optimized branch evidence is written separately and never overwrites the official baseline:
+
+```text
+optimized/<timestamp>-<git-sha>/
+  metadata.json
+  benchmark-manifest.json
+  query-count/
+  explain/
+  run-01/
+    smoke/<endpoint>/
+    k6/<endpoint>/
+      console.txt
+      raw-summary.json
+      summary.json
+      pg-stat-statements.json
+  run-02/
+  run-03/
+  summary.json
+  summary.md
+```
+
+`raw-summary.json` is the native k6 summary export with `setup_data` removed immediately after k6 exits so authentication tokens are never retained. `summary.json` inside each endpoint directory is the handle-summary output. The root `summary.json` is the machine-readable three-run consolidation.
+
+Generated `optimized/*/` directories are ignored by default, just like generated baseline runs. They remain available locally and can be force-added only after evidence selection and a secret audit.

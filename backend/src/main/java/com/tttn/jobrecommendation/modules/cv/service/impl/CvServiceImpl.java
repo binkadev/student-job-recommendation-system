@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.cv.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
@@ -92,6 +93,14 @@ public class CvServiceImpl implements CvService {
                 .fileSize(file.getSize())
                 .extractedText(null)
                 .processedText(null)
+                .extractedSkills(List.of())
+                .analysisStatus(CvAnalysisStatus.NOT_READY)
+                .analysisError(null)
+                .languageCode(null)
+                .languageConfidence(null)
+                .processingVersion(null)
+                .analysisWarnings(List.of())
+                .analyzedAt(null)
                 .active(active)
                 .build();
 
