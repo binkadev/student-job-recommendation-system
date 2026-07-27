@@ -10,23 +10,31 @@ from v2.api import build_v2_runtime, create_v2_router
 from v2.constants import ALGORITHM_VERSION, PROCESSING_VERSION
 from v2.http_errors import install_v2_error_handlers
 
+
+LEGACY_V1_VERSION = "tfidf-cosine-v1"
+
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Job Recommendation AI Service",
-    description="Stateless AI compute engine — Integration Contract v1.0",
-    version="tfidf-cosine-v1",
+    title="Bilingual Job Recommendation AI Service",
+    description=(
+        "Stateless English/Vietnamese CV parsing and job recommendation "
+        "engine supporting internal Contracts V1 and V2."
+    ),
+    version=ALGORITHM_VERSION,
 )
 v2_runtime = build_v2_runtime()
 install_v2_error_handlers(app)
 
 # ---------------------------------------------------------------------------
-# Pydantic Schemas
+# Pydantic Schemas for the compatibility V1 contract
 # ---------------------------------------------------------------------------
 
+
 class CvPayload(BaseModel):
-    """CV data passed in from the Java orchestrator."""
+    """CV data passed in from the Java orchestrator through V1."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(gt=0, description="CV record ID — must be a positive integer")
@@ -35,32 +43,47 @@ class CvPayload(BaseModel):
 
 
 class JobDocument(BaseModel):
-    """A single job document supplied by the Java orchestrator."""
+    """A single V1 job document supplied by the Java orchestrator."""
+
     id: int
     processedText: str
     skills: List[str]
 
 
 class RecommendationRequest(BaseModel):
-    """Full request body for POST /internal/v1/recommendations."""
+    """Compatibility request body for POST /internal/v1/recommendations."""
+
     requestId: str
     cv: CvPayload
     jobs: List[JobDocument]
-    threshold: float = Field(default=0.1, ge=0.0, le=1.0, description="Minimum cosine similarity score [0.0, 1.0]")
-    limit: int = Field(default=20, ge=1, le=100, description="Maximum number of results [1, 100]")
+    threshold: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=1.0,
+        description="Minimum cosine similarity score [0.0, 1.0]",
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of results [1, 100]",
+    )
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @app.get("/health")
 def health_check():
-    """Liveness probe — returns static service metadata."""
+    """Liveness probe with legacy V1 and current bilingual V2 metadata."""
+
     return {
         "status": "ok",
         "service": "job-recommendation-ai",
-        "version": "tfidf-cosine-v1",
+        # Preserved for compatibility with V1 health consumers.
+        "version": LEGACY_V1_VERSION,
         "supportedContracts": ["v1", "v2"],
         "recommendationVersion": ALGORITHM_VERSION,
         "processingVersion": PROCESSING_VERSION,
@@ -70,9 +93,11 @@ def health_check():
 @app.post("/internal/v1/cv/parse")
 async def parse_cv(file: UploadFile = File(...)):
     """
-    Accept a PDF or DOCX CV file, extract raw text, run bilingual NLP
-    preprocessing, and return rawText, processedText, and a skills array.
+    Compatibility V1 route. Accept a PDF or DOCX CV file, extract raw text,
+    run the legacy bilingual preprocessing path, and return rawText,
+    processedText, and skills.
     """
+
     filename = (file.filename or "").lower()
     if not (filename.endswith(".pdf") or filename.endswith(".docx")):
         raise HTTPException(
@@ -82,15 +107,21 @@ async def parse_cv(file: UploadFile = File(...)):
 
     try:
         raw_text = await extractors.extract_text(file)
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File extraction failed: {e}")
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"File extraction failed: {error}",
+        ) from error
 
     if not raw_text or not raw_text.strip():
         raise HTTPException(
             status_code=400,
-            detail="No text could be extracted from the file. The file may be empty or image-based.",
+            detail=(
+                "No text could be extracted from the file. "
+                "The file may be empty or image-based."
+            ),
         )
 
     nlp_result = nlp_processor.process_cv_text(raw_text)
@@ -104,19 +135,16 @@ async def parse_cv(file: UploadFile = File(...)):
 
 @app.post("/internal/v1/recommendations")
 def get_recommendations(req: RecommendationRequest):
-    """
-    Accept pre-processed CV and job data from the Java orchestrator.
-    Return ranked recommendations using TF-IDF + Cosine Similarity.
-    """
-    # Fast-path: no jobs supplied — nothing to score
+    """Run the compatibility V1 TF-IDF recommendation behavior."""
+
     if not req.jobs:
         return {
             "requestId": req.requestId,
-            "algorithmVersion": "tfidf-cosine-v1",
+            "algorithmVersion": LEGACY_V1_VERSION,
             "results": [],
         }
 
-    jobs_as_dicts = [j.model_dump() for j in req.jobs]
+    jobs_as_dicts = [job.model_dump() for job in req.jobs]
 
     results = recommender.generate_recommendations(
         cv_processed_text=req.cv.processedText,
@@ -128,7 +156,7 @@ def get_recommendations(req: RecommendationRequest):
 
     return {
         "requestId": req.requestId,
-        "algorithmVersion": "tfidf-cosine-v1",
+        "algorithmVersion": LEGACY_V1_VERSION,
         "results": results,
     }
 
