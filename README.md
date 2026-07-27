@@ -12,8 +12,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Status](https://img.shields.io/badge/Trạng%20thái-MVP-orange)
 
-**Đồ án Thực tập Tốt nghiệp — Giai đoạn 02 — Nhóm C01**  
-Học viện Công nghệ Bưu chính Viễn thông
+**Phát triển bởi [Trần Hoàng Hải](https://github.com/binkadev)**
 
 </div>
 
@@ -23,9 +22,9 @@ Học viện Công nghệ Bưu chính Viễn thông
 
 - [Giới thiệu](#-giới-thiệu)
 - [Trạng thái hiện tại](#-trạng-thái-hiện-tại)
-- [Bài toán và đối tượng sử dụng](#-bài-toán-và-đối-tượng-sử-dụng)
+- [Đối tượng sử dụng](#-đối-tượng-sử-dụng)
 - [Chức năng chính](#-chức-năng-chính)
-- [Các quy tắc nghiệp vụ quan trọng](#-các-quy-tắc-nghiệp-vụ-quan-trọng)
+- [Quy tắc nghiệp vụ quan trọng](#-quy-tắc-nghiệp-vụ-quan-trọng)
 - [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
 - [Luồng phân tích CV](#-luồng-phân-tích-cv)
 - [Thuật toán gợi ý việc làm](#-thuật-toán-gợi-ý-việc-làm)
@@ -49,7 +48,7 @@ Học viện Công nghệ Bưu chính Viễn thông
 
 Dự án xây dựng một hệ thống Web hỗ trợ sinh viên Công nghệ Thông tin trong quá trình tìm kiếm và ứng tuyển việc làm. Hệ thống quản lý hồ sơ, kỹ năng, CV, việc làm, đơn ứng tuyển và sử dụng nội dung CV để đề xuất các công việc phù hợp.
 
-Khác với cách gợi ý chỉ dựa trên từ khóa đơn giản, hệ thống kết hợp:
+Hệ thống kết hợp:
 
 - nội dung văn bản của CV và tin tuyển dụng;
 - tập kỹ năng chuẩn hóa của CV và công việc;
@@ -79,15 +78,15 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 | Kiểm thử end-to-end toàn hệ thống | ⚠️ Chưa hoàn tất |
 | Đánh giá Precision@K / Recall@K / NDCG@K | ⚠️ Chưa thực hiện đầy đủ |
 
-> **Lưu ý:** Không được xem prototype frontend lịch sử là bằng chứng hệ thống đã tích hợp end-to-end. Các tuyên bố về giao diện phải được xác nhận lại bằng mã nguồn hiện có trên nhánh chuẩn và bằng chứng chạy thực tế.
+> **Lưu ý:** Prototype frontend lịch sử không phải bằng chứng hệ thống đã tích hợp end-to-end. Mọi tuyên bố về giao diện cần được xác nhận bằng source hiện có trên nhánh chuẩn và bằng chứng chạy thực tế.
 
 ---
 
-## 🎓 Bài toán và đối tượng sử dụng
+## 👥 Đối tượng sử dụng
 
 ### Sinh viên
 
-- Quản lý thông tin cá nhân, hồ sơ học tập và định hướng nghề nghiệp.
+- Quản lý thông tin cá nhân, hồ sơ và định hướng nghề nghiệp.
 - Quản lý kỹ năng và mức độ thành thạo.
 - Tải lên, xem, chọn CV active và yêu cầu phân tích lại CV.
 - Tìm kiếm, lưu, ứng tuyển và theo dõi trạng thái đơn ứng tuyển.
@@ -171,7 +170,7 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 
 ---
 
-## 📐 Các quy tắc nghiệp vụ quan trọng
+## 📐 Quy tắc nghiệp vụ quan trọng
 
 1. **Nguồn chuẩn:** `master` là nhánh tích hợp chính thức; branch cá nhân cũ không được dùng làm nguồn nghiệp vụ.
 2. **Phân quyền theo chủ sở hữu:** sinh viên chỉ thao tác dữ liệu của mình; doanh nghiệp chỉ thao tác công ty, job và application thuộc mình.
@@ -181,7 +180,7 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 6. **Điều kiện hiển thị public:** job phải `ACTIVE`, thuộc công ty `VERIFIED` và có deadline rỗng, hôm nay hoặc trong tương lai.
 7. **Xóa CV có bảo vệ:** CV đang được application hoặc dữ liệu nghiệp vụ tham chiếu trả về `409 CV_IN_USE`.
 8. **Saved Candidate:** doanh nghiệp lưu **ứng viên**, không phải lưu từng application. Unique constraint là `company_id + student_id`; `application_id` chỉ ghi nhận nguồn hồ sơ ban đầu.
-9. **Dữ liệu gợi ý theo CV:** recommendation chỉ dùng snapshot phân tích đã lưu của CV được chọn và có trạng thái `READY`; không fallback sang `student_skills`.
+9. **Dữ liệu gợi ý theo CV:** recommendation chỉ dùng phân tích đã lưu của CV được chọn và có trạng thái `READY`; không fallback sang `student_skills`.
 10. **AI call ngoài transaction:** Backend không giữ database transaction trong thời gian đọc file hoặc gọi AI Service.
 11. **Response AI phải được xác thực:** một kết quả sai contract làm toàn bộ run `FAILED`; không lưu kết quả một phần.
 12. **Backend sở hữu ranking:** AI không trả `rank` hoặc `rankPosition`; Backend sắp xếp và gán thứ hạng chính thức.
@@ -189,6 +188,8 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 14. **Chỉnh sửa extracted text:** endpoint tương thích vẫn tồn tại nhưng trả `501 FEATURE_NOT_SUPPORTED`; MVP không hỗ trợ sửa thủ công nội dung trích xuất.
 
 ### Định dạng response chung
+
+Thành công:
 
 ```json
 {
@@ -199,6 +200,8 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 }
 ```
 
+Thất bại:
+
 ```json
 {
   "success": false,
@@ -208,19 +211,7 @@ Nhánh tích hợp chuẩn của dự án là **`master`**. Mọi thay đổi m�
 }
 ```
 
-Các API phân trang dùng `page` bắt đầu từ **1**:
-
-```json
-{
-  "items": [],
-  "page": 1,
-  "size": 10,
-  "totalItems": 0,
-  "totalPages": 0
-}
-```
-
-Ngoại lệ duy nhất là response stream file CV thành công trả raw bytes; response lỗi của các endpoint này vẫn dùng envelope JSON chuẩn.
+Các API phân trang sử dụng `page` bắt đầu từ `1`.
 
 ---
 
@@ -228,122 +219,145 @@ Ngoại lệ duy nhất là response stream file CV thành công trả raw bytes
 
 ```mermaid
 flowchart LR
-    U[Người dùng] --> FE[Frontend / API Client]
-    FE -->|REST + JWT| BE[Spring Boot Backend]
-    BE -->|JPA / Hibernate| DB[(PostgreSQL 17)]
-    BE -->|Internal Contract V2| AI[FastAPI AI Service]
-    AI --> NLP[Language Detection\nPreprocessing\nSkill Canonicalization]
-    AI --> REC[TF-IDF\nCosine Similarity\nSkill Matching]
+    Client[Client / Frontend]
+    Backend[Spring Boot Backend]
+    DB[(PostgreSQL)]
+    AI[FastAPI AI Service]
 
-    subgraph Backend sở hữu
-      BE
-      DB
-    end
-
-    subgraph AI stateless
-      AI
-      NLP
-      REC
-    end
+    Client -->|REST + JWT| Backend
+    Backend -->|JPA / Flyway| DB
+    Backend -->|Internal Contract V2| AI
+    AI -->|Typed Response| Backend
 ```
 
-### Backend chịu trách nhiệm
+### Trách nhiệm của Backend
 
-- JWT authentication và role authorization.
-- Business rule, ownership và visibility.
-- PostgreSQL persistence và Flyway migration.
-- Quản lý file CV thông qua storage abstraction.
-- Lọc eligible job corpus.
-- Gọi AI Service, kiểm tra contract và chuẩn hóa lỗi.
-- Quản lý trạng thái recommendation run.
-- Sắp xếp, gán `rankPosition` và lưu kết quả.
+- Xác thực và phân quyền.
+- Nghiệp vụ sinh viên, doanh nghiệp, việc làm, application, CV và thông báo.
+- PostgreSQL, Flyway và transaction boundary.
+- Lọc tập việc làm hợp lệ trước khi gửi sang AI.
+- Gọi AI Service ngoài database transaction.
+- Kiểm tra toàn bộ response AI.
+- Sắp xếp, gán `rankPosition` và lưu recommendation.
+- Cung cấp public API contract cho client.
 
-### AI Service chịu trách nhiệm
+### Trách nhiệm của AI Service
 
-- Đọc nội dung PDF và DOCX.
-- Phát hiện tiếng Việt, tiếng Anh, mixed hoặc unknown.
-- Tiền xử lý văn bản theo ngôn ngữ.
-- Giữ các token kỹ thuật như `C++`, `C#`, `.NET`, `Node.js`, `CI/CD`.
-- Trích xuất và chuẩn hóa alias kỹ năng.
-- Tính `textScore`, `skillScore`, `score` và giải thích.
-
-AI Service **không**:
-
-- truy cập PostgreSQL;
-- nhận JWT người dùng;
-- quản lý quyền truy cập;
-- lưu recommendation run;
-- quyết định thứ hạng public chính thức.
+- Đọc file PDF và DOCX.
+- Phát hiện ngôn ngữ tiếng Việt, tiếng Anh, mixed hoặc unknown.
+- Tiền xử lý văn bản theo từng ngôn ngữ.
+- Chuẩn hóa alias và trích xuất kỹ năng.
+- Tính TF-IDF, Cosine Similarity và Skill Score.
+- Trả matched skills, missing skills và reason.
+- Không truy cập database.
+- Không nhận JWT người dùng.
+- Không lưu recommendation run.
+- Không quyết định thứ hạng chính thức.
 
 ---
 
 ## 📄 Luồng phân tích CV
 
+Upload và phân tích là hai bước riêng biệt.
+
 ```mermaid
-stateDiagram-v2
-    [*] --> NOT_READY: Upload PDF/DOCX
-    NOT_READY --> PROCESSING: POST /reanalyze
-    PROCESSING --> READY: AI response hợp lệ
-    PROCESSING --> FAILED: File/timeout/AI/contract lỗi
-    READY --> PROCESSING: Reanalyze lại
-    FAILED --> PROCESSING: Thử lại
+sequenceDiagram
+    actor Student
+    participant BE as Spring Boot Backend
+    participant DB as PostgreSQL
+    participant AI as FastAPI AI Service
+
+    Student->>BE: Upload PDF/DOCX
+    BE->>DB: Lưu metadata + NOT_READY
+    BE-->>Student: CV metadata
+
+    Student->>BE: POST /cv/{id}/reanalyze
+    BE->>DB: Commit PROCESSING + reset derived data
+    BE->>AI: POST /internal/v2/cv/parse
+    AI-->>BE: rawText, processedText, skills, language, warnings
+    alt Response hợp lệ
+        BE->>DB: Commit READY
+    else Lỗi file/timeout/invalid response
+        BE->>DB: Commit FAILED + sanitized error
+    end
+    BE-->>Student: Kết quả phân tích
 ```
 
-Quy trình chi tiết:
+Trạng thái:
 
-1. Sinh viên upload CV; Backend lưu file và metadata với trạng thái `NOT_READY`.
-2. Upload **không tự động gọi AI Service**.
-3. Khi gọi `POST /api/students/me/cv/{cvId}/reanalyze`, Backend kiểm tra ownership.
-4. Backend commit trạng thái `PROCESSING` và xóa dữ liệu phân tích cũ.
-5. Backend đọc lại file gốc và gửi multipart field `file` tới `POST /internal/v2/cv/parse`.
-6. AI Service kiểm tra file, trích xuất văn bản, phát hiện ngôn ngữ, tiền xử lý và trích xuất kỹ năng.
-7. Backend kiểm tra toàn bộ response.
-8. Response hợp lệ được lưu với trạng thái `READY`; lỗi được lưu độc lập với trạng thái `FAILED` và thông báo đã làm sạch.
+```text
+NOT_READY -> PROCESSING -> READY
+                        -> FAILED
+```
 
-Một CV chỉ được dùng tạo gợi ý khi:
+CV chỉ được dùng tạo gợi ý khi:
 
 - thuộc sinh viên hiện tại;
-- có trạng thái `READY`;
-- có `extractedText` và `processedText` không rỗng.
+- trạng thái đã lưu là `READY`;
+- `extractedText` và `processedText` không rỗng.
+
+Endpoint chỉnh sửa extracted data hiện trả:
+
+```text
+501 FEATURE_NOT_SUPPORTED
+```
+
+Reanalysis luôn đọc lại file PDF/DOCX gốc.
 
 ---
 
 ## 🧠 Thuật toán gợi ý việc làm
 
-### Contract hiện hành
+### Contract đang sử dụng
 
-- Endpoint phân tích: `POST /internal/v2/cv/parse`
-- Endpoint gợi ý: `POST /internal/v2/recommendations`
-- Algorithm: `tfidf-cosine-hybrid`
-- Algorithm version: `bilingual-recommendation-v2`
-- Processing version: `bilingual-nlp-v2-skills-v1`
+```text
+POST /internal/v2/cv/parse
+POST /internal/v2/recommendations
+```
 
-Contract V1 vẫn được giữ để tương thích và regression test, nhưng Backend hiện tại gọi Contract V2.
+Metadata hiện tại:
 
-### Dữ liệu đầu vào
+```text
+algorithm         = tfidf-cosine-hybrid
+algorithmVersion  = bilingual-recommendation-v2
+processingVersion = bilingual-nlp-v2-skills-v1
+```
 
-Backend gửi:
+V1 vẫn được giữ cho mục đích tương thích và regression, nhưng Backend hiện gọi V2.
 
-- `cv.text`: nội dung gốc đã trích xuất của CV, không phải `processedText`;
-- `cv.skills`: kỹ năng canonical của chính CV đó;
-- corpus job hợp lệ đã được Backend lọc;
-- nội dung job ghép theo thứ tự `TITLE`, `DESCRIPTION`, `REQUIREMENTS`, `SKILLS`;
-- `threshold` và `limit`.
+### Dữ liệu Backend gửi sang AI
 
-Backend không gửi JWT, mật khẩu, thông tin cá nhân không cần thiết hoặc quyền truy cập database cho AI Service.
+Backend chỉ gửi:
+
+- `requestId` UUID;
+- nội dung gốc đã trích xuất của CV;
+- kỹ năng canonical của chính CV đó;
+- tập job hợp lệ đã được Backend lọc;
+- `threshold`;
+- `limit`.
+
+Tập job hợp lệ gồm các job:
+
+- có trạng thái `ACTIVE`;
+- thuộc công ty `VERIFIED`;
+- deadline rỗng, hôm nay hoặc trong tương lai.
+
+JWT, database credential, salary, company identifier và dữ liệu riêng tư không được gửi sang AI Service.
 
 ### TF-IDF và Cosine Similarity
 
-- `TfidfVectorizer` được fit trên corpus các job trong request.
-- CV được transform vào cùng không gian vector.
-- Sử dụng unigram và bigram: `ngram_range=(1, 2)`.
-- Sử dụng sublinear term frequency.
-- Cosine Similarity tạo `textScore` trong khoảng `[0, 1]`.
+Trong chiến lược cùng ngôn ngữ:
 
-### Điểm kỹ năng
+1. AI tiền xử lý CV và từng job theo ngôn ngữ tương ứng.
+2. `TfidfVectorizer` được fit trên corpus job.
+3. CV được transform vào cùng không gian vector.
+4. Cấu hình sử dụng unigram/bigram và sublinear term frequency.
+5. Cosine Similarity tạo ra `textScore` trong khoảng `[0,1]`.
+
+### Skill Score
 
 ```text
-skillScore = |CVSkills ∩ JobSkills| / |JobSkills|
+skillScore = số kỹ năng job xuất hiện trong CV / tổng số kỹ năng của job
 ```
 
 Nếu job không khai báo kỹ năng:
@@ -354,67 +368,93 @@ skillScore = 0
 
 ### Chiến lược cùng ngôn ngữ
 
-Áp dụng cho English ↔ English hoặc Vietnamese ↔ Vietnamese khi độ tin cậy đủ cao:
-
 ```text
-scoringStrategy = SAME_LANGUAGE_HYBRID
-score = 0.65 × textScore + 0.35 × skillScore
+SAME_LANGUAGE_HYBRID
 ```
 
-Nếu job cùng ngôn ngữ nhưng không khai báo kỹ năng:
+Khi job có skills:
 
 ```text
-skillScore = 0
+score = 0.65 * textScore + 0.35 * skillScore
+```
+
+Khi job không có skills:
+
+```text
 score = textScore
 ```
 
 ### Chiến lược khác ngôn ngữ
 
-Áp dụng cho English ↔ Vietnamese, Vietnamese ↔ English, mixed hoặc confidence không đủ:
+```text
+CROSS_LANGUAGE_SKILL_BASED
+```
+
+Áp dụng khi CV và job khác ngôn ngữ hoặc confidence không đủ:
 
 ```text
-scoringStrategy = CROSS_LANGUAGE_SKILL_BASED
 textScore = null
 score = skillScore
 ```
 
 ### Quyền sở hữu thứ hạng
 
-AI Service có thể sắp xếp tạm để cắt theo `limit`, nhưng không trả `rank` hoặc `rankPosition`.
+AI trả:
 
-Backend thực hiện thứ hạng chính thức:
+- `jobId`;
+- `score`;
+- `textScore`;
+- `skillScore`;
+- `scoringStrategy`;
+- `matchedSkills`;
+- `missingSkills`;
+- `reason`.
 
-```text
-1. score giảm dần
-2. jobId tăng dần khi bằng điểm
-3. rankPosition liên tục từ 1
-```
+AI **không trả** `rank` hoặc `rankPosition`.
 
-Nếu eligible corpus rỗng, Backend không gọi AI; run vẫn hoàn thành `SUCCESS` với `totalJobsScanned = 0` và `results = []`.
+Sau khi toàn bộ response hợp lệ, Backend:
 
-Endpoint latest chỉ lấy lần chạy `SUCCESS` mới nhất. Một run `FAILED` hoặc `PROCESSING` mới hơn không che mất kết quả thành công gần nhất.
+1. sắp xếp `score DESC`;
+2. dùng `jobId ASC` để xử lý trường hợp bằng điểm;
+3. gán `rankPosition` liên tục từ `1`;
+4. lưu `recommendation_runs` và `recommendation_results`.
+
+Nếu một phần tử vi phạm contract, toàn bộ run được chuyển thành `FAILED` và không lưu kết quả một phần.
 
 ---
 
 ## 🛠 Công nghệ sử dụng
 
-| Lớp | Công nghệ | Vai trò |
-|---|---|---|
-| Backend | Java 21, Spring Boot 3.5.x | REST API và nghiệp vụ |
-| Security | Spring Security, JWT | Xác thực và phân quyền |
-| Persistence | Spring Data JPA, Hibernate | Truy cập dữ liệu |
-| Database | PostgreSQL 17 | Lưu trữ dữ liệu |
-| Migration | Flyway | Quản lý schema |
-| API Docs | Swagger / OpenAPI | Tài liệu và kiểm thử API |
-| Backend Test | JUnit, Spring Boot Test, Testcontainers | Unit và integration test |
-| AI Service | Python 3.11, FastAPI | CV parsing và recommendation |
-| AI Contract | Pydantic V2 | Strict validation |
-| NLP | underthesea | Tiền xử lý tiếng Việt |
-| Machine Learning | scikit-learn | TF-IDF và Cosine Similarity |
-| File Parsing | pdfplumber, python-docx | Đọc PDF và DOCX |
-| AI Test | pytest | Contract và regression test |
-| Performance | k6, pg_stat_statements | Benchmark và query-count evidence |
-| Local Infrastructure | Docker Compose | PostgreSQL development |
+### Backend
+
+- Java 21
+- Spring Boot 3.5.x
+- Spring Security + JWT
+- Spring Data JPA / Hibernate
+- Flyway
+- Maven
+- Swagger / OpenAPI
+- Testcontainers
+
+### AI Service
+
+- Python 3.11
+- FastAPI
+- Pydantic V2
+- scikit-learn
+- underthesea
+- pdfplumber
+- python-docx
+- pytest
+
+### Dữ liệu và công cụ
+
+- PostgreSQL 17
+- Docker Compose
+- Postman
+- k6
+- `pg_stat_statements`
+- GitHub Actions
 
 ---
 
@@ -422,19 +462,21 @@ Endpoint latest chỉ lấy lần chạy `SUCCESS` mới nhất. Một run `FAIL
 
 ```text
 student-job-recommendation-system/
-├── .github/workflows/
-│   └── backend-ci.yml
+├── .github/
+│   └── workflows/
+│       └── backend-ci.yml
 ├── ai-service/
 │   ├── main.py
 │   ├── v2/
-│   ├── tests/
 │   ├── resources/
+│   ├── tests/
 │   ├── requirements.in
 │   ├── requirements.lock
 │   └── README.md
 ├── backend/
-│   ├── src/main/java/com/tttn/jobrecommendation/
-│   ├── src/main/resources/db/migration/
+│   ├── src/main/java/
+│   ├── src/main/resources/
+│   │   └── db/migration/
 │   ├── src/test/
 │   ├── pom.xml
 │   └── README.md
@@ -442,12 +484,13 @@ student-job-recommendation-system/
 │   ├── api-contract.md
 │   └── postman-regression.md
 ├── frontend/
-│   └── code FE                  # placeholder rỗng trên master hiện tại
+│   └── code FE
 ├── performance/
 │   ├── config/
 │   ├── scripts/
 │   ├── sql/
 │   ├── results/
+│   ├── docker-compose.yml
 │   └── README.md
 ├── .env.example
 ├── AGENTS.md
@@ -455,7 +498,7 @@ student-job-recommendation-system/
 └── README.md
 ```
 
-> Prototype React/TypeScript/Vite lịch sử nằm trong PR #1 đã đóng và chưa được merge. Khi khôi phục frontend, chỉ nên lấy thư mục frontend vào một branch mới từ `master`, sau đó thay mock/localStorage bằng API thật và kiểm thử lại toàn bộ.
+> `frontend/` trên `master` hiện chưa chứa ứng dụng frontend chạy được. Prototype lịch sử nằm trong PR #1 đã đóng và chưa merge.
 
 ---
 
@@ -463,46 +506,27 @@ student-job-recommendation-system/
 
 ### Yêu cầu
 
-- Git
 - Java 21
 - Python 3.11
-- Docker Desktop hoặc Docker Engine có Compose v2
-- PowerShell trên Windows hoặc shell tương đương trên Linux/macOS
+- Docker Desktop hoặc Docker Engine có Compose
+- Git
+- PowerShell trên Windows hoặc shell tương đương
 
 ### 1. Clone repository
 
 ```bash
 git clone https://github.com/binkadev/student-job-recommendation-system.git
 cd student-job-recommendation-system
-git switch master
 ```
 
-### 2. Chuẩn bị biến môi trường
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Linux/macOS:
-
-```bash
-cp .env.example .env
-```
-
-Các thông tin trong `.env.example` chỉ dành cho môi trường local development.
-
-### 3. Khởi động PostgreSQL
-
-Tại thư mục gốc:
+### 2. Khởi động PostgreSQL
 
 ```powershell
 docker compose up -d postgres
 docker compose ps
 ```
 
-Mặc định:
+Giá trị development mặc định:
 
 | Thuộc tính | Giá trị |
 |---|---|
@@ -512,9 +536,9 @@ Mặc định:
 | Username | `postgres` |
 | Password | `123456` |
 
-### 4. Cài đặt và chạy AI Service
+Các giá trị trên chỉ dành cho môi trường local.
 
-Windows PowerShell:
+### 3. Khởi động AI Service
 
 ```powershell
 cd ai-service
@@ -526,60 +550,39 @@ python -m pip check
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Linux/macOS:
+AI Service:
 
-```bash
-cd ai-service
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```text
+Health:  http://localhost:8000/health
+OpenAPI: http://localhost:8000/docs
 ```
 
-Kiểm tra:
+### 4. Khởi động Backend
 
-- Health: `http://localhost:8000/health`
-- OpenAPI: `http://localhost:8000/docs`
-
-### 5. Chạy Backend
-
-Mở terminal mới:
+Mở terminal khác:
 
 ```powershell
 cd backend
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Linux/macOS:
+Backend:
 
-```bash
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```text
+Base URL:  http://localhost:8080
+Swagger:   http://localhost:8080/swagger-ui.html
+OpenAPI:   http://localhost:8080/v3/api-docs
 ```
 
-Backend development profile sẽ:
+Profile `dev` chạy demo seeder và chỉ tạo các dữ liệu còn thiếu.
 
-- kết nối PostgreSQL local;
-- chạy Flyway migration;
-- dùng `ddl-auto=validate`;
-- seed các tài khoản và dữ liệu demo còn thiếu;
-- không reset mật khẩu, role hoặc status đã tồn tại.
-
-Kiểm tra:
-
-- Backend: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-
-### 6. Dừng môi trường
+### 5. Dừng database
 
 ```powershell
 docker compose down
 ```
 
-Xóa cả volume dữ liệu local khi thật sự cần reset:
+Xóa cả volume local khi thực sự muốn reset toàn bộ dữ liệu:
 
 ```powershell
 docker compose down -v
@@ -587,9 +590,9 @@ docker compose down -v
 
 ---
 
-## 👤 Tài khoản demo
+## 🔑 Tài khoản demo
 
-Tất cả tài khoản demo development dùng mật khẩu:
+Tất cả tài khoản demo dùng mật khẩu:
 
 ```text
 123456
@@ -601,127 +604,181 @@ Tất cả tài khoản demo development dùng mật khẩu:
 | Sinh viên | `student@example.com` |
 | Doanh nghiệp | `company@example.com` |
 
-> Không sử dụng tài khoản hoặc mật khẩu demo trong môi trường thật.
+> Không sử dụng các tài khoản hoặc mật khẩu này trong production.
 
 ---
 
 ## ⚙ Cấu hình môi trường
 
-### Backend
+### PostgreSQL
 
-| Biến | Mặc định | Ý nghĩa |
-|---|---|---|
-| `SERVER_PORT` | `8080` | Cổng Backend |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/student_job_recommendation` | JDBC URL |
-| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database user |
-| `SPRING_DATASOURCE_PASSWORD` | `123456` | Database password local |
-| `APP_JWT_SECRET` | Development default | JWT signing secret — bắt buộc thay khi deploy |
-| `APP_JWT_EXPIRATION_MS` | `86400000` | Thời gian sống access token |
-| `APP_CV_UPLOAD_DIR` | `uploads/cvs` | Thư mục lưu CV |
-| `APP_CV_MAX_FILE_SIZE_BYTES` | `10485760` | Giới hạn file CV phía Backend |
-| `APP_AI_SERVICE_BASE_URL` | `http://localhost:8000` | URL AI Service |
-| `APP_AI_SERVICE_CONNECT_TIMEOUT` | `2s` | Connect timeout |
-| `APP_AI_SERVICE_READ_TIMEOUT` | `15s` | Read timeout |
-| `APP_AI_RECOMMENDATION_ALGORITHM` | `tfidf-cosine-hybrid` | Tên thuật toán lưu trong run |
-| `APP_AI_RECOMMENDATION_ALGORITHM_VERSION` | `bilingual-recommendation-v2` | Phiên bản thuật toán |
+```powershell
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/student_job_recommendation"
+$env:SPRING_DATASOURCE_USERNAME="postgres"
+$env:SPRING_DATASOURCE_PASSWORD="123456"
+```
 
-### AI Service
+### AI Client trong Backend
 
-| Biến | Mặc định | Ý nghĩa |
-|---|---|---|
-| `AI_CV_MAX_FILE_SIZE_BYTES` | `10485760` | Giới hạn file CV Contract V2 |
+```powershell
+$env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
+$env:APP_AI_SERVICE_CONNECT_TIMEOUT="2s"
+$env:APP_AI_SERVICE_READ_TIMEOUT="15s"
+$env:APP_AI_RECOMMENDATION_ALGORITHM="tfidf-cosine-hybrid"
+$env:APP_AI_RECOMMENDATION_ALGORITHM_VERSION="bilingual-recommendation-v2"
+```
 
-CORS hiện chỉ cho phép `http://localhost:3000` và `http://localhost:5173`; cần chuyển sang cấu hình bằng environment trước khi triển khai thực tế.
+### Giới hạn upload AI V2
+
+```powershell
+$env:AI_CV_MAX_FILE_SIZE_BYTES="10485760"
+```
+
+Mặc định là 10 MiB.
+
+### Lưu trữ CV
+
+```powershell
+$env:APP_CV_UPLOAD_DIR="C:\path\to\private\cv-storage"
+```
+
+Không commit `.env`, secret, upload runtime hoặc đường dẫn máy cá nhân.
 
 ---
 
-## 🔌 Tổng quan API
+## 🌐 Tổng quan API
 
-### Public và Auth
+### Public và xác thực
 
-| Phương thức | Endpoint | Chức năng |
-|---|---|---|
-| `POST` | `/api/auth/register` | Đăng ký STUDENT hoặc COMPANY |
-| `POST` | `/api/auth/login` | Đăng nhập và nhận JWT |
-| `GET` | `/api/auth/me` | Lấy người dùng hiện tại |
-| `PATCH` | `/api/users/me/password` | Đổi mật khẩu |
-| `GET` | `/api/public/jobs` | Danh sách việc làm public |
-| `GET` | `/api/public/jobs/{jobId}` | Chi tiết việc làm public |
-| `GET` | `/api/public/companies` | Danh sách công ty VERIFIED |
-| `GET` | `/api/public/companies/{id}` | Chi tiết công ty public |
-| `GET` | `/api/public/statistics` | Thống kê nền tảng |
+```text
+POST  /api/auth/register
+POST  /api/auth/login
+GET   /api/auth/me
+PATCH /api/users/me/password
+GET   /api/public/jobs
+GET   /api/public/jobs/{jobId}
+GET   /api/public/companies
+GET   /api/public/companies/{id}
+GET   /api/public/statistics
+```
 
 ### Sinh viên
 
-| Nhóm | Endpoint tiêu biểu |
-|---|---|
-| Hồ sơ | `/api/students/me`, `/api/students/me/profile` |
-| Kỹ năng | `/api/students/me/skills` |
-| CV | `/api/students/me/cv`, `/active`, `/{id}`, `/{id}/file`, `/{id}/analysis`, `/{id}/reanalyze` |
-| Việc làm đã lưu | `/api/students/me/saved-jobs` |
-| Bộ lọc đã lưu | `/api/students/me/saved-searches` |
-| Ứng tuyển | `/api/jobs/{jobId}/apply`, `/api/students/me/applications` |
-| Gợi ý | `/api/students/me/recommendations/generate`, `/recommendation-runs`, `/recommendation-results/latest` |
+```text
+GET   /api/students/me
+PUT   /api/students/me
+GET   /api/students/me/profile
+PUT   /api/students/me/profile
+GET   /api/students/me/skills
+PUT   /api/students/me/skills
+
+POST  /api/students/me/saved-jobs/{jobId}
+GET   /api/students/me/saved-jobs
+DELETE /api/students/me/saved-jobs/{jobId}
+
+GET   /api/students/me/saved-searches
+POST  /api/students/me/saved-searches
+PUT   /api/students/me/saved-searches/{savedSearchId}
+DELETE /api/students/me/saved-searches/{savedSearchId}
+
+POST  /api/students/me/cv
+GET   /api/students/me/cv
+GET   /api/students/me/cv/active
+GET   /api/students/me/cv/{cvId}
+GET   /api/students/me/cv/{cvId}/file
+PATCH /api/students/me/cv/{cvId}/active
+DELETE /api/students/me/cv/{cvId}
+GET   /api/students/me/cv/{cvId}/analysis
+POST  /api/students/me/cv/{cvId}/reanalyze
+
+POST  /api/jobs/{jobId}/apply
+GET   /api/students/me/applications
+GET   /api/students/me/applications/{id}
+
+POST  /api/students/me/recommendations/generate
+GET   /api/students/me/recommendation-runs
+GET   /api/students/me/recommendation-runs/{runId}
+GET   /api/students/me/recommendation-results/latest
+```
 
 ### Doanh nghiệp
 
-| Nhóm | Endpoint tiêu biểu |
-|---|---|
-| Hồ sơ công ty | `/api/companies/me` |
-| Việc làm | `/api/jobs`, `/api/jobs/{id}`, `/api/jobs/{id}/status` |
-| Ứng viên | `/api/companies/me/applications`, `/{applicationId}/cv/file` |
-| Lưu ứng viên | `/api/companies/me/saved-candidates` |
+```text
+GET   /api/companies/me
+PUT   /api/companies/me
+GET   /api/companies/me/applications
+GET   /api/companies/me/applications/{id}
+GET   /api/companies/me/applications/{applicationId}/cv/file
+GET   /api/companies/me/jobs/{jobId}/applications
+GET   /api/companies/me/saved-candidates
+POST  /api/companies/me/saved-candidates
+DELETE /api/companies/me/saved-candidates/{id}
+```
+
+### Việc làm, kỹ năng và ứng tuyển
+
+```text
+GET   /api/jobs
+GET   /api/jobs/{id}
+POST  /api/jobs
+PUT   /api/jobs/{id}
+PATCH /api/jobs/{id}/status
+DELETE /api/jobs/{id}
+PATCH /api/applications/{id}/status
+
+GET   /api/skills
+GET   /api/skills/{id}
+POST  /api/skills
+PUT   /api/skills/{id}
+```
 
 ### Quản trị viên
 
-| Nhóm | Endpoint tiêu biểu |
-|---|---|
-| Người dùng | `/api/admin/users`, `/api/admin/users/{id}/status` |
-| Công ty | `/api/admin/companies`, `/api/admin/companies/{id}/status` |
-| Ứng tuyển | `/api/admin/applications` |
-| Kỹ năng | `/api/skills` |
+```text
+GET   /api/admin/users
+GET   /api/admin/users/{id}
+PATCH /api/admin/users/{id}/status
+GET   /api/admin/companies
+GET   /api/admin/companies/{id}
+PATCH /api/admin/companies/{id}/status
+GET   /api/admin/applications
+GET   /api/admin/applications/{applicationId}
+```
 
-### AI Service nội bộ
+### Thông báo
 
-| Phương thức | Endpoint | Trạng thái |
-|---|---|---|
-| `GET` | `/health` | Health và metadata |
-| `POST` | `/internal/v1/cv/parse` | Tương thích V1 |
-| `POST` | `/internal/v1/recommendations` | Tương thích V1 |
-| `POST` | `/internal/v2/cv/parse` | Contract hiện hành |
-| `POST` | `/internal/v2/recommendations` | Contract hiện hành |
+```text
+GET   /api/notifications
+GET   /api/notifications/unread-count
+PATCH /api/notifications/{id}/read
+PATCH /api/notifications/read-all
+GET   /api/users/me/notification-settings
+PUT   /api/users/me/notification-settings
+```
 
-Chi tiết request, response, enum, validation, ownership và error code xem tại [`docs/api-contract.md`](docs/api-contract.md).
+Chi tiết request, response, enum, quyền truy cập và error code xem tại [`docs/api-contract.md`](docs/api-contract.md).
 
 ---
 
-## ✅ Kiểm thử và CI
+## 🧪 Kiểm thử và CI
 
-### Backend fast tests
+### Backend
+
+Fast test:
 
 ```powershell
 cd backend
 .\mvnw.cmd -B -ntp test
 ```
 
-### Backend full integration lifecycle
-
-Yêu cầu Docker để chạy PostgreSQL Testcontainers:
+Toàn bộ lifecycle với PostgreSQL integration test:
 
 ```powershell
 cd backend
 .\mvnw.cmd -B -ntp clean verify
 ```
 
-Quá trình này kiểm tra:
-
-- unit và API integration test;
-- PostgreSQL thật qua Testcontainers;
-- Flyway migration;
-- Hibernate schema validation;
-- ownership, security và error contract;
-- AI client bằng HTTP stub có kiểm soát;
-- recommendation persistence và ranking.
+`clean verify` sử dụng Testcontainers, chạy PostgreSQL 17, áp dụng Flyway migration và kiểm tra Hibernate mapping.
 
 ### AI Service
 
@@ -745,7 +802,7 @@ Bộ test bao phủ:
 - V1 regression;
 - sanitized HTTP errors.
 
-Kết quả được ghi nhận gần nhất khi merge Contract V2 song ngữ:
+Kết quả gần nhất được ghi nhận:
 
 ```text
 424 passed, 1 deprecation warning
@@ -773,7 +830,7 @@ Nguyên tắc quan trọng:
 - tách smoke correctness, query-count và load test;
 - không lưu JWT, mật khẩu hoặc secret trong kết quả.
 
-Các tối ưu đã loại bỏ query fan-out ở danh sách việc làm, application công ty, saved jobs và recommendation runs. Chi tiết cách tái lập và evidence xem tại [`performance/README.md`](performance/README.md).
+Các tối ưu đã loại bỏ query fan-out ở danh sách việc làm, application công ty, saved jobs và recommendation runs. Chi tiết xem tại [`performance/README.md`](performance/README.md).
 
 ---
 
@@ -846,19 +903,10 @@ Các tối ưu đã loại bỏ query fan-out ở danh sách việc làm, applic
 
 ---
 
-## 👥 Tác giả
+## 👤 Tác giả
 
-| Sinh viên | Mã sinh viên |
-|---|---|
-| **Đào Xuân Bảo** | `N22DCCN005` |
-| **Đỗ Thị Diễm Thi** | `N22DCCN079` |
-| **Trần Hoàng Hải** | `N22DCCN124` |
-
-- **Nhóm:** C01
-- **Giảng viên hướng dẫn:** Bùi Tiến Đức
-- **Đơn vị:** Học viện Công nghệ Bưu chính Viễn thông
-- **Giai đoạn báo cáo:** 02
-- **Thời gian:** Tháng 07/2026
+**Trần Hoàng Hải**  
+GitHub: [@binkadev](https://github.com/binkadev)
 
 ---
 
@@ -877,6 +925,6 @@ Các tối ưu đã loại bỏ query fan-out ở danh sách việc làm, applic
 
 <div align="center">
 
-**Dự án phục vụ mục đích học tập và nghiên cứu. Chưa sẵn sàng cho môi trường production nếu chưa xử lý đầy đủ các giới hạn bảo mật, hạ tầng và kiểm thử nêu trên.**
+**Dự án do Trần Hoàng Hải phát triển. Chưa sẵn sàng cho môi trường production nếu chưa xử lý đầy đủ các giới hạn bảo mật, hạ tầng và kiểm thử nêu trên.**
 
 </div>
