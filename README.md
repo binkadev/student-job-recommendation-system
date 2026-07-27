@@ -1,21 +1,22 @@
 # Student Job Recommendation System
 
-A graduation-project MVP for recommending IT jobs to students from CV content using Content-Based Filtering, bilingual text processing, TF-IDF, Cosine Similarity, and canonical skill matching.
+A graduation-project MVP for recommending IT jobs to students from CV content using Content-Based Filtering, bilingual English/Vietnamese text processing, TF-IDF, Cosine Similarity, and canonical skill matching.
 
-## Repository Status
+## Source of truth
 
-The canonical integration branch is `master`.
+The canonical integration branch is `master`. New work must start from the latest `master` and return through a reviewed pull request. Personal or legacy branches are not sources of domain behavior.
 
-This repository currently contains:
+## Repository status
 
-- `frontend/`: frontend UI currently implemented with mock data; full integration with the current Backend and AI contracts must still be verified
+The repository currently contains:
+
 - `backend/`: Java 21 and Spring Boot 3.5.x REST API
 - `ai-service/`: Python 3.11 and FastAPI bilingual CV/recommendation service
-- `docs/`: API contracts and regression documentation
+- `docs/`: API, database, ERD, and regression documentation
 - `performance/`: reproducible PostgreSQL/API benchmark tooling and evidence
-- `docker-compose.yml`: local PostgreSQL 17 development database
+- `docker-compose.yml`: PostgreSQL 17 for local development only
 
-The presence of frontend source does not by itself prove end-to-end integration. The original frontend PR explicitly described mock data and no Backend connection, so claims about completed frontend integration require current runtime evidence.
+The current `master` branch does not contain a buildable frontend package manifest and lockfile. Frontend work exists outside the verified master integration flow, so end-to-end frontend claims require a reviewed merge plus runtime evidence.
 
 ## Architecture
 
@@ -29,24 +30,24 @@ Spring Boot Backend
 PostgreSQL   FastAPI AI Service
 ```
 
-The backend is the system of record and owns authentication, authorization, business rules, database access, transactions, eligible-job filtering, AI orchestration, validation, ranking, and persistence.
+The backend is the system of record. It owns authentication, authorization, business rules, persistence, transactions, eligible-job filtering, AI orchestration, AI-response validation, deterministic ranking, and public API contracts.
 
-The AI Service is stateless and owns file extraction, bilingual NLP, canonical skill extraction, similarity scoring, and explanations. It does not access PostgreSQL and does not receive user JWTs.
+The AI Service is stateless. It owns PDF/DOCX text extraction, English/Vietnamese language detection and preprocessing, canonical skill extraction, TF-IDF/Cosine scoring, cross-language skill matching, and deterministic explanations. It never accesses PostgreSQL and never receives user JWTs.
 
 ## Recommendation Contract V2
 
-Internal endpoints:
+Current internal endpoints:
 
 - `POST /internal/v2/cv/parse`
 - `POST /internal/v2/recommendations`
+
+V1 endpoints remain only for compatibility and regression coverage.
 
 Current metadata:
 
 - Algorithm: `tfidf-cosine-hybrid`
 - Algorithm version: `bilingual-recommendation-v2`
 - Processing version: `bilingual-nlp-v2-skills-v1`
-
-Strategies:
 
 | CV and Job language | Strategy | Text score | Final score |
 |---|---|---:|---:|
@@ -56,11 +57,24 @@ Strategies:
 | Vietnamese ↔ English | `CROSS_LANGUAGE_SKILL_BASED` | `null` | `skillScore` |
 | Mixed or low-confidence pair | `CROSS_LANGUAGE_SKILL_BASED` | `null` | `skillScore` |
 
-When a same-language job has no declared skills, the final score is the text score alone.
+For same-language jobs without declared skills, the final score is `textScore`.
 
-AI returns no rank. The backend sorts by `score DESC`, then `jobId ASC`, and assigns continuous `rankPosition` values.
+AI does not return rank. The backend validates every result, rejects scores below the requested threshold, sorts by `score DESC` then `jobId ASC`, and assigns continuous `rankPosition` values.
 
-## Quick Start
+## Docker Compose scope
+
+The current root Compose file is database infrastructure only.
+
+| Component | Included in current Compose |
+|---|---|
+| PostgreSQL | Yes |
+| Spring Boot Backend | No |
+| FastAPI AI Service | No |
+| Frontend | No |
+
+A full-stack Compose deployment remains future work. Do not describe the current repository as fully containerized.
+
+## Quick start
 
 ### 1. Start PostgreSQL
 
@@ -77,6 +91,8 @@ Development defaults:
 - Username: `postgres`
 - Password: `123456`
 
+These values are local-development defaults only.
+
 ### 2. Start the AI Service
 
 ```powershell
@@ -84,20 +100,17 @@ cd ai-service
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --require-hashes -r requirements.lock
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+python -m pip check
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Health endpoint:
+Current bilingual health metadata:
 
 ```text
-http://localhost:8000/health
+GET http://localhost:8000/health/v2
 ```
 
-OpenAPI:
-
-```text
-http://localhost:8000/docs
-```
+Legacy-compatible health metadata remains at `GET /health`. OpenAPI is available at `http://localhost:8000/docs` for local development.
 
 ### 3. Start the Backend
 
@@ -106,54 +119,59 @@ cd backend
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Backend base URL:
+Backend base URL: `http://localhost:8080`
+
+Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+## CORS configuration
+
+Development origins default to:
 
 ```text
-http://localhost:8080
+http://localhost:3000,http://localhost:5173
 ```
 
-Swagger UI:
+Override them without editing source:
 
-```text
-http://localhost:8080/swagger-ui.html
+```powershell
+$env:APP_CORS_ALLOWED_ORIGINS="http://192.168.1.10:5173,https://demo.example.com"
+$env:APP_CORS_ALLOW_CREDENTIALS="false"
 ```
+
+Origins are trimmed and de-duplicated. Wildcard origin `*` is rejected when credentials are enabled. The application uses Bearer JWT, so credentials are disabled by default.
 
 ## Verification
 
-Backend fast tests:
+Backend:
 
 ```powershell
 cd backend
 .\mvnw.cmd -B -ntp test
-```
-
-Backend full PostgreSQL integration lifecycle:
-
-```powershell
-cd backend
 .\mvnw.cmd -B -ntp clean verify
 ```
 
-AI Service tests:
+AI Service:
 
 ```powershell
 cd ai-service
+python -m pip install --require-hashes -r requirements.lock
 python -m pip check
 python -m pytest
 ```
 
-## Main Business Areas
+GitHub Actions currently contains separate Backend and AI Service workflows. A Frontend workflow is intentionally not added until `master` contains a reviewed package manifest, lockfile, and executable scripts.
+
+## Main business areas
 
 - JWT authentication and role authorization
-- Student profile and skills
+- Student profile and confirmed skills
 - Company profile and job management
 - Application lifecycle
-- CV upload, streaming, active selection, analysis, and reanalysis
-- Public jobs, companies, and statistics
+- CV upload, file streaming, active selection, bilingual analysis, and reanalysis
+- Public jobs, companies, and platform statistics
 - Saved jobs, saved searches, and saved candidates
 - Notifications and notification settings
-- Bilingual CV parsing and job recommendation
-- Recommendation history, component scores, missing skills, and explanations
+- Recommendation generation, history, component scores, missing skills, and explanations
 - Admin management APIs
 
 ## Documentation
@@ -161,18 +179,20 @@ python -m pytest
 - Backend setup and behavior: [`backend/README.md`](backend/README.md)
 - AI Service setup and behavior: [`ai-service/README.md`](ai-service/README.md)
 - API contract: [`docs/api-contract.md`](docs/api-contract.md)
+- Database schema: [`docs/database-schema.md`](docs/database-schema.md)
+- DBML ERD source: [`docs/database-erd.dbml`](docs/database-erd.dbml)
 - Postman regression notes: [`docs/postman-regression.md`](docs/postman-regression.md)
-- Performance tooling: [`performance/README.md`](performance/README.md)
 - Contributor and agent rules: [`AGENTS.md`](AGENTS.md)
 
-## Current MVP Limitations
+## Current MVP limitations
 
 - No OCR for image-only CVs
-- No embeddings or vector database
-- No asynchronous processing queue
-- No production internal authentication between services
+- No embeddings, semantic vector model, or vector database
+- No asynchronous CV/recommendation queue
+- No production service-to-service authentication between Backend and AI
 - No immutable historical snapshot of the source CV/job corpus
 - No concurrent reanalysis attempt guard
 - No manual extracted-text editing
-- Frontend UI exists, but the original implementation uses mock data and current end-to-end integration is not yet proven
-- No frontend CI workflow is present
+- Job-skill importance and minimum proficiency are not yet included in AI V2 scoring
+- No full-stack Docker Compose
+- No verified frontend package and CI workflow on `master`
