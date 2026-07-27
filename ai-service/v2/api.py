@@ -30,6 +30,10 @@ from .skill_canonicalizer import (
 from .skill_extractor import SkillExtractor
 
 
+# Deprecated compatibility patch point used by older internal tests/extensions.
+# Production execution uses recommend_bilingual unless this alias is replaced.
+recommend_english = recommend_bilingual
+
 _MAX_FILE_SIZE_ENVIRONMENT_KEY = "AI_CV_MAX_FILE_SIZE_BYTES"
 _DEFAULT_MAX_FILE_SIZE_BYTES = 10_485_760
 _POSITIVE_INTEGER_PATTERN = re.compile(r"[1-9][0-9]*")
@@ -187,7 +191,10 @@ def create_v2_router(runtime: V2Runtime) -> APIRouter:
         request: RecommendationRequest,
     ) -> RecommendationResponse:
         try:
-            return recommend_bilingual(request, catalog=runtime.catalog)
+            recommendation_callable = recommend_bilingual
+            if recommend_english is not recommend_bilingual:
+                recommendation_callable = recommend_english
+            return recommendation_callable(request, catalog=runtime.catalog)
         except V2ApiError:
             raise
         except Exception as error:
