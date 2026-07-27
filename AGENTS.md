@@ -1,162 +1,276 @@
 # AGENTS.md
 
 ## Project
-Student Job Recommendation System for IT students using Content-Based Filtering, TF-IDF and Cosine Similarity.
 
-## Current Scope
-This task is for BE Core only.
+Student Job Recommendation System for IT students using Content-Based Filtering, bilingual CV processing, TF-IDF, Cosine Similarity, and canonical skill matching.
 
-BE Core includes:
-- Auth
-- User
-- Student profile
-- Company profile
-- Job management
-- Application flow
-- CV metadata skeleton
-- Recommendation database tables only
-- Swagger
-- Common response and exception handling
-- PostgreSQL + Flyway migrations
+## Source of Truth
 
-Do NOT implement full recommendation algorithm unless explicitly asked.
+- The canonical integration branch is `master`.
+- New work must start from the latest `master` and return through a reviewed pull request.
+- Do not use legacy branches such as `THI`, `Bao_RECOMMENDATION_Error`, `Bao_RECOMMENDATION_v2`, or similarly named personal branches as the source of domain behavior.
+- A legacy branch may only be consulted for historical context, and every reused change must be reviewed against the current `master` contracts, migrations, and tests.
+
+## Current Repository Scope
+
+The repository currently contains:
+
+- Spring Boot backend
+- Stateless FastAPI AI Service
+- PostgreSQL and Flyway migrations
+- Backend and AI automated tests
+- Performance tooling and benchmark evidence
+- API and integration documentation
+
+The repository does not currently contain the production frontend source. Do not claim that frontend behavior is implemented or verified from this repository alone.
+
+## Current Architecture
+
+### Backend responsibilities
+
+The Spring Boot backend is the system of record. It owns:
+
+- JWT authentication and role authorization
+- Student, company, job, application, CV, notification, and saved-item business rules
+- PostgreSQL persistence and Flyway migrations
+- CV and application ownership checks
+- Eligible-job filtering
+- AI request orchestration and response validation
+- Transaction boundaries
+- Recommendation run state, ranking, and persistence
+- Public API response and error contracts
+
+### AI Service responsibilities
+
+The FastAPI AI Service is stateless computation. It owns:
+
+- PDF and DOCX text extraction
+- English and Vietnamese language detection
+- Deterministic English and Vietnamese preprocessing
+- Canonical skill extraction and alias mapping
+- Same-language TF-IDF and Cosine Similarity
+- Cross-language skill-only matching
+- Deterministic recommendation explanations
+
+The AI Service must not receive user JWTs, access the application database, or own public ranking persistence.
+
+## Current AI Contract
+
+Backend uses Contract V2:
+
+- `POST /internal/v2/cv/parse`
+- `POST /internal/v2/recommendations`
+
+V1 remains available only for compatibility and regression coverage.
+
+Current metadata:
+
+- Algorithm: `tfidf-cosine-hybrid`
+- Algorithm version: `bilingual-recommendation-v2`
+- Processing version: `bilingual-nlp-v2-skills-v1`
+
+Supported recommendation strategies:
+
+- English CV to English Job: `SAME_LANGUAGE_HYBRID`
+- Vietnamese CV to Vietnamese Job: `SAME_LANGUAGE_HYBRID`
+- English CV to Vietnamese Job: `CROSS_LANGUAGE_SKILL_BASED`
+- Vietnamese CV to English Job: `CROSS_LANGUAGE_SKILL_BASED`
+- Mixed or insufficient-confidence pairs: `CROSS_LANGUAGE_SKILL_BASED`
+
+For same-language jobs with declared skills:
+
+- `score = 0.65 * textScore + 0.35 * skillScore`
+
+For same-language jobs without declared skills:
+
+- `score = textScore`
+
+For cross-language or insufficient-confidence pairs:
+
+- `textScore = null`
+- `score = skillScore`
+
+AI returns no `rank` or `rankPosition`. Backend validates scores, sorts by `score DESC` then `jobId ASC`, assigns continuous `rankPosition`, and persists the results.
 
 ## Tech Stack
+
+### Backend
+
 - Java 21
 - Spring Boot 3.5.x
 - Maven
-- PostgreSQL
+- PostgreSQL 17
 - Spring Data JPA / Hibernate
 - Spring Security + JWT
 - Flyway
 - Swagger/OpenAPI
-- Lombok
-- Validation
+- Testcontainers
 
-## Package
+### AI Service
+
+- Python 3.11
+- FastAPI
+- Pydantic V2
+- scikit-learn
+- underthesea
+- pdfplumber
+- python-docx
+- pytest
+
+## Backend Package
+
 Base package:
+
+```text
 com.tttn.jobrecommendation
+```
 
-## Backend Structure
+Backend source root:
 
+```text
 backend/src/main/java/com/tttn/jobrecommendation
+```
 
-- common/
-    - config/
-    - enums/
-    - exception/
-    - response/
-    - security/
-    - utils/
+Modules follow the existing structure:
 
-- modules/
-    - auth/
-    - user/
-    - student/
-    - company/
-    - skill/
-    - job/
-    - application/
-    - cv/
-    - recommendation/
+- `controller/`
+- `service/`
+- `service/impl/` or a `ServiceImpl` class
+- `repository/`
+- `entity/`
+- `dto/request/`
+- `dto/response/`
+- `mapper/`
 
-Each module must follow:
-- controller/
-- service/
-- service/impl/ or ServiceImpl class
-- repository/
-- entity/
-- dto/request/
-- dto/response/
-- mapper/
+Do not rename established packages or move modules without an explicit architecture decision.
 
-## Rules
+## General Rules
 
 1. Do not change unrelated modules.
-2. Do not rename package names.
-3. Do not introduce new dependencies without explaining why.
-4. Do not use raw response objects. All APIs must use ApiResponse<T>.
-5. Do not expose passwordHash in any response.
-6. Do not hard delete business data such as jobs, applications, users.
-7. Jobs must always belong to a company. jobs.company_id must not be nullable.
-8. A student cannot apply to the same job twice.
-9. A company can only manage its own jobs and applications.
-10. Admin can manage all jobs and applications.
-11. All request DTOs must use jakarta validation annotations where appropriate.
-12. All database changes must be done through Flyway migration files.
-13. Do not set Hibernate ddl-auto to create/drop in committed config.
-14. After changes, ensure project compiles with Maven.
-15. Update backend README if setup or API changes.
+2. Do not introduce a dependency without explaining its purpose and locking its version where required.
+3. Do not modify an already released Flyway migration. Add a new migration.
+4. Do not use Hibernate `ddl-auto=create` or `create-drop` in committed runtime configuration.
+5. Do not expose password hashes, internal storage paths, stored filenames, or private user data.
+6. Do not hard-delete protected business data unless the established domain explicitly allows deletion.
+7. All JSON APIs use `ApiResponse<T>` except successful raw CV file streaming responses.
+8. All request DTOs use Jakarta validation where appropriate.
+9. Company operations must remain scoped to the authenticated company.
+10. Student operations must remain scoped to the authenticated student.
+11. A student cannot apply to the same job twice.
+12. Saved Candidate uniqueness is `company_id + student_id`; `application_id` records the source application and does not redefine the domain as Saved Application.
+13. Only one CV may be active for a student.
+14. Recommendation generation may use only the selected CV's persisted READY analysis snapshot.
+15. External AI calls must not run while holding a database transaction open.
+16. Backend must reject malformed or semantically invalid AI responses before persistence.
+17. Keep V1 compatibility behavior isolated from V2 behavior.
+18. Keep documentation synchronized with executable behavior.
 
 ## API Response Format
 
 Success:
+
+```json
 {
-"success": true,
-"message": "Success",
-"data": {}
+  "success": true,
+  "message": "Success",
+  "errorCode": null,
+  "data": {}
 }
+```
 
 Error:
-{
-"success": false,
-"message": "Error message",
-"errorCode": "ERROR_CODE",
-"data": null
-}
 
-Pagination:
+```json
 {
-"success": true,
-"message": "Success",
-"data": {
-"items": [],
-"page": 1,
-"size": 10,
-"totalItems": 100,
-"totalPages": 10
+  "success": false,
+  "message": "Error message",
+  "errorCode": "ERROR_CODE",
+  "data": null
 }
+```
+
+Pagination data:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "size": 10,
+  "totalItems": 100,
+  "totalPages": 10
 }
+```
+
+Page numbers are 1-based in public API responses.
 
 ## Security Rules
 
-Public:
-- POST /api/auth/register
-- POST /api/auth/login
-- /swagger-ui/**
-- /v3/api-docs/**
+Public endpoints include:
 
-Authenticated:
-- all other APIs
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/public/companies/**`
+- `GET /api/public/jobs/**`
+- `GET /api/public/statistics`
+- `/swagger-ui/**`
+- `/v3/api-docs/**`
+
+All other public backend APIs require authentication unless explicitly documented.
 
 Roles:
-- STUDENT: update own profile, view jobs, apply jobs, view own applications
-- COMPANY: update own company profile, create/manage own jobs, view applications for own jobs
-- ADMIN: manage all users/jobs/applications
 
-## Database Design Rules
+- `STUDENT`: manage own profile, skills, CVs, saved jobs, saved searches, applications, notifications, and recommendations
+- `COMPANY`: manage own company profile, jobs, applications, saved candidates, and notification settings
+- `ADMIN`: manage system users, companies, jobs, applications, and skills according to existing endpoint rules
 
-Use PostgreSQL.
-Use BIGSERIAL primary keys.
-Use VARCHAR for enum values.
-Use created_at and updated_at on business tables.
-Use soft status instead of hard delete.
-Create indexes for frequently queried fields.
-Use unique constraints for:
-- users.email
-- students.user_id
-- companies.user_id
-- student_profiles.student_id
-- applications(student_id, job_id)
-- saved_jobs(student_id, job_id)
-- student_skills(student_id, skill_id)
-- job_skills(job_id, skill_id)
+## Database Rules
 
-## Before Finishing Any Task
+- Use PostgreSQL.
+- Use existing BIGSERIAL identifiers and VARCHAR-backed enums unless a new reviewed design changes them.
+- Business tables use `created_at` and `updated_at` where established.
+- Use status transitions instead of destructive deletion for protected business records.
+- Add indexes for verified query patterns, not speculatively.
+- Preserve established unique constraints, including:
+  - `users.email`
+  - `students.user_id`
+  - `companies.user_id`
+  - `student_profiles.student_id`
+  - `applications(student_id, job_id)`
+  - `saved_jobs(student_id, job_id)`
+  - `saved_candidates(company_id, student_id)`
+  - `student_skills(student_id, skill_id)`
+  - `job_skills(job_id, skill_id)`
 
-Run or ensure:
-- mvnw clean compile
+## Verification Before Finishing
+
+Backend fast tests:
+
+```bash
+cd backend
+./mvnw -B -ntp test
+```
+
+Backend full PostgreSQL integration lifecycle:
+
+```bash
+cd backend
+./mvnw -B -ntp clean verify
+```
+
+AI Service environment and tests:
+
+```bash
+cd ai-service
+python -m pip install --require-hashes -r requirements.lock
+python -m pip check
+python -m pytest
+```
+
+Also verify:
+
 - no unrelated file changes
 - no broken imports
-- no missing migrations
-- no passwordHash in response DTOs
+- no missing migration
+- no secret or local environment file committed
+- no stale English-only product metadata for bilingual V2 behavior
+- documentation matches the current contract and limitations
