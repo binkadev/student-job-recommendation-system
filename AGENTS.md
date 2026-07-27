@@ -15,6 +15,7 @@ Student Job Recommendation System for IT students using Content-Based Filtering,
 
 The repository currently contains:
 
+- Frontend UI source under `frontend/`
 - Spring Boot backend
 - Stateless FastAPI AI Service
 - PostgreSQL and Flyway migrations
@@ -22,7 +23,7 @@ The repository currently contains:
 - Performance tooling and benchmark evidence
 - API and integration documentation
 
-The repository does not currently contain the production frontend source. Do not claim that frontend behavior is implemented or verified from this repository alone.
+The frontend source was introduced as a mock-data UI without Backend integration. Do not claim that frontend flows are connected to the current Backend or AI contracts unless the claim is supported by current code and end-to-end runtime evidence.
 
 ## Current Architecture
 
@@ -164,6 +165,7 @@ Do not rename established packages or move modules without an explicit architect
 16. Backend must reject malformed or semantically invalid AI responses before persistence.
 17. Keep V1 compatibility behavior isolated from V2 behavior.
 18. Keep documentation synchronized with executable behavior.
+19. Treat the current frontend as mock-data UI until API integration is verified end to end.
 
 ## API Response Format
 
@@ -274,3 +276,4 @@ Also verify:
 - no secret or local environment file committed
 - no stale English-only product metadata for bilingual V2 behavior
 - documentation matches the current contract and limitations
+- frontend integration claims are supported by current runtime evidence
