@@ -1,4 +1,4 @@
-"""FastAPI wiring for the usable English V2 baseline."""
+"""FastAPI wiring for the bilingual AI Service V2 contract."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from .http_errors import (
     V2ApiError,
     V2ErrorResponse,
     internal_error,
-    unsupported_language_error,
     validation_error,
 )
 from .schemas import (
@@ -23,7 +22,7 @@ from .schemas import (
     RecommendationRequest,
     RecommendationResponse,
 )
-from .service import EnglishBaselinePreconditionError, recommend_english
+from .service import recommend_bilingual
 from .skill_canonicalizer import (
     SkillCatalog,
     load_default_catalog,
@@ -65,7 +64,7 @@ class V2ConfigurationError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class V2Runtime:
-    """Immutable dependencies shared by both V2 routes."""
+    """Immutable dependencies shared by both bilingual V2 routes."""
 
     max_file_size_bytes: int
     catalog: SkillCatalog
@@ -156,7 +155,7 @@ async def _close_uploads(uploads: Iterable[UploadFile]) -> None:
 
 
 def create_v2_router(runtime: V2Runtime) -> APIRouter:
-    """Create both V2 routes over one startup-validated runtime."""
+    """Create both bilingual V2 routes over one validated runtime."""
 
     if not isinstance(runtime, V2Runtime):
         raise TypeError("runtime must be a V2Runtime")
@@ -188,9 +187,7 @@ def create_v2_router(runtime: V2Runtime) -> APIRouter:
         request: RecommendationRequest,
     ) -> RecommendationResponse:
         try:
-            return recommend_english(request, catalog=runtime.catalog)
-        except EnglishBaselinePreconditionError as error:
-            raise unsupported_language_error() from error
+            return recommend_bilingual(request, catalog=runtime.catalog)
         except V2ApiError:
             raise
         except Exception as error:
