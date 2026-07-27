@@ -8,13 +8,14 @@ The canonical integration branch is `master`.
 
 This repository currently contains:
 
+- `frontend/`: frontend UI currently implemented with mock data; full integration with the current Backend and AI contracts must still be verified
 - `backend/`: Java 21 and Spring Boot 3.5.x REST API
 - `ai-service/`: Python 3.11 and FastAPI bilingual CV/recommendation service
 - `docs/`: API contracts and regression documentation
 - `performance/`: reproducible PostgreSQL/API benchmark tooling and evidence
 - `docker-compose.yml`: local PostgreSQL 17 development database
 
-The production frontend source is not currently stored in this repository. Frontend completeness must not be inferred from this codebase alone.
+The presence of frontend source does not by itself prove end-to-end integration. The original frontend PR explicitly described mock data and no Backend connection, so claims about completed frontend integration require current runtime evidence.
 
 ## Architecture
 
@@ -173,4 +174,5 @@ python -m pytest
 - No immutable historical snapshot of the source CV/job corpus
 - No concurrent reanalysis attempt guard
 - No manual extracted-text editing
-- Frontend source and frontend CI are not present in this repository
+- Frontend UI exists, but the original implementation uses mock data and current end-to-end integration is not yet proven
+- No frontend CI workflow is present
