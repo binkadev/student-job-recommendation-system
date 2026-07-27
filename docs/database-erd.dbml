@@ -1,9 +1,10 @@
-Project student_job_recommendation {
+Project student_job_recommendation_v15 {
   database_type: 'PostgreSQL'
+  Note: 'Canonical schema derived from Flyway V1-V15 on master.'
 }
 
 Table users {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   email varchar(255) [not null, unique]
   password_hash varchar(255) [not null]
   full_name varchar(255) [not null]
@@ -13,16 +14,10 @@ Table users {
   last_login_at timestamp
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  Indexes {
-    role [name: 'idx_users_role']
-    status [name: 'idx_users_status']
-    last_login_at [name: 'idx_users_last_login_at']
-  }
 }
 
 Table students {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   user_id bigint [not null, unique]
   student_code varchar(100)
   university varchar(255)
@@ -34,7 +29,7 @@ Table students {
 }
 
 Table student_profiles {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null, unique]
   headline varchar(255)
   summary text
@@ -55,7 +50,7 @@ Table student_profiles {
 }
 
 Table companies {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   user_id bigint [not null, unique]
   company_name varchar(255) [not null]
   tax_code varchar(100)
@@ -69,30 +64,20 @@ Table companies {
   status varchar(50) [not null, default: 'PENDING']
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  Indexes {
-    status [name: 'idx_companies_status']
-    company_name [name: 'idx_companies_company_name']
-  }
 }
 
 Table skills {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   name varchar(150) [not null, unique]
   normalized_name varchar(150)
   category varchar(100)
   description text
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  Indexes {
-    category [name: 'idx_skills_category']
-    normalized_name [unique, name: 'uk_skills_normalized_name']
-  }
 }
 
 Table student_skills {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null]
   skill_id bigint [not null]
   level varchar(50) [not null]
@@ -101,14 +86,11 @@ Table student_skills {
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Indexes {
-    (student_id, skill_id) [unique, name: 'uk_student_skills_student_skill']
-    skill_id [name: 'idx_student_skills_skill_id']
-  }
+  Note: 'UQ(student_id, skill_id)'
 }
 
 Table jobs {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   company_id bigint [not null]
   title varchar(255) [not null]
   description text [not null]
@@ -126,18 +108,10 @@ Table jobs {
   closed_at timestamp
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  Indexes {
-    company_id [name: 'idx_jobs_company_id']
-    status [name: 'idx_jobs_status']
-    job_type [name: 'idx_jobs_job_type']
-    working_model [name: 'idx_jobs_working_model']
-    deadline [name: 'idx_jobs_deadline']
-  }
 }
 
 Table job_skills {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   job_id bigint [not null]
   skill_id bigint [not null]
   importance varchar(50) [not null]
@@ -145,27 +119,35 @@ Table job_skills {
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Indexes {
-    (job_id, skill_id) [unique, name: 'uk_job_skills_job_skill']
-    skill_id [name: 'idx_job_skills_skill_id']
-  }
+  Note: 'UQ(job_id, skill_id)'
 }
 
 Table saved_jobs {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null]
   job_id bigint [not null]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Indexes {
-    (student_id, job_id) [unique, name: 'uk_saved_jobs_student_job']
-    job_id [name: 'idx_saved_jobs_job_id']
-  }
+  Note: 'UQ(student_id, job_id)'
+}
+
+Table saved_searches {
+  id bigserial [pk, increment]
+  student_id bigint [not null]
+  name varchar(100) [not null]
+  keyword varchar(255)
+  location varchar(255)
+  job_type varchar(50)
+  working_model varchar(50)
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Note: 'UQ(student_id, lower(name))'
 }
 
 Table cv_files {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null]
   file_name varchar(255) [not null]
   original_file_name varchar(255)
@@ -176,20 +158,24 @@ Table cv_files {
   file_size bigint
   extracted_text text
   processed_text text
+  extracted_skills jsonb [not null, default: `'[]'::jsonb`]
+  analysis_status varchar(30) [not null, default: 'NOT_READY']
+  analysis_error text
+  language_code varchar(20)
+  language_confidence numeric(5,4)
+  processing_version varchar(100)
+  analysis_warnings jsonb [not null, default: `'[]'::jsonb`]
+  analyzed_at timestamp
   is_active boolean [not null, default: false]
   uploaded_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Note: 'Partial unique index uk_cv_files_student_active on student_id where is_active = TRUE.'
-
-  Indexes {
-    student_id [name: 'idx_cv_files_student_id']
-  }
+  Note: 'PARTIAL UQ(student_id) WHERE is_active = true'
 }
 
 Table applications {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null]
   job_id bigint [not null]
   cv_file_id bigint
@@ -200,51 +186,57 @@ Table applications {
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Indexes {
-    (student_id, job_id) [unique, name: 'uk_applications_student_job']
-    student_id [name: 'idx_applications_student_id']
-    job_id [name: 'idx_applications_job_id']
-    status [name: 'idx_applications_status']
-  }
+  Note: 'UQ(student_id, job_id)'
+}
+
+Table saved_candidates {
+  id bigserial [pk, increment]
+  company_id bigint [not null]
+  student_id bigint [not null]
+  application_id bigint [not null]
+  note text
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Note: 'UQ(company_id, student_id)'
 }
 
 Table recommendation_runs {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   student_id bigint [not null]
   cv_file_id bigint
   source_type varchar(50) [not null]
   status varchar(50) [not null]
+  algorithm varchar(100)
+  algorithm_version varchar(100)
+  total_jobs_scanned integer [not null, default: 0]
   started_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   finished_at timestamp
   error_message text
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-
-  Indexes {
-    student_id [name: 'idx_recommendation_runs_student_id']
-    status [name: 'idx_recommendation_runs_status']
-  }
 }
 
 Table recommendation_results {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   run_id bigint [not null]
   job_id bigint [not null]
   score numeric(8,5) [not null]
+  text_score numeric(8,5)
+  skill_score numeric(8,5)
+  scoring_strategy varchar(50)
   matched_keywords jsonb
+  missing_skills jsonb [not null, default: `'[]'::jsonb`]
+  reason text
   rank_position integer [not null]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Indexes {
-    (run_id, job_id) [unique, name: 'uk_recommendation_results_run_job']
-    job_id [name: 'idx_recommendation_results_job_id']
-    score [name: 'idx_recommendation_results_score']
-  }
+  Note: 'UQ(run_id, job_id)'
 }
 
 Table notifications {
-  id bigint [pk, increment]
+  id bigserial [pk, increment]
   user_id bigint [not null]
   type varchar(50) [not null]
   title varchar(255) [not null]
@@ -255,12 +247,17 @@ Table notifications {
   read_at timestamp
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
 
-  Indexes {
-    user_id [name: 'idx_notifications_user_id']
-    (user_id, is_read) [name: 'idx_notifications_user_read']
-    created_at [name: 'idx_notifications_created_at']
-  }
+Table user_notification_settings {
+  id bigserial [pk, increment]
+  user_id bigint [not null, unique]
+  application_status_enabled boolean [not null, default: true]
+  job_status_enabled boolean [not null, default: true]
+  recommendation_enabled boolean [not null, default: true]
+  system_enabled boolean [not null, default: true]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
 
 Ref: students.user_id > users.id [delete: restrict]
@@ -273,12 +270,25 @@ Ref: job_skills.job_id > jobs.id [delete: restrict]
 Ref: job_skills.skill_id > skills.id [delete: restrict]
 Ref: saved_jobs.student_id > students.id [delete: restrict]
 Ref: saved_jobs.job_id > jobs.id [delete: restrict]
+Ref: saved_searches.student_id > students.id [delete: restrict]
 Ref: cv_files.student_id > students.id [delete: restrict]
 Ref: applications.student_id > students.id [delete: restrict]
 Ref: applications.job_id > jobs.id [delete: restrict]
 Ref: applications.cv_file_id > cv_files.id [delete: restrict]
+Ref: saved_candidates.company_id > companies.id [delete: restrict]
+Ref: saved_candidates.student_id > students.id [delete: restrict]
+Ref: saved_candidates.application_id > applications.id [delete: restrict]
 Ref: recommendation_runs.student_id > students.id [delete: restrict]
 Ref: recommendation_runs.cv_file_id > cv_files.id [delete: restrict]
 Ref: recommendation_results.run_id > recommendation_runs.id [delete: restrict]
 Ref: recommendation_results.job_id > jobs.id [delete: restrict]
 Ref: notifications.user_id > users.id [delete: restrict]
+Ref: user_notification_settings.user_id > users.id [delete: restrict]
+
+// Important indexes/checks not fully expressible above:
+// - skills.normalized_name unique where normalized_name IS NOT NULL
+// - saved_searches unique (student_id, lower(name))
+// - cv_files unique (student_id) where is_active = TRUE
+// - cv_files analysis_status/language_code/language_confidence CHECK constraints
+// - recommendation score/check strategy constraints from V15
+// - notifications.reference_type/reference_id is polymorphic and intentionally has no FK
