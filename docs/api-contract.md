@@ -862,7 +862,7 @@ Response data:
   "analysisError": null,
   "languageCode": "en",
   "languageConfidence": 0.98,
-  "processingVersion": "bilingual-nlp-v2",
+  "processingVersion": "bilingual-nlp-v2-skills-v1",
   "warnings": [],
   "analyzedAt": "2026-07-24T10:05:00",
   "uploadedAt": "2026-07-24T10:00:00",
@@ -910,7 +910,7 @@ Contract V2 response:
   "skills": ["java", "spring boot", "postgresql", "docker"],
   "languageCode": "en",
   "languageConfidence": 0.98,
-  "processingVersion": "bilingual-nlp-v2",
+  "processingVersion": "bilingual-nlp-v2-skills-v1",
   "warnings": []
 }
 ```
@@ -924,6 +924,12 @@ Semantic alias mapping belongs to the AI service and must be covered there, incl
 - `học máy` / `hoc may` / `machine learning` -> `machine learning`
 - `K8s` / `Kubernetes` -> `kubernetes`
 - `SpringBoot` / `spring-boot` / `Spring Boot` -> `spring boot`
+
+### AI Service and Backend responsibility boundary
+
+The stateless AI Service owns Vietnamese text preprocessing, language detection, and semantic skill alias mapping/canonicalization. It does not access the application database or persist recommendation data.
+
+The Backend does not perform Vietnamese NLP. It owns authorization, AI orchestration, transaction lifecycle, defensive syntactic normalization, contract validation, and persistence. It builds the eligible CV/job corpus and sends it to the AI Service only through Internal Contract V2. Frontend clients must never call Internal AI endpoints directly; they call public or protected Backend endpoints under `/api`.
 
 Timeout, connection, upstream HTTP, and malformed-response errors use the AI service codes listed above and never expose a CV body, local path, credential, remote response body, or exception class.
 
@@ -1138,11 +1144,11 @@ The V2 backend must not be merged or deployed before AI V2 is ready:
 
 1. Add AI V2 while retaining V1.
 2. Deploy AI V2.
-3. Verify AI `/health` and V2 contract fixtures.
+3. Verify legacy `/health`, current `/health/v2` deployment metadata, and V2 contract fixtures.
 4. Deploy Backend V2.
 5. Run end-to-end regression.
 
-Known MVP limitations: the backend provides no manual extracted-text editing, semantic alias mapping, Vietnamese NLP, OCR, embeddings, or message queue. Backend and AI remain isolated services and never access each other's database.
+Known MVP limitations are no manual extracted-text editing, OCR, embeddings, message queue, immutable historical input snapshots, concurrent-reanalysis guard, and production internal service authentication. Vietnamese NLP and semantic alias mapping are implemented only in the stateless AI Service; the Backend orchestrates and defensively validates without duplicating either capability. Backend and AI remain isolated services and never access each other's database.
 
 ## Notifications
 

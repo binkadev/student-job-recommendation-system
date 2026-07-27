@@ -280,4 +280,26 @@ Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `h
 
 Semantic alias equivalence is an AI-service test, not a backend test: `học máy`/`hoc may`/`machine learning`, `K8s`/`Kubernetes`, and `SpringBoot`/`spring-boot`/`Spring Boot`.
 
-Deploy AI V2 while retaining V1, verify `/health` and fixtures, deploy Backend V2, then run end-to-end regression. Do not merge or deploy Backend V2 first.
+## AI Service health and deployment metadata
+
+Legacy-compatible health remains available at `GET /health`. It preserves compatibility for V1 consumers; its `version` may continue to represent legacy V1 and must not be used to determine the current V2 deployment version.
+
+Current bilingual deployment metadata is available at `GET /health/v2`. Verify:
+
+- `status` is `ok`;
+- `service` is `job-recommendation-ai`;
+- `version` is `bilingual-recommendation-v2`;
+- `currentContract` is `v2`;
+- `supportedContracts` contains `v1` and `v2`;
+- `legacyV1Version` is `tfidf-cosine-v1`;
+- `recommendationVersion` is `bilingual-recommendation-v2`;
+- `processingVersion` is `bilingual-nlp-v2-skills-v1`.
+
+Deployment regression guidance:
+
+1. Root `docker-compose.yml` starts PostgreSQL only; Backend, AI Service, and Frontend are not implemented as a full-stack Compose deployment.
+2. Frontend clients must not call `POST /internal/v1/**`, `POST /internal/v2/cv/parse`, or `POST /internal/v2/recommendations`.
+3. Only the Backend calls Internal AI endpoints. Frontend clients call public or protected Backend APIs under `/api`.
+4. Deploy AI V2 while retaining V1, verify legacy `/health`, current `/health/v2`, and V2 fixtures, then deploy Backend V2 and run end-to-end regression.
+
+Do not merge or deploy Backend V2 before the AI V2 deployment and health checks succeed.
