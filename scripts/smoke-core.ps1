@@ -17,40 +17,15 @@ if ([string]::IsNullOrWhiteSpace($CvPath)) {
 }
 $CvPath = (Resolve-Path -LiteralPath $CvPath).Path
 
-$StudentEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_STUDENT_EMAIL)) {
-    "student@example.com"
-}
-else {
-    $env:SMOKE_STUDENT_EMAIL
-}
-
-$CompanyEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_COMPANY_EMAIL)) {
-    "company@example.com"
-}
-else {
-    $env:SMOKE_COMPANY_EMAIL
-}
-
-$DemoPassword = if ([string]::IsNullOrWhiteSpace($env:SMOKE_DEMO_PASSWORD)) {
-    "123456"
-}
-else {
-    $env:SMOKE_DEMO_PASSWORD
-}
+$StudentEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_STUDENT_EMAIL)) { "student@example.com" } else { $env:SMOKE_STUDENT_EMAIL }
+$CompanyEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_COMPANY_EMAIL)) { "company@example.com" } else { $env:SMOKE_COMPANY_EMAIL }
+$DemoPassword = if ([string]::IsNullOrWhiteSpace($env:SMOKE_DEMO_PASSWORD)) { "123456" } else { $env:SMOKE_DEMO_PASSWORD }
 
 $VietnameseJobTitle = "Thực tập sinh Backend Java - Smoke"
 $ExpectedProcessingVersion = "bilingual-nlp-v2-skills-v1"
 $ExpectedAlgorithm = "tfidf-cosine-hybrid"
 $ExpectedAlgorithmVersion = "bilingual-recommendation-v2"
-$ExpectedCvSkills = @(
-    "ci/cd",
-    "docker",
-    "java",
-    "microservices",
-    "postgresql",
-    "rest api",
-    "spring boot"
-)
+$ExpectedCvSkills = @("ci/cd", "docker", "java", "microservices", "postgresql", "rest api", "spring boot")
 
 function Write-Step {
     param([string]$Message)
@@ -58,11 +33,7 @@ function Write-Step {
 }
 
 function Assert-True {
-    param(
-        [bool]$Condition,
-        [string]$Message
-    )
-
+    param([bool]$Condition, [string]$Message)
     if (-not $Condition) {
         throw "ASSERTION FAILED: $Message"
     }
@@ -75,29 +46,7 @@ function Get-HttpErrorBody {
         return $ErrorRecord.ErrorDetails.Message
     }
 
-    $response = $ErrorRecord.Exception.Response
-    if ($null -eq $response) {
-        return $ErrorRecord.Exception.Message
-    }
-
-    try {
-        $stream = $response.GetResponseStream()
-        if ($null -eq $stream) {
-            return $ErrorRecord.Exception.Message
-        }
-
-        $reader = New-Object System.IO.StreamReader($stream)
-        try {
-            return $reader.ReadToEnd()
-        }
-        finally {
-            $reader.Dispose()
-            $stream.Dispose()
-        }
-    }
-    catch {
-        return $ErrorRecord.Exception.Message
-    }
+    return $ErrorRecord.Exception.Message
 }
 
 function Invoke-JsonApi {
@@ -105,10 +54,8 @@ function Invoke-JsonApi {
         [Parameter(Mandatory = $true)]
         [ValidateSet("GET", "POST", "PUT", "PATCH", "DELETE")]
         [string]$Method,
-
         [Parameter(Mandatory = $true)]
         [string]$Uri,
-
         [string]$Token,
         [object]$Body
     )
@@ -140,13 +87,7 @@ function Invoke-JsonApi {
 }
 
 function Assert-ApiSuccess {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$Response,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Context
-    )
+    param([object]$Response, [string]$Context)
 
     Assert-True ($null -ne $Response) "$Context returned no response"
     Assert-True ([bool]$Response.success) "$Context returned success=false; errorCode=$($Response.errorCode); message=$($Response.message)"
@@ -154,21 +95,14 @@ function Assert-ApiSuccess {
 }
 
 function Wait-ForEndpoint {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Uri,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Name
-    )
+    param([string]$Uri, [string]$Name)
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $lastError = $null
 
     while ((Get-Date) -lt $deadline) {
         try {
-            $response = Invoke-RestMethod -Method Get -Uri $Uri -TimeoutSec 5
-            return $response
+            return Invoke-RestMethod -Method Get -Uri $Uri -TimeoutSec 5
         }
         catch {
             $lastError = $_.Exception.Message
@@ -180,35 +114,19 @@ function Wait-ForEndpoint {
 }
 
 function Get-LoginToken {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Email,
+    param([string]$Email, [string]$Password, [string]$RoleLabel)
 
-        [Parameter(Mandatory = $true)]
-        [string]$Password,
-
-        [Parameter(Mandatory = $true)]
-        [string]$RoleLabel
-    )
-
-    $response = Invoke-JsonApi \
-        -Method POST \
-        -Uri "$BackendBaseUrl/api/auth/login" \
-        -Body @{ email = $Email; password = $Password }
-
+    $response = Invoke-JsonApi -Method POST -Uri "$BackendBaseUrl/api/auth/login" -Body @{
+        email = $Email
+        password = $Password
+    }
     $data = Assert-ApiSuccess -Response $response -Context "$RoleLabel login"
     Assert-True (-not [string]::IsNullOrWhiteSpace([string]$data.token)) "$RoleLabel login returned no token"
     return [string]$data.token
 }
 
 function Upload-CvMultipart {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Token
-    )
+    param([string]$Path, [string]$Token)
 
     Add-Type -AssemblyName System.Net.Http
 
@@ -225,9 +143,7 @@ function Upload-CvMultipart {
 
         $fileStream = [System.IO.File]::OpenRead($Path)
         $fileContent = [System.Net.Http.StreamContent]::new($fileStream)
-        $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         $multipart.Add($fileContent, "file", [System.IO.Path]::GetFileName($Path))
 
         $uri = "$BackendBaseUrl/api/students/me/cv?active=true"
@@ -252,11 +168,7 @@ function Upload-CvMultipart {
 function Get-AllSkills {
     param([string]$Token)
 
-    $response = Invoke-JsonApi \
-        -Method GET \
-        -Uri "$BackendBaseUrl/api/skills?page=1&size=100" \
-        -Token $Token
-
+    $response = Invoke-JsonApi -Method GET -Uri "$BackendBaseUrl/api/skills?page=1&size=100" -Token $Token
     $data = Assert-ApiSuccess -Response $response -Context "List skills"
     return @($data.items)
 }
@@ -265,11 +177,7 @@ function Ensure-VietnameseSmokeJob {
     param([string]$CompanyToken)
 
     $encodedTitle = [System.Uri]::EscapeDataString($VietnameseJobTitle)
-    $queryResponse = Invoke-JsonApi \
-        -Method GET \
-        -Uri "$BackendBaseUrl/api/jobs?keyword=$encodedTitle&page=1&size=100" \
-        -Token $CompanyToken
-
+    $queryResponse = Invoke-JsonApi -Method GET -Uri "$BackendBaseUrl/api/jobs?keyword=$encodedTitle&page=1&size=100" -Token $CompanyToken
     $queryData = Assert-ApiSuccess -Response $queryResponse -Context "Find Vietnamese smoke job"
     $today = (Get-Date).Date
 
@@ -289,40 +197,32 @@ function Ensure-VietnameseSmokeJob {
     $skillRequests = @()
 
     foreach ($requiredName in $requiredNames) {
-        $skill = $skills | Where-Object {
-            ([string]$_.normalizedName).ToLowerInvariant() -eq $requiredName
-        } | Select-Object -First 1
-
+        $skill = $skills | Where-Object { ([string]$_.normalizedName).ToLowerInvariant() -eq $requiredName } | Select-Object -First 1
         Assert-True ($null -ne $skill) "Required seeded skill '$requiredName' was not found"
         $skillRequests += @{
-            skillId   = [long]$skill.id
+            skillId = [long]$skill.id
             importance = "REQUIRED"
-            minLevel   = "BEGINNER"
+            minLevel = "BEGINNER"
         }
     }
 
     $request = @{
-        title        = $VietnameseJobTitle
-        description  = "Thực tập sinh phát triển hệ thống backend cho sinh viên công nghệ thông tin, tham gia xây dựng dịch vụ web và xử lý dữ liệu thực tế."
+        title = $VietnameseJobTitle
+        description = "Thực tập sinh phát triển hệ thống backend cho sinh viên công nghệ thông tin, tham gia xây dựng dịch vụ web và xử lý dữ liệu thực tế."
         requirements = "Yêu cầu Java, Spring Boot, PostgreSQL, Docker và REST API. Ưu tiên hiểu kiến trúc microservices và quy trình CI/CD."
-        benefits     = "Được hướng dẫn kỹ thuật, review mã nguồn, làm việc cùng đội phát triển và nhận phụ cấp thực tập."
-        location     = "Ho Chi Minh City"
-        jobType      = "INTERNSHIP"
+        benefits = "Được hướng dẫn kỹ thuật, review mã nguồn, làm việc cùng đội phát triển và nhận phụ cấp thực tập."
+        location = "Ho Chi Minh City"
+        jobType = "INTERNSHIP"
         workingModel = "HYBRID"
-        status       = "ACTIVE"
-        salaryMin    = 2000000
-        salaryMax    = 5000000
-        currency     = "VND"
-        deadline     = (Get-Date).AddMonths(3).ToString("yyyy-MM-dd")
-        skills       = $skillRequests
+        status = "ACTIVE"
+        salaryMin = 2000000
+        salaryMax = 5000000
+        currency = "VND"
+        deadline = (Get-Date).AddMonths(3).ToString("yyyy-MM-dd")
+        skills = $skillRequests
     }
 
-    $createResponse = Invoke-JsonApi \
-        -Method POST \
-        -Uri "$BackendBaseUrl/api/jobs" \
-        -Token $CompanyToken \
-        -Body $request
-
+    $createResponse = Invoke-JsonApi -Method POST -Uri "$BackendBaseUrl/api/jobs" -Token $CompanyToken -Body $request
     $created = Assert-ApiSuccess -Response $createResponse -Context "Create Vietnamese smoke job"
     Assert-True ($null -ne $created.id) "Created Vietnamese smoke job has no id"
     Write-Host "Created Vietnamese smoke job id=$($created.id)" -ForegroundColor DarkGray
@@ -330,27 +230,15 @@ function Ensure-VietnameseSmokeJob {
 }
 
 function Wait-ForCvReady {
-    param(
-        [long]$CvId,
-        [string]$StudentToken
-    )
+    param([long]$CvId, [string]$StudentToken)
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-
     while ((Get-Date) -lt $deadline) {
-        $response = Invoke-JsonApi \
-            -Method GET \
-            -Uri "$BackendBaseUrl/api/students/me/cv/$CvId/analysis" \
-            -Token $StudentToken
-
+        $response = Invoke-JsonApi -Method GET -Uri "$BackendBaseUrl/api/students/me/cv/$CvId/analysis" -Token $StudentToken
         $analysis = Assert-ApiSuccess -Response $response -Context "Read CV analysis"
-        if ($analysis.status -eq "READY") {
-            return $analysis
-        }
-        if ($analysis.status -eq "FAILED") {
-            throw "CV analysis failed: $($analysis.analysisError)"
-        }
 
+        if ($analysis.status -eq "READY") { return $analysis }
+        if ($analysis.status -eq "FAILED") { throw "CV analysis failed: $($analysis.analysisError)" }
         Start-Sleep -Seconds 2
     }
 
@@ -358,27 +246,15 @@ function Wait-ForCvReady {
 }
 
 function Wait-ForRunSuccess {
-    param(
-        [long]$RunId,
-        [string]$StudentToken
-    )
+    param([long]$RunId, [string]$StudentToken)
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-
     while ((Get-Date) -lt $deadline) {
-        $response = Invoke-JsonApi \
-            -Method GET \
-            -Uri "$BackendBaseUrl/api/students/me/recommendation-runs/$RunId" \
-            -Token $StudentToken
-
+        $response = Invoke-JsonApi -Method GET -Uri "$BackendBaseUrl/api/students/me/recommendation-runs/$RunId" -Token $StudentToken
         $run = Assert-ApiSuccess -Response $response -Context "Read recommendation run"
-        if ($run.status -eq "SUCCESS") {
-            return $run
-        }
-        if ($run.status -eq "FAILED") {
-            throw "Recommendation run failed: $($run.errorMessage)"
-        }
 
+        if ($run.status -eq "SUCCESS") { return $run }
+        if ($run.status -eq "FAILED") { throw "Recommendation run failed: $($run.errorMessage)" }
         Start-Sleep -Seconds 2
     }
 
@@ -399,22 +275,20 @@ function Assert-Ranking {
         $expectedRank = $index + 1
         Assert-True ([int]$current.rankPosition -eq $expectedRank) "Expected rankPosition=$expectedRank but received $($current.rankPosition)"
 
-        if ($index -eq 0) {
-            continue
-        }
+        if ($index -eq 0) { continue }
 
         $previous = $Results[$index - 1]
         $previousScore = [decimal]$previous.score
         $currentScore = [decimal]$current.score
-
         Assert-True ($currentScore -le $previousScore) "Results are not sorted by score descending"
+
         if ($currentScore -eq $previousScore) {
             Assert-True ([long]$current.jobId -gt [long]$previous.jobId) "Equal-score results are not sorted by jobId ascending"
         }
     }
 }
 
-Write-Host "Student Job Recommendation — Docker Core Smoke" -ForegroundColor Green
+Write-Host "Student Job Recommendation - Docker Core Smoke" -ForegroundColor Green
 Write-Host "Backend: $BackendBaseUrl" -ForegroundColor DarkGray
 Write-Host "AI:      $AiBaseUrl" -ForegroundColor DarkGray
 Write-Host "CV:      $CvPath" -ForegroundColor DarkGray
@@ -443,10 +317,7 @@ Assert-True ($cvId -gt 0) "Uploaded CV has an invalid id"
 Assert-True ([bool]$uploadedCv.isActive) "Uploaded CV is not active"
 
 Write-Step "Reanalyze uploaded CV"
-$reanalyzeResponse = Invoke-JsonApi \
-    -Method POST \
-    -Uri "$BackendBaseUrl/api/students/me/cv/$cvId/reanalyze" \
-    -Token $studentToken
+$reanalyzeResponse = Invoke-JsonApi -Method POST -Uri "$BackendBaseUrl/api/students/me/cv/$cvId/reanalyze" -Token $studentToken
 $null = Assert-ApiSuccess -Response $reanalyzeResponse -Context "Reanalyze CV"
 $analysis = Wait-ForCvReady -CvId $cvId -StudentToken $studentToken
 
@@ -460,11 +331,11 @@ foreach ($expectedSkill in $ExpectedCvSkills) {
 }
 
 Write-Step "Generate recommendations through Backend"
-$generateResponse = Invoke-JsonApi \
-    -Method POST \
-    -Uri "$BackendBaseUrl/api/students/me/recommendations/generate" \
-    -Token $studentToken \
-    -Body @{ cvId = $cvId; threshold = $Threshold; limit = $Limit }
+$generateResponse = Invoke-JsonApi -Method POST -Uri "$BackendBaseUrl/api/students/me/recommendations/generate" -Token $studentToken -Body @{
+    cvId = $cvId
+    threshold = $Threshold
+    limit = $Limit
+}
 $generatedRun = Assert-ApiSuccess -Response $generateResponse -Context "Generate recommendations"
 $runId = [long]$generatedRun.id
 Assert-True ($runId -gt 0) "Generated recommendation run has an invalid id"
@@ -484,19 +355,14 @@ Assert-True ($sameLanguage.scoringStrategy -eq "SAME_LANGUAGE_HYBRID") "Vietname
 Assert-True ($null -ne $sameLanguage.textScore) "Same-language textScore must not be null"
 Assert-True (-not [string]::IsNullOrWhiteSpace([string]$sameLanguage.reason)) "Same-language reason is empty"
 
-$crossLanguage = $results | Where-Object {
-    $_.scoringStrategy -eq "CROSS_LANGUAGE_SKILL_BASED"
-} | Select-Object -First 1
+$crossLanguage = $results | Where-Object { $_.scoringStrategy -eq "CROSS_LANGUAGE_SKILL_BASED" } | Select-Object -First 1
 Assert-True ($null -ne $crossLanguage) "No CROSS_LANGUAGE_SKILL_BASED result was observed"
 Assert-True ($null -eq $crossLanguage.textScore) "Cross-language textScore must be null"
 Assert-True ([decimal]$crossLanguage.score -eq [decimal]$crossLanguage.skillScore) "Cross-language score must equal skillScore"
 Assert-True (-not [string]::IsNullOrWhiteSpace([string]$crossLanguage.reason)) "Cross-language reason is empty"
 
 Write-Step "Verify latest persisted results"
-$latestResponse = Invoke-JsonApi \
-    -Method GET \
-    -Uri "$BackendBaseUrl/api/students/me/recommendation-results/latest" \
-    -Token $studentToken
+$latestResponse = Invoke-JsonApi -Method GET -Uri "$BackendBaseUrl/api/students/me/recommendation-results/latest" -Token $studentToken
 $latestResults = @(Assert-ApiSuccess -Response $latestResponse -Context "Read latest recommendation results")
 Assert-True ($latestResults.Count -eq $results.Count) "Latest result count does not match generated run"
 
