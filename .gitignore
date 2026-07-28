@@ -36,3 +36,6 @@ out/
 *.py[cod]
 **/.pytest_cache/
 **/.venv/
+
+# Vite cache
+frontend/.vite/
