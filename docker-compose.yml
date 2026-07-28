@@ -2,19 +2,86 @@ services:
   postgres:
     image: postgres:17
     container_name: job-recommendation-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-student_job_recommendation}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+    networks:
+      - core
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    image: student-job-recommendation-ai:local
+    container_name: job-recommendation-ai
+    restart: unless-stopped
+    init: true
+    environment:
+      AI_CV_MAX_FILE_SIZE_BYTES: ${AI_CV_MAX_FILE_SIZE_BYTES:-10485760}
+    ports:
+      - "127.0.0.1:${AI_PORT:-8000}:8000"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: student-job-recommendation-backend:local
+    container_name: job-recommendation-backend
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_SHOW_SQL: "false"
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_JWT_EXPIRATION_MS: ${APP_JWT_EXPIRATION_MS:-86400000}
+      APP_CV_UPLOAD_DIR: /app/data/cvs
+      APP_CV_MAX_FILE_SIZE_BYTES: ${APP_CV_MAX_FILE_SIZE_BYTES:-10485760}
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:-10MB}
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:-10MB}
+      APP_AI_SERVICE_BASE_URL: http://ai-service:8000
+      APP_AI_SERVICE_CONNECT_TIMEOUT: ${APP_AI_SERVICE_CONNECT_TIMEOUT:-2s}
+      APP_AI_SERVICE_READ_TIMEOUT: ${APP_AI_SERVICE_READ_TIMEOUT:-15s}
+      APP_AI_RECOMMENDATION_ALGORITHM: tfidf-cosine-hybrid
+      APP_AI_RECOMMENDATION_ALGORITHM_VERSION: bilingual-recommendation-v2
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - cv_uploads:/app/data/cvs
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core
+
+networks:
+  core:
+    driver: bridge
 
 volumes:
   postgres_data:
+  cv_uploads:
