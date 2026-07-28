@@ -54,35 +54,104 @@ function Invoke-JsonApi {
         [Parameter(Mandatory = $true)]
         [ValidateSet("GET", "POST", "PUT", "PATCH", "DELETE")]
         [string]$Method,
+
         [Parameter(Mandatory = $true)]
         [string]$Uri,
+
         [string]$Token,
+
         [object]$Body
     )
 
-    $headers = @{ Accept = "application/json" }
+    $headers = @{
+        Accept = "application/json"
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($Token)) {
         $headers.Authorization = "Bearer $Token"
     }
 
     $parameters = @{
-        Method     = $Method
-        Uri        = $Uri
-        Headers    = $headers
-        TimeoutSec = $TimeoutSeconds
+        Method      = $Method
+        Uri         = $Uri
+        Headers     = $headers
+        TimeoutSec  = $TimeoutSeconds
+        ErrorAction = "Stop"
     }
 
     if ($PSBoundParameters.ContainsKey("Body")) {
-        $parameters.ContentType = "application/json"
-        $parameters.Body = $Body | ConvertTo-Json -Depth 20 -Compress
+        $json = $Body | ConvertTo-Json -Depth 30 -Compress
+
+        # Windows PowerShell 5.1 cần UTF-8 bytes rõ ràng
+        # khi payload JSON chứa nội dung tiếng Việt.
+        $parameters.ContentType = "application/json; charset=utf-8"
+        $parameters.Body = [System.Text.Encoding]::UTF8.GetBytes($json)
     }
 
     try {
         return Invoke-RestMethod @parameters
     }
     catch {
-        $bodyText = Get-HttpErrorBody -ErrorRecord $_
-        throw "HTTP $Method $Uri failed. $bodyText"
+        $statusCode = $null
+        $responseBody = $null
+        $response = $_.Exception.Response
+
+        # Trong Windows PowerShell 5.1, body lỗi đôi khi đã nằm ở đây.
+        if ($_.ErrorDetails -and
+            -not [string]::IsNullOrWhiteSpace($_.ErrorDetails.Message)) {
+            $responseBody = $_.ErrorDetails.Message
+        }
+
+        if ($null -ne $response) {
+            try {
+                $statusCode = [int]$response.StatusCode
+
+                # Chỉ đọc stream khi ErrorDetails chưa chứa body.
+                if ([string]::IsNullOrWhiteSpace($responseBody)) {
+                    $stream = $response.GetResponseStream()
+
+                    if ($null -ne $stream) {
+                        $reader = New-Object System.IO.StreamReader(
+                            $stream,
+                            [System.Text.Encoding]::UTF8
+                        )
+
+                        try {
+                            $responseBody = $reader.ReadToEnd()
+                        }
+                        finally {
+                            $reader.Dispose()
+                            $stream.Dispose()
+                        }
+                    }
+                }
+            }
+            catch {
+                if ([string]::IsNullOrWhiteSpace($responseBody)) {
+                    $responseBody =
+                        "Unable to read response body: $($_.Exception.Message)"
+                }
+            }
+        }
+
+        Write-Host ""
+        Write-Host "HTTP request failed" -ForegroundColor Red
+        Write-Host "Method: $Method" -ForegroundColor Red
+        Write-Host "URI:    $Uri" -ForegroundColor Red
+
+        if ($null -ne $statusCode) {
+            Write-Host "Status: $statusCode" -ForegroundColor Red
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($responseBody)) {
+            Write-Host "Response body:" -ForegroundColor Red
+            Write-Host $responseBody -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Response body: <empty>" -ForegroundColor Yellow
+        }
+
+        throw "HTTP $Method $Uri failed."
     }
 }
 
