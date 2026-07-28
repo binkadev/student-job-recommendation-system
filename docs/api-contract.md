@@ -1,4 +1,4 @@
-# API Contract
+﻿# API Contract
 
 Backend base URL: `http://localhost:8080`
 
