@@ -98,7 +98,7 @@ const copyByPath: Record<string, Pick<PageContent, "title" | "description">> = {
   },
   "/candidate/jobs": {
     title: "Tìm việc",
-    description: "Danh sách việc làm phù hợp cho ứng viên với bộ lọc theo kỹ năng, địa điểm, kinh nghiệm và mức lương.",
+    description: "Danh sách việc làm cho ứng viên với bộ lọc theo từ khóa, địa điểm, loại công việc và hình thức làm việc.",
   },
   "/candidate/jobs/:jobId": {
     title: "Chi tiết việc làm",

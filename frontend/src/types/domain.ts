@@ -50,10 +50,10 @@ export interface Job {
   location: string;
   salary: string;
   industry: string;
-  experience: string;
+  experience: string | null;
   jobType: string;
   workMode: "Onsite" | "Hybrid" | "Remote";
-  level: string;
+  level: string | null;
   skills: string[];
   description: string;
   requirements: string[];
@@ -76,7 +76,7 @@ export interface Candidate {
   avatar: string;
   desiredPosition: string;
   desiredSalary: string;
-  experienceYears: number;
+  experienceYears: number | null;
   skills: string[];
   education: string;
   summary: string;

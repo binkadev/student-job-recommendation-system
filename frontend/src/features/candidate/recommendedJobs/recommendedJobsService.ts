@@ -80,9 +80,8 @@ export async function getRecommendedJobs(filters: RecommendedJobFilters, hiddenI
       const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
       const matchIndustry = !filters.industry || job.industry === filters.industry;
       const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
-      const matchExperience = !filters.experience || job.experienceLabel.includes(filters.experience);
       const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
-      return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchExperience && matchSalary;
+      return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
     })
     .sort((a, b) => {
       if (a.rankPosition != null && b.rankPosition != null) return a.rankPosition - b.rankPosition;
@@ -174,9 +173,9 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
     salaryMax: job?.salaryMax ?? 0,
     location: job?.location ?? "Chua cap nhat",
     industry: job?.industry ?? jobTitle,
-    experienceYears: job?.experienceYears ?? 0,
-    experienceLabel: job?.experienceLabel ?? "Chua cap nhat",
-    level: job?.level ?? "Chua cap nhat",
+    experienceYears: job?.experienceYears ?? null,
+    experienceLabel: job?.experienceLabel ?? null,
+    level: job?.level ?? null,
     jobType: job?.jobType ?? "Chua cap nhat",
     workMode: job?.workMode ?? "Chua cap nhat",
     skills: job?.skills?.length ? job.skills : matchedSkills,

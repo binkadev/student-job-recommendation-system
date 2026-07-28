@@ -2,6 +2,7 @@ import { Bookmark, BookmarkCheck, BriefcaseBusiness, CalendarDays, Clock, MapPin
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
+import { formatExperience } from "./experienceDisplay";
 import type { PublicJobListItem } from "./jobsListTypes";
 
 export function PublicJobListCard({
@@ -44,7 +45,7 @@ export function PublicJobListCard({
       <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-3">
         <span className="inline-flex items-center gap-2"><Wallet size={16} />{job.salary}</span>
         <span className="inline-flex items-center gap-2"><MapPin size={16} />{job.location}</span>
-        <span className="inline-flex items-center gap-2"><Clock size={16} />{job.experienceLabel}</span>
+        <span className="inline-flex items-center gap-2"><Clock size={16} />{formatExperience(job.experienceYears, job.experienceLabel)}</span>
         <span className="inline-flex items-center gap-2"><BriefcaseBusiness size={16} />{job.jobType}</span>
         <span className="inline-flex items-center gap-2"><CalendarDays size={16} />Đăng: {job.postedAt}</span>
         <span className="inline-flex items-center gap-2"><Users size={16} />{job.applicants} lượt ứng tuyển</span>
@@ -54,7 +55,7 @@ export function PublicJobListCard({
 
       <div className="mt-4 flex flex-wrap gap-2">
         <StatusBadge label={job.workMode} />
-        <StatusBadge label={job.level} />
+        {job.level ? <StatusBadge label={job.level} /> : null}
         {job.skills.map((skill) => <StatusBadge key={skill} label={skill} />)}
       </div>
 

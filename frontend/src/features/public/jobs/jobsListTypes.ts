@@ -9,9 +9,9 @@ export interface PublicJobListItem {
   salaryMax: number;
   location: string;
   industry: string;
-  experienceYears: number;
-  experienceLabel: string;
-  level: string;
+  experienceYears: number | null;
+  experienceLabel: string | null;
+  level: string | null;
   jobType: string;
   workMode: string;
   skills: string[];

@@ -111,9 +111,9 @@ function mapJob(job: PublicJobResponse): PublicJobListItem {
     salaryMax: Number(job.salaryMax ?? job.salaryMin ?? 0),
     location: job.location || "Chưa cập nhật",
     industry: job.title,
-    experienceYears: inferExperienceYears(job.title),
-    experienceLabel: inferExperienceLabel(job.title),
-    level: inferLevel(job.title),
+    experienceYears: null,
+    experienceLabel: null,
+    level: null,
     jobType: job.jobType ? JOB_TYPE_LABELS[job.jobType] : "Chưa cập nhật",
     workMode: job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : "Chưa cập nhật",
     skills,
@@ -135,35 +135,6 @@ function matchesClientFilters(job: PublicJobListItem, filters: JobsListFilters) 
   const matchKeyword = !keyword || searchable.includes(keyword);
   const matchLocation = !filters.location || normalizeLocation(job.location).includes(normalizeLocation(filters.location));
   return matchKeyword && matchLocation;
-}
-
-function inferExperienceLabel(title: string) {
-  const normalized = normalizeText(title);
-  if (/\b(intern|internship|thuc tap|fresher)\b/.test(normalized)) return "Thực tập";
-  if (/\b(junior|0\s*-\s*1|1\s*nam)\b/.test(normalized)) return "0-1 năm";
-  if (/\b(1\s*-\s*2|2\s*nam)\b/.test(normalized)) return "1-2 năm";
-  if (/\b(senior|lead|manager|5\+|5\s*nam)\b/.test(normalized)) return "5+ năm";
-  if (/\b(middle|3\+|3\s*nam|4\s*nam)\b/.test(normalized)) return "3+ năm";
-  return "Chưa cập nhật";
-}
-
-function inferExperienceYears(title: string) {
-  const label = inferExperienceLabel(title);
-  if (label === "Thực tập" || label === "0-1 năm") return 0;
-  if (label === "1-2 năm") return 1;
-  if (label === "3+ năm") return 3;
-  if (label === "5+ năm") return 5;
-  return 0;
-}
-
-function inferLevel(title: string) {
-  const normalized = normalizeText(title);
-  if (/\b(intern|internship|thuc tap)\b/.test(normalized)) return "Intern";
-  if (/\b(fresher)\b/.test(normalized)) return "Fresher";
-  if (/\b(junior)\b/.test(normalized)) return "Junior";
-  if (/\b(senior|lead)\b/.test(normalized)) return "Senior";
-  if (/\b(middle)\b/.test(normalized)) return "Middle";
-  return "Chưa cập nhật";
 }
 
 function normalizeLocation(value: string) {

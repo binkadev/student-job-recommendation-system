@@ -51,6 +51,5 @@ export interface RecommendedJobFilters {
   location: string;
   industry: string;
   salary: string;
-  experience: string;
   workMode: string;
 }

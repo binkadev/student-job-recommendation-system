@@ -58,7 +58,6 @@ export const publicJobDetails: PublicJobDetail[] = publicJobs.map((job, index) =
     ],
     requirements: [
       `Có nền tảng phù hợp với vị trí ${job.title}.`,
-      `Có kinh nghiệm ở mức ${job.experienceLabel} hoặc dự án cá nhân/liên quan.`,
       "Có khả năng giao tiếp, đọc hiểu tài liệu và làm việc nhóm.",
       "Có tinh thần học hỏi, chủ động nhận phản hồi và cải thiện chất lượng công việc.",
     ],

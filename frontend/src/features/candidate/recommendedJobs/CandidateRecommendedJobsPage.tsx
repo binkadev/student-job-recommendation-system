@@ -16,6 +16,7 @@ import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
 import { useToast } from "../../../hooks/useToast";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
+import { formatExperience } from "../../public/jobs/experienceDisplay";
 import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
 import {
   generateRecommendations,
@@ -36,7 +37,6 @@ const defaultFilters: RecommendedJobFilters = {
   location: "",
   industry: "",
   salary: "",
-  experience: "",
   workMode: "",
 };
 
@@ -46,15 +46,6 @@ const salaryOptions = [
   { label: "Tu 15 trieu", value: "15" },
   { label: "Tu 20 trieu", value: "20" },
   { label: "Tu 30 trieu", value: "30" },
-];
-
-const experienceOptions = [
-  { label: "Tat ca", value: "" },
-  { label: "Thuc tap", value: "Thuc tap" },
-  { label: "0-1 nam", value: "0-1" },
-  { label: "1-2 nam", value: "1-2" },
-  { label: "3+ nam", value: "3+" },
-  { label: "5+ nam", value: "5+" },
 ];
 
 export function CandidateRecommendedJobsPage() {
@@ -229,7 +220,7 @@ export function CandidateRecommendedJobsPage() {
       </Card>
 
       <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Select
             label="Match score toi thieu"
             value={String(filters.minMatch)}
@@ -255,7 +246,6 @@ export function CandidateRecommendedJobsPage() {
             options={[{ label: "Tat ca", value: "" }, ...options.industries.map((value) => ({ label: value, value }))]}
           />
           <Select label="Muc luong" value={filters.salary} onChange={(event) => updateFilter("salary", event.target.value)} options={salaryOptions} />
-          <Select label="Kinh nghiem" value={filters.experience} onChange={(event) => updateFilter("experience", event.target.value)} options={experienceOptions} />
           <Select
             label="Hinh thuc lam viec"
             value={filters.workMode}
@@ -349,7 +339,7 @@ function RecommendedJobCard({
               <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600">
                 <span className="inline-flex items-center gap-1"><Wallet size={15} />{job.salary}</span>
                 <span className="inline-flex items-center gap-1"><MapPin size={15} />{job.location}</span>
-                <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={15} />{job.experienceLabel} - {job.workMode}</span>
+                <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={15} />{formatExperience(job.experienceYears, job.experienceLabel)} - {job.workMode}</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
