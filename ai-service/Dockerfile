@@ -13,8 +13,7 @@ RUN addgroup --system app \
     && adduser --system --ingroup app app
 
 COPY requirements.lock ./requirements.lock
-RUN python -m pip install --upgrade pip \
-    && python -m pip install --require-hashes --only-binary=:all: -r requirements.lock \
+RUN python -m pip install --require-hashes --only-binary=:all: -r requirements.lock \
     && python -m pip check
 
 COPY --chown=app:app . /app
