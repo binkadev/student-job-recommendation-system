@@ -5,6 +5,7 @@
 **Nền tảng tuyển dụng và gợi ý việc làm dựa trên nội dung CV, hỗ trợ tiếng Việt và tiếng Anh bằng Content-Based Filtering, TF-IDF, Cosine Similarity và đối sánh kỹ năng chuẩn hóa.**
 
 [![Backend CI](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/backend-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/backend-ci.yml)
+[![AI Service CI](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/ai-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/ai-ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-E76F00?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-6DB33F?logo=springboot&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
@@ -38,13 +39,14 @@ Nhánh tích hợp chính thức là `master`. Các branch cá nhân hoặc bran
 | AI Service Contract V2 | ✅ Đã tích hợp, hỗ trợ tiếng Việt và tiếng Anh |
 | Phân tích PDF/DOCX | ✅ Đã triển khai và kiểm thử |
 | Backend + AI + PostgreSQL + JWT integration | ✅ Đã chạy real-stack smoke thành công |
-| Backend CI | ✅ Có GitHub Actions |
-| AI Service CI | ⚠️ Chưa có workflow riêng |
-| Docker Compose toàn bộ core stack | ⚠️ Chưa hoàn thành; compose hiện chỉ chạy PostgreSQL |
-| Frontend chạy được trên `master` | ⚠️ Chưa có bằng chứng runtime; prototype lịch sử chưa được merge |
-| Frontend → Backend → AI end-to-end | ⚠️ Chưa được xác nhận trên `master` |
-| Ranking-quality evaluation bằng dữ liệu người gán nhãn | ⚠️ Chưa thực hiện |
-| Container image trên GitHub Packages/GHCR | ⚠️ Chưa có |
+| Backend CI | ✅ Đã hoàn thành |
+| AI Service CI | ✅ Đã hoàn thành |
+| Docker Compose core stack PostgreSQL + AI Service + Backend | ✅ Đã hoàn thành |
+| Automated acceptance smoke qua Backend | ✅ Đã hoàn thành |
+| GHCR images | ⚠️ Chưa hoàn thành |
+| Production hardening | ⚠️ Chưa hoàn thành |
+| Frontend E2E | ⚠️ Chưa có bằng chứng runtime trên `master` |
+| Human-labeled ranking quality evaluation | ⚠️ Chưa thực hiện |
 
 > Bộ test hiện tại chứng minh tính đúng đắn của pipeline, contract, công thức, persistence và luồng tích hợp. Bộ test này chưa chứng minh công việc được gợi ý có phù hợp với đánh giá của con người hay không.
 
@@ -204,37 +206,51 @@ student-job-recommendation-system/
 ├── ai-service/              # FastAPI AI Service
 ├── backend/                 # Spring Boot Backend
 ├── docs/                    # Contract, regression và production plan
-├── frontend/                # Chưa có frontend runtime được xác nhận trên master
+├── frontend/                # Mock-data UI; chưa có bằng chứng Backend E2E
 ├── performance/             # Benchmark và evidence
-├── docker-compose.yml       # Hiện mới chạy PostgreSQL
+├── scripts/
+│   └── smoke-core.ps1       # Automated acceptance smoke qua Backend
+├── docker-compose.yml       # Chạy PostgreSQL, AI Service và Backend
 ├── AGENTS.md                # Source of truth và quy tắc đóng góp
 └── README.md
 ```
 
 ## 9. Chạy demo hiện tại
 
-### Yêu cầu
+### 9.1 Cách khuyến nghị: Docker core stack và automated smoke
 
-- Java 21
-- Python 3.11
-- Docker Desktop hoặc Docker Engine
+Yêu cầu Docker Desktop hoặc Docker Engine có Docker Compose V2 và Windows PowerShell 5.1/PowerShell 7. Từ thư mục gốc repository, chạy:
 
-### 9.1 Khởi động PostgreSQL
+```powershell
+Copy-Item .env.example .env -Force
+docker compose up --build -d
+docker compose ps
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-core.ps1
+```
+
+Compose khởi động PostgreSQL, AI Service và Backend. Smoke script chạy luồng thật qua Backend; kết quả thành công kết thúc bằng:
+
+```text
+SMOKE RESULT: PASS
+```
+
+Các endpoint local chính:
+
+```text
+AI health:      http://localhost:8000/health
+AI OpenAPI:     http://localhost:8000/docs
+Backend Swagger: http://localhost:8080/swagger-ui.html
+```
+
+### 9.2 Tùy chọn phát triển: chạy Java/Python thủ công
+
+Cách này dành cho phát triển từng service và yêu cầu Java 21, Python 3.11 cùng PostgreSQL. Trước tiên khởi động database:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-Mặc định local development:
-
-```text
-Database: student_job_recommendation
-Username: postgres
-Password: 123456
-Port: 5432
-```
-
-### 9.2 Khởi động AI Service
+Trong một terminal, khởi động AI Service:
 
 ```powershell
 cd ai-service
@@ -246,31 +262,16 @@ python -m pip check
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-AI health:
-
-```text
-http://localhost:8000/health
-```
-
-AI OpenAPI:
-
-```text
-http://localhost:8000/docs
-```
-
-### 9.3 Khởi động Backend
+Trong terminal khác, khởi động Backend:
 
 ```powershell
 cd backend
+$env:SPRING_DATASOURCE_PASSWORD="change-this-local-postgres-password"
 $env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Backend Swagger:
-
-```text
-http://localhost:8080/swagger-ui.html
-```
+Giá trị `SPRING_DATASOURCE_PASSWORD` phải khớp `POSTGRES_PASSWORD` trong `.env`; nếu đã tùy chỉnh database name hoặc username thì đặt các biến `SPRING_DATASOURCE_*` tương ứng.
 
 ### Tài khoản demo
 
@@ -282,11 +283,13 @@ student@example.com
 company@example.com
 ```
 
-Các thông tin trên chỉ phục vụ môi trường phát triển/demo, không được dùng cho production.
+Các tài khoản và giá trị trong `.env.example` chỉ phục vụ môi trường phát triển/demo, không được dùng cho production.
 
 ## 10. Kiểm thử
 
 ### Backend
+
+Backend CI hiện có tại [`.github/workflows/backend-ci.yml`](.github/workflows/backend-ci.yml) và chạy Java 21 cùng toàn bộ Maven `clean verify`.
 
 ```powershell
 cd backend
@@ -297,6 +300,8 @@ cd backend
 `clean verify` sử dụng Testcontainers, PostgreSQL 17, Flyway và Hibernate mapping checks.
 
 ### AI Service
+
+AI Service CI hiện có tại [`.github/workflows/ai-ci.yml`](.github/workflows/ai-ci.yml). Workflow dùng Python 3.11.9, cài `requirements.lock` với `--require-hashes`, chạy `pip check` và chạy toàn bộ test bằng `python -m pytest`.
 
 ```powershell
 cd ai-service
@@ -328,6 +333,19 @@ Bộ test AI bao phủ:
 - V1 compatibility;
 - sanitized HTTP errors.
 
+### Docker acceptance smoke
+
+Automated smoke tại [`scripts/smoke-core.ps1`](scripts/smoke-core.ps1) đã chứng minh luồng tích hợp thật đi qua Backend:
+
+- upload CV DOCX tiếng Việt thật;
+- reanalysis đạt `READY` với `languageCode = vi`;
+- recommendation run đạt `SUCCESS`;
+- có cả `SAME_LANGUAGE_HYBRID` và `CROSS_LANGUAGE_SKILL_BASED`;
+- `rankPosition` liên tục và thứ tự kết quả đúng;
+- latest results đã persist khớp với run vừa tạo.
+
+Đây là bằng chứng về correctness, contract và persistence của core stack; không phải bằng chứng ranking quality theo đánh giá của con người.
+
 ### Phạm vi kiểm thử cần phân biệt
 
 **Functional testing:** API, parsing, language detection, formula, threshold, sorting và persistence.
@@ -340,35 +358,33 @@ Bộ test AI bao phủ:
 
 ## 11. Hạn chế hiện tại
 
-- chưa có frontend runtime và frontend E2E được xác nhận trên `master`;
-- chưa Docker hóa Backend và AI Service trong core compose;
-- chưa có AI CI;
 - chưa publish Backend/AI images lên GHCR;
-- chưa có internal authentication production giữa Backend và AI Service;
-- chưa có OCR cho CV dạng ảnh/scan;
-- chưa có queue bất đồng bộ;
-- chưa có concurrent reanalysis guard;
-- chưa có immutable snapshot đầy đủ của historical CV/Job corpus;
-- chưa có refresh-token persistence hoặc token revocation;
+- chưa hoàn thành production profile và security hardening, gồm environment validation, CORS, Swagger, internal Backend–AI authentication và production log hardening;
+- chưa hoàn chỉnh observability, monitoring/alerting và quy trình backup/restore;
+- chưa có frontend E2E với Backend và AI được chứng minh bằng runtime trên `master`;
 - chưa có tập dữ liệu người gán nhãn để đánh giá ranking quality;
-- chưa có production monitoring, alerting, backup và restore drill hoàn chỉnh.
+- hệ thống vì vậy chưa được xem là production-ready.
 
 ## 12. Hướng phát triển production
 
-Thứ tự ưu tiên:
+Đã hoàn thành:
 
-1. chuẩn hóa tài liệu và source of truth;
-2. Docker hóa PostgreSQL + AI Service + Backend;
-3. viết smoke test chạy qua Backend;
-4. thêm AI CI;
-5. publish container images lên GitHub Packages/GHCR;
-6. bổ sung production profile và secrets qua environment;
-7. harden CORS, Swagger và internal AI access;
-8. thêm structured logging, health, metrics và correlation ID;
-9. xây dựng backup/restore procedure;
-10. xây dựng dataset có nhãn và đánh giá Precision@5, Recall@5, NDCG@5;
-11. tích hợp frontend với Backend và chạy full E2E;
-12. tạo staging release trước khi production release.
+1. ✅ chuẩn hóa repository truth và tài liệu nguồn;
+2. ✅ Docker core stack PostgreSQL + AI Service + Backend — PR #20;
+3. ✅ automated acceptance smoke qua Backend — PR #21;
+4. ✅ AI Service CI — PR #22.
+
+Bước kế tiếp:
+
+5. ⏭️ publish Backend và AI images lên GHCR bằng tag commit SHA.
+
+Sau đó mới thực hiện:
+
+6. production profile và security hardening;
+7. observability, monitoring và alerting;
+8. backup/restore procedure, restore drill và rollback runbook;
+9. human-labeled ranking evaluation với Precision@5, Recall@5 và NDCG@5;
+10. tích hợp frontend với Backend và chạy full E2E.
 
 Chi tiết xem:
 
@@ -400,4 +416,4 @@ Quy ước đóng góp:
 
 ---
 
-**Trạng thái:** phần lõi Backend + AI đã đủ cho demo kỹ thuật. Repository đang trong giai đoạn production-readiness và chưa nên được gọi là production-ready cho đến khi hoàn thành Docker handoff, CI, security hardening, observability, backup/restore và frontend end-to-end.
+**Trạng thái:** phần lõi Backend + AI đã có Docker handoff, automated acceptance smoke và CI cho cả hai service. Repository vẫn đang trong giai đoạn production-readiness và chưa nên được gọi là production-ready cho đến khi hoàn thành GHCR publishing, security hardening, observability, backup/restore, human-labeled ranking evaluation và frontend end-to-end.

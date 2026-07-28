@@ -54,18 +54,24 @@ Scoring giữ nguyên:
 - Phân tích PDF/DOCX, language detection, preprocessing và canonical skill extraction.
 - Recommendation run/result persistence và Backend-owned ranking.
 - Backend unit/integration tests, Testcontainers, Flyway validation và Backend CI.
-- AI automated tests và real-stack Backend–AI–PostgreSQL smoke đã được thực hiện.
+- AI automated tests cho Contract V2 và pipeline song ngữ.
+- Dockerfiles cho Backend và AI Service.
+- Docker Compose chạy ba service `postgres`, `ai-service` và `backend`.
+- Healthchecks cho core stack cùng named volumes `postgres_data` và `cv_uploads`.
+- Automated smoke script chạy qua Backend, xác nhận upload CV thật, `READY`/`vi`, recommendation run `SUCCESS`, hai strategy, `rankPosition` liên tục và latest persisted results.
+- Smoke script tương thích Windows PowerShell 5.1 với payload JSON UTF-8 rõ ràng.
+- AI Service CI dùng Python 3.11.9, hashed lock, `pip check` và full `pytest`.
 - Query fan-out optimization và benchmark evidence.
 
 ## Giới hạn hiện tại
 
-- Docker Compose mới chỉ chạy PostgreSQL.
-- Chưa có Docker image cho Backend và AI Service.
-- Chưa có AI CI riêng.
-- Chưa publish image lên GitHub Container Registry.
-- Chưa có production profile, internal AI authentication, monitoring, alerting và backup/restore runbook hoàn chỉnh.
+- Chưa publish Backend và AI images lên GitHub Container Registry bằng tag SHA; chưa có release tag và rollback flow.
+- Chưa có production profile và security hardening hoàn chỉnh, gồm internal AI authentication, CORS, Swagger và production log hardening.
+- Chưa hoàn chỉnh observability, monitoring, alerting và backup/restore runbook.
 - Chưa chứng minh chất lượng ranking bằng tập dữ liệu do con người gán nhãn.
 - Frontend end-to-end với Backend và AI chưa có bằng chứng runtime trên nhánh chuẩn.
+
+Core stack hiện có thể tái lập cho local development và acceptance, nhưng hệ thống chưa production-ready.
 
 ## Phân biệt các loại kiểm thử
 
@@ -85,16 +91,15 @@ Cho đến khi có tập dữ liệu gán nhãn, tài liệu phải ghi rõ:
 
 ## Lộ trình triển khai
 
-### Giai đoạn 0 — Repository truth
+### Giai đoạn 0 — Repository truth — completed
 
-- Đồng bộ README, AGENTS, Backend README, AI README và tài liệu API.
-- Sửa wording English-only còn sót trong lỗi V2.
-- Dọn legacy branch sau khi đã đối chiếu lịch sử.
-- Không merge code V1 hoặc branch cá nhân cũ vào `master`.
+- Đã xác lập `master` là nguồn tích hợp chính thức và đồng bộ tài liệu với Contract V2 hiện hành.
+- Đã mô tả đúng ranh giới Backend, AI Service, frontend mock-data UI và ranking-quality evaluation.
+- Đã loại các branch legacy/cá nhân khỏi nguồn hành vi nghiệp vụ; V1 chỉ còn phạm vi compatibility.
 
-### Giai đoạn 1 — Docker core stack
+### Giai đoạn 1 — Docker core stack — completed bởi PR #20
 
-Tạo:
+Đã tạo:
 
 - `backend/Dockerfile`
 - `backend/.dockerignore`
@@ -103,17 +108,17 @@ Tạo:
 - `.env.example`
 - Compose cho `postgres`, `ai-service`, `backend`
 
-Yêu cầu:
+Kết quả đã xác nhận:
 
-- healthcheck cho PostgreSQL và AI;
+- healthcheck cho PostgreSQL, AI Service và Backend;
 - Backend dùng hostname `postgres` và `ai-service`;
-- volume riêng cho database và CV uploads;
+- named volume riêng `postgres_data` và `cv_uploads`;
 - không bake secrets vào image;
 - `docker compose up --build -d` khởi động toàn bộ core stack.
 
-### Giai đoạn 2 — Acceptance smoke
+### Giai đoạn 2 — Acceptance smoke — completed bởi PR #21
 
-Tạo `scripts/smoke-core.ps1` chạy qua Backend:
+Đã tạo `scripts/smoke-core.ps1` chạy qua Backend:
 
 1. Login Student.
 2. Upload fixture CV tiếng Việt.
@@ -121,12 +126,22 @@ Tạo `scripts/smoke-core.ps1` chạy qua Backend:
 4. Generate recommendations.
 5. Xác nhận cả `SAME_LANGUAGE_HYBRID` và `CROSS_LANGUAGE_SKILL_BASED`.
 6. Xác nhận Backend trả `rankPosition` liên tục.
+7. Xác nhận recommendation run `SUCCESS` và latest persisted results khớp với run vừa tạo.
 
-### Giai đoạn 3 — CI và container registry
+Script đã được làm tương thích Windows PowerShell 5.1 bằng cách gửi JSON tiếng Việt dưới dạng UTF-8 bytes rõ ràng và kết thúc thành công bằng `SMOKE RESULT: PASS`.
 
-- Thêm AI CI với Python 3.11.9, hashed lock, `pip check`, `pytest`.
-- Build Backend và AI images.
-- Publish lên GHCR với tag commit SHA và release tag.
+### Giai đoạn 3 — CI và container registry — in progress
+
+#### AI Service CI — completed bởi PR #22
+
+- Workflow dùng Python 3.11.9.
+- Dependencies được cài từ hashed lock bằng `--require-hashes`.
+- CI chạy `pip check` và full `python -m pytest`.
+
+#### GHCR publishing — next
+
+- Publish Backend và AI images lên GHCR với tag commit SHA.
+- Bổ sung release tag và rollback instructions.
 - Không phụ thuộc duy nhất vào `latest`.
 
 ### Giai đoạn 4 — Production hardening
@@ -168,15 +183,15 @@ Login -> Company tạo Job -> Admin duyệt -> Student upload CV
 
 ## Thứ tự Pull Request
 
-1. `docs: align repository truth and production-readiness status`
-2. `chore(docker): containerize backend ai and postgres core stack`
-3. `test(smoke): add reproducible backend-ai acceptance flow`
-4. `ci(ai): add Python test workflow`
-5. `ci(images): publish backend and ai images to GHCR`
-6. `feat(security): harden production configuration and internal AI access`
-7. `ops: add observability backup and restore procedures`
-8. `test(evaluation): add offline ranking-quality evaluation framework`
-9. `feat(frontend): integrate production backend APIs`
+1. ✅ completed — `docs: align repository truth and production-readiness status`
+2. ✅ completed bởi PR #20 — `chore(docker): containerize backend ai and postgres core stack`
+3. ✅ completed bởi PR #21 — `test(smoke): add reproducible backend-ai acceptance flow`
+4. ✅ completed bởi PR #22 — `ci(ai): add Python test workflow`
+5. ⏭️ next — `ci(images): publish backend and ai images to GHCR` bằng tag SHA
+6. pending — `feat(security): harden production configuration and internal AI access`
+7. pending — `ops: add observability backup and restore procedures`
+8. pending — `test(evaluation): add offline ranking-quality evaluation framework`
+9. pending — `feat(frontend): integrate production backend APIs`
 
 ## Definition of Done cho production MVP
 

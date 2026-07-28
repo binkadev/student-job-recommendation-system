@@ -2,32 +2,32 @@
 
 ## Documentation gate
 
-- [ ] README mô tả đúng trạng thái `master`.
-- [ ] Backend + AI real-stack integration được ghi là đã kiểm thử.
-- [ ] Frontend end-to-end được ghi là chưa có bằng chứng runtime trên `master`.
-- [ ] Functional/contract/integration testing được tách khỏi ranking-quality evaluation.
-- [ ] Không có tuyên bố Precision@K, Recall@K hoặc NDCG@K khi chưa có dữ liệu người gán nhãn.
-- [ ] Không có tuyên bố một tác giả duy nhất nếu phạm vi đóng góp chưa được nhóm xác nhận.
+- [x] README mô tả đúng trạng thái `master`.
+- [x] Backend + AI real-stack integration được ghi là đã kiểm thử.
+- [x] Frontend end-to-end được ghi là chưa có bằng chứng runtime trên `master`.
+- [x] Functional/contract/integration testing được tách khỏi ranking-quality evaluation.
+- [x] Không có tuyên bố Precision@K, Recall@K hoặc NDCG@K khi chưa có dữ liệu người gán nhãn.
+- [x] Không có tuyên bố một tác giả duy nhất nếu phạm vi đóng góp chưa được nhóm xác nhận.
 
 ## Docker gate
 
-- [ ] PostgreSQL, AI Service và Backend có Dockerfile/Compose reproducible.
-- [ ] `docker compose up --build -d` chạy được từ clean clone.
-- [ ] Có healthcheck và named volumes.
-- [ ] Không có secret trong image hoặc repository.
+- [x] Backend và AI Service có Dockerfile; Docker Compose reproducible chạy PostgreSQL, AI Service và Backend.
+- [x] `docker compose up --build -d` chạy được từ clean clone.
+- [x] Có healthcheck và named volumes.
+- [x] Không có secret trong image hoặc repository.
 
 ## Acceptance gate
 
-- [ ] Upload CV tiếng Việt qua Backend.
-- [ ] Reanalysis chuyển `READY`, `languageCode = vi`.
-- [ ] Recommendation run `SUCCESS`.
-- [ ] Có cả same-language và cross-language strategy.
-- [ ] Backend trả `rankPosition` liên tục.
+- [x] Upload CV tiếng Việt qua Backend.
+- [x] Reanalysis chuyển `READY`, `languageCode = vi`.
+- [x] Recommendation run `SUCCESS`.
+- [x] Có cả same-language và cross-language strategy.
+- [x] Backend trả `rankPosition` liên tục.
 
 ## CI/CD gate
 
-- [ ] Backend CI pass.
-- [ ] AI CI pass.
+- [x] Backend CI pass.
+- [x] AI CI pass.
 - [ ] Backend và AI image được publish lên GHCR với tag SHA.
 - [ ] Có release tag và rollback instructions.
 
@@ -37,7 +37,7 @@
 - [ ] CORS cấu hình qua environment.
 - [ ] Swagger production được tắt hoặc bảo vệ.
 - [ ] Có internal authentication Backend–AI.
-- [ ] Logs không chứa password, JWT, raw CV hoặc internal file path.
+- [ ] Production logs không chứa password, JWT, raw CV hoặc internal file path.
 - [ ] Có backup và restore runbook.
 
 ## Quality-evaluation gate
