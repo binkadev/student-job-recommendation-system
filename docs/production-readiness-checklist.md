@@ -12,9 +12,10 @@
 ## Docker gate
 
 - [x] Backend và AI Service có Dockerfile; Docker Compose reproducible chạy PostgreSQL, AI Service và Backend.
-- [x] `docker compose up --build -d` chạy được từ clean clone.
+- [x] `docker compose up --build -d` chạy được từ working tree sạch với fresh volumes.
 - [x] Có healthcheck và named volumes.
 - [x] Không có secret trong image hoặc repository.
+- [ ] Clean clone riêng biệt đã được xác nhận trên môi trường khác hoặc CI.
 
 ## Acceptance gate
 
