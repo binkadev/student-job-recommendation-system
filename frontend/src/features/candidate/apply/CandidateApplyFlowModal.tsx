@@ -63,6 +63,12 @@ interface BackendCvFileResponse {
   uploadedAt?: string | null;
 }
 
+interface BackendCvAnalysisResponse {
+  status?: string | null;
+  skills?: string[] | null;
+  warnings?: string[] | null;
+}
+
 interface BackendApplicationResponse {
   id: number;
 }
@@ -82,7 +88,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const cvs = useMemo(() => cvsQuery.data?.items ?? [], [cvsQuery.data?.items]);
-  const selectableCvs = useMemo(() => cvs.filter((cv) => !["analyzing", "failed"].includes(cv.status)), [cvs]);
+  const selectableCvs = useMemo(() => cvs.filter((cv) => cv.status === "analyzed"), [cvs]);
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId) ?? null;
   const dirty = step > 0 || Boolean(selectedCvId || coverLetter || answers.years || answers.startDate || answers.salary || answers.onsite);
 
@@ -113,7 +119,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
     const nextErrors: Record<string, string> = {};
     if (currentStep === 0) {
       if (!selectedCvId) nextErrors.cv = "Vui lòng chọn một CV.";
-      if (selectedCv && ["analyzing", "failed"].includes(selectedCv.status)) nextErrors.cv = "Không thể chọn CV đang phân tích hoặc lỗi.";
+      if (selectedCv && selectedCv.status !== "analyzed") nextErrors.cv = "Chỉ có thể ứng tuyển bằng CV đã phân tích thành công.";
     }
     if (currentStep === 2) {
       const years = Number(answers.years);
@@ -194,11 +200,11 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
 function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvId: string; error?: string; onSelect: (id: string) => void }) {
   return (
     <div className="space-y-4">
-      <SectionHeader title="Chọn CV" description="Chọn một CV đã phân tích thành công hoặc cần xác nhận. CV đang phân tích hoặc lỗi sẽ bị khóa." />
+      <SectionHeader title="Chọn CV" description="Chọn một CV đã phân tích thành công. CV chưa READY, đang phân tích hoặc lỗi sẽ bị khóa." />
       <div className="grid gap-3">
         {cvs.map((cv) => {
           const status = cvStatusLabels[cv.status];
-          const disabled = ["analyzing", "failed"].includes(cv.status);
+          const disabled = cv.status !== "analyzed";
           return (
             <button
               key={cv.id}
@@ -366,21 +372,41 @@ function formatCurrencyVnd(value: string) {
 async function getSelectableCvs(open: boolean): Promise<{ items: Cv[] }> {
   if (!open) return { items: [] };
   const response = await httpClient.get<ApiResponse<BackendCvFileResponse[]>>("/students/me/cv");
-  return { items: response.data.data.map(mapBackendCvFile) };
+  const items = await Promise.all(response.data.data.map(async (cv) => {
+    const analysis = await getCvAnalysis(cv.id);
+    return mapBackendCvFile(cv, analysis);
+  }));
+  return { items };
 }
 
-function mapBackendCvFile(cv: BackendCvFileResponse): Cv {
+async function getCvAnalysis(cvId: number): Promise<BackendCvAnalysisResponse | null> {
+  try {
+    const response = await httpClient.get<ApiResponse<BackendCvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
+    return response.data.data;
+  } catch {
+    return null;
+  }
+}
+
+function mapBackendCvFile(cv: BackendCvFileResponse, analysis: BackendCvAnalysisResponse | null): Cv {
   return {
     id: String(cv.id),
     candidateId: "",
     fileName: cv.originalFileName ?? `CV #${cv.id}`,
     uploadedAt: cv.uploadedAt ?? "",
-    status: "analyzed",
+    status: mapCvAnalysisStatus(analysis?.status),
     score: 0,
     isDefault: Boolean(cv.active ?? cv.isActive),
     isPublic: false,
-    extractedSkills: [],
+    extractedSkills: analysis?.skills ?? [],
     missingFields: [],
-    warnings: [],
+    warnings: analysis?.warnings ?? [],
   };
+}
+
+function mapCvAnalysisStatus(status?: string | null): Cv["status"] {
+  if (status === "READY") return "analyzed";
+  if (status === "PROCESSING") return "analyzing";
+  if (status === "FAILED") return "failed";
+  return "uploaded";
 }

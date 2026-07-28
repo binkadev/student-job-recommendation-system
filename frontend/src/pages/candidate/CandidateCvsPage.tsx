@@ -1,5 +1,5 @@
-import { FileText, RefreshCw, Save, UploadCloud, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FileText, RefreshCw, UploadCloud, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -12,7 +12,6 @@ import { Card } from "../../components/ui/Card";
 import { FileUploader } from "../../components/ui/FileUploader";
 import { Modal } from "../../components/ui/Modal";
 import { Switch } from "../../components/ui/Switch";
-import { Textarea } from "../../components/ui/Textarea";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 import { useToast } from "../../hooks/useToast";
@@ -363,28 +362,17 @@ function CvAnalysisView({
 }) {
   const { showToast } = useToast();
   const [reloadKey, setReloadKey] = useState(0);
-  const [saving, setSaving] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const cvQuery = useAsyncData(() => (cvId ? getCandidateCvDetail(Number(cvId)) : Promise.resolve(fallbackCv)), [cvId, reloadKey]);
   const analysisQuery = useAsyncData(() => (cvId ? getCandidateCvAnalysis(Number(cvId)) : Promise.resolve(null)), [cvId, reloadKey]);
   const cv = cvQuery.data ?? fallbackCv;
-  const [extractedText, setExtractedText] = useState("");
-  const [processedText, setProcessedText] = useState("");
   const title = mode === "analysis" ? "Phan tich CV" : mode === "edit-extracted" ? "Chinh du lieu trich xuat" : "Review CV";
-
-  useEffect(() => {
-    if (!analysisQuery.data) return;
-    setExtractedText(analysisQuery.data.extractedText ?? "");
-    setProcessedText(analysisQuery.data.processedText ?? "");
-  }, [analysisQuery.data]);
 
   async function reanalyzeCv() {
     if (!cv) return;
     setReanalyzing(true);
     try {
-      const analysis = await reanalyzeCandidateCv(cv.id);
-      setExtractedText(analysis.extractedText ?? "");
-      setProcessedText(analysis.processedText ?? "");
+      await reanalyzeCandidateCv(cv.id);
       showToast({ type: "success", title: "Da gui yeu cau phan tich lai", message: cv.originalFileName });
       setReloadKey((current) => current + 1);
       onReload();
@@ -392,23 +380,6 @@ function CvAnalysisView({
       showToast({ type: "error", title: "Khong the phan tich lai CV", message: getErrorMessage(error) });
     } finally {
       setReanalyzing(false);
-    }
-  }
-
-  async function saveExtractedData() {
-    if (!cv) return;
-    setSaving(true);
-    try {
-      const analysis = await updateCandidateCvExtractedData(cv.id, { extractedText, processedText });
-      setExtractedText(analysis.extractedText ?? "");
-      setProcessedText(analysis.processedText ?? "");
-      showToast({ type: "success", title: "Da luu du lieu trich xuat", message: cv.originalFileName });
-      setReloadKey((current) => current + 1);
-      onReload();
-    } catch (error) {
-      showToast({ type: "error", title: "Khong the luu du lieu trich xuat", message: getErrorMessage(error) });
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -448,6 +419,21 @@ function CvAnalysisView({
     );
   }
 
+  if (mode === "edit-extracted") {
+    return (
+      <PageContainer>
+        <PageHeader title={title} description="Backend MVP hiện chưa hỗ trợ chỉnh tay dữ liệu trích xuất từ CV." />
+        <Card>
+          <EmptyState message="Chức năng chỉnh extracted data chưa được hỗ trợ trong MVP. Bạn có thể xem phân tích CV hoặc bấm phân tích lại để AI cập nhật dữ liệu." />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button>Xem phân tích CV</Button></Link>
+            <Link to="/candidate/cvs"><Button variant="secondary">Quay lại danh sách CV</Button></Link>
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       <PageHeader title={title} description="Du lieu lay tu CV API cua backend." />
@@ -470,9 +456,7 @@ function CvAnalysisView({
 
           <Card>
             <SectionHeader title="Processed text" />
-            {mode === "edit-extracted" ? (
-              <Textarea label="processedText" value={processedText} onChange={(event) => setProcessedText(event.target.value)} className="min-h-[260px]" />
-            ) : analysisQuery.data?.processedText ? (
+            {analysisQuery.data?.processedText ? (
               <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.processedText}</pre>
             ) : (
               <EmptyState message="Backend chua tra ve processedText cho CV nay." />
@@ -492,12 +476,7 @@ function CvAnalysisView({
 
           <Card>
             <SectionHeader title="Du lieu trich xuat" />
-            {mode === "edit-extracted" ? (
-              <div className="space-y-4">
-                <Textarea label="extractedText" value={extractedText} onChange={(event) => setExtractedText(event.target.value)} className="min-h-[260px]" />
-                <Button loading={saving} disabled={saving} onClick={() => void saveExtractedData()} icon={<Save size={16} />}>Luu du lieu trich xuat</Button>
-              </div>
-            ) : analysisQuery.data?.extractedText ? (
+            {analysisQuery.data?.extractedText ? (
               <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.extractedText}</pre>
             ) : (
               <EmptyState message="Backend chua tra ve extractedText cho CV nay." />
@@ -518,7 +497,6 @@ function CvAnalysisView({
             <SectionHeader title="Thao tac" />
             <div className="grid gap-2">
               <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phan tich lai</Button>
-              {mode !== "edit-extracted" ? <Link to={`/candidate/cvs/${cv.id}/edit-extracted-data`}><Button variant="secondary" className="w-full">Chinh du lieu trich xuat</Button></Link> : null}
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiet CV</Button></Link>
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lai danh sach</Button></Link>
             </div>
@@ -556,11 +534,6 @@ async function activateCandidateCv(cvId: number) {
 
 async function reanalyzeCandidateCv(cvId: number) {
   const response = await httpClient.post<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/reanalyze`);
-  return response.data.data;
-}
-
-async function updateCandidateCvExtractedData(cvId: number, payload: { extractedText: string; processedText: string }) {
-  const response = await httpClient.patch<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/extracted-data`, payload);
   return response.data.data;
 }
 

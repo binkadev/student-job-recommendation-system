@@ -1,4 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
+import { getPublicJobDetail } from "../../public/jobs/jobDetailService";
 import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun, RecommendedJobFilters } from "./recommendedJobsTypes";
 
 interface ApiResponse<T> {
@@ -52,6 +53,10 @@ interface CvFileResponse {
   uploadedAt?: string | null;
 }
 
+interface CvAnalysisResponse {
+  status?: string | null;
+}
+
 export function getRecommendedJobState() {
   return {
     hiddenIds: [],
@@ -67,8 +72,8 @@ export function saveRecommendedJobState(hiddenIds: string[], notInterestedIds: s
 export async function getRecommendedJobs(filters: RecommendedJobFilters, hiddenIds: string[]) {
   const response = await httpClient.get<ApiResponse<RecommendationResultResponse[]>>("/students/me/recommendation-results/latest");
   const items = response.data.data ?? [];
-  return items
-    .map(mapRecommendationResult)
+  const jobs = await Promise.all(items.map(mapRecommendationResult));
+  return jobs
     .filter((job) => {
       const matchHidden = !hiddenIds.includes(job.id);
       const matchScore = job.matchScore >= filters.minMatch;
@@ -92,9 +97,10 @@ export async function getRecommendationRuns(): Promise<RecommendationRun[]> {
 
 export async function getRecommendationRun(runId: string) {
   const response = await httpClient.get<ApiResponse<RecommendationRunResponse>>(`/students/me/recommendation-runs/${runId}`);
+  const results = await Promise.all((response.data.data.results ?? []).map(mapRecommendationResult));
   return {
     run: mapRecommendationRun(response.data.data),
-    results: (response.data.data.results ?? []).map(mapRecommendationResult),
+    results,
   };
 }
 
@@ -126,11 +132,16 @@ export async function generateRecommendations(payload: GenerateRecommendationPay
 
 export async function getCandidateCvOptions(): Promise<CandidateCvOption[]> {
   const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
-  return (response.data.data ?? []).map((cv) => ({
-    id: String(cv.id),
-    name: cv.originalFileName || cv.fileName || `CV #${cv.id}`,
-    active: Boolean(cv.isActive ?? cv.active),
-    uploadedAt: formatDateTime(cv.uploadedAt),
+  return Promise.all((response.data.data ?? []).map(async (cv) => {
+    const analysisStatus = await getCvAnalysisStatus(cv.id);
+    return {
+      id: String(cv.id),
+      name: cv.originalFileName || cv.fileName || `CV #${cv.id}`,
+      active: Boolean(cv.isActive ?? cv.active),
+      analysisStatus,
+      ready: analysisStatus === "READY",
+      uploadedAt: formatDateTime(cv.uploadedAt),
+    };
   }));
 }
 
@@ -142,7 +153,7 @@ export function getRecommendedFilterOptions(jobs: CandidateRecommendedJob[]) {
   };
 }
 
-function mapRecommendationResult(result: RecommendationResultResponse): CandidateRecommendedJob {
+async function mapRecommendationResult(result: RecommendationResultResponse): Promise<CandidateRecommendedJob> {
   const matchedSkills = normalizeStringArray(result.matchedSkills ?? result.matchedKeywords);
   const missingSkills = normalizeStringArray(result.missingSkills ?? result.missingKeywords);
   const reason = result.reason || result.explanation;
@@ -150,27 +161,29 @@ function mapRecommendationResult(result: RecommendationResultResponse): Candidat
   const textScore = result.textScore == null ? null : toPercent(result.textScore);
   const skillScore = result.skillScore == null ? null : toPercent(result.skillScore);
   const jobTitle = result.jobTitle || `Cong viec #${result.jobId}`;
+  const detail = await getPublicJobDetail(String(result.jobId)).catch(() => null);
+  const job = detail?.job;
 
   return {
     id: String(result.jobId),
-    logo: getInitials(result.companyName),
-    title: jobTitle,
-    companyId: undefined,
-    companyName: result.companyName || "Chua cap nhat",
-    salary: "Chua cap nhat",
-    salaryMax: 0,
-    location: "Chua cap nhat",
-    industry: jobTitle,
-    experienceYears: 0,
-    experienceLabel: "Chua cap nhat",
-    level: "Chua cap nhat",
-    jobType: "Chua cap nhat",
-    workMode: "Chua cap nhat",
-    skills: matchedSkills,
-    postedAt: formatDate(result.createdAt),
-    deadline: "Chua cap nhat",
-    applicants: 0,
-    status: "published",
+    logo: job?.logo ?? getInitials(result.companyName),
+    title: job?.title ?? jobTitle,
+    companyId: job?.companyId,
+    companyName: job?.companyName ?? result.companyName ?? "Chua cap nhat",
+    salary: job?.salary ?? "Chua cap nhat",
+    salaryMax: job?.salaryMax ?? 0,
+    location: job?.location ?? "Chua cap nhat",
+    industry: job?.industry ?? jobTitle,
+    experienceYears: job?.experienceYears ?? 0,
+    experienceLabel: job?.experienceLabel ?? "Chua cap nhat",
+    level: job?.level ?? "Chua cap nhat",
+    jobType: job?.jobType ?? "Chua cap nhat",
+    workMode: job?.workMode ?? "Chua cap nhat",
+    skills: job?.skills?.length ? job.skills : matchedSkills,
+    postedAt: job?.postedAt ?? formatDate(result.createdAt),
+    deadline: job?.deadline ?? "Chua cap nhat",
+    applicants: job?.applicants ?? 0,
+    status: job?.status ?? "published",
     matchScore: score,
     rankPosition: result.rankPosition ?? null,
     textScore,
@@ -180,6 +193,15 @@ function mapRecommendationResult(result: RecommendationResultResponse): Candidat
     missingSkills,
     recommendationReasons: reason ? [reason] : [],
   };
+}
+
+async function getCvAnalysisStatus(cvId: number) {
+  try {
+    const response = await httpClient.get<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
+    return response.data.data?.status ?? "NOT_READY";
+  } catch {
+    return "NOT_READY";
+  }
 }
 
 function normalizeStringArray(value?: string[] | null) {

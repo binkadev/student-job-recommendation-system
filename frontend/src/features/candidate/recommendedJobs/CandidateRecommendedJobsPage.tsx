@@ -82,12 +82,13 @@ export function CandidateRecommendedJobsPage() {
   const jobsQuery = useAsyncData(() => getRecommendedJobs(filters, showHidden ? [] : hiddenIds), [filters, hiddenIds, showHidden, reloadKey]);
   const options = useMemo(() => getRecommendedFilterOptions(jobsQuery.data ?? []), [jobsQuery.data]);
   const latestRun = runsQuery.data?.[0];
+  const readyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => cv.ready), [cvsQuery.data]);
 
   useEffect(() => {
-    if (selectedCvId || !cvsQuery.data?.length) return;
-    const activeCv = cvsQuery.data.find((cv) => cv.active) ?? cvsQuery.data[0];
+    if (selectedCvId || !readyCvs.length) return;
+    const activeCv = readyCvs.find((cv) => cv.active) ?? readyCvs[0];
     setSelectedCvId(activeCv.id);
-  }, [cvsQuery.data, selectedCvId]);
+  }, [readyCvs, selectedCvId]);
 
   const filteredJobs = useMemo(() => {
     const jobs = jobsQuery.data ?? [];
@@ -129,7 +130,12 @@ export function CandidateRecommendedJobsPage() {
 
   async function refreshRecommendations() {
     if (!selectedCvId) {
-      showToast({ type: "error", title: "Chua chon CV", message: "Vui long chon CV truoc khi tao goi y." });
+      showToast({ type: "error", title: "Chua co CV san sang", message: "Vui long phan tich CV den trang thai READY truoc khi tao goi y." });
+      return;
+    }
+    const selectedCv = cvsQuery.data?.find((cv) => cv.id === selectedCvId);
+    if (!selectedCv?.ready) {
+      showToast({ type: "error", title: "CV chua san sang", message: "Chi co the tao goi y bang CV co trang thai READY." });
       return;
     }
     const thresholdValue = Number(threshold);
@@ -181,8 +187,8 @@ export function CandidateRecommendedJobsPage() {
             value={selectedCvId}
             onChange={(event) => setSelectedCvId(event.target.value)}
             options={[
-              { label: cvsQuery.loading ? "Dang tai CV..." : "Chon CV", value: "" },
-              ...((cvsQuery.data ?? []).map((cv) => ({ label: `${cv.name}${cv.active ? " (active)" : ""}`, value: cv.id }))),
+              { label: cvsQuery.loading ? "Dang tai CV..." : readyCvs.length ? "Chon CV READY" : "Chua co CV READY", value: "" },
+              ...readyCvs.map((cv) => ({ label: `${cv.name}${cv.active ? " (active)" : ""} - ${cv.analysisStatus}`, value: cv.id })),
             ]}
           />
           <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
@@ -217,6 +223,9 @@ export function CandidateRecommendedJobsPage() {
           </div>
         ) : null}
         {runDetailQuery.data?.run.errorMessage ? <p className="mt-3 text-sm text-red-600">{runDetailQuery.data.run.errorMessage}</p> : null}
+        {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
+          <p className="mt-3 text-sm text-amber-700">Chua co CV nao o trang thai READY. Hay vao trang CV va bam Phan tich lai truoc khi tao goi y.</p>
+        ) : null}
       </Card>
 
       <Card className="mb-5">
