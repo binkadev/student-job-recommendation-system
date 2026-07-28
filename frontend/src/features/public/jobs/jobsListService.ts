@@ -17,11 +17,11 @@ interface PageResponse<T> {
 }
 
 interface JobSkillResponse {
-  id: number;
   skillId: number;
   skillName: string;
-  normalizedName: string;
   category: string | null;
+  importance?: string | null;
+  minLevel?: string | null;
 }
 
 interface PublicJobResponse {

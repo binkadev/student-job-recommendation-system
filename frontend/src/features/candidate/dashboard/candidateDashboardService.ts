@@ -83,7 +83,8 @@ interface CvFileResponse {
   id: number;
   originalFileName: string;
   fileSize: number;
-  active: boolean;
+  isActive?: boolean;
+  active?: boolean;
   uploadedAt: string;
 }
 
@@ -148,7 +149,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       fileName: activeCv.originalFileName,
       fileSize: formatFileSize(activeCv.fileSize),
       uploadedAt: formatDateTime(activeCv.uploadedAt),
-      active: activeCv.active,
+      active: Boolean(activeCv.isActive ?? activeCv.active),
     } : null,
     missingProfileItems: buildMissingProfileItems(student, profile),
     jobs: jobsResponse.data.data.items.map(mapJob),

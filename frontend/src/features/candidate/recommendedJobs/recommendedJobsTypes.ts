@@ -8,6 +8,9 @@ export interface MatchCriterion {
 
 export interface CandidateRecommendedJob extends PublicJobListItem {
   rankPosition?: number | null;
+  textScore?: number | null;
+  skillScore?: number | null;
+  scoringStrategy?: string | null;
   matchedSkills: string[];
   missingSkills: string[];
   recommendationReasons: string[];

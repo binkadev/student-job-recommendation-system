@@ -15,6 +15,9 @@ interface RecommendationResultResponse {
   companyName: string;
   rankPosition?: number | null;
   score?: number | string | null;
+  textScore?: number | string | null;
+  skillScore?: number | string | null;
+  scoringStrategy?: string | null;
   matchedKeywords?: string[] | null;
   matchedSkills?: string[] | null;
   missingKeywords?: string[] | null;
@@ -144,6 +147,8 @@ function mapRecommendationResult(result: RecommendationResultResponse): Candidat
   const missingSkills = normalizeStringArray(result.missingSkills ?? result.missingKeywords);
   const reason = result.reason || result.explanation;
   const score = toPercent(result.score);
+  const textScore = result.textScore == null ? null : toPercent(result.textScore);
+  const skillScore = result.skillScore == null ? null : toPercent(result.skillScore);
   const jobTitle = result.jobTitle || `Cong viec #${result.jobId}`;
 
   return {
@@ -168,6 +173,9 @@ function mapRecommendationResult(result: RecommendationResultResponse): Candidat
     status: "published",
     matchScore: score,
     rankPosition: result.rankPosition ?? null,
+    textScore,
+    skillScore,
+    scoringStrategy: result.scoringStrategy ?? null,
     matchedSkills,
     missingSkills,
     recommendationReasons: reason ? [reason] : [],

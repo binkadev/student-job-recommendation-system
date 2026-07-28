@@ -422,6 +422,9 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
         <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <InfoPill label="Hang goi y" value={job?.rankPosition ? `#${job.rankPosition}` : "Chua cap nhat"} />
           <InfoPill label="Diem backend" value={`${job?.matchScore ?? 0}%`} />
+          <InfoPill label="Diem noi dung" value={job?.textScore == null ? "Khong ap dung" : `${job.textScore}%`} />
+          <InfoPill label="Diem ky nang" value={job?.skillScore == null ? "Chua cap nhat" : `${job.skillScore}%`} />
+          <InfoPill label="Chien luoc" value={job?.scoringStrategy ?? "Chua cap nhat"} />
           <InfoPill label="Ngay tao ket qua" value={job?.postedAt ?? "Chua cap nhat"} />
           <InfoPill label="So keyword khop" value={String(job?.matchedSkills.length ?? 0)} />
         </div>
