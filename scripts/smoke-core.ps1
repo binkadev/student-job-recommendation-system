@@ -21,7 +21,7 @@ $StudentEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_STUDENT_EMAIL)) { "s
 $CompanyEmail = if ([string]::IsNullOrWhiteSpace($env:SMOKE_COMPANY_EMAIL)) { "company@example.com" } else { $env:SMOKE_COMPANY_EMAIL }
 $DemoPassword = if ([string]::IsNullOrWhiteSpace($env:SMOKE_DEMO_PASSWORD)) { "123456" } else { $env:SMOKE_DEMO_PASSWORD }
 
-$VietnameseJobTitle = "Thực tập sinh Backend Java - Smoke"
+$VietnameseJobTitle = "SJR Smoke VI Backend Java"
 $ExpectedProcessingVersion = "bilingual-nlp-v2-skills-v1"
 $ExpectedAlgorithm = "tfidf-cosine-hybrid"
 $ExpectedAlgorithmVersion = "bilingual-recommendation-v2"
