@@ -61,11 +61,11 @@ jobs:
 
           $output = & ./scripts/smoke-core.ps1 `
             -TimeoutSeconds 240 `
-            2>&1
+            *>&1
 
           $output | Tee-Object -FilePath smoke-output.log
 
-          if (-not ($output -match "SMOKE RESULT: PASS")) {
+          if (-not (($output | ForEach-Object { [string]$_ }) -match "SMOKE RESULT: PASS")) {
               throw "Smoke script completed without the expected PASS marker."
           }
 
