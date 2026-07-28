@@ -23,6 +23,7 @@ Yêu cầu:
 
 - Docker Desktop hoặc Docker Engine;
 - Docker Compose V2;
+- Windows PowerShell 5.1 hoặc PowerShell 7;
 - các port 5432, 8000 và 8080 chưa bị chiếm, hoặc chỉnh trong `.env`.
 
 Từ thư mục gốc repository:
@@ -60,6 +61,78 @@ http://localhost:8080/api/public/statistics
 ```
 
 Backend chạy với profile `dev`, vì vậy local demo seeder được bật. Flyway tự áp dụng migration khi Backend khởi động.
+
+## Chạy smoke test một lệnh
+
+Sau khi ba service đã healthy, chạy từ thư mục gốc repository:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-core.ps1
+```
+
+Với PowerShell 7:
+
+```powershell
+pwsh -File .\scripts\smoke-core.ps1
+```
+
+Script thực hiện luồng thật qua Spring Boot Backend:
+
+1. chờ AI Service và Backend sẵn sàng;
+2. đăng nhập tài khoản Student và Company được tạo bởi `DataSeeder`;
+3. tìm hoặc tạo một Job tiếng Việt qua Company API;
+4. upload fixture `vietnamese_cv.docx` qua Backend;
+5. gọi reanalysis và xác nhận CV đạt `READY`, `languageCode=vi`;
+6. tạo recommendation run;
+7. xác nhận cả `SAME_LANGUAGE_HYBRID` và `CROSS_LANGUAGE_SKILL_BASED`;
+8. xác nhận cross-language có `textScore=null` và `score=skillScore`;
+9. xác nhận Backend tạo `rankPosition` liên tục, sắp xếp đúng và không trùng Job;
+10. đối chiếu latest persisted results với run vừa tạo.
+
+Kết quả thành công kết thúc bằng:
+
+```text
+SMOKE RESULT: PASS
+```
+
+Script không in password, JWT, raw CV text hoặc đường dẫn lưu file nội bộ.
+
+### Cấu hình smoke test
+
+Mặc định script dùng tài khoản local-dev trong `DataSeeder`:
+
+```text
+student@example.com
+company@example.com
+```
+
+Có thể override bằng biến môi trường:
+
+```powershell
+$env:SMOKE_STUDENT_EMAIL = "student@example.com"
+$env:SMOKE_COMPANY_EMAIL = "company@example.com"
+$env:SMOKE_DEMO_PASSWORD = "123456"
+```
+
+Có thể đổi URL, fixture, timeout, threshold và limit:
+
+```powershell
+.\scripts\smoke-core.ps1 `
+  -BackendBaseUrl "http://localhost:8080" `
+  -AiBaseUrl "http://localhost:8000" `
+  -CvPath ".\ai-service\tests\fixtures\vietnamese_cv.docx" `
+  -TimeoutSeconds 120 `
+  -Threshold 0.0 `
+  -Limit 100
+```
+
+Các tài khoản và mật khẩu mặc định chỉ dành cho profile `dev`. Không chạy script này với production credentials hoặc production database.
+
+Mỗi lần chạy sẽ tạo một CV và recommendation run mới. Job tiếng Việt dùng tên cố định nên được tái sử dụng khi vẫn `ACTIVE` và chưa hết hạn. Để reset hoàn toàn dữ liệu local:
+
+```powershell
+docker compose down -v --remove-orphans
+```
 
 ## Xem log
 
@@ -144,7 +217,7 @@ jdbc:postgresql://postgres:5432/<database>
 
 ## Contract không thay đổi
 
-Docker hóa không thay đổi:
+Docker hóa và smoke test không thay đổi:
 
 - `/internal/v2/cv/parse`;
 - `/internal/v2/recommendations`;
@@ -157,17 +230,15 @@ Docker hóa không thay đổi:
 
 ## Acceptance trước khi merge
 
-Branch Docker chỉ được merge khi đã xác nhận:
+Branch smoke test chỉ được merge khi đã xác nhận:
 
-1. `docker compose config` hợp lệ;
-2. hai image build thành công;
-3. ba service khởi động và healthy;
-4. Flyway áp dụng đầy đủ migration;
-5. Swagger và AI health truy cập được;
-6. upload một CV thật qua Backend;
-7. CV chuyển sang `READY`;
-8. recommendation run chuyển sang `SUCCESS`;
-9. Backend trả `rankPosition` liên tục;
-10. `docker compose down -v` dọn sạch môi trường test.
-
-Sau khi core stack được xác nhận, bước tiếp theo là bổ sung `scripts/smoke-core.ps1` để tự động hóa acceptance flow qua Backend.
+1. script parse thành công trên Windows PowerShell 5.1 hoặc PowerShell 7;
+2. core stack khởi động healthy từ clean volumes;
+3. script kết thúc bằng `SMOKE RESULT: PASS`;
+4. CV thật được upload qua Backend và đạt `READY`;
+5. recommendation run đạt `SUCCESS`;
+6. cùng ngôn ngữ và khác ngôn ngữ dùng đúng strategy;
+7. `rankPosition` liên tục và thứ tự đúng;
+8. script không in secrets hoặc raw CV text;
+9. chạy lại không tạo Job tiếng Việt trùng khi Job cũ còn hợp lệ;
+10. `git status` vẫn sạch sau khi chạy.
