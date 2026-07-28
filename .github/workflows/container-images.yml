@@ -1,0 +1,96 @@
+name: Container Images
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "ai-service/**"
+      - ".github/workflows/container-images.yml"
+
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+    paths:
+      - "backend/**"
+      - "ai-service/**"
+      - ".github/workflows/container-images.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: container-images-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.display_name }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - display_name: Backend
+            image_suffix: backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+            cache_scope: backend-image
+          - display_name: AI Service
+            image_suffix: ai-service
+            context: ./ai-service
+            dockerfile: ./ai-service/Dockerfile
+            cache_scope: ai-service-image
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/student-job-recommendation-system-${{ matrix.image_suffix }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Student Job Recommendation System - ${{ matrix.display_name }}
+            org.opencontainers.image.description=${{ matrix.display_name }} container image for the Student Job Recommendation System
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and optionally publish image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          pull: true
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}

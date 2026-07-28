@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+*.log
+.env
+.env.*
+target
+uploads
+src/test

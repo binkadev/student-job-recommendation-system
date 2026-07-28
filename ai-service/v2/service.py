@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Literal
-
 from .constants import (
     ALGORITHM,
     ALGORITHM_VERSION,
@@ -12,8 +9,6 @@ from .constants import (
 )
 from .language_detector import detect_job_language, detect_language
 from .preprocessor import (
-    EnglishPreprocessingResult,
-    UnsupportedLanguageError,
     preprocess_english,
     preprocess_english_job,
     preprocess_vietnamese,
@@ -35,38 +30,12 @@ from .schemas import (
 from .skill_canonicalizer import SkillCatalog, load_default_catalog
 
 
-DocumentKind = Literal["cv", "job"]
-
-
-class EnglishBaselinePreconditionError(ValueError):
-    """Report the exact input that is unsupported by the English baseline."""
-
-    def __init__(
-        self,
-        *,
-        kind: DocumentKind,
-        input_id: int,
-        unsupported: UnsupportedLanguageError,
-    ) -> None:
-        self.kind = kind
-        self.id = input_id
-        self.input_id = input_id
-        self.code = unsupported.language_code
-        self.language_code = unsupported.language_code
-        self.confidence = unsupported.confidence
-        super().__init__(
-            "English baseline precondition failed for "
-            f"{kind} id={input_id}: language={self.code.value}, "
-            f"confidence={self.confidence:.8f}"
-        )
-
-
-def recommend_english(
+def recommend_bilingual(
     request: RecommendationRequest,
     *,
     catalog: SkillCatalog | None = None,
 ) -> RecommendationResponse:
-    """Return deterministic bilingual recommendations under Contract V2."""
+    """Return deterministic English/Vietnamese recommendations under V2."""
 
     if not request.jobs:
         return RecommendationResponse(
@@ -79,6 +48,7 @@ def recommend_english(
     active_catalog = load_default_catalog() if catalog is None else catalog
     if not isinstance(active_catalog, SkillCatalog):
         raise TypeError("catalog must be a SkillCatalog")
+
     cv_canonical_skills = active_catalog.canonicalize_many(request.cv.skills)
     cv_detection = detect_language(request.cv.text)
     cv_language = (
@@ -91,6 +61,7 @@ def recommend_english(
         )
         else None
     )
+
     cv_processed_text: str | None = None
     if cv_language is LanguageCode.ENGLISH:
         cv_processed_text = preprocess_english(request.cv.text).processed_text
@@ -114,6 +85,7 @@ def recommend_english(
             )
             else None
         )
+
         if cv_language is not None and confident_job_language is cv_language:
             if cv_language is LanguageCode.ENGLISH:
                 processed_text = preprocess_english_job(
@@ -155,6 +127,7 @@ def recommend_english(
         candidates.extend(
             score_same_language_recommendations(**same_language_arguments)
         )
+
     if cross_language_jobs:
         reason_language = (
             LanguageCode.VIETNAMESE
@@ -170,6 +143,7 @@ def recommend_english(
                 reason_language=reason_language,
             )
         )
+
     candidates.sort(key=lambda candidate: candidate.job_id)
     candidates.sort(key=lambda candidate: candidate.score, reverse=True)
     candidates = candidates[: request.limit]
@@ -203,18 +177,6 @@ def recommend_english(
     )
 
 
-def _preprocess_or_raise(
-    *,
-    kind: DocumentKind,
-    input_id: int,
-    text: str,
-    preprocessor: Callable[[str], EnglishPreprocessingResult],
-) -> EnglishPreprocessingResult:
-    try:
-        return preprocessor(text)
-    except UnsupportedLanguageError as exc:
-        raise EnglishBaselinePreconditionError(
-            kind=kind,
-            input_id=input_id,
-            unsupported=exc,
-        ) from exc
+# Compatibility alias for older internal imports and regression tests.
+# New production code must use recommend_bilingual.
+recommend_english = recommend_bilingual

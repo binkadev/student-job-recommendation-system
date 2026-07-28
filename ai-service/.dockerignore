@@ -1,0 +1,16 @@
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+*.log
+.env
+.env.*
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+*.pyo
+tests
+test_*.py
+README.md
