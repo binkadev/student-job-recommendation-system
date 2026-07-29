@@ -1,5 +1,5 @@
 import { BarChart3, Bookmark, BookmarkCheck, BriefcaseBusiness, EyeOff, MapPin, RefreshCw, RotateCcw, Send, Wallet } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
@@ -63,6 +63,7 @@ export function CandidateRecommendedJobsPage() {
   const [selectedRunId, setSelectedRunId] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
   const { hasApplied } = useAppliedJobs();
   const { showToast } = useToast();
@@ -70,9 +71,20 @@ export function CandidateRecommendedJobsPage() {
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
   const runsQuery = useAsyncData(() => getRecommendationRuns(), [reloadKey]);
   const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
-  const jobsQuery = useAsyncData(() => getRecommendedJobs(filters, showHidden ? [] : hiddenIds), [filters, hiddenIds, showHidden, reloadKey]);
-  const options = useMemo(() => getRecommendedFilterOptions(jobsQuery.data ?? []), [jobsQuery.data]);
   const latestRun = runsQuery.data?.[0];
+  const latestRunSuccess = latestRun?.status === "SUCCESS";
+  const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
+  const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
+  const successfulRuns = useMemo(() => (runsQuery.data ?? []).filter((run) => run.status === "SUCCESS"), [runsQuery.data]);
+  const jobsQuery = useAsyncData(
+    () => (latestRunSuccess && !selectedRunId ? getRecommendedJobs(filters, showHidden ? [] : hiddenIds) : Promise.resolve([])),
+    [latestRun?.id, latestRun?.status, selectedRunId, filters, hiddenIds, showHidden, reloadKey],
+  );
+  const displayJobs = useMemo(() => {
+    const sourceJobs = showingHistoricalRun ? runDetailQuery.data?.results ?? [] : jobsQuery.data ?? [];
+    return filterRecommendedJobs(sourceJobs, filters, showHidden ? [] : hiddenIds, showHidden);
+  }, [filters, hiddenIds, jobsQuery.data, runDetailQuery.data?.results, showingHistoricalRun, showHidden]);
+  const options = useMemo(() => getRecommendedFilterOptions(displayJobs), [displayJobs]);
   const readyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => cv.ready), [cvsQuery.data]);
 
   useEffect(() => {
@@ -82,9 +94,8 @@ export function CandidateRecommendedJobsPage() {
   }, [readyCvs, selectedCvId]);
 
   const filteredJobs = useMemo(() => {
-    const jobs = jobsQuery.data ?? [];
-    return showHidden ? jobs.filter((job) => hiddenIds.includes(job.id)) : jobs;
-  }, [hiddenIds, jobsQuery.data, showHidden]);
+    return displayJobs;
+  }, [displayJobs]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
   const pagedJobs = filteredJobs.slice((page - 1) * pageSize, page * pageSize);
@@ -120,6 +131,7 @@ export function CandidateRecommendedJobsPage() {
   }
 
   async function refreshRecommendations() {
+    if (generatingRef.current) return;
     if (!selectedCvId) {
       showToast({ type: "error", title: "Chua co CV san sang", message: "Vui long phan tich CV den trang thai READY truoc khi tao goi y." });
       return;
@@ -139,15 +151,17 @@ export function CandidateRecommendedJobsPage() {
       showToast({ type: "error", title: "Limit khong hop le", message: "Limit phai nam trong khoang 1 den 100." });
       return;
     }
+    generatingRef.current = true;
     setGenerating(true);
     try {
-      const run = await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
-      setSelectedRunId(String(run.id));
+      await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
+      setSelectedRunId("");
       showToast({ type: "success", title: "Da gui yeu cau cap nhat goi y", message: "Danh sach se duoc tai lai tu backend." });
       setReloadKey((current) => current + 1);
     } catch (error) {
       showToast({ type: "error", title: "Khong the cap nhat goi y", message: getErrorMessage(error) });
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
   }
@@ -169,7 +183,7 @@ export function CandidateRecommendedJobsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Viec lam goi y" description="Ket qua goi y lay tu recommendation API cua backend." />
+      <PageHeader title="Viec lam goi y" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
 
       <Card className="mb-5">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_160px_160px_190px_160px]">
@@ -194,26 +208,34 @@ export function CandidateRecommendedJobsPage() {
         <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-700 md:grid-cols-4">
           <InfoPill label="Run moi nhat" value={latestRun ? `#${latestRun.id}` : "Chua co"} />
           <InfoPill label="Trang thai" value={latestRun?.status ?? "Chua co"} />
-          <InfoPill label="So viec da goi y" value={String(latestRun?.totalRecommended ?? (jobsQuery.data?.length ?? 0))} />
+          <InfoPill label="So viec da goi y" value={String(latestRun?.totalRecommended ?? displayJobs.length)} />
           <InfoPill label="Thoi gian" value={latestRun?.createdAt ?? "Chua cap nhat"} />
         </div>
-        {runsQuery.data?.length ? (
+        {successfulRuns.length ? (
           <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1fr)_220px]">
             <Select
-              label="Xem chi tiet run"
+              label="Xem kết quả SUCCESS lịch sử"
               value={selectedRunId}
               onChange={(event) => setSelectedRunId(event.target.value)}
               options={[
-                { label: "Chon run", value: "" },
-                ...runsQuery.data.map((run) => ({ label: `#${run.id} - ${run.status} - ${run.createdAt}`, value: run.id })),
+                { label: "Dùng kết quả hiện tại", value: "" },
+                ...successfulRuns.map((run) => ({ label: `#${run.id} - SUCCESS - ${run.createdAt}`, value: run.id })),
               ]}
             />
             <div className="mt-6">
-              <StatusBadge label={runDetailQuery.loading ? "Dang tai run" : runDetailQuery.data?.run.status ?? "Chua chon run"} tone={runDetailQuery.data?.run.status === "SUCCESS" ? "success" : undefined} />
+              <StatusBadge label={showingHistoricalRun ? "Đang xem kết quả lịch sử" : "Kết quả hiện tại"} tone={showingHistoricalRun ? "warning" : "success"} />
             </div>
           </div>
         ) : null}
-        {runDetailQuery.data?.run.errorMessage ? <p className="mt-3 text-sm text-red-600">{runDetailQuery.data.run.errorMessage}</p> : null}
+        {latestRun && !latestRunSuccess && !selectedRunId ? (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-semibold text-red-800">Run mới nhất không thành công: {latestRun.status}</p>
+            <p className="mt-2 text-sm leading-6 text-red-700">{latestRun.errorMessage ?? "Không thể tạo danh sách gợi ý mới. Vui lòng thử lại hoặc chọn một run SUCCESS trong lịch sử."}</p>
+          </div>
+        ) : null}
+        {showingHistoricalRun ? (
+          <p className="mt-3 text-sm text-amber-700">Bạn đang xem kết quả lịch sử từ run #{runDetailQuery.data?.run.id}, không phải kết quả hiện tại.</p>
+        ) : null}
         {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
           <p className="mt-3 text-sm text-amber-700">Chua co CV nao o trang thai READY. Hay vao trang CV va bam Phan tich lai truoc khi tao goi y.</p>
         ) : null}
@@ -263,12 +285,14 @@ export function CandidateRecommendedJobsPage() {
         </div>
       </Card>
 
-      {jobsQuery.loading ? (
+      {jobsQuery.loading || runDetailQuery.loading ? (
         <LoadingState />
-      ) : jobsQuery.error ? (
+      ) : jobsQuery.error && latestRunSuccess && !selectedRunId ? (
         <EmptyState message={jobsQuery.error} />
+      ) : latestRun && !latestRunSuccess && !selectedRunId ? (
+        <EmptyState message="Run mới nhất chưa có kết quả SUCCESS để hiển thị." />
       ) : pagedJobs.length === 0 ? (
-        <EmptyState message={showHidden ? "Chua co viec lam nao bi an." : "Backend chua tra ve ket qua goi y phu hop voi bo loc hien tai."} />
+        <EmptyState message={showHidden ? "Chua co viec lam nao bi an." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
       ) : (
         <div className="grid gap-4">
           {pagedJobs.map((job) => (
@@ -451,6 +475,30 @@ function InfoPill({ label, value }: { label: string; value: string }) {
       <p className="mt-1 font-semibold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function filterRecommendedJobs(jobs: CandidateRecommendedJob[], filters: RecommendedJobFilters, hiddenIds: string[], showHidden: boolean) {
+  return jobs
+    .filter((job) => {
+      const matchHidden = showHidden ? hiddenIds.includes(job.id) : !hiddenIds.includes(job.id);
+      const matchScore = job.matchScore >= filters.minMatch;
+      const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
+      const matchIndustry = !filters.industry || job.industry === filters.industry;
+      const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
+      const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
+      return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
+    })
+    .sort((left, right) => {
+      if (left.rankPosition != null && right.rankPosition != null) return left.rankPosition - right.rankPosition;
+      return right.matchScore - left.matchScore;
+    });
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function getErrorMessage(error: unknown) {
