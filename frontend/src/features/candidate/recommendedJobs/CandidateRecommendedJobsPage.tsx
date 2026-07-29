@@ -42,10 +42,10 @@ const defaultFilters: RecommendedJobFilters = {
 
 const salaryOptions = [
   { label: "Tất cả", value: "" },
-  { label: "Tu 10 trieu", value: "10" },
-  { label: "Tu 15 trieu", value: "15" },
-  { label: "Tu 20 trieu", value: "20" },
-  { label: "Tu 30 trieu", value: "30" },
+  { label: "Từ 10 triệu", value: "10" },
+  { label: "Từ 15 triệu", value: "15" },
+  { label: "Từ 20 triệu", value: "20" },
+  { label: "Từ 30 triệu", value: "30" },
 ];
 
 export function CandidateRecommendedJobsPage() {
@@ -75,7 +75,10 @@ export function CandidateRecommendedJobsPage() {
   const latestRunSuccess = latestRun?.status === "SUCCESS";
   const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
   const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
-  const successfulRuns = useMemo(() => (runsQuery.data ?? []).filter((run) => run.status === "SUCCESS"), [runsQuery.data]);
+  const successfulRuns = useMemo(
+    () => (runsQuery.data ?? []).filter((run) => run.status === "SUCCESS" && run.id !== latestRun?.id),
+    [latestRun?.id, runsQuery.data],
+  );
   const jobsQuery = useAsyncData(
     () => (latestRunSuccess && !selectedRunId ? getRecommendedJobs(filters, showHidden ? [] : hiddenIds) : Promise.resolve([])),
     [latestRun?.id, latestRun?.status, selectedRunId, filters, hiddenIds, showHidden, reloadKey],
@@ -86,6 +89,9 @@ export function CandidateRecommendedJobsPage() {
   }, [filters, hiddenIds, jobsQuery.data, runDetailQuery.data?.results, showingHistoricalRun, showHidden]);
   const options = useMemo(() => getRecommendedFilterOptions(displayJobs), [displayJobs]);
   const readyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => cv.ready), [cvsQuery.data]);
+  const selectedCv = useMemo(() => cvsQuery.data?.find((cv) => cv.id === selectedCvId), [cvsQuery.data, selectedCvId]);
+  const selectedCvReady = Boolean(selectedCv?.ready);
+  const generateDisabled = generating || cvsQuery.loading || !selectedCvId || !selectedCvReady;
 
   useEffect(() => {
     if (selectedCvId || !readyCvs.length) return;
@@ -136,7 +142,6 @@ export function CandidateRecommendedJobsPage() {
       showToast({ type: "error", title: "Chưa có CV sẵn sàng", message: "Vui lòng phân tích CV đến trạng thái READY trước khi tạo gợi ý." });
       return;
     }
-    const selectedCv = cvsQuery.data?.find((cv) => cv.id === selectedCvId);
     if (!selectedCv?.ready) {
       showToast({ type: "error", title: "CV chưa sẵn sàng", message: "Chỉ có thể tạo gợi ý bằng CV có trạng thái READY." });
       return;
@@ -198,7 +203,7 @@ export function CandidateRecommendedJobsPage() {
           />
           <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
           <Input label="Limit" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
-          <Button className="mt-6 w-full" loading={generating} disabled={generating} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
+          <Button className="mt-6 w-full" loading={generating} disabled={generateDisabled} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
             Cập nhật gợi ý
           </Button>
           <Button className="mt-6 w-full" variant="secondary" disabled={jobsQuery.loading || runsQuery.loading} onClick={() => setReloadKey((current) => current + 1)}>
@@ -244,7 +249,7 @@ export function CandidateRecommendedJobsPage() {
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Select
-            label="Match score toi thieu"
+            label="Match score tối thiểu"
             value={String(filters.minMatch)}
             onChange={(event) => updateFilter("minMatch", Number(event.target.value))}
             options={[
@@ -256,13 +261,13 @@ export function CandidateRecommendedJobsPage() {
             ]}
           />
           <Select
-            label="Dia diem"
+            label="Địa điểm"
             value={filters.location}
             onChange={(event) => updateFilter("location", event.target.value)}
             options={[{ label: "Tất cả", value: "" }, ...options.locations.map((value) => ({ label: value, value }))]}
           />
           <Select
-            label="Vi tri"
+            label="Vị trí"
             value={filters.industry}
             onChange={(event) => updateFilter("industry", event.target.value)}
             options={[{ label: "Tất cả", value: "" }, ...options.industries.map((value) => ({ label: value, value }))]}
@@ -393,12 +398,12 @@ function RecommendedJobCard({
             </Button>
             <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
             <Link to={`/candidate/jobs/${job.id}`}>
-              <Button variant="secondary" size="sm">Xem chi tiet</Button>
+              <Button variant="secondary" size="sm">Xem chi tiết</Button>
             </Link>
             {hidden ? (
-              <Button variant="secondary" size="sm" icon={<RotateCcw size={16} />} onClick={onRestore}>Khoi phuc</Button>
+              <Button variant="secondary" size="sm" icon={<RotateCcw size={16} />} onClick={onRestore}>Khôi phục</Button>
             ) : (
-              <Button variant="secondary" size="sm" icon={<EyeOff size={16} />} onClick={onHide}>An</Button>
+              <Button variant="secondary" size="sm" icon={<EyeOff size={16} />} onClick={onHide}>Ẩn</Button>
             )}
           </div>
         </div>
@@ -427,7 +432,7 @@ function HideJobModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJo
         </p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="danger" onClick={() => job && onConfirm(job)}>Co, an tin</Button>
+          <Button variant="danger" onClick={() => job && onConfirm(job)}>Có, ẩn tin</Button>
         </div>
       </div>
     </Modal>
