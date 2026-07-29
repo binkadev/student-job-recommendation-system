@@ -50,6 +50,7 @@ interface CvAnalysisResponse {
   processedText?: string | null;
   skills?: string[] | null;
   status?: string | null;
+  errorMessage?: string | null;
   uploadedAt?: string | null;
   updatedAt?: string | null;
 }
@@ -366,18 +367,18 @@ function CvAnalysisView({
   const cvQuery = useAsyncData(() => (cvId ? getCandidateCvDetail(Number(cvId)) : Promise.resolve(fallbackCv)), [cvId, reloadKey]);
   const analysisQuery = useAsyncData(() => (cvId ? getCandidateCvAnalysis(Number(cvId)) : Promise.resolve(null)), [cvId, reloadKey]);
   const cv = cvQuery.data ?? fallbackCv;
-  const title = mode === "analysis" ? "Phan tich CV" : mode === "edit-extracted" ? "Chinh du lieu trich xuat" : "Review CV";
+  const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Review CV";
 
   async function reanalyzeCv() {
     if (!cv) return;
     setReanalyzing(true);
     try {
       await reanalyzeCandidateCv(cv.id);
-      showToast({ type: "success", title: "Da gui yeu cau phan tich lai", message: cv.originalFileName });
+      showToast({ type: "success", title: "Đã gửi yêu cầu phân tích lại", message: cv.originalFileName });
       setReloadKey((current) => current + 1);
       onReload();
     } catch (error) {
-      showToast({ type: "error", title: "Khong the phan tich lai CV", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể phân tích lại CV", message: getErrorMessage(error) });
     } finally {
       setReanalyzing(false);
     }
@@ -386,7 +387,7 @@ function CvAnalysisView({
   if (cvQuery.loading || analysisQuery.loading) {
     return (
       <PageContainer>
-        <Card><p className="text-sm text-slate-600">Dang tai du lieu CV...</p></Card>
+        <Card><p className="text-sm text-slate-600">Đang tải dữ liệu CV...</p></Card>
       </PageContainer>
     );
   }
@@ -410,10 +411,10 @@ function CvAnalysisView({
   if (!cv) {
     return (
       <PageContainer>
-        <PageHeader title={title} description="Chua chon CV de phan tich." />
+        <PageHeader title={title} description="Chưa chọn CV để phân tích." />
         <Card>
-          <EmptyState message="Khong tim thay CV can xem." />
-          <div className="mt-4"><Link to="/candidate/cvs"><Button variant="secondary">Quay lai danh sach CV</Button></Link></div>
+          <EmptyState message="Không tìm thấy CV cần xem." />
+          <div className="mt-4"><Link to="/candidate/cvs"><Button variant="secondary">Quay lại danh sách CV</Button></Link></div>
         </Card>
       </PageContainer>
     );
@@ -434,71 +435,96 @@ function CvAnalysisView({
     );
   }
 
+  const analysis = analysisQuery.data;
+  const analysisReady = analysis?.status === "READY";
+  const analysisFailed = analysis?.status === "FAILED";
+
   return (
     <PageContainer>
-      <PageHeader title={title} description="Du lieu lay tu CV API cua backend." />
+      <PageHeader title={title} description="Xem trạng thái phân tích CV và dữ liệu chỉ hiển thị khi phân tích đã sẵn sàng." />
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <main className="space-y-5">
           <Card>
-            <SectionHeader title="Thong tin CV" />
+            <SectionHeader title="Thông tin CV" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
-              <SummaryItem label="Ten file" value={cv.originalFileName || cv.fileName || "Chua cap nhat"} />
-              <SummaryItem label="Content type" value={cv.contentType || "Chua cap nhat"} />
-              <SummaryItem label="Dung luong" value={formatFileSize(cv.fileSize)} />
-              <SummaryItem label="Active" value={isActiveCv(cv) ? "Co" : "Khong"} />
-              <SummaryItem label="Trang thai phan tich" value={analysisQuery.data?.status ?? "Chua cap nhat"} />
-              <SummaryItem label="Ngay upload" value={formatDateTime(analysisQuery.data?.uploadedAt ?? cv.uploadedAt)} />
-              <SummaryItem label="Ngay tao" value={formatDateTime(cv.createdAt)} />
-              <SummaryItem label="Cap nhat" value={formatDateTime(analysisQuery.data?.updatedAt ?? cv.updatedAt)} />
+              <SummaryItem label="Tên file" value={cv.originalFileName || cv.fileName || "Chưa cập nhật"} />
+              <SummaryItem label="Content type" value={cv.contentType || "Chưa cập nhật"} />
+              <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
+              <SummaryItem label="Active" value={isActiveCv(cv) ? "Có" : "Không"} />
+              <SummaryItem label="Trạng thái phân tích" value={analysis?.status ?? "Chưa cập nhật"} />
+              <SummaryItem label="Ngày upload" value={formatDateTime(analysis?.uploadedAt ?? cv.uploadedAt)} />
+              <SummaryItem label="Ngày tạo" value={formatDateTime(cv.createdAt)} />
+              <SummaryItem label="Cập nhật" value={formatDateTime(analysis?.updatedAt ?? cv.updatedAt)} />
             </div>
           </Card>
 
-          <Card>
-            <SectionHeader title="Processed text" />
-            {analysisQuery.data?.processedText ? (
-              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.processedText}</pre>
-            ) : (
-              <EmptyState message="Backend chua tra ve processedText cho CV nay." />
-            )}
-          </Card>
-
-          <Card>
-            <SectionHeader title="Ky nang trich xuat" />
-            {analysisQuery.data?.skills?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {analysisQuery.data.skills.map((skill) => <StatusBadge key={skill} label={skill} tone="success" />)}
+          {analysisFailed ? (
+            <Card>
+              <SectionHeader title="Phân tích thất bại" />
+              <EmptyState message={analysis?.errorMessage ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
+              <div className="mt-4">
+                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
               </div>
-            ) : (
-              <EmptyState message="Backend chua tra ve skills cho CV nay." />
-            )}
-          </Card>
+            </Card>
+          ) : null}
 
-          <Card>
-            <SectionHeader title="Du lieu trich xuat" />
-            {analysisQuery.data?.extractedText ? (
-              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysisQuery.data.extractedText}</pre>
-            ) : (
-              <EmptyState message="Backend chua tra ve extractedText cho CV nay." />
-            )}
-          </Card>
+          {!analysisReady && !analysisFailed ? (
+            <Card>
+              <SectionHeader title="Dữ liệu phân tích" />
+              <EmptyState message="CV chưa ở trạng thái READY nên chưa hiển thị nội dung phân tích." />
+            </Card>
+          ) : null}
+
+          {analysisReady ? (
+            <>
+              <Card>
+                <SectionHeader title="Processed text" />
+                {analysis?.processedText ? (
+                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
+                ) : (
+                  <EmptyState message="Chưa có processedText cho CV này." />
+                )}
+              </Card>
+
+              <Card>
+                <SectionHeader title="Kỹ năng trích xuất" />
+                {analysis?.skills?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.skills.map((skill) => <StatusBadge key={skill} label={skill} tone="success" />)}
+                  </div>
+                ) : (
+                  <EmptyState message="Chưa có kỹ năng trích xuất cho CV này." />
+                )}
+              </Card>
+
+              <Card>
+                <SectionHeader title="Dữ liệu trích xuất" />
+                {analysis?.extractedText ? (
+                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
+                ) : (
+                  <EmptyState message="Chưa có extractedText cho CV này." />
+                )}
+              </Card>
+            </>
+          ) : null}
         </main>
 
         <aside className="space-y-5">
           <Card>
-            <SectionHeader title="Trang thai" />
+            <SectionHeader title="Trạng thái" />
             <div className="flex flex-wrap gap-2">
               {isActiveCv(cv) ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
-              <StatusBadge label={analysisQuery.data?.status ?? "Chua cap nhat"} tone={analysisQuery.data?.status === "READY" ? "success" : "warning"} />
-              <StatusBadge label={analysisQuery.data?.extractedText || analysisQuery.data?.processedText ? "Co du lieu phan tich" : "Chua co du lieu"} tone={analysisQuery.data?.extractedText || analysisQuery.data?.processedText ? "success" : "warning"} />
+              <StatusBadge label={analysis?.status ?? "Chưa cập nhật"} tone={analysisReady ? "success" : analysisFailed ? "danger" : "warning"} />
+              <StatusBadge label={analysisReady ? "Có dữ liệu phân tích" : "Chưa hiển thị dữ liệu"} tone={analysisReady ? "success" : "warning"} />
             </div>
           </Card>
           <Card>
-            <SectionHeader title="Thao tac" />
+            <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
-              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phan tich lai</Button>
-              <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiet CV</Button></Link>
-              <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lai danh sach</Button></Link>
+              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
+              <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
+              <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
           </Card>
         </aside>

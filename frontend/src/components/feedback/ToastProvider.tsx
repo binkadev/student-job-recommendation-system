@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 type ToastType = "success" | "error" | "info";
@@ -15,6 +15,7 @@ interface ToastContextValue {
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+const TOAST_DEDUPE_WINDOW_MS = 1500;
 
 const toneClasses: Record<ToastType, string> = {
   success: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -24,6 +25,7 @@ const toneClasses: Record<ToastType, string> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const recentToastFingerprints = useRef(new Map<string, number>());
 
   const removeToast = useCallback((id: string) => {
     setToasts((current) => current.filter((toast) => toast.id !== id));
@@ -31,6 +33,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback(
     (toast: Omit<Toast, "id">) => {
+      const now = Date.now();
+      const fingerprint = createToastFingerprint(toast);
+      const lastShownAt = recentToastFingerprints.current.get(fingerprint);
+      if (lastShownAt && now - lastShownAt < TOAST_DEDUPE_WINDOW_MS) return;
+
+      recentToastFingerprints.current.set(fingerprint, now);
+      for (const [key, shownAt] of recentToastFingerprints.current) {
+        if (now - shownAt > TOAST_DEDUPE_WINDOW_MS) recentToastFingerprints.current.delete(key);
+      }
+
       const id = createToastId();
       setToasts((current) => [{ ...toast, id }, ...current].slice(0, 4));
       window.setTimeout(() => removeToast(id), 3500);
@@ -60,6 +72,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
+}
+
+function createToastFingerprint(toast: Omit<Toast, "id">) {
+  return `${toast.type}|${toast.title.trim()}|${toast.message?.trim() ?? ""}`;
 }
 
 function createToastId() {
