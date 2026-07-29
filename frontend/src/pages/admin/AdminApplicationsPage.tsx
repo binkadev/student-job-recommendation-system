@@ -195,9 +195,9 @@ function AdminApplicationDetailPage({ applicationId }: { applicationId: number }
 
 function CandidateSummary({ application }: { application: ApplicationResponse }) {
   return (
-    <div className="min-w-[220px]">
-      <p className="font-medium text-slate-900">{application.studentName}</p>
-      <p className="mt-1 text-xs text-slate-500">{application.studentEmail}</p>
+    <div className="min-w-0">
+      <p className="break-words font-medium text-slate-900">{application.studentName}</p>
+      <p className="mt-1 break-words text-xs text-slate-500">{application.studentEmail}</p>
       <p className="mt-1 text-xs text-slate-500">ID: {application.studentId}</p>
     </div>
   );
@@ -205,8 +205,8 @@ function CandidateSummary({ application }: { application: ApplicationResponse })
 
 function JobSummary({ application }: { application: ApplicationResponse }) {
   return (
-    <div className="min-w-[220px]">
-      <p className="font-medium text-slate-900">{application.jobTitle}</p>
+    <div className="min-w-0">
+      <p className="break-words font-medium text-slate-900">{application.jobTitle}</p>
       <p className="mt-1 text-xs text-slate-500">Job ID: {application.jobId}</p>
     </div>
   );
@@ -214,8 +214,8 @@ function JobSummary({ application }: { application: ApplicationResponse }) {
 
 function CompanySummary({ application }: { application: ApplicationResponse }) {
   return (
-    <div className="min-w-[180px]">
-      <p className="font-medium text-slate-900">{application.companyName}</p>
+    <div className="min-w-0">
+      <p className="break-words font-medium text-slate-900">{application.companyName}</p>
       <p className="mt-1 text-xs text-slate-500">Company ID: {application.companyId}</p>
     </div>
   );
@@ -223,7 +223,7 @@ function CompanySummary({ application }: { application: ApplicationResponse }) {
 
 function TimeSummary({ application }: { application: ApplicationResponse }) {
   return (
-    <div className="min-w-[150px] text-xs text-slate-500">
+    <div className="min-w-0 space-y-1 text-xs text-slate-500">
       <p>Ứng tuyển: {formatDateTime(application.appliedAt)}</p>
       <p>Cập nhật: {formatDateTime(application.updatedAt)}</p>
     </div>

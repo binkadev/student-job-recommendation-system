@@ -155,7 +155,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     return (
       <PageContainer>
         <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX theo API CV của backend." />
-        <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <div className="max-w-5xl">
           <Card>
             <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, tối đa ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
             {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng ẩn bớt CV trên giao diện trước khi upload thêm.`} /></div> : null}
@@ -188,16 +188,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Button type="button" loading={uploading} disabled={uploading || reachedCvLimit} onClick={() => void uploadCv()}>Upload</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
-            </div>
-          </Card>
-
-          <Card>
-            <SectionHeader title="Dữ liệu sẽ lưu" />
-            <div className="space-y-3 text-sm text-slate-700">
-              <InfoRow label="Endpoint" value="POST /api/students/me/cv" />
-              <InfoRow label="Form field" value="file" />
-              <InfoRow label="Query" value={`active=${active}`} />
-              <InfoRow label="Response" value="CvFileResponse" />
             </div>
           </Card>
         </div>
@@ -590,15 +580,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-slate-500">{label}</p>
       <p className="mt-1 break-words font-medium text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2 last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <strong className="max-w-[190px] text-right text-slate-900">{value}</strong>
     </div>
   );
 }

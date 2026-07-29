@@ -130,7 +130,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       if (!answers.startDate) nextErrors.startDate = "Vui lòng chọn ngày có thể bắt đầu.";
       if (answers.startDate && answers.startDate < tomorrow) nextErrors.startDate = "Ngày có thể bắt đầu phải lớn hơn ngày hiện tại.";
       if (!answers.salary.trim()) nextErrors.salary = "Vui lòng nhập mức lương mong muốn.";
-      if (answers.salary.trim() && (!Number.isInteger(salary) || salary <= 0 || salary > maxExpectedSalary)) nextErrors.salary = "Mức lương phải là số nguyên dương và không vượt quá 1.000.000.000 đồng.";
+      if (answers.salary.trim() && (!Number.isInteger(salary) || salary <= 0 || salary > maxExpectedSalary)) nextErrors.salary = "Mức lương phải là số nguyên dương không vượt quá 1.000.000.000 đồng.";
       if (!answers.onsite) nextErrors.onsite = "Vui lòng chọn câu trả lời.";
     }
     if (currentStep === 3 && !confirmed) nextErrors.confirmed = "Bạn cần xác nhận thông tin chính xác trước khi gửi.";
@@ -178,7 +178,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
         {step === 1 ? (
           <CoverLetterStep coverLetter={coverLetter} onChange={setCoverLetter} onUseTemplate={() => setCoverLetter(coverTemplate)} />
         ) : null}
-        {step === 2 ? <ScreeningStep answers={answers} errors={errors} onChange={setAnswers} /> : null}
+        {step === 2 ? <ScreeningStep answers={answers} errors={errors} onChange={setAnswers} onErrorsChange={setErrors} /> : null}
         {step === 3 && job ? (
           <ReviewStep job={job} cv={selectedCv} coverLetter={coverLetter} answers={answers} confirmed={confirmed} error={errors.confirmed} onConfirm={setConfirmed} />
         ) : null}
@@ -249,9 +249,30 @@ function CoverLetterStep({ coverLetter, onChange, onUseTemplate }: { coverLetter
   );
 }
 
-function ScreeningStep({ answers, errors, onChange }: { answers: ScreeningAnswers; errors: Record<string, string>; onChange: (answers: ScreeningAnswers) => void }) {
+function ScreeningStep({
+  answers,
+  errors,
+  onChange,
+  onErrorsChange,
+}: {
+  answers: ScreeningAnswers;
+  errors: Record<string, string>;
+  onChange: (answers: ScreeningAnswers) => void;
+  onErrorsChange: (errors: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)) => void;
+}) {
   function update(key: keyof ScreeningAnswers, value: string) {
     onChange({ ...answers, [key]: value });
+    if (key === "years") updateRealtimeError("years", validateExperienceYears(value));
+    if (key === "salary") updateRealtimeError("salary", validateExpectedSalary(value));
+  }
+
+  function updateRealtimeError(key: "years" | "salary", error: string) {
+    onErrorsChange((current) => {
+      const nextErrors = { ...current };
+      if (error) nextErrors[key] = error;
+      else delete nextErrors[key];
+      return nextErrors;
+    });
   }
 
   return (
@@ -361,6 +382,26 @@ function getTomorrowDateValue() {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return tomorrow.toISOString().slice(0, 10);
+}
+
+function validateExperienceYears(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const numberValue = Number(trimmed);
+  if (!Number.isInteger(numberValue) || numberValue < 0 || numberValue > 100) {
+    return "Số năm kinh nghiệm phải là số nguyên từ 0 đến 100.";
+  }
+  return "";
+}
+
+function validateExpectedSalary(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const numberValue = Number(trimmed);
+  if (!Number.isInteger(numberValue) || numberValue <= 0 || numberValue > maxExpectedSalary) {
+    return "Mức lương phải là số nguyên dương không vượt quá 1.000.000.000 đồng.";
+  }
+  return "";
 }
 
 function formatCurrencyVnd(value: string) {
