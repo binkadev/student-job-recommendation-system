@@ -1,0 +1,32 @@
+[
+  {
+    "id": 101,
+    "text": "Backend Java Developer. Build REST APIs and microservices with Java, Spring Boot, PostgreSQL, Docker, and automated delivery pipelines.",
+    "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker"]
+  },
+  {
+    "id": 102,
+    "text": "Lập trình viên Java backend. Phát triển REST API và kiến trúc vi dịch vụ bằng Java, Spring Boot và PostgreSQL.",
+    "skills": ["Java", "Spring Boot", "PostgreSQL"]
+  },
+  {
+    "id": 103,
+    "text": "Frontend Engineer. Create accessible browser interfaces with React, TypeScript, HTML, and CSS for customer-facing products.",
+    "skills": ["React", "TypeScript", "HTML", "CSS"]
+  },
+  {
+    "id": 104,
+    "text": "Kỹ sư Python backend. Xây dựng REST API bằng Python, FastAPI, PostgreSQL và Docker; viết kiểm thử cho hệ thống.",
+    "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "REST API"]
+  },
+  {
+    "id": 105,
+    "text": "Python API Developer. Develop reliable backend services using Python, FastAPI, PostgreSQL, Docker, and REST API testing.",
+    "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "REST API"]
+  },
+  {
+    "id": 106,
+    "text": "Chuyên viên phân tích dữ liệu. Chuẩn bị báo cáo và mô hình học máy bằng Python, SQL, Power BI và pandas.",
+    "skills": ["Python", "SQL", "Power BI", "pandas"]
+  }
+]
