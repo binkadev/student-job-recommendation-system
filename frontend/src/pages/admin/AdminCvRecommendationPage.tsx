@@ -75,7 +75,7 @@ function CvAnalysisPage({ mode }: { mode: "cv" | "errors" }) {
     <PageContainer>
       <PageHeader
         title={mode === "errors" ? "Lỗi phân tích CV" : "Theo dõi phân tích CV"}
-        description="Backend hiện chưa có API admin CV. Trang giữ khung theo bảng cv_files và hiển thị 0."
+        description="Theo dõi danh sách CV và trạng thái phân tích."
       />
 
       <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -100,7 +100,6 @@ function CvAnalysisPage({ mode }: { mode: "cv" | "errors" }) {
 
       <Card className="mt-5">
         <p className="text-sm font-medium text-slate-900">Tổng dữ liệu: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chỉ có API CV theo student hiện tại, chưa có API admin list CV hoặc lỗi phân tích CV.</p>
       </Card>
 
       <div className="mt-5">
@@ -117,7 +116,7 @@ function CvAnalysisPage({ mode }: { mode: "cv" | "errors" }) {
           ]}
         />
         <div className="mt-4">
-          <EmptyState message="Chưa có API admin CV nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+          <EmptyState message="Chưa có CV phù hợp." />
         </div>
       </div>
 
@@ -141,7 +140,7 @@ function RecommendationSystemPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Hệ thống gợi ý" description="Backend có bảng recommendation skeleton nhưng chưa có API admin recommendation." />
+      <PageHeader title="Hệ thống gợi ý" description="Theo dõi các kết quả và lượt chạy gợi ý việc làm." />
       <div className="grid gap-4 md:grid-cols-4">
         <Metric label="Recommendation runs" value={0} />
         <Metric label="Completed" value={0} />
@@ -173,7 +172,7 @@ function RecommendationSystemPage() {
           ]}
         />
         <div className="mt-4">
-          <EmptyState message="Chưa có API admin recommendation nên bảng đang hiển thị 0 dòng." />
+          <EmptyState message="Chưa có lượt gợi ý nào." />
         </div>
       </div>
 
@@ -185,13 +184,13 @@ function RecommendationSystemPage() {
 function RecommendationConfigurationPage() {
   return (
     <PageContainer>
-      <PageHeader title="Cấu hình gợi ý" description="Phần cấu hình thuật toán chưa có DB/API admin. Thuật toán gợi ý theo CV sẽ làm sau." />
+      <PageHeader title="Cấu hình gợi ý" description="Thiết lập các thông số phục vụ gợi ý việc làm." />
       <Card>
-        <EmptyState message="Backend hiện chưa có bảng/API lưu cấu hình trọng số thuật toán. Trang không dùng cấu hình mock." />
+        <EmptyState message="Chưa có cấu hình gợi ý." />
         <div className="mt-5 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <Info label="Cấu hình trọng số" value="Chưa có API" />
-          <Info label="Preview match score" value="Chưa có API" />
-          <Info label="Version history" value="Chưa có API" />
+          <Info label="Cấu hình trọng số" value="Chưa cập nhật" />
+          <Info label="Xem trước điểm phù hợp" value="Chưa cập nhật" />
+          <Info label="Lịch sử phiên bản" value="Chưa cập nhật" />
           <Info label="Dữ liệu hiện hiển thị" value="0" />
         </div>
       </Card>

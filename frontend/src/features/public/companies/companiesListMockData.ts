@@ -15,7 +15,7 @@ export const publicCompanies: PublicCompanyListItem[] = [
   },
   {
     id: "2",
-    cover: "bg-gradient-to-r from-emerald-800 to-slate-900",
+    cover: "bg-gradient-to-r from-brand-700 to-slate-700",
     logo: "TC",
     name: "TechCore Solutions",
     verified: true,
@@ -27,7 +27,7 @@ export const publicCompanies: PublicCompanyListItem[] = [
   },
   {
     id: "3",
-    cover: "bg-gradient-to-r from-blue-900 to-cyan-700",
+    cover: "bg-gradient-to-r from-brand-700 to-slate-600",
     logo: "DA",
     name: "DataAide Analytics",
     verified: true,
@@ -39,7 +39,7 @@ export const publicCompanies: PublicCompanyListItem[] = [
   },
   {
     id: "4",
-    cover: "bg-gradient-to-r from-slate-800 to-amber-700",
+    cover: "bg-gradient-to-r from-slate-800 to-brand-700",
     logo: "FI",
     name: "FinInsight",
     verified: true,
@@ -51,7 +51,7 @@ export const publicCompanies: PublicCompanyListItem[] = [
   },
   {
     id: "5",
-    cover: "bg-gradient-to-r from-zinc-900 to-rose-700",
+    cover: "bg-gradient-to-r from-slate-700 to-brand-600",
     logo: "PX",
     name: "PixelCraft Studio",
     verified: false,
@@ -63,7 +63,7 @@ export const publicCompanies: PublicCompanyListItem[] = [
   },
   {
     id: "6",
-    cover: "bg-gradient-to-r from-indigo-900 to-sky-700",
+    cover: "bg-gradient-to-r from-brand-800 to-slate-700",
     logo: "CL",
     name: "CloudLeap",
     verified: true,

@@ -12,5 +12,5 @@ function CompanySelectorPlaceholder() {
 }
 
 export function RecruiterLayout() {
-  return <DashboardLayout title="Nhà tuyển dụng" menu={recruiterMenu} extra={<CompanySelectorPlaceholder />} />;
+  return <DashboardLayout title="Nhà tuyển dụng" menu={recruiterMenu} extra={<CompanySelectorPlaceholder />} variant="recruiter" />;
 }

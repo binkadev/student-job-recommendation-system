@@ -101,7 +101,7 @@ function AnalyticsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Thống kê hệ thống" description="Thống kê admin dựa trên API jobs, admin users và admin companies hiện có." />
+      <PageHeader title="Thống kê hệ thống" description="Theo dõi tình hình hoạt động của hệ thống." />
       {analyticsQuery.error ? <div className="mb-5"><ErrorState message={analyticsQuery.error} /></div> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -159,21 +159,20 @@ function AuditLogsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Audit logs" description="Backend chưa có DB/API audit logs nên trang chỉ giữ khung lọc và bảng rỗng." />
+      <PageHeader title="Nhật ký hoạt động" description="Theo dõi các hoạt động quản trị trong hệ thống." />
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <Input label="Actor user ID" value={filters.actorUserId} onChange={(event) => updateFilter("actorUserId", event.target.value)} placeholder="actor_user_id" disabled />
-          <Input label="Action" value={filters.action} onChange={(event) => updateFilter("action", event.target.value)} placeholder="action" disabled />
-          <Input label="Target type" value={filters.targetType} onChange={(event) => updateFilter("targetType", event.target.value)} placeholder="target_type" disabled />
-          <Select label="Result" value={filters.result} onChange={(event) => updateFilter("result", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(auditResultLabels).map(([value, label]) => ({ value, label }))]} disabled />
+          <Input label="Mã người thao tác" value={filters.actorUserId} onChange={(event) => updateFilter("actorUserId", event.target.value)} placeholder="0" disabled />
+          <Input label="Hành động" value={filters.action} onChange={(event) => updateFilter("action", event.target.value)} placeholder="Hành động" disabled />
+          <Input label="Loại đối tượng" value={filters.targetType} onChange={(event) => updateFilter("targetType", event.target.value)} placeholder="Loại đối tượng" disabled />
+          <Select label="Kết quả" value={filters.result} onChange={(event) => updateFilter("result", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(auditResultLabels).map(([value, label]) => ({ value, label }))]} disabled />
           <Input label="Từ ngày" type="date" value={filters.dateFrom} onChange={(event) => updateFilter("dateFrom", event.target.value)} disabled />
           <Input label="Đến ngày" type="date" value={filters.dateTo} onChange={(event) => updateFilter("dateTo", event.target.value)} disabled />
         </div>
       </Card>
 
       <Card className="mb-5">
-        <p className="text-sm font-medium text-slate-900">Tổng audit log: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend hiện chưa có bảng audit_logs và chưa có endpoint quản lý nhật ký admin.</p>
+        <p className="text-sm font-medium text-slate-900">Tổng nhật ký: 0</p>
       </Card>
 
       <Table
@@ -181,14 +180,14 @@ function AuditLogsPage() {
         getRowKey={(log) => String(log.id)}
         columns={[
           { key: "time", header: "Thời gian", render: (log) => formatDateTime(log.createdAt) },
-          { key: "actor", header: "Actor", render: (log) => `User #${log.actorUserId}` },
-          { key: "action", header: "Action", render: (log) => log.action },
-          { key: "target", header: "Target", render: (log) => `${log.targetType} #${log.targetId}` },
-          { key: "result", header: "Result", render: (log) => <StatusBadge label={auditResultLabels[log.result]} tone={getAuditTone(log.result)} /> },
+          { key: "actor", header: "Người thao tác", render: (log) => `Người dùng #${log.actorUserId}` },
+          { key: "action", header: "Hành động", render: (log) => log.action },
+          { key: "target", header: "Đối tượng", render: (log) => `${log.targetType} #${log.targetId}` },
+          { key: "result", header: "Kết quả", render: (log) => <StatusBadge label={auditResultLabels[log.result]} tone={getAuditTone(log.result)} /> },
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API audit logs nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+        <EmptyState message="Chưa có nhật ký hoạt động." />
       </div>
     </PageContainer>
   );

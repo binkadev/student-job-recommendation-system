@@ -283,7 +283,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý tin tuyển dụng" description="Danh sách tin tuyển dụng lấy từ API backend theo tài khoản công ty hiện tại." />
+      <PageHeader title="Quản lý tin tuyển dụng" description="Danh sách tin tuyển dụng của công ty." />
       {company && !isCompanyVerified(company) ? (
         <Card className="mb-5 border-amber-200 bg-amber-50">
           <SectionHeader title="Công ty đang chờ xác thực" description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Bạn chưa thể tạo tin hoặc gửi duyệt cho đến khi admin xác thực công ty.`} />
@@ -307,7 +307,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
       </Card>
 
       <Card className="mt-5">
-        <SectionHeader title="Tin tuyển dụng" description={`${jobsQuery.data?.totalItems ?? 0} tin từ backend`} />
+        <SectionHeader title="Tin tuyển dụng" description={`${jobsQuery.data?.totalItems ?? 0} tin tuyển dụng`} />
         {jobsQuery.loading ? <LoadingState /> : null}
         {!jobsQuery.loading && jobsQuery.error ? <EmptyState message={jobsQuery.error} /> : null}
         {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Không có tin tuyển dụng phù hợp." /> : null}
@@ -347,15 +347,15 @@ function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "
   if (detailQuery.error || !detailQuery.data) {
     return (
       <PageContainer>
-        <PageHeader title="Chi tiết tin tuyển dụng" description="Không thể tải dữ liệu từ backend." />
+        <PageHeader title="Chi tiết tin tuyển dụng" description="Không thể tải dữ liệu tin tuyển dụng." />
         <EmptyState message={detailQuery.error ?? "Không tìm thấy tin tuyển dụng."} />
       </PageContainer>
     );
   }
 
   if (mode === "edit") return <JobFormView mode="edit" job={detailQuery.data} company={company} />;
-  if (mode === "preview") return <UnsupportedJobView job={detailQuery.data} title="Preview tin tuyển dụng" message="Backend hiện chưa có API preview riêng. Bạn có thể xem nội dung thật ở trang chi tiết tin." />;
-  if (mode === "statistics") return <UnsupportedJobView job={detailQuery.data} title="Thống kê tin tuyển dụng" message="Backend hiện chưa có API lượt xem, tỷ lệ ứng tuyển hoặc analytics cho từng tin." />;
+  if (mode === "preview") return <UnsupportedJobView job={detailQuery.data} title="Xem trước tin tuyển dụng" message="Bạn có thể xem nội dung tin ở trang chi tiết." />;
+  if (mode === "statistics") return <UnsupportedJobView job={detailQuery.data} title="Thống kê tin tuyển dụng" message="Chưa có dữ liệu thống kê cho tin tuyển dụng này." />;
   return <JobDetailView job={detailQuery.data} />;
 }
 
@@ -478,7 +478,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
 
   return (
     <PageContainer>
-      <PageHeader title={editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng"} description="Form chỉ lưu các trường hiện có trong API job backend." />
+      <PageHeader title={editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng"} description="Nhập thông tin tin tuyển dụng của công ty." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-5">
           <Card>
@@ -508,10 +508,10 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
           </Card>
 
           <Card>
-            <SectionHeader title="Kỹ năng" description="Chọn skill từ danh mục backend. Khi lưu, frontend gửi skillId cho API job." />
+            <SectionHeader title="Kỹ năng" description="Chọn kỹ năng phù hợp với yêu cầu tuyển dụng." />
             {skillsQuery.loading ? <LoadingState /> : null}
             {!skillsQuery.loading && skillsQuery.error ? <EmptyState message={skillsQuery.error} /> : null}
-            {!skillsQuery.loading && skillsQuery.data?.length === 0 ? <EmptyState message="Backend chưa có danh mục kỹ năng." /> : null}
+            {!skillsQuery.loading && skillsQuery.data?.length === 0 ? <EmptyState message="Chưa có danh mục kỹ năng." /> : null}
             <div className="grid gap-2 md:grid-cols-2">
               {(skillsQuery.data ?? []).map((skill) => (
                 <label key={skill.id} className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-sm">
@@ -640,7 +640,7 @@ function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResp
 function UnsupportedCard({ title, items }: { title: string; items: string[] }) {
   return (
     <Card>
-      <SectionHeader title={title} description="Các phần này chưa có trường/API backend nên không lưu dữ liệu giả." />
+      <SectionHeader title={title} />
       <div className="flex flex-wrap gap-2">
         {items.map((item) => <StatusBadge key={item} label={item} />)}
       </div>

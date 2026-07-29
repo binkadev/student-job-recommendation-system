@@ -122,10 +122,10 @@ export function JobDetailPage() {
     <PageContainer>
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <main className="space-y-5 pb-24 lg:pb-0">
-          <Card>
+          <Card className="border-brand-100 bg-brand-50">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-lg font-semibold text-brand-700">{job.logo}</div>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white text-lg font-semibold text-brand-700 shadow-sm">{job.logo}</div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-semibold text-slate-950">{job.title}</h1>

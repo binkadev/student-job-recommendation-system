@@ -1,4 +1,4 @@
-import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock, FileWarning, Handshake, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, CheckCircle2, Clock, FileWarning, Handshake, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -120,7 +120,7 @@ export function RecruiterDashboardPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Tổng quan nhà tuyển dụng</h1>
-          <p className="mt-1 text-sm text-slate-600">Theo dõi tin tuyển dụng và hồ sơ ứng tuyển từ dữ liệu backend hiện có.</p>
+          <p className="mt-1 text-sm text-slate-600">Theo dõi tin tuyển dụng và hồ sơ ứng tuyển.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select
@@ -137,18 +137,17 @@ export function RecruiterDashboardPage() {
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatLink icon={<BriefcaseBusiness size={20} />} label="Tin đang tuyển" value={String(activeJobs.length)} to="/recruiter/jobs" />
         <StatLink icon={<Users size={20} />} label="Ứng viên mới" value={String(pendingApplications.length)} to="/recruiter/candidates" />
         <StatLink icon={<BarChart3 size={20} />} label="Đã xem xét" value={String(reviewedApplications.length)} to="/recruiter/candidates" />
-        <StatLink icon={<CalendarDays size={20} />} label="Phỏng vấn" value="0" to="/recruiter/interviews" />
         <StatLink icon={<Handshake size={20} />} label="Đã nhận" value={String(acceptedApplications.length)} to="/recruiter/candidates" />
         <StatLink icon={<CheckCircle2 size={20} />} label="Tổng ứng tuyển" value={String(totalApplications)} to="/recruiter/candidates" />
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
         <Card>
-          <SectionHeader title="Ứng viên theo thời gian" description="Tính từ ngày ứng tuyển trong ApplicationResponse." />
+          <SectionHeader title="Ứng viên theo thời gian" description="Theo dõi lượng hồ sơ ứng tuyển trong khoảng thời gian đã chọn." />
           {trendData.length ? (
             <ChartBox>
               <BarChart data={trendData}>
@@ -168,7 +167,7 @@ export function RecruiterDashboardPage() {
             <ChartBox>
               <PieChart>
                 <Pie data={statusChartData} dataKey="value" nameKey="label" outerRadius={95} label>
-                  {statusChartData.map((_, index) => <Cell key={index} fill={["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#64748b"][index]} />)}
+                  {statusChartData.map((_, index) => <Cell key={index} fill={["#2563eb", "#1d4ed8", "#60a5fa", "#94a3b8", "#64748b"][index]} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -177,7 +176,7 @@ export function RecruiterDashboardPage() {
         </Card>
 
         <Card>
-          <SectionHeader title="Pipeline backend" description="Pipeline hiện dựa trên trạng thái application backend." />
+          <SectionHeader title="Pipeline tuyển dụng" description="Theo dõi hồ sơ theo từng trạng thái ứng tuyển." />
           {statusChartData.length ? (
             <ChartBox>
               <BarChart data={statusChartData}>
@@ -185,14 +184,14 @@ export function RecruiterDashboardPage() {
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#10b981" name="Hồ sơ" />
+                <Bar dataKey="value" fill="#1d4ed8" name="Hồ sơ" />
               </BarChart>
             </ChartBox>
           ) : <EmptyState message="Chưa có dữ liệu pipeline." />}
         </Card>
 
         <Card>
-          <SectionHeader title="Ứng tuyển theo tin" description="Backend chưa có lượt xem nên biểu đồ chỉ dùng số ứng tuyển thật." />
+          <SectionHeader title="Ứng tuyển theo tin" description="So sánh số hồ sơ ứng tuyển theo từng tin tuyển dụng." />
           {jobChartData.length ? (
             <ChartBox>
               <BarChart data={jobChartData}>
@@ -200,7 +199,7 @@ export function RecruiterDashboardPage() {
                 <XAxis dataKey="title" hide />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="applications" fill="#f59e0b" name="Ứng viên" />
+                <Bar dataKey="applications" fill="#2563eb" name="Ứng viên" />
               </BarChart>
             </ChartBox>
           ) : <EmptyState message="Chưa có tin tuyển dụng hoặc ứng viên." />}
@@ -212,7 +211,6 @@ export function RecruiterDashboardPage() {
           <SectionHeader title="Việc cần xử lý" />
           <div className="space-y-3">
             <TodoItem icon={<Users size={18} />} label={`${pendingApplications.length} ứng viên chờ xử lý`} to="/recruiter/candidates" />
-            <TodoItem icon={<CalendarDays size={18} />} label="Lịch phỏng vấn chưa có API backend" to="/recruiter/interviews" />
             <TodoItem icon={<Clock size={18} />} label={`${expiringJobs.length} tin sắp hết hạn`} to="/recruiter/jobs" />
             <TodoItem icon={<FileWarning size={18} />} label={`${issueJobs.length} tin đã đóng/hết hạn/bị từ chối`} to="/recruiter/jobs" />
           </div>
@@ -237,12 +235,7 @@ export function RecruiterDashboardPage() {
         </Card>
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-2">
-        <Card>
-          <SectionHeader title="Phỏng vấn sắp tới" />
-          <EmptyState message="Backend hiện chưa có API lịch phỏng vấn cho nhà tuyển dụng." />
-        </Card>
-
+      <section className="mt-5">
         <Card>
           <SectionHeader title="Tin sắp hết hạn" />
           <div className="space-y-3">

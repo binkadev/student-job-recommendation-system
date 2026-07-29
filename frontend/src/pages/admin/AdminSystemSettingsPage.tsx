@@ -37,14 +37,12 @@ export function AdminSystemSettingsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Cấu hình hệ thống" description="Backend hiện chưa có DB/API system settings. Trang chỉ giữ khung cấu hình, không lưu dữ liệu giả." />
+      <PageHeader title="Cấu hình hệ thống" description="Quản lý các thiết lập chung của hệ thống." />
 
       <Card className="mb-5">
         <Tabs items={tabs} value={activeTab} onChange={(value) => setActiveTab(value as SettingsTab)} />
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <StatusBadge label={`Tab hiện tại: ${getTabLabel(activeTab)}`} />
-          <StatusBadge label="Chưa có API backend" tone="warning" />
-          <StatusBadge label="Dữ liệu: 0" tone="neutral" />
         </div>
       </Card>
 
@@ -60,11 +58,8 @@ export function AdminSystemSettingsPage() {
         </div>
 
         <Card>
-          <SectionHeader title="System settings API" />
-          <EmptyState message="Chưa có bảng/API lưu cấu hình hệ thống. Các field đang bị khóa để tránh hiểu nhầm là đã lưu được." />
-          <div className="mt-5 flex flex-wrap gap-2">
-            {["setting_key", "setting_value", "setting_group", "description", "updated_by", "created_at", "updated_at"].map((field) => <StatusBadge key={field} label={field} />)}
-          </div>
+          <SectionHeader title="Thông tin cấu hình" />
+          <EmptyState message="Một số cấu hình đang ở trạng thái chỉ xem." />
         </Card>
       </div>
     </PageContainer>
@@ -76,11 +71,11 @@ function GeneralSettings() {
     <Card>
       <SectionHeader title="General" />
       <div className="grid gap-4 md:grid-cols-2">
-        <Input label="Tên hệ thống" value="" onChange={() => undefined} placeholder="setting_key: system.name" disabled />
-        <Input label="Logo placeholder" value="" onChange={() => undefined} placeholder="setting_key: system.logo_placeholder" disabled />
-        <Input label="Support email" value="" onChange={() => undefined} placeholder="setting_key: system.support_email" disabled />
-        <Select label="Ngôn ngữ mặc định" value="" onChange={() => undefined} options={[{ label: "Chưa có API", value: "" }]} disabled />
-        <Select label="Timezone" value="" onChange={() => undefined} options={[{ label: "Chưa có API", value: "" }]} disabled />
+        <Input label="Tên hệ thống" value="" onChange={() => undefined} placeholder="Tên hiển thị của hệ thống" disabled />
+        <Input label="Logo" value="" onChange={() => undefined} placeholder="Logo hệ thống" disabled />
+        <Input label="Email hỗ trợ" value="" onChange={() => undefined} placeholder="Email hỗ trợ" disabled />
+        <Select label="Ngôn ngữ mặc định" value="" onChange={() => undefined} options={[{ label: "Chưa cập nhật", value: "" }]} disabled />
+        <Select label="Múi giờ" value="" onChange={() => undefined} options={[{ label: "Chưa cập nhật", value: "" }]} disabled />
       </div>
     </Card>
   );
@@ -102,7 +97,7 @@ function CvUploadSettings({
         <Input label="File type cho phép" value="PDF,DOCX" onChange={() => undefined} disabled />
         <Input label="Dung lượng tối đa (MB)" type="number" min="1" value={String(settings.maxFileSizeMb)} onChange={(event) => onChange({ ...settings, maxFileSizeMb: Math.max(1, Number(event.target.value) || 1) })} />
         <Input label="Số CV tối đa mỗi ứng viên" type="number" min="1" value={String(settings.maxCvsPerUser)} onChange={(event) => onChange({ ...settings, maxCvsPerUser: Math.max(1, Number(event.target.value) || 1) })} />
-        <Input label="Analysis timeout (giây)" type="number" value="" onChange={() => undefined} disabled />
+        <Input label="Thời gian phân tích tối đa (giây)" type="number" value="" onChange={() => undefined} disabled />
       </div>
       <div className="mt-5">
         <Button onClick={onSave}>Cập nhật cấu hình</Button>
@@ -130,9 +125,9 @@ function EmailSettings() {
     <Card>
       <SectionHeader title="Email" />
       <div className="grid gap-4 md:grid-cols-2">
-        <Input label="Sender name" value="" onChange={() => undefined} disabled />
-        <Input label="Sender email" value="" onChange={() => undefined} disabled />
-        <Input label="Reply-to email" value="" onChange={() => undefined} disabled />
+        <Input label="Tên người gửi" value="" onChange={() => undefined} disabled />
+        <Input label="Email người gửi" value="" onChange={() => undefined} disabled />
+        <Input label="Email phản hồi" value="" onChange={() => undefined} disabled />
       </div>
     </Card>
   );
@@ -170,8 +165,8 @@ function PrivacySettings() {
     <Card>
       <SectionHeader title="Privacy" />
       <div className="grid gap-4 md:grid-cols-2">
-        <Select label="Profile visibility mặc định" value="" onChange={() => undefined} options={[{ label: "Chưa có API", value: "" }]} disabled />
-        <Input label="Data retention days" type="number" value="" onChange={() => undefined} disabled />
+        <Select label="Hiển thị hồ sơ mặc định" value="" onChange={() => undefined} options={[{ label: "Chưa cập nhật", value: "" }]} disabled />
+        <Input label="Số ngày lưu dữ liệu" type="number" value="" onChange={() => undefined} disabled />
         <Switch label="Cho phép tải CV" checked={false} onChange={() => undefined} disabled />
         <Switch label="Yêu cầu consent" checked={false} onChange={() => undefined} disabled />
       </div>
