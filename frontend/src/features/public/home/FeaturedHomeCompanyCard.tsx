@@ -13,7 +13,7 @@ export function FeaturedHomeCompanyCard({ company }: { company: FeaturedHomeComp
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-slate-950">{company.name}</h3>
-            {company.verified ? <ShieldCheck size={16} className="text-emerald-600" /> : null}
+            {company.verified ? <ShieldCheck size={16} className="text-brand-600" /> : null}
           </div>
           <p className="mt-1 text-sm text-slate-600">{company.industry}</p>
         </div>

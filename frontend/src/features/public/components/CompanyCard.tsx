@@ -18,7 +18,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
             <Link to={`/companies/${company.id}`} className="font-semibold text-slate-950 hover:text-brand-700">
               {company.name}
             </Link>
-            {company.verified ? <ShieldCheck size={16} className="text-emerald-600" /> : null}
+            {company.verified ? <ShieldCheck size={16} className="text-brand-600" /> : null}
           </div>
           <p className="mt-1 line-clamp-2 text-sm text-slate-600">{company.description}</p>
         </div>

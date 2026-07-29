@@ -109,8 +109,8 @@ export function RecruiterSettingsPage({ section = "account" }: { section?: "main
   function notifyUnsupported(feature: string) {
     showToast({
       type: "info",
-      title: "Chức năng chưa có API backend",
-      message: `${feature} hiện chưa có endpoint để lưu dữ liệu thật.`,
+      title: "Chức năng chưa sẵn sàng",
+      message: `${feature} hiện chưa thể lưu dữ liệu.`,
     });
   }
 
@@ -126,7 +126,7 @@ export function RecruiterSettingsPage({ section = "account" }: { section?: "main
 
   return (
     <PageContainer>
-      <PageHeader title="Cài đặt nhà tuyển dụng" description="Quản lý thông tin doanh nghiệp theo API hiện có. Các cấu hình chưa có endpoint sẽ không lưu giả." />
+      <PageHeader title="Cài đặt nhà tuyển dụng" description="Quản lý tài khoản, thông báo và bảo mật." />
       <Card>
         <Tabs
           value={tab}
@@ -209,7 +209,7 @@ function AccountSettings({ company, onSave }: { company: CompanyResponse; onSave
       <Card>
         <SectionHeader title="Trạng thái doanh nghiệp" />
         <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={company.status === "VERIFIED" ? "success" : company.status === "BLOCKED" ? "danger" : "warning"} />
-        <p className="mt-3 text-sm leading-6 text-slate-600">Trạng thái xác thực do backend/quản trị viên quản lý. Frontend không tự thay đổi trường này.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p>
       </Card>
     </div>
   );
@@ -218,8 +218,8 @@ function AccountSettings({ company, onSave }: { company: CompanyResponse; onSave
 function UnsupportedSettingsPanel({ title, onUnsupported }: { title: string; onUnsupported: (feature: string) => void }) {
   return (
     <div className="space-y-4">
-      <EmptyState message={`${title} chưa có API backend để lưu cấu hình.`} />
-      <Textarea label={title} value="" disabled placeholder="Chưa có endpoint backend" />
+      <EmptyState message={`${title} chưa có dữ liệu cấu hình.`} />
+      <Textarea label={title} value="" disabled placeholder="Chưa cập nhật" />
       <Button variant="secondary" onClick={() => onUnsupported(title)}>Lưu cấu hình</Button>
     </div>
   );
@@ -307,7 +307,7 @@ function NotificationSettings() {
           </div>
         ) : null}
       </Card>
-      <SectionHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc từ API backend.`} />
+      <SectionHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc.`} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
           items={[
@@ -426,7 +426,7 @@ function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) 
 function DangerZone({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
   return (
     <Card>
-      <SectionHeader title="Khu vực nguy hiểm" description="Backend hiện chưa có API khóa/xóa tài khoản doanh nghiệp từ frontend." />
+      <SectionHeader title="Khu vực nguy hiểm" description="Các thao tác nhạy cảm với tài khoản doanh nghiệp." />
       <Button variant="danger" onClick={() => onUnsupported("Khóa tài khoản doanh nghiệp")}>Khóa tài khoản</Button>
     </Card>
   );

@@ -113,23 +113,21 @@ function AdminUsersListPage({ mode }: { mode: "users" | "recruiters" | "detail" 
 
   return (
     <PageContainer>
-      <PageHeader
-        title={mode === "recruiters" ? "Quản lý nhà tuyển dụng" : "Quản lý người dùng"}
-        description="Dữ liệu lấy từ GET /api/admin/users theo các trường users trong DB."
-      />
+      <PageHeader title={mode === "recruiters" ? "Quản lý nhà tuyển dụng" : "Quản lý người dùng"} description="Quản lý tài khoản và trạng thái người dùng." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className={`grid gap-3 md:grid-cols-2 ${mode === "recruiters" ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>
           <Input label="Họ tên" value={filters.fullName} onChange={(event) => updateFilter("fullName", event.target.value)} placeholder="Nhập họ tên" />
-          <Select label="Role" value={filters.role} onChange={(event) => updateFilter("role", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(roleLabels).map(([value, label]) => ({ value, label }))]} disabled={mode === "recruiters"} />
+          {mode !== "recruiters" ? (
+            <Select label="Vai trò" value={filters.role} onChange={(event) => updateFilter("role", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(roleLabels).map(([value, label]) => ({ value, label }))]} />
+          ) : null}
           <Select label="Sắp xếp" value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)} options={[{ label: "Mới nhất", value: "createdAt,desc" }, { label: "Cũ nhất", value: "createdAt,asc" }]} />
-          <Select label="Trạng thái" value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} options={[{ label: "Tất cả", value: "" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Tạm ngưng", value: "INACTIVE" }, { label: "Đã khóa", value: "BLOCKED" }]} />
+          <Select label="Trạng thái" value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} options={[{ label: "Tất cả", value: "" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))]} />
         </div>
       </Card>
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng người dùng: {result?.totalItems ?? 0}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Admin có thể xem danh sách, chi tiết và cập nhật trạng thái bằng API backend hiện có.</p>
       </Card>
 
       {usersQuery.loading ? <LoadingState /> : null}
@@ -143,8 +141,8 @@ function AdminUsersListPage({ mode }: { mode: "users" | "recruiters" | "detail" 
             columns={[
               { key: "user", header: "Người dùng", render: (user) => <UserSummary user={user} /> },
               { key: "contact", header: "Liên hệ", render: (user) => <ContactSummary user={user} /> },
-              { key: "role", header: "Role", render: (user) => <StatusBadge label={roleLabels[user.role]} /> },
-              { key: "status", header: "Status", render: (user) => <StatusBadge label={statusLabels[user.status]} tone={getStatusTone(user.status)} /> },
+              { key: "role", header: "Vai trò", render: (user) => <StatusBadge label={roleLabels[user.role]} /> },
+              { key: "status", header: "Trạng thái", render: (user) => <StatusBadge label={statusLabels[user.status]} tone={getStatusTone(user.status)} /> },
               { key: "time", header: "Thời gian", render: (user) => <TimeSummary user={user} /> },
               { key: "actions", header: "Thao tác", render: (user) => (
                 <div className="flex flex-wrap gap-2">
@@ -185,14 +183,14 @@ function AdminUserDetailPage({ userId }: { userId: number }) {
 
   return (
     <PageContainer>
-      <PageHeader title={user.fullName} description={`Chi tiết user ID ${user.id} từ GET /api/admin/users/${user.id}.`} />
+      <PageHeader title={user.fullName} description={`Thông tin chi tiết của người dùng #${user.id}.`} />
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <Card>
           <SectionHeader title="Thông tin người dùng" />
           <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
             <Info label="Email" value={user.email} />
             <Info label="Số điện thoại" value={user.phone ?? "Chưa cập nhật"} />
-            <Info label="Role" value={roleLabels[user.role]} />
+            <Info label="Vai trò" value={roleLabels[user.role]} />
             <Info label="Trạng thái" value={statusLabels[user.status]} />
             <Info label="Tạo lúc" value={formatDateTime(user.createdAt)} />
             <Info label="Cập nhật" value={formatDateTime(user.updatedAt)} />
@@ -200,8 +198,8 @@ function AdminUserDetailPage({ userId }: { userId: number }) {
           </div>
         </Card>
         <Card>
-          <SectionHeader title="Profile liên quan" />
-          {profile ? <pre className="overflow-auto rounded-md bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(profile, null, 2)}</pre> : <EmptyState message="User chưa có profile liên quan." />}
+          <SectionHeader title="Hồ sơ liên quan" />
+          {profile ? <pre className="overflow-auto rounded-md bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(profile, null, 2)}</pre> : <EmptyState message="Người dùng chưa có hồ sơ liên quan." />}
         </Card>
       </div>
     </PageContainer>
@@ -220,7 +218,7 @@ function UserSummary({ user }: { user: AdminUserRow }) {
 function ContactSummary({ user }: { user: AdminUserRow }) {
   return (
     <div className="min-w-[180px] space-y-1 text-xs text-slate-600">
-      <p>{user.email}</p>
+      <p className="break-words">{user.email}</p>
       <p>{user.phone || "Chưa cập nhật"}</p>
     </div>
   );
@@ -231,7 +229,7 @@ function TimeSummary({ user }: { user: AdminUserRow }) {
     <div className="min-w-[150px] space-y-1 text-xs text-slate-600">
       <p><span className="text-slate-500">Tạo:</span> {formatDateTime(user.createdAt)}</p>
       <p><span className="text-slate-500">Cập nhật:</span> {formatDateTime(user.updatedAt)}</p>
-      <p><span className="text-slate-500">Login:</span> {formatDateTime(user.lastLoginAt)}</p>
+      <p><span className="text-slate-500">Đăng nhập:</span> {formatDateTime(user.lastLoginAt)}</p>
     </div>
   );
 }
@@ -261,7 +259,7 @@ async function updateAdminUserStatus(userId: number, status: UserStatus) {
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <p><span className="font-medium text-slate-500">{label}:</span> <span className="font-medium text-slate-900">{value}</span></p>;
+  return <p><span className="font-medium text-slate-500">{label}:</span> <span className="break-words font-medium text-slate-900">{value}</span></p>;
 }
 
 function getStatusTone(status: UserStatus) {

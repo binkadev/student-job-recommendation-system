@@ -47,7 +47,7 @@ export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind 
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý nội dung" description="Trang giữ khung quản trị bài viết, banner và trang nội dung. Backend hiện chưa có DB/API content." />
+      <PageHeader title="Quản lý nội dung" description="Quản lý bài viết, banner và các trang nội dung." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-3">
@@ -59,7 +59,6 @@ export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind 
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng nội dung: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chưa có bảng/API cho articles, banners hoặc content pages. Trang không dùng dữ liệu mock.</p>
       </Card>
 
       <Table
@@ -74,11 +73,11 @@ export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind 
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API content nên bảng đang hiển thị 0 dòng, không dùng dữ liệu hard-code." />
+        <EmptyState message="Chưa có nội dung phù hợp." />
       </div>
 
       <Card className="mt-5">
-        <SectionHeader title="Field cần có khi bổ sung DB/API" />
+        <SectionHeader title="Thông tin nội dung" />
         <div className="flex flex-wrap gap-2">
           {["id", "kind", "title", "slug", "status", "owner_user_id", "content", "published_at", "created_at", "updated_at"].map((field) => <StatusBadge key={field} label={field} />)}
         </div>

@@ -94,10 +94,7 @@ function AdminApplicationsListPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Quản lý đơn ứng tuyển"
-        description="Danh sách lấy từ GET /api/admin/applications theo các trường applications, students, jobs và companies trong DB."
-      />
+      <PageHeader title="Quản lý đơn ứng tuyển" description="Quản lý danh sách đơn ứng tuyển trong hệ thống." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -113,15 +110,14 @@ function AdminApplicationsListPage() {
               { label: "Cập nhật mới nhất", value: "updatedAt,desc" },
             ]}
           />
-          <Input label="Student ID" value={filters.studentId} onChange={(event) => updateFilter("studentId", onlyDigits(event.target.value))} placeholder="0" />
-          <Input label="Job ID" value={filters.jobId} onChange={(event) => updateFilter("jobId", onlyDigits(event.target.value))} placeholder="0" />
-          <Input label="Company ID" value={filters.companyId} onChange={(event) => updateFilter("companyId", onlyDigits(event.target.value))} placeholder="0" />
+          <Input label="Mã ứng viên" value={filters.studentId} onChange={(event) => updateFilter("studentId", onlyDigits(event.target.value))} placeholder="0" />
+          <Input label="Mã tin tuyển dụng" value={filters.jobId} onChange={(event) => updateFilter("jobId", onlyDigits(event.target.value))} placeholder="0" />
+          <Input label="Mã công ty" value={filters.companyId} onChange={(event) => updateFilter("companyId", onlyDigits(event.target.value))} placeholder="0" />
         </div>
       </Card>
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng đơn ứng tuyển: {result?.totalItems ?? 0}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Bộ lọc dùng đúng query hiện có: keyword, status, studentId, jobId, companyId, page, size, sort.</p>
       </Card>
 
       {applicationsQuery.loading ? <LoadingState /> : null}
@@ -136,7 +132,7 @@ function AdminApplicationsListPage() {
             columns={[
               { key: "candidate", header: "Ứng viên", render: (application) => <CandidateSummary application={application} /> },
               { key: "job", header: "Tin tuyển dụng", render: (application) => <JobSummary application={application} /> },
-              { key: "company", header: "Công ty", render: (application) => application.companyName },
+              { key: "company", header: "Công ty", render: (application) => <CompanySummary application={application} /> },
               { key: "cv", header: "CV", render: (application) => application.cvFileName ?? "Không có" },
               { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={statusLabels[application.status]} tone={getStatusTone(application.status)} /> },
               { key: "time", header: "Thời gian", render: (application) => <TimeSummary application={application} /> },
@@ -160,19 +156,19 @@ function AdminApplicationDetailPage({ applicationId }: { applicationId: number }
 
   return (
     <PageContainer>
-      <PageHeader title={`Đơn ứng tuyển #${application.id}`} description={`Chi tiết lấy từ GET /api/admin/applications/${application.id}.`} />
+      <PageHeader title={`Đơn ứng tuyển #${application.id}`} description="Thông tin chi tiết của đơn ứng tuyển." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title="Thông tin ứng tuyển" />
           <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
             <Info label="Ứng viên" value={`${application.studentName} (${application.studentEmail})`} />
-            <Info label="Student ID" value={String(application.studentId)} />
+            <Info label="Mã ứng viên" value={String(application.studentId)} />
             <Info label="Tin tuyển dụng" value={application.jobTitle} />
-            <Info label="Job ID" value={String(application.jobId)} />
+            <Info label="Mã tin tuyển dụng" value={String(application.jobId)} />
             <Info label="Công ty" value={application.companyName} />
-            <Info label="Company ID" value={String(application.companyId)} />
+            <Info label="Mã công ty" value={String(application.companyId)} />
             <Info label="CV" value={application.cvFileName ?? "Không có"} />
-            <Info label="CV file ID" value={application.cvFileId ? String(application.cvFileId) : "Không có"} />
+            <Info label="Mã file CV" value={application.cvFileId ? String(application.cvFileId) : "Không có"} />
             <Info label="Ngày ứng tuyển" value={formatDateTime(application.appliedAt)} />
             <Info label="Ngày duyệt" value={formatDateTime(application.reviewedAt)} />
             <Info label="Ngày tạo" value={formatDateTime(application.createdAt)} />
@@ -212,6 +208,15 @@ function JobSummary({ application }: { application: ApplicationResponse }) {
     <div className="min-w-[220px]">
       <p className="font-medium text-slate-900">{application.jobTitle}</p>
       <p className="mt-1 text-xs text-slate-500">Job ID: {application.jobId}</p>
+    </div>
+  );
+}
+
+function CompanySummary({ application }: { application: ApplicationResponse }) {
+  return (
+    <div className="min-w-[180px]">
+      <p className="font-medium text-slate-900">{application.companyName}</p>
+      <p className="mt-1 text-xs text-slate-500">Company ID: {application.companyId}</p>
     </div>
   );
 }

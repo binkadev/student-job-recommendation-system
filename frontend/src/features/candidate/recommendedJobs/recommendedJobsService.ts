@@ -1,6 +1,6 @@
 import { httpClient } from "../../../services/api/httpClient";
 import { getPublicJobDetail } from "../../public/jobs/jobDetailService";
-import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun, RecommendedJobFilters } from "./recommendedJobsTypes";
+import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun, RecommendationSummary, RecommendedJobFilters } from "./recommendedJobsTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -92,6 +92,17 @@ export async function getRecommendedJobs(filters: RecommendedJobFilters, hiddenI
 export async function getRecommendationRuns(): Promise<RecommendationRun[]> {
   const response = await httpClient.get<ApiResponse<RecommendationRunResponse[]>>("/students/me/recommendation-runs");
   return (response.data.data ?? []).map(mapRecommendationRun);
+}
+
+export function summarizeRecommendationRuns(runs: RecommendationRun[] | null | undefined): RecommendationSummary {
+  const items = runs ?? [];
+  const attemptedRun = items[0] ?? null;
+  const successfulRun = items.find((run) => run.status === "SUCCESS") ?? null;
+  return {
+    attemptedRun,
+    successfulRun,
+    hasStaleSuccessfulResults: Boolean(attemptedRun && successfulRun && attemptedRun.id !== successfulRun.id),
+  };
 }
 
 export async function getRecommendationRun(runId: string) {

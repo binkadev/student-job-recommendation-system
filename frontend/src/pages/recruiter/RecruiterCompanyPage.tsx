@@ -133,8 +133,8 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   function notifyUnsupported(feature: string) {
     showToast({
       type: "info",
-      title: "Chức năng chưa có API backend",
-      message: `${feature} hiện chưa có endpoint để lưu dữ liệu thật.`,
+      title: "Chức năng chưa sẵn sàng",
+      message: `${feature} hiện chưa thể lưu dữ liệu.`,
     });
   }
 
@@ -159,7 +159,7 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   if (companyQuery.error || !companyQuery.data) {
     return (
       <PageContainer>
-        <PageHeader title="Hồ sơ công ty" description="Không thể tải dữ liệu công ty từ backend." />
+        <PageHeader title="Hồ sơ công ty" description="Không thể tải dữ liệu công ty." />
         <EmptyState message={companyQuery.error ?? "Không có dữ liệu công ty."} />
       </PageContainer>
     );
@@ -177,7 +177,7 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
 
   return (
     <PageContainer>
-      <PageHeader title="Hồ sơ công ty" description="Quản lý thông tin doanh nghiệp theo dữ liệu backend hiện có." />
+      <PageHeader title="Hồ sơ công ty" description="Quản lý thông tin doanh nghiệp." />
 
       <CompanyHero company={company} onCopyWebsite={() => copyText("website", company.website)} onCopyAddress={() => copyText("địa chỉ", company.address)} />
 
@@ -202,15 +202,15 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
 
           <UnsupportedSection
             title="Chi nhánh"
-            message="Backend hiện chưa có bảng/API chi nhánh công ty. Phần này sẽ hiển thị sau khi có endpoint tương ứng."
+            message="Chưa có dữ liệu chi nhánh."
           />
         </div>
 
         <aside className="space-y-5">
           <CompanyInfoCard company={company} />
-          <UnsupportedSection title="Phúc lợi" message="Backend hiện chưa có trường/API phúc lợi riêng cho hồ sơ công ty." />
-          <UnsupportedSection title="Hình ảnh công ty" message="Backend hiện chưa có API upload logo, cover hoặc gallery." icon={<UploadCloud size={18} />} />
-          <UnsupportedSection title="Thành viên tuyển dụng" message="Backend hiện chưa có API quản lý thành viên tuyển dụng của công ty." />
+          <UnsupportedSection title="Phúc lợi" message="Chưa có dữ liệu phúc lợi." />
+          <UnsupportedSection title="Hình ảnh công ty" message="Chưa có hình ảnh công ty." icon={<UploadCloud size={18} />} />
+          <UnsupportedSection title="Thành viên tuyển dụng" message="Chưa có dữ liệu thành viên tuyển dụng." />
         </aside>
       </div>
     </PageContainer>
@@ -255,7 +255,7 @@ function CompanyHero({ company, onCopyWebsite, onCopyAddress }: { company: Compa
 function VerificationNotice({ company }: { company: CompanyResponse }) {
   const description = {
     PENDING: "Hồ sơ công ty đang ở trạng thái chờ xác thực.",
-    VERIFIED: "Doanh nghiệp đã được xác thực trên backend.",
+    VERIFIED: "Doanh nghiệp đã được xác thực.",
     BLOCKED: "Hồ sơ công ty đang bị khóa. Vui lòng liên hệ quản trị viên.",
   }[company.status];
 
@@ -304,7 +304,7 @@ function CompanyJobsSection({
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader title="Tin đang tuyển" description="Danh sách lấy từ API /jobs theo quyền công ty hiện tại." />
+        <SectionHeader title="Tin đang tuyển" description="Danh sách tin tuyển dụng của công ty." />
         <Link to="/recruiter/jobs/create"><Button>Tạo tin mới</Button></Link>
       </div>
       {jobsQuery.loading ? <LoadingState /> : null}
@@ -368,7 +368,7 @@ function RecruiterCompanyEditView({
 
   return (
     <PageContainer>
-      <PageHeader title="Chỉnh sửa hồ sơ công ty" description="Chỉ lưu các trường đang có trong API /companies/me." />
+      <PageHeader title="Chỉnh sửa hồ sơ công ty" description="Cập nhật thông tin doanh nghiệp." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title="Thông tin chính" />
@@ -393,10 +393,10 @@ function RecruiterCompanyEditView({
           <Card>
             <SectionHeader title="Trạng thái" />
             <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
-            <p className="mt-3 text-sm text-slate-600">Trạng thái xác thực do backend/quản trị viên quản lý, frontend không tự cập nhật.</p>
+            <p className="mt-3 text-sm text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p>
           </Card>
-          <UnsupportedSection title="Logo và ảnh bìa" message="Backend hiện chưa có API upload logo hoặc ảnh bìa công ty." icon={<UploadCloud size={18} />} action={<Button variant="secondary" onClick={() => onUnsupported("Upload logo/cover")}>Upload</Button>} />
-          <UnsupportedSection title="Thông tin ngoài API" message="Quy mô, chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng chưa có trường lưu trong API hiện tại." />
+          <UnsupportedSection title="Logo và ảnh bìa" message="Chưa có logo hoặc ảnh bìa công ty." icon={<UploadCloud size={18} />} action={<Button variant="secondary" onClick={() => onUnsupported("Tải logo/ảnh bìa")}>Tải ảnh</Button>} />
+          <UnsupportedSection title="Thông tin bổ sung" message="Chưa có dữ liệu quy mô, chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng." />
         </aside>
       </div>
     </PageContainer>
@@ -406,7 +406,7 @@ function RecruiterCompanyEditView({
 function CompanyVerificationView({ company, onUnsupported }: { company: CompanyResponse; onUnsupported: (feature: string) => void }) {
   return (
     <PageContainer>
-      <PageHeader title="Xác thực doanh nghiệp" description="Theo dõi trạng thái xác thực công ty từ backend." />
+      <PageHeader title="Xác thực doanh nghiệp" description="Theo dõi trạng thái xác thực công ty." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title={company.companyName || company.email} description="Trạng thái hiện tại của hồ sơ doanh nghiệp." />
@@ -421,7 +421,7 @@ function CompanyVerificationView({ company, onUnsupported }: { company: CompanyR
             <Link to="/recruiter/company"><Button variant="secondary">Quay lại hồ sơ</Button></Link>
           </div>
         </Card>
-        <UnsupportedSection title="Tài liệu xác thực" message="Backend hiện chưa có API upload giấy phép kinh doanh hoặc tài liệu xác thực doanh nghiệp." icon={<UploadCloud size={18} />} />
+        <UnsupportedSection title="Tài liệu xác thực" message="Chưa có tài liệu xác thực doanh nghiệp." icon={<UploadCloud size={18} />} />
       </div>
     </PageContainer>
   );

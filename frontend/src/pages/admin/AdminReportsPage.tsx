@@ -48,16 +48,16 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
   if (mode === "detail") {
     return (
       <PageContainer>
-        <PageHeader title="Chi tiết báo cáo vi phạm" description="Backend chưa có API detail cho báo cáo vi phạm." />
+        <PageHeader title="Chi tiết báo cáo vi phạm" description="Thông tin chi tiết của báo cáo vi phạm." />
         <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
           <Card>
-            <SectionHeader title="Chưa có API detail" />
-            <EmptyState message="Hiện backend chưa có bảng reports và chưa có GET /api/admin/reports/{id}. Khi có API, trang này sẽ hiển thị nội dung báo cáo, đối tượng liên quan và lịch sử xử lý." />
+            <SectionHeader title="Nội dung báo cáo" />
+            <EmptyState message="Chưa có dữ liệu báo cáo." />
             <div className="mt-5 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <Info label="Report ID từ URL" value={reportId ?? "Không có"} />
+              <Info label="Mã báo cáo" value={reportId ?? "Không có"} />
               <Info label="Dữ liệu hiện hiển thị" value="0" />
-              <Info label="Action xử lý" value="Chưa có API" />
-              <Info label="Audit/timeline" value="Chưa có API" />
+              <Info label="Hành động xử lý" value="Chưa cập nhật" />
+              <Info label="Lịch sử xử lý" value="Chưa cập nhật" />
             </div>
           </Card>
           <ReportFieldsCard />
@@ -68,7 +68,7 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
 
   return (
     <PageContainer>
-      <PageHeader title="Báo cáo vi phạm" description="Trang giữ khung quản trị báo cáo. Backend hiện chưa có DB/API reports nên không hiển thị dữ liệu mock." />
+      <PageHeader title="Báo cáo vi phạm" description="Theo dõi và xử lý các báo cáo vi phạm." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -82,23 +82,22 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng báo cáo: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend hiện chưa có bảng reports và chưa có endpoint quản lý báo cáo vi phạm.</p>
       </Card>
 
       <Table
         rows={[] as AdminReportRow[]}
         getRowKey={(report) => String(report.id)}
         columns={[
-          { key: "id", header: "Report ID", render: (report) => report.id },
+          { key: "id", header: "Mã báo cáo", render: (report) => report.id },
           { key: "type", header: "Loại", render: (report) => report.type },
           { key: "target", header: "Đối tượng", render: (report) => `${report.targetType} #${report.targetId}` },
-          { key: "reporter", header: "Người báo cáo", render: (report) => `User #${report.reporterUserId}` },
+          { key: "reporter", header: "Người báo cáo", render: (report) => `Người dùng #${report.reporterUserId}` },
           { key: "status", header: "Trạng thái", render: (report) => <StatusBadge label={statusLabels[report.status]} tone={getStatusTone(report.status)} /> },
           { key: "created", header: "Ngày tạo", render: (report) => formatDateTime(report.createdAt) },
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API reports nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+        <EmptyState message="Chưa có báo cáo vi phạm." />
       </div>
     </PageContainer>
   );
@@ -107,7 +106,7 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
 function ReportFieldsCard() {
   return (
     <Card>
-      <SectionHeader title="Field cần có khi bổ sung DB/API" />
+      <SectionHeader title="Thông tin báo cáo" />
       <div className="flex flex-wrap gap-2">
         {["id", "type", "status", "target_type", "target_id", "reporter_user_id", "content", "created_at", "updated_at"].map((field) => <StatusBadge key={field} label={field} />)}
       </div>

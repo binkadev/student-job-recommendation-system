@@ -94,9 +94,9 @@ const JOB_TYPE_LABELS: Record<BackendJobType, string> = {
 };
 
 const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
-  ONSITE: "Onsite",
-  HYBRID: "Hybrid",
-  REMOTE: "Remote",
+  ONSITE: "Tại văn phòng",
+  HYBRID: "Kết hợp",
+  REMOTE: "Từ xa",
 };
 
 const JOB_STATUS_LABELS: Record<BackendJobStatus, string> = {
@@ -217,16 +217,16 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
 
     return (
       <PageContainer>
-        <PageHeader title={mode === "review" ? "Duyệt tin tuyển dụng" : "Chi tiết tin tuyển dụng"} description="Thông tin tin tuyển dụng dựa trên bảng jobs và job_skills trong DB." />
+        <PageHeader title={mode === "review" ? "Duyệt tin tuyển dụng" : "Chi tiết tin tuyển dụng"} description="Thông tin chi tiết của tin tuyển dụng." />
         {detailQuery.error ? <div className="mb-5"><ErrorState message={detailQuery.error} /></div> : null}
 
         <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
           <div className="space-y-5">
             <Card>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-950">{selectedJob.title}</h2>
-                  <p className="mt-1 text-sm text-slate-600">{selectedJob.companyName} - {selectedJob.location || "Chưa cập nhật"} - {formatSalary(selectedJob)}</p>
+                <div className="min-w-0">
+                  <h2 className="break-words text-xl font-semibold text-slate-950">{selectedJob.title}</h2>
+                  <p className="mt-1 break-words text-sm text-slate-600">{selectedJob.companyName} - {selectedJob.location || "Chưa cập nhật"} - {formatSalary(selectedJob)}</p>
                 </div>
                 <StatusBadge label={JOB_STATUS_LABELS[selectedJob.status]} tone={getStatusTone(selectedJob.status)} />
               </div>
@@ -237,17 +237,17 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
               </div>
               <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
                 <Info label="ID" value={String(selectedJob.id)} />
-                <Info label="Company ID" value={String(selectedJob.companyId)} />
+                <Info label="Mã công ty" value={String(selectedJob.companyId)} />
                 <Info label="Công ty" value={selectedJob.companyName} />
                 <Info label="Địa điểm" value={selectedJob.location || "Chưa cập nhật"} />
                 <Info label="Loại việc" value={selectedJob.jobType ? JOB_TYPE_LABELS[selectedJob.jobType] : "Chưa cập nhật"} />
                 <Info label="Hình thức" value={selectedJob.workingModel ? WORKING_MODEL_LABELS[selectedJob.workingModel] : "Chưa cập nhật"} />
                 <Info label="Lương" value={formatSalary(selectedJob)} />
-                <Info label="Deadline" value={formatDate(selectedJob.deadline)} />
-                <Info label="Published at" value={formatDateTime(selectedJob.publishedAt)} />
-                <Info label="Closed at" value={formatDateTime(selectedJob.closedAt)} />
-                <Info label="Created at" value={formatDateTime(selectedJob.createdAt)} />
-                <Info label="Updated at" value={formatDateTime(selectedJob.updatedAt)} />
+                <Info label="Hạn nộp" value={formatDate(selectedJob.deadline)} />
+                <Info label="Ngày đăng" value={formatDateTime(selectedJob.publishedAt)} />
+                <Info label="Ngày đóng" value={formatDateTime(selectedJob.closedAt)} />
+                <Info label="Ngày tạo" value={formatDateTime(selectedJob.createdAt)} />
+                <Info label="Cập nhật" value={formatDateTime(selectedJob.updatedAt)} />
               </div>
             </Card>
 
@@ -256,14 +256,14 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
             <ListContentCard title="Quyền lợi" value={selectedJobDetail?.benefits} emptyMessage="Tin tuyển dụng chưa có quyền lợi." />
 
             <Card>
-              <SectionHeader title="Kỹ năng yêu cầu" description="Dữ liệu từ bảng job_skills và skills." />
+              <SectionHeader title="Kỹ năng yêu cầu" />
               {selectedJob.skills?.length ? (
                 <div className="grid gap-3 md:grid-cols-2">
                   {selectedJob.skills.map((skill) => (
-                    <div key={skill.id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                      <p className="font-medium text-slate-900">{skill.skillName}</p>
-                      <p className="mt-1 text-slate-600">Skill ID: {skill.skillId}</p>
-                      <p className="mt-1 text-slate-600">Category: {skill.category || "Chưa cập nhật"}</p>
+                    <div key={skill.id} className="min-w-0 rounded-lg border border-slate-200 p-3 text-sm">
+                      <p className="break-words font-medium text-slate-900">{skill.skillName}</p>
+                      <p className="mt-1 text-slate-600">Mã kỹ năng: {skill.skillId}</p>
+                      <p className="mt-1 break-words text-slate-600">Danh mục: {skill.category || "Chưa cập nhật"}</p>
                     </div>
                   ))}
                 </div>
@@ -273,19 +273,13 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
 
           <aside className="space-y-4">
             <Card>
-              <SectionHeader title="Thao tác trạng thái" description="API hiện chỉ nhận field status." />
+              <SectionHeader title="Thao tác trạng thái" />
               <div className="grid gap-2">
-                {selectedJob.status === "PENDING_APPROVAL" ? <Button onClick={() => openAction("approve", selectedJob)}>Duyệt thành ACTIVE</Button> : null}
+                {selectedJob.status === "PENDING_APPROVAL" ? <Button onClick={() => openAction("approve", selectedJob)}>Duyệt tin</Button> : null}
                 {selectedJob.status === "PENDING_APPROVAL" ? <Button variant="danger" onClick={() => openAction("reject", selectedJob)}>Từ chối</Button> : null}
                 {selectedJob.status !== "PENDING_APPROVAL" ? <Button variant="secondary" onClick={() => openAction("pending", selectedJob)}>Chuyển về chờ duyệt</Button> : null}
                 {selectedJob.status === "ACTIVE" ? <Button variant="secondary" onClick={() => openAction("close", selectedJob)}>Đóng tin</Button> : null}
                 {selectedJob.status === "CLOSED" ? <Button variant="secondary" onClick={() => openAction("reopen", selectedJob)}>Mở lại</Button> : null}
-              </div>
-            </Card>
-            <Card>
-              <SectionHeader title="Thông tin chưa có API admin" />
-              <div className="flex flex-wrap gap-2">
-                {["Audit log", "Số ứng viên", "Cảnh báo kiểm duyệt", "Xác thực công ty", "Reason gửi recruiter"].map((item) => <StatusBadge key={item} label={item} tone="warning" />)}
               </div>
             </Card>
           </aside>
@@ -298,7 +292,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
 
   return (
     <PageContainer>
-      <PageHeader title={mode === "pending" ? "Tin chờ duyệt" : "Quản lý tin tuyển dụng"} description="Danh sách tin tuyển dụng khớp các trường jobs/job_skills trong DB và JobFilterRequest của API." />
+      <PageHeader title={mode === "pending" ? "Tin chờ duyệt" : "Quản lý tin tuyển dụng"} description="Danh sách tin tuyển dụng theo bộ lọc hiện tại." />
       {jobsQuery.error ? <div className="mb-5"><ErrorState message={jobsQuery.error} /></div> : null}
 
       <Card className="mb-5">
@@ -330,7 +324,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
             { key: "select", header: "", render: (job) => <Checkbox aria-label={`Chọn ${job.title}`} label="" checked={selectedIds.includes(job.id)} onChange={() => toggleSelected(job.id)} /> },
             { key: "job", header: "Tin tuyển dụng", render: (job) => <JobSummary job={job} /> },
             { key: "type", header: "Loại/hình thức", render: (job) => <JobTypeSummary job={job} /> },
-            { key: "salary", header: "Lương/deadline", render: (job) => <SalarySummary job={job} /> },
+            { key: "salary", header: "Lương/hạn nộp", render: (job) => <SalarySummary job={job} /> },
             { key: "status", header: "Trạng thái", render: (job) => <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={getStatusTone(job.status)} /> },
             { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} onOpen={openAction} /> },
           ]}
@@ -351,9 +345,9 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
 function JobSummary({ job }: { job: JobResponse }) {
   return (
     <div className="min-w-[260px]">
-      <p className="font-medium text-slate-900">{job.title}</p>
-      <p className="mt-1 text-xs text-slate-500">{job.companyName} - Company ID: {job.companyId}</p>
-      <p className="mt-1 text-xs text-slate-500">{job.location || "Chưa cập nhật"}</p>
+      <p className="break-words font-medium text-slate-900">{job.title}</p>
+      <p className="mt-1 break-words text-xs text-slate-500">{job.companyName} - Mã công ty: {job.companyId}</p>
+      <p className="mt-1 break-words text-xs text-slate-500">{job.location || "Chưa cập nhật"}</p>
       <div className="mt-2 flex flex-wrap gap-1">
         {(job.skills ?? []).slice(0, 3).map((skill) => <StatusBadge key={skill.id} label={skill.skillName} />)}
         {(job.skills ?? []).length > 3 ? <StatusBadge label={`+${job.skills.length - 3}`} /> : null}
@@ -415,14 +409,11 @@ function JobActionModal({
   return (
     <Modal open={Boolean(actionType)} title={title} onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-700">{target ? <strong>{target.title}</strong> : <strong>{selectedCount} tin đã chọn</strong>}</p>
+        <p className="break-words text-sm text-slate-700">{target ? <strong>{target.title}</strong> : <strong>{selectedCount} tin đã chọn</strong>}</p>
         {showReason ? (
-          <>
-            <Textarea label="Ghi chú nội bộ" value={reason} onChange={(event) => setReason(event.target.value)} />
-            <p className="text-xs text-slate-500">Backend hiện chỉ nhận field `status`, ghi chú này chưa được gửi lên API.</p>
-          </>
+          <Textarea label="Ghi chú nội bộ" value={reason} onChange={(event) => setReason(event.target.value)} />
         ) : (
-          <p className="text-sm text-slate-600">Xác nhận cập nhật trạng thái tin tuyển dụng qua API jobs.</p>
+          <p className="text-sm text-slate-600">Xác nhận cập nhật trạng thái tin tuyển dụng.</p>
         )}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
@@ -437,7 +428,7 @@ function ContentCard({ title, value, emptyMessage }: { title: string; value?: st
   return (
     <Card>
       <SectionHeader title={title} />
-      {value ? <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{value}</p> : <EmptyState message={emptyMessage} />}
+      {value ? <p className="whitespace-pre-line break-words text-sm leading-6 text-slate-700">{value}</p> : <EmptyState message={emptyMessage} />}
     </Card>
   );
 }
@@ -449,7 +440,7 @@ function ListContentCard({ title, value, emptyMessage }: { title: string; value?
       <SectionHeader title={title} />
       {items.length ? (
         <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
-          {items.map((item) => <li key={item}>{item}</li>)}
+          {items.map((item) => <li className="break-words" key={item}>{item}</li>)}
         </ul>
       ) : <EmptyState message={emptyMessage} />}
     </Card>
@@ -457,7 +448,7 @@ function ListContentCard({ title, value, emptyMessage }: { title: string; value?
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <p className="text-slate-700"><span className="font-medium text-slate-500">{label}:</span> <span className="font-medium text-slate-900">{value}</span></p>;
+  return <p className="text-slate-700"><span className="font-medium text-slate-500">{label}:</span> <span className="break-words font-medium text-slate-900">{value}</span></p>;
 }
 
 async function getJobs(filters: JobFilters): Promise<PageResponse<JobResponse>> {
@@ -502,7 +493,7 @@ function getActionTitle(actionType: JobAction) {
 
 function formatSalary(job: Pick<JobResponse, "salaryMin" | "salaryMax" | "currency">) {
   if (job.salaryMin == null && job.salaryMax == null) return "Thỏa thuận";
-  const currency = "đồng";
+  const currency = job.currency || "đồng";
   const min = job.salaryMin != null ? formatMoney(job.salaryMin) : "";
   const max = job.salaryMax != null ? formatMoney(job.salaryMax) : "";
   if (min && max) return `${min} - ${max} ${currency}`;

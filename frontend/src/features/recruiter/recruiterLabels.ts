@@ -21,7 +21,6 @@ export const pipelineColumns = [
   "Mới nhận",
   "Đang xem xét",
   "Qua vòng CV",
-  "Phỏng vấn",
   "Offer",
   "Đã tuyển",
   "Không phù hợp",

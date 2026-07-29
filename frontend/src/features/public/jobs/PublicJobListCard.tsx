@@ -63,7 +63,7 @@ export function PublicJobListCard({
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
         <div className="flex flex-wrap gap-2">
           <Link to={`/jobs/${job.id}`}>
-            <Button variant="danger" size="sm">Xem chi tiết</Button>
+            <Button variant="secondary" size="sm">Xem chi tiết</Button>
           </Link>
           <Button size="sm" icon={<Send size={16} />} onClick={() => onApply(job.id)} disabled={applied}>
             {applied ? "Đã ứng tuyển" : "Ứng tuyển"}

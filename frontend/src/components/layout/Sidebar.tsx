@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { BriefcaseBusiness, ChevronDown } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import type { MenuItem } from "../../types/navigation";
 
@@ -12,7 +12,17 @@ export function Sidebar({ items, title, onNavigate }: SidebarProps) {
   return (
     <aside className="flex h-full w-72 flex-col border-r border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
-        <div className="text-sm font-semibold text-brand-700">{title}</div>
+        <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">
+              <BriefcaseBusiness size={18} />
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-slate-950">{title}</div>
+              <p className="text-xs text-slate-500">JobRecommend</p>
+            </div>
+          </div>
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {items.map((item) => (
