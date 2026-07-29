@@ -8,6 +8,7 @@ import java.time.Duration;
 public class AiServiceProperties {
 
     private String baseUrl = "http://localhost:8000";
+    private String internalApiKey;
     private Duration connectTimeout = Duration.ofSeconds(2);
     private Duration readTimeout = Duration.ofSeconds(15);
 
@@ -17,6 +18,14 @@ public class AiServiceProperties {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public String getInternalApiKey() {
+        return internalApiKey;
+    }
+
+    public void setInternalApiKey(String internalApiKey) {
+        this.internalApiKey = internalApiKey;
     }
 
     public Duration getConnectTimeout() {

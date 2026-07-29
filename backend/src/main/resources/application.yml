@@ -22,6 +22,7 @@ app:
 
   ai-service:
     base-url: ${APP_AI_SERVICE_BASE_URL:http://localhost:8000}
+    internal-api-key: ${APP_AI_SERVICE_INTERNAL_API_KEY:change-this-development-ai-internal-key-at-least-32-characters}
     connect-timeout: ${APP_AI_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${APP_AI_SERVICE_READ_TIMEOUT:15s}
 

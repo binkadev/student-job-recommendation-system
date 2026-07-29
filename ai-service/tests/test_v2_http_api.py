@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from types import MappingProxyType
 
@@ -25,10 +26,20 @@ from v2.skill_extractor import SkillExtractor
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-CLIENT = TestClient(main.app, raise_server_exceptions=False)
+TEST_INTERNAL_API_KEY = os.environ["AI_INTERNAL_API_KEY"]
+AUTH_HEADERS = {"X-Internal-Api-Key": TEST_INTERNAL_API_KEY}
+CLIENT = TestClient(
+    main.app,
+    headers=AUTH_HEADERS,
+    raise_server_exceptions=False,
+)
 VALIDATION_BODY = {
     "errorCode": "VALIDATION_ERROR",
     "message": "Request validation failed.",
+}
+UNAUTHORIZED_BODY = {
+    "errorCode": "UNAUTHORIZED",
+    "message": "Unauthorized internal request.",
 }
 REQUEST_ID = "e5887544-9785-4697-8345-74953da1c2a7"
 ENGLISH_CV_TEXT = (
@@ -79,8 +90,9 @@ def _assert_validation(response) -> None:
 
 
 def test_health_and_openapi_advertise_both_v2_routes() -> None:
-    health = CLIENT.get("/health")
-    paths = CLIENT.get("/openapi.json").json()["paths"]
+    public_client = TestClient(main.app, raise_server_exceptions=False)
+    health = public_client.get("/health")
+    paths = public_client.get("/openapi.json").json()["paths"]
     multipart_schema = paths["/internal/v2/cv/parse"]["post"][
         "requestBody"
     ]["content"]["multipart/form-data"]["schema"]
@@ -96,6 +108,8 @@ def test_health_and_openapi_advertise_both_v2_routes() -> None:
     }
     assert "post" in paths["/internal/v2/cv/parse"]
     assert "post" in paths["/internal/v2/recommendations"]
+    assert "401" in paths["/internal/v2/cv/parse"]["post"]["responses"]
+    assert "401" in paths["/internal/v2/recommendations"]["post"]["responses"]
     assert multipart_schema == {
         "type": "object",
         "required": ["file"],
@@ -106,6 +120,31 @@ def test_health_and_openapi_advertise_both_v2_routes() -> None:
             }
         },
     }
+
+
+def test_v2_request_without_internal_api_key_is_unauthorized() -> None:
+    client = TestClient(main.app, raise_server_exceptions=False)
+
+    response = client.post("/internal/v2/recommendations", json={})
+
+    assert response.status_code == 401
+    assert response.json() == UNAUTHORIZED_BODY
+    assert TEST_INTERNAL_API_KEY not in response.text
+
+
+@pytest.mark.parametrize("provided_key", ["", "wrong-internal-api-key"])
+def test_v2_request_with_invalid_internal_api_key_is_unauthorized(
+    provided_key: str,
+) -> None:
+    response = CLIENT.post(
+        "/internal/v2/recommendations",
+        json={},
+        headers={"X-Internal-Api-Key": provided_key},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == UNAUTHORIZED_BODY
+    assert TEST_INTERNAL_API_KEY not in response.text
 
 
 @pytest.mark.parametrize(
@@ -273,6 +312,7 @@ def test_direct_cv_route_preserves_raw_text_whitespace() -> None:
         pdf_decoder=lambda _payload: raw_text,
     )
     runtime = V2Runtime(
+        internal_api_key=TEST_INTERNAL_API_KEY,
         max_file_size_bytes=10_000,
         catalog=main.v2_runtime.catalog,
         skill_extractor=main.v2_runtime.skill_extractor,
@@ -281,7 +321,11 @@ def test_direct_cv_route_preserves_raw_text_whitespace() -> None:
     app = FastAPI()
     install_v2_error_handlers(app)
     app.include_router(create_v2_router(runtime))
-    client = TestClient(app, raise_server_exceptions=False)
+    client = TestClient(
+        app,
+        headers=AUTH_HEADERS,
+        raise_server_exceptions=False,
+    )
 
     response = client.post(
         "/internal/v2/cv/parse",
@@ -321,6 +365,7 @@ def test_direct_cv_response_sorts_then_caps_200_extracted_skills() -> None:
         pdf_decoder=lambda _payload: raw_text,
     )
     runtime = V2Runtime(
+        internal_api_key=TEST_INTERNAL_API_KEY,
         max_file_size_bytes=10_000,
         catalog=catalog,
         skill_extractor=extractor,
@@ -329,7 +374,11 @@ def test_direct_cv_response_sorts_then_caps_200_extracted_skills() -> None:
     app = FastAPI()
     install_v2_error_handlers(app)
     app.include_router(create_v2_router(runtime))
-    client = TestClient(app, raise_server_exceptions=False)
+    client = TestClient(
+        app,
+        headers=AUTH_HEADERS,
+        raise_server_exceptions=False,
+    )
 
     response = client.post(
         "/internal/v2/cv/parse",
@@ -485,7 +534,67 @@ def test_invalid_max_file_size_fails_runtime_construction(
 
     with pytest.raises(V2ConfigurationError, match="positive integer"):
         build_v2_runtime(
-            environment={"AI_CV_MAX_FILE_SIZE_BYTES": value},
+            environment={
+                "AI_INTERNAL_API_KEY": TEST_INTERNAL_API_KEY,
+                "AI_CV_MAX_FILE_SIZE_BYTES": value,
+            },
+            catalog_loader=catalog_loader,
+        )
+
+    assert catalog_loaded is False
+
+
+def test_missing_internal_api_key_fails_before_catalog_load() -> None:
+    catalog_loaded = False
+
+    def catalog_loader():
+        nonlocal catalog_loaded
+        catalog_loaded = True
+        return main.v2_runtime.catalog
+
+    with pytest.raises(V2ConfigurationError, match="must be configured"):
+        build_v2_runtime(environment={}, catalog_loader=catalog_loader)
+
+    assert catalog_loaded is False
+
+
+def test_short_internal_api_key_fails_before_catalog_load() -> None:
+    catalog_loaded = False
+
+    def catalog_loader():
+        nonlocal catalog_loaded
+        catalog_loaded = True
+        return main.v2_runtime.catalog
+
+    with pytest.raises(V2ConfigurationError, match="at least 32 characters"):
+        build_v2_runtime(
+            environment={"AI_INTERNAL_API_KEY": "too-short"},
+            catalog_loader=catalog_loader,
+        )
+
+    assert catalog_loaded is False
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        f" {TEST_INTERNAL_API_KEY}",
+        f"{TEST_INTERNAL_API_KEY} ",
+    ],
+)
+def test_internal_api_key_whitespace_fails_before_catalog_load(
+    value: str,
+) -> None:
+    catalog_loaded = False
+
+    def catalog_loader():
+        nonlocal catalog_loaded
+        catalog_loaded = True
+        return main.v2_runtime.catalog
+
+    with pytest.raises(V2ConfigurationError, match="whitespace"):
+        build_v2_runtime(
+            environment={"AI_INTERNAL_API_KEY": value},
             catalog_loader=catalog_loader,
         )
 
@@ -494,7 +603,7 @@ def test_invalid_max_file_size_fails_runtime_construction(
 
 def test_absent_max_file_size_uses_default_once() -> None:
     runtime = build_v2_runtime(
-        environment={},
+        environment={"AI_INTERNAL_API_KEY": TEST_INTERNAL_API_KEY},
         catalog_loader=lambda: main.v2_runtime.catalog,
     )
 
