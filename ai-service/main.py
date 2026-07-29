@@ -6,6 +6,7 @@ from typing import List
 import extractors
 import nlp_processor
 import recommender
+from request_context import install_request_context_middleware
 from v2.api import build_v2_runtime, create_v2_router
 from v2.constants import ALGORITHM_VERSION, PROCESSING_VERSION
 from v2.http_errors import install_v2_error_handlers
@@ -24,6 +25,7 @@ app = FastAPI(
     ),
     version=ALGORITHM_VERSION,
 )
+install_request_context_middleware(app)
 v2_runtime = build_v2_runtime()
 install_v2_error_handlers(app)
 

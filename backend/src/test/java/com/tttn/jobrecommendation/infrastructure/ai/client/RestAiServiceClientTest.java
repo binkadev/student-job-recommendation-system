@@ -6,11 +6,13 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
+import com.tttn.jobrecommendation.common.observability.RequestIdSupport;
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -26,8 +28,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,6 +53,7 @@ class RestAiServiceClientTest {
 
     @AfterEach
     void stopServer() {
+        MDC.clear();
         server.stop(0);
         executor.shutdownNow();
     }
@@ -59,10 +62,12 @@ class RestAiServiceClientTest {
     void sendsMultipartParseRequestAndMapsSuccess() {
         AtomicReference<String> contentType = new AtomicReference<>();
         AtomicReference<String> internalApiKey = new AtomicReference<>();
+        AtomicReference<String> requestId = new AtomicReference<>();
         AtomicReference<String> body = new AtomicReference<>();
         server.createContext("/internal/v2/cv/parse", exchange -> {
             contentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
             internalApiKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Api-Key"));
+            requestId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
             body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.ISO_8859_1));
             respond(exchange, 200, """
                     {
@@ -77,6 +82,7 @@ class RestAiServiceClientTest {
                     """);
         });
 
+        MDC.put(RequestIdSupport.MDC_KEY, "backend.parse-trace:1");
         var response = client(Duration.ofSeconds(2)).parseCv(
                 new ByteArrayResource("%PDF-test".getBytes(StandardCharsets.UTF_8)),
                 "resume.pdf",
@@ -87,6 +93,7 @@ class RestAiServiceClientTest {
         assertThat(response.skills()).containsExactly("Java", "Spring Boot");
         assertThat(contentType.get()).startsWith("multipart/form-data;boundary=");
         assertThat(internalApiKey.get()).isEqualTo(TEST_INTERNAL_API_KEY);
+        assertThat(requestId.get()).isEqualTo("backend.parse-trace:1");
         assertThat(body.get()).contains("name=\"file\"", "filename=\"resume.pdf\"", "%PDF-test");
     }
 
@@ -94,8 +101,10 @@ class RestAiServiceClientTest {
     void mapsSuccessfulAndEmptyRecommendationResponses() {
         AtomicInteger calls = new AtomicInteger();
         AtomicReference<String> internalApiKey = new AtomicReference<>();
+        AtomicReference<String> traceRequestId = new AtomicReference<>();
         server.createContext("/internal/v2/recommendations", exchange -> {
             internalApiKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Api-Key"));
+            traceRequestId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
             JsonNode request = OBJECT_MAPPER.readTree(exchange.getRequestBody());
             String requestId = request.get("requestId").asText();
             String results = calls.getAndIncrement() == 0
@@ -123,6 +132,7 @@ class RestAiServiceClientTest {
         });
         AiRecommendationRequest firstRequest = recommendationRequest();
 
+        MDC.put(RequestIdSupport.MDC_KEY, "backend.recommend-trace:1");
         var response = client(Duration.ofSeconds(2)).recommend(firstRequest);
 
         assertThat(response.requestId()).isEqualTo(firstRequest.requestId());
@@ -130,6 +140,32 @@ class RestAiServiceClientTest {
         assertThat(response.results()).hasSize(1);
         assertThat(client(Duration.ofSeconds(2)).recommend(recommendationRequest()).results()).isEmpty();
         assertThat(internalApiKey.get()).isEqualTo(TEST_INTERNAL_API_KEY);
+        assertThat(traceRequestId.get()).isEqualTo("backend.recommend-trace:1");
+    }
+
+    @Test
+    void generatesValidOutboundRequestIdWithoutChangingMdc() {
+        AtomicReference<String> requestId = new AtomicReference<>();
+        AtomicReference<String> internalApiKey = new AtomicReference<>();
+        server.createContext("/internal/v2/recommendations", exchange -> {
+            requestId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
+            internalApiKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Api-Key"));
+            JsonNode request = OBJECT_MAPPER.readTree(exchange.getRequestBody());
+            respond(exchange, 200, """
+                    {
+                      "requestId": "%s",
+                      "algorithm": "tfidf-cosine-hybrid",
+                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "results": []
+                    }
+                    """.formatted(request.get("requestId").asText()));
+        });
+
+        client(Duration.ofSeconds(2)).recommend(recommendationRequest());
+
+        assertThat(RequestIdSupport.isValid(requestId.get())).isTrue();
+        assertThat(internalApiKey.get()).isEqualTo(TEST_INTERNAL_API_KEY);
+        assertThat(MDC.get(RequestIdSupport.MDC_KEY)).isNull();
     }
 
     @Test
