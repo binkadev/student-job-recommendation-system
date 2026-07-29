@@ -41,7 +41,7 @@ const defaultFilters: RecommendedJobFilters = {
 };
 
 const salaryOptions = [
-  { label: "Tat ca", value: "" },
+  { label: "Tất cả", value: "" },
   { label: "Tu 10 trieu", value: "10" },
   { label: "Tu 15 trieu", value: "15" },
   { label: "Tu 20 trieu", value: "20" },
@@ -114,41 +114,41 @@ export function CandidateRecommendedJobsPage() {
     if (hiddenIds.includes(job.id)) return;
     persistHiddenJobs([...hiddenIds, job.id]);
     setHideTarget(null);
-    showToast({ type: "success", title: "Da an viec lam", message: `${job.title} se khong con xuat hien trong danh sach goi y.` });
+    showToast({ type: "success", title: "Đã ẩn việc làm", message: `${job.title} sẽ không còn xuất hiện trong danh sách gợi ý.` });
   }
 
   function restoreJob(job: CandidateRecommendedJob) {
     persistHiddenJobs(hiddenIds.filter((id) => id !== job.id));
-    showToast({ type: "success", title: "Da khoi phuc", message: `${job.title} da tro lai danh sach goi y.` });
+    showToast({ type: "success", title: "Đã khôi phục", message: `${job.title} đã trở lại danh sách gợi ý.` });
   }
 
   async function toggleSave(job: CandidateRecommendedJob) {
     try {
       await toggleSavedJob(job.id);
     } catch {
-      showToast({ type: "error", title: "Khong the cap nhat luu viec", message: "Vui long thu lai sau." });
+      showToast({ type: "error", title: "Không thể cập nhật lưu việc", message: "Vui lòng thử lại sau." });
     }
   }
 
   async function refreshRecommendations() {
     if (generatingRef.current) return;
     if (!selectedCvId) {
-      showToast({ type: "error", title: "Chua co CV san sang", message: "Vui long phan tich CV den trang thai READY truoc khi tao goi y." });
+      showToast({ type: "error", title: "Chưa có CV sẵn sàng", message: "Vui lòng phân tích CV đến trạng thái READY trước khi tạo gợi ý." });
       return;
     }
     const selectedCv = cvsQuery.data?.find((cv) => cv.id === selectedCvId);
     if (!selectedCv?.ready) {
-      showToast({ type: "error", title: "CV chua san sang", message: "Chi co the tao goi y bang CV co trang thai READY." });
+      showToast({ type: "error", title: "CV chưa sẵn sàng", message: "Chỉ có thể tạo gợi ý bằng CV có trạng thái READY." });
       return;
     }
     const thresholdValue = Number(threshold);
     const limitValue = Number(limit);
     if (!Number.isFinite(thresholdValue) || thresholdValue < 0 || thresholdValue > 1) {
-      showToast({ type: "error", title: "Threshold khong hop le", message: "Threshold phai nam trong khoang 0 den 1." });
+      showToast({ type: "error", title: "Threshold không hợp lệ", message: "Threshold phải nằm trong khoảng 0 đến 1." });
       return;
     }
     if (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 100) {
-      showToast({ type: "error", title: "Limit khong hop le", message: "Limit phai nam trong khoang 1 den 100." });
+      showToast({ type: "error", title: "Limit không hợp lệ", message: "Limit phải nằm trong khoảng 1 đến 100." });
       return;
     }
     generatingRef.current = true;
@@ -156,10 +156,10 @@ export function CandidateRecommendedJobsPage() {
     try {
       await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
       setSelectedRunId("");
-      showToast({ type: "success", title: "Da gui yeu cau cap nhat goi y", message: "Danh sach se duoc tai lai tu backend." });
+      showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại từ backend." });
       setReloadKey((current) => current + 1);
     } catch (error) {
-      showToast({ type: "error", title: "Khong the cap nhat goi y", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getErrorMessage(error) });
     } finally {
       generatingRef.current = false;
       setGenerating(false);
@@ -168,7 +168,7 @@ export function CandidateRecommendedJobsPage() {
 
   function openApply(job: CandidateRecommendedJob) {
     if (hasApplied(job.id)) {
-      showToast({ type: "error", title: "Khong the ung tuyen trung", message: "Ban da ung tuyen viec lam nay truoc do." });
+      showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
       return;
     }
     setApplyJob({
@@ -183,33 +183,33 @@ export function CandidateRecommendedJobsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Viec lam goi y" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
+      <PageHeader title="Việc làm gợi ý" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
 
       <Card className="mb-5">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_160px_160px_190px_160px]">
           <Select
-            label="CV dung de goi y"
+            label="CV dùng để gợi ý"
             value={selectedCvId}
             onChange={(event) => setSelectedCvId(event.target.value)}
             options={[
-              { label: cvsQuery.loading ? "Dang tai CV..." : readyCvs.length ? "Chon CV READY" : "Chua co CV READY", value: "" },
+              { label: cvsQuery.loading ? "Đang tải CV..." : readyCvs.length ? "Chọn CV READY" : "Chưa có CV READY", value: "" },
               ...readyCvs.map((cv) => ({ label: `${cv.name}${cv.active ? " (active)" : ""} - ${cv.analysisStatus}`, value: cv.id })),
             ]}
           />
           <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
           <Input label="Limit" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
           <Button className="mt-6 w-full" loading={generating} disabled={generating} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
-            Cap nhat goi y
+            Cập nhật gợi ý
           </Button>
           <Button className="mt-6 w-full" variant="secondary" disabled={jobsQuery.loading || runsQuery.loading} onClick={() => setReloadKey((current) => current + 1)}>
-            Tai lai
+            Tải lại
           </Button>
         </div>
         <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-700 md:grid-cols-4">
-          <InfoPill label="Run moi nhat" value={latestRun ? `#${latestRun.id}` : "Chua co"} />
-          <InfoPill label="Trang thai" value={latestRun?.status ?? "Chua co"} />
-          <InfoPill label="So viec da goi y" value={String(latestRun?.totalRecommended ?? displayJobs.length)} />
-          <InfoPill label="Thoi gian" value={latestRun?.createdAt ?? "Chua cap nhat"} />
+          <InfoPill label="Run mới nhất" value={latestRun ? `#${latestRun.id}` : "Chưa có"} />
+          <InfoPill label="Trạng thái" value={latestRun?.status ?? "Chưa có"} />
+          <InfoPill label="Số việc đã gợi ý" value={String(latestRun?.totalRecommended ?? displayJobs.length)} />
+          <InfoPill label="Thời gian" value={latestRun?.createdAt ?? "Chưa cập nhật"} />
         </div>
         {successfulRuns.length ? (
           <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1fr)_220px]">
@@ -237,7 +237,7 @@ export function CandidateRecommendedJobsPage() {
           <p className="mt-3 text-sm text-amber-700">Bạn đang xem kết quả lịch sử từ run #{runDetailQuery.data?.run.id}, không phải kết quả hiện tại.</p>
         ) : null}
         {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
-          <p className="mt-3 text-sm text-amber-700">Chua co CV nao o trang thai READY. Hay vao trang CV va bam Phan tich lai truoc khi tao goi y.</p>
+          <p className="mt-3 text-sm text-amber-700">Chưa có CV nào ở trạng thái READY. Hãy vào trang CV và bấm Phân tích lại trước khi tạo gợi ý.</p>
         ) : null}
       </Card>
 
@@ -248,7 +248,7 @@ export function CandidateRecommendedJobsPage() {
             value={String(filters.minMatch)}
             onChange={(event) => updateFilter("minMatch", Number(event.target.value))}
             options={[
-              { label: "Tat ca", value: "0" },
+              { label: "Tất cả", value: "0" },
               { label: "Tu 50%", value: "50" },
               { label: "Tu 65%", value: "65" },
               { label: "Tu 75%", value: "75" },
@@ -259,28 +259,28 @@ export function CandidateRecommendedJobsPage() {
             label="Dia diem"
             value={filters.location}
             onChange={(event) => updateFilter("location", event.target.value)}
-            options={[{ label: "Tat ca", value: "" }, ...options.locations.map((value) => ({ label: value, value }))]}
+            options={[{ label: "Tất cả", value: "" }, ...options.locations.map((value) => ({ label: value, value }))]}
           />
           <Select
             label="Vi tri"
             value={filters.industry}
             onChange={(event) => updateFilter("industry", event.target.value)}
-            options={[{ label: "Tat ca", value: "" }, ...options.industries.map((value) => ({ label: value, value }))]}
+            options={[{ label: "Tất cả", value: "" }, ...options.industries.map((value) => ({ label: value, value }))]}
           />
-          <Select label="Muc luong" value={filters.salary} onChange={(event) => updateFilter("salary", event.target.value)} options={salaryOptions} />
+          <Select label="Mức lương" value={filters.salary} onChange={(event) => updateFilter("salary", event.target.value)} options={salaryOptions} />
           <Select
-            label="Hinh thuc lam viec"
+            label="Hình thức làm việc"
             value={filters.workMode}
             onChange={(event) => updateFilter("workMode", event.target.value)}
-            options={[{ label: "Tat ca", value: "" }, ...options.workModes.map((value) => ({ label: value, value }))]}
+            options={[{ label: "Tất cả", value: "" }, ...options.workModes.map((value) => ({ label: value, value }))]}
           />
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
           <p className="text-sm text-slate-600">
-            {showHidden ? `${filteredJobs.length} viec lam dang bi an` : `${filteredJobs.length} viec lam phu hop`}
+            {showHidden ? `${filteredJobs.length} việc làm đang bị ẩn` : `${filteredJobs.length} việc làm phù hợp`}
           </p>
           <Button variant="secondary" size="sm" onClick={() => { setShowHidden((current) => !current); setPage(1); }} icon={showHidden ? <BriefcaseBusiness size={16} /> : <EyeOff size={16} />}>
-            {showHidden ? "Quay lai goi y" : `Xem viec da an (${hiddenIds.length})`}
+            {showHidden ? "Quay lại gợi ý" : `Xem việc đã ẩn (${hiddenIds.length})`}
           </Button>
         </div>
       </Card>
@@ -292,7 +292,7 @@ export function CandidateRecommendedJobsPage() {
       ) : latestRun && !latestRunSuccess && !selectedRunId ? (
         <EmptyState message="Run mới nhất chưa có kết quả SUCCESS để hiển thị." />
       ) : pagedJobs.length === 0 ? (
-        <EmptyState message={showHidden ? "Chua co viec lam nao bi an." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
+        <EmptyState message={showHidden ? "Chưa có việc làm nào bị ẩn." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
       ) : (
         <div className="grid gap-4">
           {pagedJobs.map((job) => (
@@ -350,7 +350,7 @@ function RecommendedJobCard({
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center">
           <p className="text-xs font-semibold uppercase text-emerald-700">Match score</p>
           <p className="mt-2 text-4xl font-bold text-emerald-700">{job.matchScore}%</p>
-          <p className="mt-1 text-xs text-emerald-700">{job.rankPosition ? `Hang #${job.rankPosition}` : "Diem backend"}</p>
+          <p className="mt-1 text-xs text-emerald-700">{job.rankPosition ? `Hạng #${job.rankPosition}` : "Điểm backend"}</p>
         </div>
 
         <div className="min-w-0">
@@ -367,31 +367,31 @@ function RecommendedJobCard({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {hidden ? <StatusBadge label="Da an" tone="warning" /> : null}
+              {hidden ? <StatusBadge label="Đã ẩn" tone="warning" /> : null}
               <StatusBadge label={job.industry} />
             </div>
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SkillGroup title="Keyword phu hop" skills={job.matchedSkills} tone="success" />
-            <SkillGroup title="Keyword con thieu" skills={job.missingSkills} tone="warning" />
+            <SkillGroup title="Keyword phù hợp" skills={job.matchedSkills} tone="success" />
+            <SkillGroup title="Keyword còn thiếu" skills={job.missingSkills} tone="warning" />
           </div>
 
           <div className="mt-4 rounded-md bg-slate-50 p-3">
-            <p className="text-sm font-semibold text-slate-800">Ly do duoc goi y</p>
+            <p className="text-sm font-semibold text-slate-800">Lý do được gợi ý</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
               {job.recommendationReasons.length ? job.recommendationReasons.map((reason) => (
                 <li key={reason}>{reason}</li>
-              )) : <li>Backend chua tra ve ly do goi y cho ket qua nay.</li>}
+              )) : <li>Backend chưa trả về lý do gợi ý cho kết quả này.</li>}
             </ul>
           </div>
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Button variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={onOpenAnalysis}>Xem phan tich</Button>
+            <Button variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={onOpenAnalysis}>Xem phân tích</Button>
             <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
-              {saved ? "Bo luu" : "Luu"}
+              {saved ? "Bỏ lưu" : "Lưu"}
             </Button>
-            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied}>{applied ? "Da ung tuyen" : "Ung tuyen"}</Button>
+            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
             <Link to={`/candidate/jobs/${job.id}`}>
               <Button variant="secondary" size="sm">Xem chi tiet</Button>
             </Link>
@@ -412,7 +412,7 @@ function SkillGroup({ title, skills, tone }: { title: string; skills: string[]; 
     <div>
       <p className="mb-2 text-sm font-semibold text-slate-800">{title}</p>
       <div className="flex flex-wrap gap-2">
-        {skills.length ? skills.map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />) : <StatusBadge label="Chua cap nhat" />}
+        {skills.length ? skills.map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />) : <StatusBadge label="Chưa cập nhật" />}
       </div>
     </div>
   );
@@ -420,13 +420,13 @@ function SkillGroup({ title, skills, tone }: { title: string; skills: string[]; 
 
 function HideJobModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJob | null; onClose: () => void; onConfirm: (job: CandidateRecommendedJob) => void }) {
   return (
-    <Modal open={Boolean(job)} title="An viec lam goi y" onClose={onClose}>
+    <Modal open={Boolean(job)} title="Ẩn việc làm gợi ý" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-slate-700">
-          Ban co muon an tin <strong>{job?.title}</strong> khoi danh sach viec lam goi y khong?
+          Bạn có muốn ẩn tin <strong>{job?.title}</strong> khỏi danh sách việc làm gợi ý không?
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Huy</Button>
+          <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="danger" onClick={() => job && onConfirm(job)}>Co, an tin</Button>
         </div>
       </div>
@@ -436,31 +436,31 @@ function HideJobModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJo
 
 function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | null; onClose: () => void }) {
   return (
-    <Modal open={Boolean(job)} title={`Phan tich do phu hop ${job?.matchScore ?? 0}%`} onClose={onClose}>
+    <Modal open={Boolean(job)} title={`Phân tích độ phù hợp ${job?.matchScore ?? 0}%`} onClose={onClose}>
       <div className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-slate-950">{job?.title}</p>
           <p className="mt-1 text-sm text-slate-600">{job?.companyName}</p>
         </div>
         <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <InfoPill label="Hang goi y" value={job?.rankPosition ? `#${job.rankPosition}` : "Chua cap nhat"} />
-          <InfoPill label="Diem backend" value={`${job?.matchScore ?? 0}%`} />
-          <InfoPill label="Diem noi dung" value={job?.textScore == null ? "Khong ap dung" : `${job.textScore}%`} />
-          <InfoPill label="Diem ky nang" value={job?.skillScore == null ? "Chua cap nhat" : `${job.skillScore}%`} />
-          <InfoPill label="Chien luoc" value={job?.scoringStrategy ?? "Chua cap nhat"} />
-          <InfoPill label="Ngay tao ket qua" value={job?.postedAt ?? "Chua cap nhat"} />
-          <InfoPill label="So keyword khop" value={String(job?.matchedSkills.length ?? 0)} />
+          <InfoPill label="Hạng gợi ý" value={job?.rankPosition ? `#${job.rankPosition}` : "Chưa cập nhật"} />
+          <InfoPill label="Điểm backend" value={`${job?.matchScore ?? 0}%`} />
+          <InfoPill label="Điểm nội dung" value={job?.textScore == null ? "Không áp dụng" : `${job.textScore}%`} />
+          <InfoPill label="Điểm kỹ năng" value={job?.skillScore == null ? "Chưa cập nhật" : `${job.skillScore}%`} />
+          <InfoPill label="Chiến lược" value={job?.scoringStrategy ?? "Chưa cập nhật"} />
+          <InfoPill label="Ngày tạo kết quả" value={job?.postedAt ?? "Chưa cập nhật"} />
+          <InfoPill label="Số keyword khớp" value={String(job?.matchedSkills.length ?? 0)} />
         </div>
         <div className="rounded-md border border-slate-100 p-3">
-          <p className="text-sm font-semibold text-slate-800">Keyword khop</p>
+          <p className="text-sm font-semibold text-slate-800">Keyword khớp</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {(job?.matchedSkills.length ? job.matchedSkills : ["Chua cap nhat"]).map((skill) => <StatusBadge key={skill} label={skill} tone={job?.matchedSkills.length ? "success" : undefined} />)}
+            {(job?.matchedSkills.length ? job.matchedSkills : ["Chưa cập nhật"]).map((skill) => <StatusBadge key={skill} label={skill} tone={job?.matchedSkills.length ? "success" : undefined} />)}
           </div>
         </div>
         <div className="rounded-md border border-slate-100 p-3">
-          <p className="text-sm font-semibold text-slate-800">Ly do tu backend</p>
+          <p className="text-sm font-semibold text-slate-800">Lý do từ backend</p>
           <div className="mt-2 space-y-1 text-sm text-slate-600">
-            {job?.recommendationReasons.length ? job.recommendationReasons.map((reason) => <p key={reason}>{reason}</p>) : <p>Backend chua tra ve reason/explanation.</p>}
+            {job?.recommendationReasons.length ? job.recommendationReasons.map((reason) => <p key={reason}>{reason}</p>) : <p>Backend chưa trả về reason/explanation.</p>}
           </div>
         </div>
       </div>
