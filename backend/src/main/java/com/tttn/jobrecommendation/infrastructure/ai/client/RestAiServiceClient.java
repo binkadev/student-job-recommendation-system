@@ -2,10 +2,12 @@ package com.tttn.jobrecommendation.infrastructure.ai.client;
 
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
+import com.tttn.jobrecommendation.common.observability.RequestIdSupport;
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCvParseResponse;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationResponse;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -51,9 +53,11 @@ public class RestAiServiceClient implements AiServiceClient {
         body.add("file", new HttpEntity<>(resource, fileHeaders));
 
         try {
+            String requestId = outboundRequestId();
             return restClient.post()
                     .uri("/internal/v2/cv/parse")
                     .header(INTERNAL_API_KEY_HEADER, internalApiKey)
+                    .header(RequestIdSupport.HEADER_NAME, requestId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -66,9 +70,11 @@ public class RestAiServiceClient implements AiServiceClient {
     @Override
     public AiRecommendationResponse recommend(AiRecommendationRequest request) {
         try {
+            String requestId = outboundRequestId();
             return restClient.post()
                     .uri("/internal/v2/recommendations")
                     .header(INTERNAL_API_KEY_HEADER, internalApiKey)
+                    .header(RequestIdSupport.HEADER_NAME, requestId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -90,6 +96,12 @@ public class RestAiServiceClient implements AiServiceClient {
             return new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE);
         }
         return new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+    }
+
+    private String outboundRequestId() {
+        return RequestIdSupport.resolveOrGenerate(
+                MDC.get(RequestIdSupport.MDC_KEY)
+        );
     }
 
     private boolean isTimeout(Throwable throwable) {
