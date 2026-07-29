@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+import hmac
 import os
 import re
 
@@ -15,6 +16,7 @@ from .http_errors import (
     V2ApiError,
     V2ErrorResponse,
     internal_error,
+    unauthorized_error,
     validation_error,
 )
 from .schemas import (
@@ -35,11 +37,14 @@ from .skill_extractor import SkillExtractor
 recommend_english = recommend_bilingual
 
 _MAX_FILE_SIZE_ENVIRONMENT_KEY = "AI_CV_MAX_FILE_SIZE_BYTES"
+_INTERNAL_API_KEY_ENVIRONMENT_KEY = "AI_INTERNAL_API_KEY"
+_INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key"
+_MINIMUM_INTERNAL_API_KEY_LENGTH = 32
 _DEFAULT_MAX_FILE_SIZE_BYTES = 10_485_760
 _POSITIVE_INTEGER_PATTERN = re.compile(r"[1-9][0-9]*")
 _ERROR_RESPONSES = {
     status_code: {"model": V2ErrorResponse}
-    for status_code in (400, 413, 415, 422, 500)
+    for status_code in (400, 401, 413, 415, 422, 500)
 }
 _CV_MULTIPART_OPENAPI = {
     "requestBody": {
@@ -70,6 +75,7 @@ class V2ConfigurationError(ValueError):
 class V2Runtime:
     """Immutable dependencies shared by both bilingual V2 routes."""
 
+    internal_api_key: str
     max_file_size_bytes: int
     catalog: SkillCatalog
     skill_extractor: SkillExtractor
@@ -89,6 +95,31 @@ def parse_max_file_size_bytes(environment: Mapping[str, str]) -> int:
     return int(value)
 
 
+def parse_internal_api_key(environment: Mapping[str, str]) -> str:
+    """Resolve the required shared key without normalizing its value."""
+
+    value = environment.get(_INTERNAL_API_KEY_ENVIRONMENT_KEY)
+    if value is None:
+        raise V2ConfigurationError(
+            f"{_INTERNAL_API_KEY_ENVIRONMENT_KEY} must be configured"
+        )
+    if not value:
+        raise V2ConfigurationError(
+            f"{_INTERNAL_API_KEY_ENVIRONMENT_KEY} must not be blank"
+        )
+    if value != value.strip():
+        raise V2ConfigurationError(
+            f"{_INTERNAL_API_KEY_ENVIRONMENT_KEY} must not have "
+            "leading or trailing whitespace"
+        )
+    if len(value) < _MINIMUM_INTERNAL_API_KEY_LENGTH:
+        raise V2ConfigurationError(
+            f"{_INTERNAL_API_KEY_ENVIRONMENT_KEY} must be at least "
+            f"{_MINIMUM_INTERNAL_API_KEY_LENGTH} characters"
+        )
+    return value
+
+
 def build_v2_runtime(
     *,
     environment: Mapping[str, str] | None = None,
@@ -97,6 +128,7 @@ def build_v2_runtime(
     """Validate configuration and construct all V2 dependencies once."""
 
     configured_environment = os.environ if environment is None else environment
+    internal_api_key = parse_internal_api_key(configured_environment)
     max_file_size_bytes = parse_max_file_size_bytes(configured_environment)
     catalog = catalog_loader()
     extractor = SkillExtractor.from_catalog(catalog)
@@ -105,6 +137,7 @@ def build_v2_runtime(
         skill_extractor=extractor,
     )
     return V2Runtime(
+        internal_api_key=internal_api_key,
         max_file_size_bytes=max_file_size_bytes,
         catalog=catalog,
         skill_extractor=extractor,
@@ -164,7 +197,18 @@ def create_v2_router(runtime: V2Runtime) -> APIRouter:
     if not isinstance(runtime, V2Runtime):
         raise TypeError("runtime must be a V2Runtime")
 
-    router = APIRouter(prefix="/internal/v2")
+    def require_internal_api_key(request: Request) -> None:
+        provided_key = request.headers.get(_INTERNAL_API_KEY_HEADER)
+        if provided_key is None or not hmac.compare_digest(
+            provided_key.encode("utf-8"),
+            runtime.internal_api_key.encode("utf-8"),
+        ):
+            raise unauthorized_error()
+
+    router = APIRouter(
+        prefix="/internal/v2",
+        dependencies=[Depends(require_internal_api_key)],
+    )
 
     @router.post(
         "/cv/parse",

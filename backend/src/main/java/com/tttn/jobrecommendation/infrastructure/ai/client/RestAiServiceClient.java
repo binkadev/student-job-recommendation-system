@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.infrastructure.ai.client;
 
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
+import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCvParseResponse;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationResponse;
@@ -25,10 +26,17 @@ import java.net.http.HttpTimeoutException;
 @Component
 public class RestAiServiceClient implements AiServiceClient {
 
-    private final RestClient restClient;
+    private static final String INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key";
 
-    public RestAiServiceClient(@Qualifier("aiServiceRestClient") RestClient restClient) {
+    private final RestClient restClient;
+    private final String internalApiKey;
+
+    public RestAiServiceClient(
+            @Qualifier("aiServiceRestClient") RestClient restClient,
+            AiServiceProperties properties
+    ) {
         this.restClient = restClient;
+        this.internalApiKey = properties.getInternalApiKey();
     }
 
     @Override
@@ -45,6 +53,7 @@ public class RestAiServiceClient implements AiServiceClient {
         try {
             return restClient.post()
                     .uri("/internal/v2/cv/parse")
+                    .header(INTERNAL_API_KEY_HEADER, internalApiKey)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -59,6 +68,7 @@ public class RestAiServiceClient implements AiServiceClient {
         try {
             return restClient.post()
                     .uri("/internal/v2/recommendations")
+                    .header(INTERNAL_API_KEY_HEADER, internalApiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()

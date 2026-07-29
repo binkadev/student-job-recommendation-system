@@ -1,6 +1,7 @@
 """Real decoder and V2 HTTP tests for deterministic Vietnamese fixtures."""
 
 from hashlib import sha256
+import os
 from pathlib import Path
 
 import pytest
@@ -40,7 +41,11 @@ FIXTURES = (
         "1c8be80cfde9485056a865e679a72c5babe3ade6c72a85417d4e0d2638310ffd",
     ),
 )
-CLIENT = TestClient(app, raise_server_exceptions=False)
+CLIENT = TestClient(
+    app,
+    headers={"X-Internal-Api-Key": os.environ["AI_INTERNAL_API_KEY"]},
+    raise_server_exceptions=False,
+)
 
 
 @pytest.mark.parametrize(("filename", "_mime", "expected_hash"), FIXTURES)

@@ -1,4 +1,4 @@
-﻿# API Contract
+# API Contract
 
 Backend base URL: `http://localhost:8080`
 
@@ -900,6 +900,8 @@ Role: `STUDENT`.
 Request body: none.
 
 The backend verifies ownership, commits the `PROCESSING` reset, resolves the original stored CV through its storage abstraction, and uploads it as multipart field `file` to `POST /internal/v2/cv/parse`. No database transaction remains open during file loading or that HTTP call.
+
+All `/internal/v2/**` AI Service endpoints require the `X-Internal-Api-Key` header. The AI Service reads the shared value from `AI_INTERNAL_API_KEY`, and the Backend sends the same value through `APP_AI_SERVICE_INTERNAL_API_KEY`. Real key values must not be recorded in documentation or logs. `/health` and `/internal/v1/**` do not require this header.
 
 Contract V2 response:
 

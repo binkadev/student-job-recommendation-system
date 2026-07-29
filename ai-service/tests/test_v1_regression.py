@@ -1,5 +1,7 @@
 """Wire-level regression protection for the existing V1 endpoints."""
 
+import os
+
 from fastapi.testclient import TestClient
 
 import main
@@ -144,11 +146,18 @@ def test_v1_routes_remain_registered() -> None:
 
 def test_v2_routes_are_registered_after_phase_1c() -> None:
     openapi_paths = client.get("/openapi.json").json()["paths"]
+    headers = {"X-Internal-Api-Key": os.environ["AI_INTERNAL_API_KEY"]}
 
     assert "post" in openapi_paths["/internal/v2/cv/parse"]
     assert "post" in openapi_paths["/internal/v2/recommendations"]
-    assert client.post("/internal/v2/cv/parse").status_code == 422
-    assert client.post("/internal/v2/recommendations").status_code == 422
+    assert client.post(
+        "/internal/v2/cv/parse",
+        headers=headers,
+    ).status_code == 422
+    assert client.post(
+        "/internal/v2/recommendations",
+        headers=headers,
+    ).status_code == 422
 
 
 def test_health_preserves_v1_metadata_and_adds_v2_versions() -> None:

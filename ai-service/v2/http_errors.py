@@ -43,6 +43,14 @@ def validation_error() -> V2ApiError:
     )
 
 
+def unauthorized_error() -> V2ApiError:
+    return V2ApiError(
+        401,
+        "UNAUTHORIZED",
+        "Unauthorized internal request.",
+    )
+
+
 def unsupported_file_type_error() -> V2ApiError:
     return V2ApiError(
         415,

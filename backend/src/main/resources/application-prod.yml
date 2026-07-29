@@ -39,6 +39,7 @@ app:
 
   ai-service:
     base-url: ${APP_AI_SERVICE_BASE_URL}
+    internal-api-key: ${APP_AI_SERVICE_INTERNAL_API_KEY}
     connect-timeout: ${APP_AI_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${APP_AI_SERVICE_READ_TIMEOUT:15s}
 
