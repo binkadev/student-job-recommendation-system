@@ -95,3 +95,63 @@ Files are deterministic UTF-8 without BOM. They have stable score and metric for
 10. State limitations, especially sample size, Job selection, reviewer subjectivity, and annotator bias.
 
 Automated tests only establish framework behavior and scoring-pipeline correctness. Only a dataset labeled and adjudicated by humans can provide evidence about ranking quality.
+
+## Privacy and working directories
+
+Real pilot data is private research material:
+
+- Store real CVs only under `evaluation/private/`.
+- Store annotation packets and reviews in progress only under `evaluation/work/`.
+- Never commit names, email addresses, phone numbers, street addresses, dates of birth, or personal profile links.
+- Never upload raw CVs to an issue, pull request, or CI artifact.
+- Only anonymized datasets whose use has been explicitly authorized may be used for research.
+
+Both private directories are ignored by Git. Checked-in examples must remain synthetic and contain no real personal data.
+
+## Independent annotation workflow
+
+Preparing packets requires only `cvs.json` and `jobs.json`; ground truth must not exist yet. From `ai-service/`, prepare independently shuffled packets:
+
+```bash
+python -m evaluation.annotation prepare \
+  --dataset evaluation/private/pilot-v1 \
+  --annotators A01 A02 \
+  --output-dir evaluation/work/pilot-v1 \
+  --seed pilot-v1
+```
+
+Windows PowerShell, one line:
+
+```powershell
+python -m evaluation.annotation prepare --dataset evaluation/private/pilot-v1 --annotators A01 A02 --output-dir evaluation/work/pilot-v1 --seed pilot-v1
+```
+
+Each `annotations-<annotator>.csv` contains every CV–Job pair once in an annotator-specific deterministic order. Reviewers fill only `relevance` (`0`, `1`, or `2`) and optional `notes`. They must not edit IDs, text, serialized skills, or `pair_id`. Packets contain no production score, rank, explanation, or matched-skill fields, and reviewers must remain blind to algorithm output.
+
+After all reviewers finish their packets:
+
+```powershell
+python -m evaluation.annotation review --dataset evaluation/private/pilot-v1 --annotations-dir evaluation/work/pilot-v1 --output-dir evaluation/work/pilot-v1-review
+```
+
+Review validates every packet against the original dataset and produces:
+
+- `agreement-summary.json`, containing exact agreement and per-annotator label counts.
+- `disagreements.csv`, containing only conflicting labels with blank `final_relevance` and `adjudication_notes`.
+- `judgments.adjudication.csv`, containing consensus labels and blank unresolved labels.
+
+The tool never averages labels, applies majority vote, or resolves disagreements. The annotation team must meet, discuss each row in `disagreements.csv`, and manually fill `final_relevance` with an agreed label. Copy each agreed label into the corresponding blank `relevance` cell in `judgments.adjudication.csv`; do not alter its CV or Job IDs.
+
+Finalize only after every disagreement has been resolved manually:
+
+```powershell
+python -m evaluation.annotation finalize --dataset evaluation/private/pilot-v1 --adjudication evaluation/work/pilot-v1-review/judgments.adjudication.csv --output evaluation/private/pilot-v1/judgments.csv
+```
+
+Finalize validates the complete Cartesian product and refuses to overwrite an existing file unless `--force` is supplied. It does not infer or repair relevance. The completed private dataset can then be evaluated:
+
+```powershell
+python -m evaluation.runner --dataset evaluation/private/pilot-v1 --k 5 --output-dir evaluation/work/pilot-v1-result
+```
+
+The files under `examples/toy-v1/annotations/` demonstrate this workflow using synthetic labels only. They are not annotations from real users and must not be used as evidence of recommendation quality.

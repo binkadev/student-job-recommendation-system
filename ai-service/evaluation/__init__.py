@@ -6,7 +6,9 @@ from .dataset import (
     EvaluationDataset,
     JobRecord,
     Judgment,
+    SourceDataset,
     load_dataset,
+    load_source_dataset,
 )
 
 __all__ = [
@@ -15,5 +17,7 @@ __all__ = [
     "EvaluationDataset",
     "JobRecord",
     "Judgment",
+    "SourceDataset",
     "load_dataset",
+    "load_source_dataset",
 ]

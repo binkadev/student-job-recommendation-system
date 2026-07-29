@@ -1,0 +1,15 @@
+{
+  "datasetName": "toy-v1",
+  "cvCount": 2,
+  "jobCount": 6,
+  "pairCountPerAnnotator": 12,
+  "annotatorIds": [
+    "A01",
+    "A02"
+  ],
+  "seed": "toy-v1-synthetic",
+  "packetFiles": [
+    "annotations-A01.csv",
+    "annotations-A02.csv"
+  ]
+}

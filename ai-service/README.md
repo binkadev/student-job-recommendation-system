@@ -215,7 +215,7 @@ The tests cover:
 
 ## Offline Ranking Evaluation
 
-The human-labeled offline evaluation framework, dataset templates, toy example, metrics, and pilot procedure are documented in [`evaluation/README.md`](evaluation/README.md). Generated evaluation output is ignored and must not be committed.
+The human-labeled offline evaluation framework, independent annotation workflow, dataset templates, toy example, metrics, privacy rules, and pilot procedure are documented in [`evaluation/README.md`](evaluation/README.md). Generated output, private CV data, and in-progress annotation work are ignored and must not be committed.
 
 ## Important Files
 

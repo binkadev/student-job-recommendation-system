@@ -1,0 +1,13 @@
+cv_id,job_id,relevance,requires_adjudication
+1,101,2,false
+1,102,2,true
+1,103,0,false
+1,104,0,false
+1,105,0,true
+1,106,0,false
+2,101,0,false
+2,102,0,false
+2,103,0,false
+2,104,2,false
+2,105,2,false
+2,106,1,true
