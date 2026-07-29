@@ -37,5 +37,8 @@ out/
 **/.pytest_cache/
 **/.venv/
 
+# Generated offline recommendation evaluation output
+ai-service/evaluation/output/
+
 # Vite cache
 frontend/.vite/

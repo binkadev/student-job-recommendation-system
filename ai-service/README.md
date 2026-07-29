@@ -213,6 +213,10 @@ The tests cover:
 - V1 compatibility
 - sanitized HTTP errors
 
+## Offline Ranking Evaluation
+
+The human-labeled offline evaluation framework, dataset templates, toy example, metrics, and pilot procedure are documented in [`evaluation/README.md`](evaluation/README.md). Generated evaluation output is ignored and must not be committed.
+
 ## Important Files
 
 - `main.py`: FastAPI application, V1 compatibility routes, and V2 router registration

@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "text": "Backend software engineer with three years of experience building REST APIs and microservices using Java, Spring Boot, PostgreSQL, Docker, and CI/CD pipelines.",
+    "skills": ["Java", "Spring Boot", "PostgreSQL", "Docker", "CI/CD"]
+  },
+  {
+    "id": 2,
+    "text": "Kỹ sư phần mềm có kinh nghiệm phát triển REST API và dịch vụ backend bằng Python, FastAPI, PostgreSQL và Docker. Đã tham gia kiểm thử và triển khai hệ thống.",
+    "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "REST API"]
+  }
+]
