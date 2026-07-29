@@ -39,6 +39,8 @@ out/
 
 # Generated offline recommendation evaluation output
 ai-service/evaluation/output/
+ai-service/evaluation/private/
+ai-service/evaluation/work/
 
 # Vite cache
 frontend/.vite/

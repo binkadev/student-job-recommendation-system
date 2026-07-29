@@ -60,42 +60,87 @@ class EvaluationDataset:
         return self.judgments[(cv_id, job_id)]
 
 
+@dataclass(frozen=True, slots=True)
+class SourceDataset:
+    """Validated CV and Job inputs before ground truth exists."""
+
+    name: str
+    cvs: tuple[CvRecord, ...]
+    jobs: tuple[JobRecord, ...]
+
+
 def load_dataset(dataset_directory: str | Path) -> EvaluationDataset:
     """Load one complete, human-labeled evaluation dataset."""
 
+    directory = _require_dataset_directory(dataset_directory)
+    source = _load_source_documents(
+        directory,
+        require_non_empty_skills=False,
+    )
+
+    judgments = _load_judgments(directory / "judgments.csv")
+    _validate_judgments(
+        list(source.cvs),
+        list(source.jobs),
+        judgments,
+    )
+    judgment_map = {
+        (judgment.cv_id, judgment.job_id): judgment.relevance
+        for judgment in judgments
+    }
+    return EvaluationDataset(
+        name=source.name,
+        cvs=source.cvs,
+        jobs=source.jobs,
+        judgments=MappingProxyType(dict(sorted(judgment_map.items()))),
+    )
+
+
+def load_source_dataset(dataset_directory: str | Path) -> SourceDataset:
+    """Load CV and Job inputs for annotation before judgments exist."""
+
+    directory = _require_dataset_directory(dataset_directory)
+    return _load_source_documents(
+        directory,
+        require_non_empty_skills=True,
+    )
+
+
+def _require_dataset_directory(dataset_directory: str | Path) -> Path:
     directory = Path(dataset_directory)
     if not directory.is_dir():
         raise DatasetValidationError(
             f"dataset directory does not exist: {directory}"
         )
+    return directory
 
+
+def _load_source_documents(
+    directory: Path,
+    *,
+    require_non_empty_skills: bool,
+) -> SourceDataset:
     cvs = _load_documents(
         directory / "cvs.json",
         record_type=CvRecord,
         label="CV",
+        require_non_empty_skills=require_non_empty_skills,
     )
     jobs = _load_documents(
         directory / "jobs.json",
         record_type=JobRecord,
         label="Job",
+        require_non_empty_skills=require_non_empty_skills,
     )
     if len(jobs) > _MAX_JOB_COUNT:
         raise DatasetValidationError(
             f"jobs.json: at most {_MAX_JOB_COUNT} Jobs are allowed; "
             f"found {len(jobs)}"
         )
-
-    judgments = _load_judgments(directory / "judgments.csv")
-    _validate_judgments(cvs, jobs, judgments)
-    judgment_map = {
-        (judgment.cv_id, judgment.job_id): judgment.relevance
-        for judgment in judgments
-    }
-    return EvaluationDataset(
+    return SourceDataset(
         name=directory.name,
         cvs=tuple(sorted(cvs, key=lambda cv: cv.id)),
         jobs=tuple(sorted(jobs, key=lambda job: job.id)),
-        judgments=MappingProxyType(dict(sorted(judgment_map.items()))),
     )
 
 
@@ -104,6 +149,7 @@ def _load_documents(
     *,
     record_type: type[DocumentRecord],
     label: str,
+    require_non_empty_skills: bool = False,
 ) -> list[DocumentRecord]:
     document = _read_json(path)
     if type(document) is not list:
@@ -155,6 +201,10 @@ def _load_documents(
         if type(skills_value) is not list:
             raise DatasetValidationError(
                 f"{item_path}.skills: expected an array"
+            )
+        if require_non_empty_skills and not skills_value:
+            raise DatasetValidationError(
+                f"{item_path}.skills: must contain at least one string"
             )
         skills: list[str] = []
         for skill_index, skill in enumerate(skills_value):
