@@ -194,6 +194,30 @@ function Get-LoginToken {
     return [string]$data.token
 }
 
+function Wait-ForLoginToken {
+    param([string]$Email, [string]$Password, [string]$RoleLabel)
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $lastError = $null
+
+    while ((Get-Date) -lt $deadline) {
+        try {
+            return Get-LoginToken `
+                -Email $Email `
+                -Password $Password `
+                -RoleLabel $RoleLabel
+        }
+        catch {
+            $lastError = $_.Exception.Message
+            Write-Host "$RoleLabel account is not ready; retrying..." `
+                -ForegroundColor DarkGray
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    throw "$RoleLabel login did not become ready within $TimeoutSeconds seconds. Last error: $lastError"
+}
+
 function Upload-CvMultipart {
     param([string]$Path, [string]$Token)
 
@@ -372,8 +396,8 @@ $backendStatistics = Wait-ForEndpoint -Uri "$BackendBaseUrl/api/public/statistic
 Assert-True ([bool]$backendStatistics.success) "Backend public statistics returned success=false"
 
 Write-Step "Login seeded Student and Company accounts"
-$studentToken = Get-LoginToken -Email $StudentEmail -Password $DemoPassword -RoleLabel "Student"
-$companyToken = Get-LoginToken -Email $CompanyEmail -Password $DemoPassword -RoleLabel "Company"
+$studentToken = Wait-ForLoginToken -Email $StudentEmail -Password $DemoPassword -RoleLabel "Student"
+$companyToken = Wait-ForLoginToken -Email $CompanyEmail -Password $DemoPassword -RoleLabel "Company"
 
 Write-Step "Ensure one eligible Vietnamese Job through Company API"
 $vietnameseJobId = Ensure-VietnameseSmokeJob -CompanyToken $companyToken
