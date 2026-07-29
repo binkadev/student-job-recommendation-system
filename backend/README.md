@@ -101,18 +101,44 @@ Configure the synchronous AI client:
 $env:APP_AI_SERVICE_BASE_URL="http://localhost:8000"
 $env:APP_AI_SERVICE_CONNECT_TIMEOUT="2s"
 $env:APP_AI_SERVICE_READ_TIMEOUT="15s"
+$env:APP_AI_SERVICE_INTERNAL_API_KEY="<same-secret-as-AI_INTERNAL_API_KEY>"
 $env:APP_AI_RECOMMENDATION_ALGORITHM="tfidf-cosine-hybrid"
 $env:APP_AI_RECOMMENDATION_ALGORITHM_VERSION="bilingual-recommendation-v2"
 ```
 
-These variables are optional; the shown values are local defaults.
+The currently implemented environment variable is
+`APP_AI_SERVICE_INTERNAL_API_KEY` (not `APP_AI_INTERNAL_API_KEY`). It maps to
+`app.ai-service.internal-api-key` and must contain the same secret as the AI
+Service's `AI_INTERNAL_API_KEY`. Development has an explicit non-production
+default; the production profile requires the environment value.
+
+The URL, timeout, and algorithm variables have local defaults. Do not commit a
+real internal key or write it to application logs.
 
 Contract V2 calls:
 
 - `POST /internal/v2/cv/parse` as multipart form data with field `file`
 - `POST /internal/v2/recommendations` as strict JSON containing one CV and the backend-filtered eligible job corpus
 
-The backend never sends a user JWT or database credentials to the AI Service.
+Both calls send `X-Internal-Api-Key`. The backend never sends a user JWT or
+database credentials to the AI Service.
+
+## Request Tracing and Safe Logging
+
+The request filter accepts a valid `X-Request-Id` from the client or generates a
+UUID, stores it in MDC as `requestId`, and returns it in the response. The AI
+client propagates the current request ID to both Contract V2 calls. Calls made
+outside an HTTP request generate a valid outbound ID without leaving it in
+thread context.
+
+Backend request-completion logs contain only `requestId`, method, URI path,
+status, and duration. They do not include query strings, authorization headers,
+JWTs, cookies, passwords, internal API keys, request/response bodies, multipart
+content, filenames, CV text, or Job text.
+
+`X-Request-Id` is tracing metadata, not an authentication token. It is separate
+from the Contract V2 body field `requestId`. See
+[`../docs/operations/request-tracing.md`](../docs/operations/request-tracing.md).
 
 ## CV Analysis Behavior
 
@@ -248,7 +274,6 @@ See `../docs/api-contract.md` for request parameters, response fields, enum valu
 - No OCR for image-only CVs
 - No embeddings, semantic vector search, or vector database
 - No asynchronous queue for CV analysis or recommendation generation
-- No production internal authentication between Backend and AI Service
 - No immutable snapshots of historical CV text, job documents, or eligible corpora
 - No concurrent reanalysis guard such as a row lock or analysis-attempt identifier
 - No manual extracted-text editing

@@ -37,7 +37,10 @@ V1 remains for regression compatibility.
 - `POST /internal/v2/cv/parse`
 - `POST /internal/v2/recommendations`
 
-V2 uses strict Pydantic models with unknown fields rejected.
+V2 uses strict Pydantic models with unknown fields rejected. Every
+`/internal/v2/**` request must provide `X-Internal-Api-Key`; missing, blank, or
+incorrect keys receive the sanitized `401 UNAUTHORIZED` V2 error. `/health` and
+the compatibility V1 routes do not require this internal header.
 
 Current metadata:
 
@@ -155,6 +158,18 @@ http://localhost:8000/docs
 
 ## Configuration
 
+Set the internal shared key before starting the service:
+
+```powershell
+$env:AI_INTERNAL_API_KEY="<at-least-32-characters-with-no-edge-whitespace>"
+```
+
+`AI_INTERNAL_API_KEY` is required, must contain at least 32 characters, and must
+not have leading or trailing whitespace. Runtime construction fails before the
+skill catalog is loaded when this configuration is invalid. The Backend must use
+the same value through `APP_AI_SERVICE_INTERNAL_API_KEY`. Never commit or log the
+real value.
+
 Maximum V2 CV upload size:
 
 ```powershell
@@ -162,6 +177,22 @@ $env:AI_CV_MAX_FILE_SIZE_BYTES="10485760"
 ```
 
 The default is 10 MiB.
+
+## Request Tracing and Safe Logging
+
+Middleware applies to `/health`, `/internal/v1/**`, and `/internal/v2/**`. It
+accepts a valid `X-Request-Id` or generates a UUID, stores it in a standard
+library `ContextVar`, and returns it in the response. A V2 `401` response also
+contains the request ID.
+
+Completion logs contain only `requestId`, method, path, status, and duration.
+They do not log bodies, multipart bytes, raw or processed CV text, Job text,
+authorization headers, internal API keys, environment secrets, or input-bearing
+exception details. Request context is reset after every request.
+
+`X-Request-Id` is observability metadata, not authentication. It is independent
+of the Contract V2 JSON field `requestId`. See
+[`../docs/operations/request-tracing.md`](../docs/operations/request-tracing.md).
 
 ## V2 CV Parse Response
 
@@ -215,11 +246,19 @@ The tests cover:
 
 ## Offline Ranking Evaluation
 
-The human-labeled offline evaluation framework, independent annotation workflow, dataset templates, toy example, metrics, privacy rules, and pilot procedure are documented in [`evaluation/README.md`](evaluation/README.md). Generated output, private CV data, and in-progress annotation work are ignored and must not be committed.
+The offline evaluation framework, independent annotation workflow, dataset
+templates, toy example, metric implementation, privacy rules, and pilot
+procedure are documented in [`evaluation/README.md`](evaluation/README.md).
+Framework availability does not mean ranking quality has been measured. The
+real Job corpus still needs review/freeze, independent annotation by 2–3 people,
+manual adjudication, and final Precision@5, Recall@5, and NDCG@5. Generated
+output, private CV data, and in-progress annotation work are ignored and must
+not be committed.
 
 ## Important Files
 
 - `main.py`: FastAPI application, V1 compatibility routes, and V2 router registration
+- `request_context.py`: request ID validation, context isolation, and completion logging
 - `v2/api.py`: strict V2 HTTP boundary
 - `v2/schemas.py`: V2 wire contract
 - `v2/cv_service.py`: CV parsing orchestration
