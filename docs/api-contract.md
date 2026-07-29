@@ -44,6 +44,28 @@ Paged list endpoints use 1-based `page` values. `size` is capped at 100 unless a
 
 Authentication uses `Authorization: Bearer <jwt>` for all protected endpoints.
 
+## Common Transport Headers
+
+These headers are transport metadata and do not change any request or response
+DTO.
+
+| Header | Direction | Behavior |
+|---|---|---|
+| `Authorization: Bearer <jwt>` | Client → Backend | Required by protected public Backend endpoints. The user JWT is never forwarded to the AI Service. |
+| `X-Internal-Api-Key` | Backend → AI Service | Required on all `/internal/v2/**` routes. AI reads `AI_INTERNAL_API_KEY`; Backend sends the same secret from `APP_AI_SERVICE_INTERNAL_API_KEY`. Missing, blank, or incorrect values receive a sanitized `401 UNAUTHORIZED`. |
+| `X-Request-Id` | Client → Backend → AI Service | Optional tracing metadata. A valid incoming value is propagated; otherwise each service generates a valid UUID. Backend and AI include the accepted/generated value in the response header. |
+
+`X-Request-Id` is not an authentication token and grants no access. It is
+independent of the Contract V2 JSON field `requestId`: the header correlates
+transport logs, while the body field identifies a recommendation business
+request. They are not required to match.
+
+Real JWTs, internal API keys, and other secrets must not be recorded in
+documentation or logs. `/health` and `/internal/v1/**` on the AI Service do not
+require `X-Internal-Api-Key`. See
+[Request Tracing](operations/request-tracing.md) for validation and safe logging
+rules.
+
 Common protected-endpoint errors:
 
 - `UNAUTHORIZED`: missing, invalid, expired, `BLOCKED`, or `INACTIVE` user token.
@@ -862,7 +884,7 @@ Response data:
   "analysisError": null,
   "languageCode": "en",
   "languageConfidence": 0.98,
-  "processingVersion": "bilingual-nlp-v2",
+  "processingVersion": "bilingual-nlp-v2-skills-v1",
   "warnings": [],
   "analyzedAt": "2026-07-24T10:05:00",
   "uploadedAt": "2026-07-24T10:00:00",
@@ -901,8 +923,6 @@ Request body: none.
 
 The backend verifies ownership, commits the `PROCESSING` reset, resolves the original stored CV through its storage abstraction, and uploads it as multipart field `file` to `POST /internal/v2/cv/parse`. No database transaction remains open during file loading or that HTTP call.
 
-All `/internal/v2/**` AI Service endpoints require the `X-Internal-Api-Key` header. The AI Service reads the shared value from `AI_INTERNAL_API_KEY`, and the Backend sends the same value through `APP_AI_SERVICE_INTERNAL_API_KEY`. Real key values must not be recorded in documentation or logs. `/health` and `/internal/v1/**` do not require this header.
-
 Contract V2 response:
 
 ```json
@@ -912,7 +932,7 @@ Contract V2 response:
   "skills": ["java", "spring boot", "postgresql", "docker"],
   "languageCode": "en",
   "languageConfidence": 0.98,
-  "processingVersion": "bilingual-nlp-v2",
+  "processingVersion": "bilingual-nlp-v2-skills-v1",
   "warnings": []
 }
 ```
@@ -1132,7 +1152,6 @@ Deferred P1 TODOs, intentionally not implemented in this contract-locking change
 - Semantically validate that matched skills are a subset of CV/job intersection, missing skills are a subset of job-minus-CV skills, and the two sets are disjoint.
 - Define concurrent-reanalysis control using a row lock, rejection while `PROCESSING`, or an `analysisAttemptId`.
 - Add job-skill `importance` and `minLevel` to a future AI contract revision.
-- Add internal service authentication before production deployment.
 
 ### Deployment order and known limitations
 
