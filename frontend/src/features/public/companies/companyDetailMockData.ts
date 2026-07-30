@@ -20,9 +20,9 @@ const detailExtras: Record<string, Omit<PublicCompanyDetail, keyof (typeof publi
     ],
     gallery: [
       { id: "vn-1", title: "Không gian làm việc", description: "Khu làm việc mở, nhiều ánh sáng tự nhiên.", tone: "bg-gradient-to-br from-slate-800 to-brand-700" },
-      { id: "vn-2", title: "Tech talk", description: "Buổi chia sẻ kỹ thuật giữa các team sản phẩm.", tone: "bg-gradient-to-br from-blue-900 to-slate-700" },
-      { id: "vn-3", title: "Khu thảo luận", description: "Không gian họp nhóm và review thiết kế nhanh.", tone: "bg-gradient-to-br from-emerald-800 to-slate-800" },
-      { id: "vn-4", title: "Hoạt động đội nhóm", description: "Các hoạt động gắn kết sau sprint.", tone: "bg-gradient-to-br from-amber-700 to-slate-900" },
+      { id: "vn-2", title: "Tech talk", description: "Buổi chia sẻ kỹ thuật giữa các team sản phẩm.", tone: "bg-gradient-to-br from-brand-700 to-slate-700" },
+      { id: "vn-3", title: "Khu thảo luận", description: "Không gian họp nhóm và review thiết kế nhanh.", tone: "bg-gradient-to-br from-brand-600 to-slate-700" },
+      { id: "vn-4", title: "Hoạt động đội nhóm", description: "Các hoạt động gắn kết sau sprint.", tone: "bg-gradient-to-br from-slate-700 to-brand-700" },
     ],
   },
 };
@@ -50,9 +50,9 @@ export const publicCompanyDetails: PublicCompanyDetail[] = publicCompanies.map((
     benefits: extra?.benefits ?? defaultBenefits,
     gallery: extra?.gallery ?? [
       { id: `${company.id}-1`, title: "Văn phòng", description: "Không gian làm việc chính của công ty.", tone: company.cover },
-      { id: `${company.id}-2`, title: "Hoạt động nhóm", description: "Các hoạt động nội bộ giúp đội ngũ kết nối.", tone: "bg-gradient-to-br from-slate-800 to-emerald-700" },
+      { id: `${company.id}-2`, title: "Hoạt động nhóm", description: "Các hoạt động nội bộ giúp đội ngũ kết nối.", tone: "bg-gradient-to-br from-slate-700 to-brand-700" },
       { id: `${company.id}-3`, title: "Phỏng vấn", description: "Không gian trao đổi và phỏng vấn ứng viên.", tone: "bg-gradient-to-br from-slate-900 to-blue-700" },
-      { id: `${company.id}-4`, title: "Đào tạo", description: "Buổi đào tạo, onboarding và chia sẻ kiến thức.", tone: "bg-gradient-to-br from-zinc-900 to-amber-700" },
+      { id: `${company.id}-4`, title: "Đào tạo", description: "Buổi đào tạo, onboarding và chia sẻ kiến thức.", tone: "bg-gradient-to-br from-slate-800 to-brand-600" },
     ],
   };
 });

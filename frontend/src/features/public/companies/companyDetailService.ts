@@ -77,7 +77,7 @@ export async function getPublicCompanyDetail(companyId: string): Promise<Company
 function mapCompany(company: PublicCompanyDetailResponse): PublicCompanyDetail {
   return {
     id: String(company.id),
-    cover: "bg-slate-950",
+    cover: "bg-brand-50",
     logo: getInitials(company.companyName),
     logoUrl: company.logoUrl ?? "",
     name: company.companyName,

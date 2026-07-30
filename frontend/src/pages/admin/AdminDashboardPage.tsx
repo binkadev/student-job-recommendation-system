@@ -104,15 +104,15 @@ export function AdminDashboardPage() {
   const pendingJobs = jobs.filter((job) => job.status === "PENDING_APPROVAL");
 
   const stats = [
-    { label: "Tổng ứng viên", value: data.totalStudents, icon: <Users />, note: "GET /api/admin/users?role=STUDENT" },
-    { label: "Tổng recruiter", value: data.totalRecruiters, icon: <Users />, note: "GET /api/admin/users?role=COMPANY" },
-    { label: "Tổng doanh nghiệp", value: data.totalCompanies, icon: <Building2 />, note: "GET /api/admin/companies" },
-    { label: "Tổng việc làm", value: data.totalJobs, icon: <BriefcaseBusiness />, note: "GET /api/jobs" },
-    { label: "Tổng đơn ứng tuyển", value: data.totalApplications, icon: <FileText />, note: "GET /api/public/statistics" },
-    { label: "CV đã upload", value: 0, icon: <FileText />, note: "Chưa có API admin CV list" },
-    { label: "Tin chờ duyệt", value: data.jobStatusCounts.PENDING_APPROVAL, icon: <AlertTriangle />, note: "GET /api/jobs?status=PENDING_APPROVAL" },
-    { label: "Công ty chờ xác thực", value: data.pendingCompanies, icon: <Building2 />, note: "GET /api/admin/companies?status=PENDING" },
-    { label: "Báo cáo chưa xử lý", value: 0, icon: <AlertTriangle />, note: "Chưa có API reports" },
+    { label: "Tổng ứng viên", value: data.totalStudents, icon: <Users /> },
+    { label: "Tổng recruiter", value: data.totalRecruiters, icon: <Users /> },
+    { label: "Tổng doanh nghiệp", value: data.totalCompanies, icon: <Building2 /> },
+    { label: "Tổng việc làm", value: data.totalJobs, icon: <BriefcaseBusiness /> },
+    { label: "Tổng đơn ứng tuyển", value: data.totalApplications, icon: <FileText /> },
+    { label: "CV đã tải lên", value: 0, icon: <FileText /> },
+    { label: "Tin chờ duyệt", value: data.jobStatusCounts.PENDING_APPROVAL, icon: <AlertTriangle /> },
+    { label: "Công ty chờ xác thực", value: data.pendingCompanies, icon: <Building2 /> },
+    { label: "Báo cáo chưa xử lý", value: 0, icon: <AlertTriangle /> },
   ];
 
   const statusChartData = buildStatusChartData(data.jobStatusCounts);
@@ -122,7 +122,7 @@ export function AdminDashboardPage() {
   return (
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHeader title="Tổng quan quản trị" description="Theo dõi dữ liệu admin dựa trên các API backend hiện có. Các chỉ số chưa có API sẽ hiển thị 0." />
+        <PageHeader title="Tổng quan quản trị" description="Theo dõi dữ liệu quản trị và các mục cần xử lý." />
         <Select
           label="Filter thời gian"
           value={timeRange}
@@ -145,7 +145,6 @@ export function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-slate-500">{stat.label}</p>
                 <p className="text-2xl font-semibold text-slate-950">{formatNumber(stat.value)}</p>
-                <p className="mt-1 text-xs text-slate-500">{stat.note}</p>
               </div>
             </div>
           </Card>
@@ -171,7 +170,7 @@ export function AdminDashboardPage() {
               <XAxis dataKey="label" />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="value" fill="#10b981" name="Số lượng" />
+              <Bar dataKey="value" fill="#1d4ed8" name="Số lượng" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -186,27 +185,11 @@ export function AdminDashboardPage() {
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Dữ liệu chưa có API admin">
-          <ResponsiveContainer>
-            <BarChart data={[
-              { label: "Users", value: 0 },
-              { label: "Applications", value: 0 },
-              { label: "CV", value: 0 },
-              { label: "Reports", value: 0 },
-            ]}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#f59e0b" name="Số lượng" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
       </section>
 
       <section className="mt-5">
         <Card>
-          <SectionHeader title="Danh sách cần xử lý" description="Hiện lấy từ các tin tuyển dụng có trạng thái chờ duyệt trong API jobs." />
+          <SectionHeader title="Danh sách cần xử lý" description="Các tin tuyển dụng đang chờ quản trị viên duyệt." />
           {pendingJobs.length ? (
             <div className="grid gap-3 xl:grid-cols-2">
               {pendingJobs.map((job) => (
@@ -223,7 +206,7 @@ export function AdminDashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState message="Không có tin tuyển dụng chờ duyệt từ API jobs." />
+            <EmptyState message="Không có tin tuyển dụng chờ duyệt." />
           )}
         </Card>
       </section>

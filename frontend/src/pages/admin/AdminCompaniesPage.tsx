@@ -111,7 +111,7 @@ function AdminCompaniesListPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý doanh nghiệp" description="Dữ liệu lấy từ GET /api/admin/companies theo bảng companies." />
+      <PageHeader title="Quản lý doanh nghiệp" description="Quản lý hồ sơ và trạng thái doanh nghiệp." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -125,7 +125,6 @@ function AdminCompaniesListPage() {
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng công ty: {result?.totalItems ?? 0}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Admin có thể xem chi tiết và cập nhật trạng thái xác thực công ty bằng API backend hiện có.</p>
       </Card>
 
       {companiesQuery.loading ? <LoadingState /> : null}
@@ -181,7 +180,7 @@ function AdminCompanyDetailPage({ companyId, mode }: { companyId: number; mode: 
     <PageContainer>
       <PageHeader
         title={mode === "verification" ? "Chi tiết xác thực doanh nghiệp" : company.companyName}
-        description={`Chi tiết công ty ID ${company.id} từ GET /api/admin/companies/${company.id}.`}
+        description={`Thông tin chi tiết của công ty #${company.id}.`}
       />
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <Card>

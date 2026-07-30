@@ -71,7 +71,7 @@ export async function getPublicCompanies(filters: CompaniesListFilters): Promise
 export function mapCompany(company: PublicCompanyResponse): PublicCompanyListItem {
   return {
     id: String(company.id),
-    cover: "bg-slate-950",
+    cover: "bg-brand-50",
     logo: getInitials(company.companyName),
     logoUrl: company.logoUrl ?? "",
     name: company.companyName,

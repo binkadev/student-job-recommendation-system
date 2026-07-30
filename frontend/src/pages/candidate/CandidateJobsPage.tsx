@@ -120,6 +120,43 @@ const workingModelOptions: Array<{ label: string; value: "" | WorkingModel }> = 
   { label: "Remote", value: "REMOTE" },
 ];
 
+const vietnamProvinceOptions = [
+  "An Giang",
+  "Bắc Ninh",
+  "Cà Mau",
+  "Cao Bằng",
+  "Cần Thơ",
+  "Đà Nẵng",
+  "Đắk Lắk",
+  "Điện Biên",
+  "Đồng Nai",
+  "Đồng Tháp",
+  "Gia Lai",
+  "Hà Nội",
+  "Hà Tĩnh",
+  "Hải Phòng",
+  "Huế",
+  "Hưng Yên",
+  "Khánh Hòa",
+  "Lai Châu",
+  "Lâm Đồng",
+  "Lạng Sơn",
+  "Lào Cai",
+  "Nghệ An",
+  "Ninh Bình",
+  "Phú Thọ",
+  "Quảng Ngãi",
+  "Quảng Ninh",
+  "Quảng Trị",
+  "Sơn La",
+  "Tây Ninh",
+  "Thái Nguyên",
+  "Thanh Hóa",
+  "TP. Hồ Chí Minh",
+  "Tuyên Quang",
+  "Vĩnh Long",
+];
+
 export function CandidateJobsPage({ mode = "list" }: CandidateJobsPageProps) {
   if (mode === "recommended") {
     return <CandidateRecommendedJobsPage />;
@@ -162,8 +199,10 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
   }
 
   const result = jobsQuery.data;
-  const jobs = result?.items.map(mapJobListItem) ?? [];
-  const locations = getLocationOptions(result?.items ?? []);
+  const visibleItems = filterJobsByLocation(result?.items ?? [], location);
+  const jobs = visibleItems.map(mapJobListItem);
+  const totalResults = location ? visibleItems.length : result?.totalItems ?? 0;
+  const locations = vietnamProvinceOptions;
   const savedJobIds = new Set((savedJobsQuery.data?.items ?? []).map((item) => String(item.jobId)));
 
   async function toggleSavedJob(job: Job) {
@@ -190,12 +229,12 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
       />
 
       <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_120px]">
           <Input label="Từ khóa" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Vị trí, kỹ năng..." />
           <Select label="Địa điểm" value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...locations.map((value) => ({ label: value, value }))]} />
           <Select label="Loại hình" value={jobType} onChange={(event) => { setJobType(event.target.value as JobType | ""); setPage(1); }} options={jobTypeOptions} />
           <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value as WorkingModel | ""); setPage(1); }} options={workingModelOptions} />
-          <div className="self-end text-sm text-slate-600">{result?.totalItems ?? 0} kết quả</div>
+          <div className="flex h-10 items-center text-sm text-slate-600">{totalResults} kết quả</div>
         </div>
       </Card>
 
@@ -470,7 +509,7 @@ async function getJobs(params: {
       page: params.page,
       size: params.size,
       keyword: emptyToUndefined(params.keyword),
-      location: emptyToUndefined(params.location),
+      location: emptyToUndefined(toBackendLocationQuery(params.location)),
       jobType: emptyToUndefined(params.jobType),
       workingModel: emptyToUndefined(params.workingModel),
       status: params.status,
@@ -610,8 +649,37 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getLocationOptions(jobs: BackendJobResponse[]) {
-  return Array.from(new Set(jobs.map((job) => job.location).filter((value): value is string => Boolean(value))));
+function filterJobsByLocation(jobs: BackendJobResponse[], selectedLocation: string) {
+  if (!selectedLocation) return jobs;
+  const selected = normalizeLocation(selectedLocation);
+  const aliases = getLocationAliases(selectedLocation).map(normalizeLocation);
+
+  return jobs.filter((job) => {
+    const value = normalizeLocation(job.location ?? "");
+    return value.includes(selected) || aliases.some((alias) => value.includes(alias));
+  });
+}
+
+function getLocationAliases(location: string) {
+  if (normalizeLocation(location) !== "hochiminh") return [location];
+  return [location, "Thành phố Hồ Chí Minh", "Hồ Chí Minh", "Ho Chi Minh City", "HCMC", "Saigon", "Sài Gòn"];
+}
+
+function normalizeLocation(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u0111/g, "d")
+    .replace(/\u0110/g, "D")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\b(tp|thanh pho|city)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function toBackendLocationQuery(location: string) {
+  return normalizeLocation(location) === "hochiminh" ? "Ho Chi Minh City" : location;
 }
 
 function formatSavedSearchSummary(search: SavedSearchResponse) {

@@ -170,7 +170,7 @@ export function RecruiterReportsPage() {
   if (reportQuery.error) {
     return (
       <PageContainer>
-        <PageHeader title="Báo cáo tuyển dụng" description="Không thể tải báo cáo từ backend." />
+        <PageHeader title="Báo cáo tuyển dụng" description="Không thể tải dữ liệu báo cáo." />
         <EmptyState message={reportQuery.error} />
       </PageContainer>
     );
@@ -178,7 +178,7 @@ export function RecruiterReportsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Báo cáo tuyển dụng" description="Báo cáo tính từ jobs và applications thật của backend." />
+      <PageHeader title="Báo cáo tuyển dụng" description="Theo dõi hiệu quả tuyển dụng của công ty." />
 
       <Card className="mb-5">
         <div className="space-y-3">
@@ -240,7 +240,7 @@ export function RecruiterReportsPage() {
           ) : <EmptyState message="Chưa có dữ liệu trạng thái ứng tuyển." />}
         </ChartCard>
 
-        <ChartCard title="Pipeline backend">
+        <ChartCard title="Pipeline tuyển dụng">
           {statusData.length ? (
             <ResponsiveContainer>
               <BarChart data={statusData}>
@@ -311,11 +311,11 @@ function JobPerformanceTable({ rows }: { rows: JobPerformanceRow[] }) {
 function UnsupportedReportCard() {
   return (
     <Card>
-      <SectionHeader title="Chỉ số chưa có API" description="Các chỉ số dưới đây không còn dùng dữ liệu giả." />
+      <SectionHeader title="Chỉ số bổ sung" description="Các chỉ số chưa có dữ liệu sẽ hiển thị bằng 0." />
       <div className="flex flex-wrap gap-2">
-        {["Nguồn ứng viên", "Phỏng vấn", "Offer accepted", "Time-to-hire", "Recruiter phụ trách", "Phòng ban"].map((item) => <StatusBadge key={item} label={item} />)}
+        {["Nguồn ứng viên", "Offer accepted", "Time-to-hire", "Recruiter phụ trách", "Phòng ban"].map((item) => <StatusBadge key={item} label={item} />)}
       </div>
-      <p className="mt-4 text-sm leading-6 text-slate-600">Khi backend bổ sung endpoint hoặc trường dữ liệu tương ứng, trang báo cáo có thể hiển thị các chỉ số này bằng dữ liệu thật.</p>
+      <p className="mt-4 text-sm leading-6 text-slate-600">Các chỉ số sẽ được cập nhật khi có dữ liệu phù hợp.</p>
     </Card>
   );
 }

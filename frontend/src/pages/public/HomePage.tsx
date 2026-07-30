@@ -1,4 +1,4 @@
-import { ArrowRight, FileUp, Search } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Building2, FileText, FileUp, Search, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -91,11 +91,11 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <section className="grid gap-8 rounded-2xl bg-slate-950 px-6 py-10 text-white lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
+      <section className="grid gap-8 rounded-lg border border-brand-100 bg-brand-50 px-6 py-10 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
         <div>
-          <p className="text-sm font-medium text-blue-200">Nền tảng gợi ý việc làm dựa trên CV và hồ sơ cá nhân</p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-5xl">Tìm công việc phù hợp với CV của bạn</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><FileText size={16} /> Nền tảng gợi ý việc làm dựa trên CV</p>
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight text-slate-950 md:text-5xl">Tìm công việc phù hợp với CV của bạn</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
             Tìm kiếm việc làm, tải CV và nhận gợi ý theo kỹ năng, kinh nghiệm, địa điểm mong muốn và mục tiêu nghề nghiệp của bạn.
           </p>
 
@@ -114,10 +114,13 @@ export function HomePage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          {statistics.map((item) => (
-            <Card key={item.id} className="border-white/10 bg-white/10 text-white">
-              <p className="text-sm text-slate-300">{item.label}</p>
-              <strong className="mt-2 block text-3xl">{item.value}</strong>
+          {statistics.map((item, index) => (
+            <Card key={item.id} className="border-brand-100 bg-white">
+              <div className="flex items-center gap-2 text-brand-700">
+                {index === 0 ? <BriefcaseBusiness size={18} /> : index === 1 ? <Users size={18} /> : index === 2 ? <Building2 size={18} /> : <FileText size={18} />}
+                <p className="text-sm font-medium">{item.label}</p>
+              </div>
+              <strong className="mt-2 block text-3xl text-slate-950">{item.value}</strong>
             </Card>
           ))}
         </div>
@@ -125,7 +128,7 @@ export function HomePage() {
 
       {homeQuery.error ? (
         <Card className="mt-5">
-          <ErrorState message="Không thể tải dữ liệu trang chủ từ backend. Giao diện vẫn hiển thị với số liệu 0." />
+          <ErrorState message="Không thể tải dữ liệu trang chủ. Giao diện vẫn hiển thị với số liệu 0." />
           <div className="mt-3">
             <Button onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
           </div>
@@ -138,7 +141,7 @@ export function HomePage() {
           action={<Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-brand-700">Xem tất cả <ArrowRight size={16} /></Link>}
         />
         {homeQuery.loading ? (
-          <Card><EmptyState message="Đang tải việc làm từ backend..." /></Card>
+          <Card><EmptyState message="Đang tải việc làm..." /></Card>
         ) : jobs.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)} onToggleSave={(jobId) => void handleToggleSave(jobId)} />)}
@@ -213,12 +216,12 @@ function CompanyPlaceholderCard({ name }: { name: string }) {
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">CT</div>
         <div>
           <h3 className="font-semibold text-slate-900">{name}</h3>
-          <p className="text-sm text-slate-600">Chưa có công ty đã xác thực</p>
+          <p className="text-sm text-slate-600">Chưa có công ty phù hợp</p>
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-slate-600">
         <span>0 việc làm đang tuyển</span>
-        <span>Dữ liệu công ty sẽ hiển thị khi API có bản ghi phù hợp</span>
+        <span>Thông tin sẽ hiển thị khi có dữ liệu phù hợp</span>
       </div>
     </article>
   );

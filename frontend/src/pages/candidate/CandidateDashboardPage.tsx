@@ -57,7 +57,7 @@ export function CandidateDashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Xin chào, {data.profile.name}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            {data.profile.title} tại {data.profile.location}. Dữ liệu tổng quan được lấy từ API backend hiện có.
+            {data.profile.title} tại {data.profile.location}. Theo dõi hồ sơ, CV và các cơ hội việc làm phù hợp.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -76,7 +76,7 @@ export function CandidateDashboardPage() {
       <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
         <main className="space-y-5">
           <Card>
-            <SectionHeader title="Việc làm đang tuyển" description="Danh sách việc làm ACTIVE mới nhất từ API jobs." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
+            <SectionHeader title="Việc làm đang tuyển" description="Các công việc mới nhất phù hợp để bạn xem và ứng tuyển." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
             {data.jobs.length ? (
               <div className="grid gap-4">
                 {data.jobs.map((job) => (
@@ -89,7 +89,7 @@ export function CandidateDashboardPage() {
           </Card>
 
           <Card>
-            <SectionHeader title="Ứng tuyển gần đây" description="Các đơn ứng tuyển mới nhất từ API applications." action={<Link to="/candidate/applications" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
+            <SectionHeader title="Ứng tuyển gần đây" description="Các hồ sơ bạn đã gửi trong thời gian gần đây." action={<Link to="/candidate/applications" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
             {data.applications.length ? (
               <div className="grid gap-3">
                 {data.applications.map((application) => (
@@ -115,7 +115,7 @@ export function CandidateDashboardPage() {
 
         <aside className="space-y-5">
           <Card>
-            <SectionHeader title="Tiến độ hoàn thiện hồ sơ" description="Tính theo các trường student_profiles backend đang có." />
+            <SectionHeader title="Tiến độ hoàn thiện hồ sơ" description="Hoàn thiện thêm thông tin để nhà tuyển dụng đánh giá dễ hơn." />
             <ProgressBar value={data.profile.profileCompletion} label={`${data.profile.profileCompletion}% hoàn thiện`} />
           </Card>
 
@@ -161,8 +161,8 @@ export function CandidateDashboardPage() {
           </Card>
 
           <Card>
-            <SectionHeader title="Phỏng vấn" />
-            <EmptyState message="Backend hiện chưa có API lịch phỏng vấn." />
+            <SectionHeader title="Lịch hẹn" />
+            <EmptyState message="Chưa có lịch hẹn mới." />
           </Card>
 
           <Card>

@@ -1,9 +1,8 @@
-import { SlidersHorizontal, X } from "lucide-react";
+import { BriefcaseBusiness, FileSearch, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
-import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -25,6 +24,12 @@ import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
 
 const emptyOption = { label: "Tất cả", value: "" };
+const workModeOptions = [
+  emptyOption,
+  { label: "Remote", value: "REMOTE" },
+  { label: "Hybrid", value: "HYBRID" },
+  { label: "Onsite", value: "ONSITE" },
+];
 
 function readFilters(searchParams: URLSearchParams): JobsListFilters {
   return {
@@ -131,14 +136,33 @@ export function JobsPage() {
     <div className="space-y-4">
       <Input label="Địa điểm" value={filters.location} onChange={(event) => updateFilter("location", event.target.value)} placeholder="Nhập tỉnh/thành phố" />
       <Select label="Loại hình công việc" value={filters.jobType} onChange={(event) => updateFilter("jobType", event.target.value)} options={[emptyOption, ...filterOptions.jobTypes]} />
-      <Select label="Onsite, hybrid hoặc remote" value={filters.workingModel} onChange={(event) => updateFilter("workingModel", event.target.value)} options={[emptyOption, ...filterOptions.workModes]} />
+      <Select label="Hình thức" value={filters.workingModel} onChange={(event) => updateFilter("workingModel", event.target.value)} options={workModeOptions} />
       <Button type="button" variant="secondary" className="w-full" onClick={clearAllFilters}>Xóa toàn bộ filter</Button>
     </div>
   );
 
   return (
     <PageContainer>
-      <PageHeader title="Danh sách việc làm" description="Danh sách việc làm đang tuyển từ các công ty đã xác thực." />
+      <section className="mb-5 grid gap-5 rounded-lg border border-brand-100 bg-brand-50 p-6 shadow-sm lg:grid-cols-[1fr_260px]">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><Sparkles size={16} /> Việc làm IT đang tuyển</p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-950">Tìm việc theo vị trí, kỹ năng và hình thức làm việc</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Danh sách việc làm đang mở từ các công ty trên hệ thống, có thể lọc theo từ khóa, địa điểm, loại hình và hình thức làm việc.</p>
+        </div>
+        <div className="relative mx-auto h-40 w-56">
+          <div className="absolute bottom-2 left-4 right-4 h-20 rounded-lg bg-white shadow-sm" />
+          <div className="absolute left-8 top-6 h-24 w-20 rotate-[-8deg] rounded-md border border-brand-100 bg-white p-3 shadow-md">
+            <BriefcaseBusiness size={24} className="text-brand-600" />
+            <span className="mt-4 block h-2 rounded bg-brand-100" />
+            <span className="mt-2 block h-2 rounded bg-slate-100" />
+          </div>
+          <div className="absolute right-8 top-2 h-28 w-20 rotate-[8deg] rounded-md border border-slate-200 bg-white p-3 shadow-md">
+            <FileSearch size={24} className="text-slate-500" />
+            <span className="mt-4 block h-2 rounded bg-brand-100" />
+            <span className="mt-2 block h-2 rounded bg-slate-100" />
+          </div>
+        </div>
+      </section>
 
       <Card className="mb-5">
         <form key={searchParams.toString()} onSubmit={handleSearch} className="grid gap-3 md:grid-cols-[1fr_260px_auto]">

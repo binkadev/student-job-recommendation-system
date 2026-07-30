@@ -31,6 +31,12 @@ export interface RecommendationRun {
   createdAt: string;
 }
 
+export interface RecommendationSummary {
+  attemptedRun: RecommendationRun | null;
+  successfulRun: RecommendationRun | null;
+  hasStaleSuccessfulResults: boolean;
+}
+
 export interface CandidateCvOption {
   id: string;
   name: string;

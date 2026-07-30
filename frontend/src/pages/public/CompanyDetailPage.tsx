@@ -163,9 +163,9 @@ export function CompanyDetailPage() {
   return (
     <PageContainer>
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className={`flex min-h-48 items-end p-6 text-white ${company.cover}`}>
+        <div className="flex min-h-48 items-end bg-brand-50 p-6 text-slate-950">
           <div>
-            <p className="text-sm text-slate-200">{company.industry}</p>
+            <p className="text-sm font-medium text-brand-700">{company.industry}</p>
             <h1 className="mt-2 text-3xl font-semibold">{company.name}</h1>
           </div>
         </div>
@@ -177,7 +177,7 @@ export function CompanyDetailPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold text-slate-950">{company.name}</h2>
-                {company.verified ? <ShieldCheck className="text-emerald-600" size={18} /> : null}
+                {company.verified ? <ShieldCheck className="text-brand-600" size={18} /> : null}
               </div>
               <div className="mt-2 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
                 <InfoItem icon={<Building2 size={16} />} label={company.industry} />

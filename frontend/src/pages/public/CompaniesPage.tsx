@@ -1,8 +1,7 @@
-import { X } from "lucide-react";
+import { Building2, Search, Sparkles, X } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
-import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -75,7 +74,26 @@ export function CompaniesPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Danh sách công ty" description="Danh sách công ty đã xác thực lấy trực tiếp từ API public companies." />
+      <section className="mb-5 grid gap-5 rounded-lg border border-brand-100 bg-brand-50 p-6 shadow-sm lg:grid-cols-[1fr_260px]">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><Sparkles size={16} /> Công ty tuyển dụng</p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-950">Khám phá doanh nghiệp và cơ hội IT phù hợp</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Tìm kiếm công ty theo tên, địa điểm, ngành nghề và xem các vị trí đang tuyển.</p>
+        </div>
+        <div className="relative mx-auto h-40 w-56">
+          <div className="absolute bottom-2 left-4 right-4 h-20 rounded-lg bg-white shadow-sm" />
+          <div className="absolute left-8 top-4 h-28 w-24 rotate-[-7deg] rounded-md border border-brand-100 bg-white p-3 shadow-md">
+            <Building2 size={25} className="text-brand-600" />
+            <span className="mt-4 block h-2 rounded bg-brand-100" />
+            <span className="mt-2 block h-2 rounded bg-slate-100" />
+          </div>
+          <div className="absolute right-8 top-8 h-24 w-20 rotate-[8deg] rounded-md border border-slate-200 bg-white p-3 shadow-md">
+            <Search size={24} className="text-slate-500" />
+            <span className="mt-4 block h-2 rounded bg-brand-100" />
+            <span className="mt-2 block h-2 rounded bg-slate-100" />
+          </div>
+        </div>
+      </section>
 
       <Card className="mb-5">
         <form key={searchParams.toString()} onSubmit={handleSearch} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_220px_220px_220px_auto]">
@@ -100,7 +118,7 @@ export function CompaniesPage() {
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">{result?.totalItems ?? 0} công ty phù hợp</p>
-        <p className="mt-1 text-sm text-slate-600">Dữ liệu lấy từ API public companies và chỉ hiển thị công ty đã xác thực.</p>
+        <p className="mt-1 text-sm text-slate-600">Danh sách hiển thị các công ty phù hợp với bộ lọc hiện tại.</p>
       </Card>
 
       {companiesQuery.loading ? <CompaniesListSkeleton /> : null}
