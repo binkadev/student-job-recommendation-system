@@ -10,10 +10,10 @@ export function CandidateMessagesPage() {
     <PageContainer>
       <PageHeader
         title="Tin nhắn"
-        description="Backend hiện chưa có API hoặc bảng dữ liệu cho hội thoại/tin nhắn."
+        description="Trao đổi với nhà tuyển dụng về các cơ hội việc làm."
       />
       <Card>
-        <EmptyState message="Chưa có dữ liệu tin nhắn từ API backend." />
+        <EmptyState message="Chưa có tin nhắn." />
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link to="/candidate/applications"><Button>Đơn ứng tuyển</Button></Link>
           <Link to="/candidate/jobs"><Button variant="secondary">Tìm việc</Button></Link>

@@ -92,7 +92,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/candidate/profile/edit"><Button>Chỉnh sửa</Button></Link>
-            <Button variant="secondary" onClick={() => showToast({ type: "info", title: "Hồ sơ công khai chưa có API", message: "Chức năng này sẽ hiển thị khi backend hỗ trợ hồ sơ công khai." })}>Xem hồ sơ công khai</Button>
+            <Button variant="secondary" onClick={() => showToast({ type: "info", title: "Hồ sơ công khai chưa sẵn sàng", message: "Bạn có thể tiếp tục cập nhật hồ sơ cá nhân trước." })}>Xem hồ sơ công khai</Button>
           </div>
         </div>
       </section>

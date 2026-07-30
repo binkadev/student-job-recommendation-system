@@ -127,7 +127,7 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
     setSavedProfile(nextProfile);
     reset(values);
     setListError("");
-    showToast({ type: "success", title: "Đã lưu toàn bộ hồ sơ", message: "Dữ liệu đã được cập nhật lên backend." });
+    showToast({ type: "success", title: "Đã lưu toàn bộ hồ sơ", message: "Dữ liệu hồ sơ đã được cập nhật." });
   }
 
   async function saveCurrentSection() {

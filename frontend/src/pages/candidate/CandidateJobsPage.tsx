@@ -225,7 +225,7 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
     <PageContainer>
       <PageHeader
         title="Tìm việc"
-        description="Danh sách việc làm đang hoạt động từ API backend."
+        description="Danh sách việc làm đang tuyển phù hợp với bộ lọc của bạn."
       />
 
       <Card className="mb-5">
@@ -285,7 +285,7 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
 
   return (
     <PageContainer>
-      <PageHeader title={selectedJob.title} description="Chi tiết việc làm từ API backend." />
+      <PageHeader title={selectedJob.title} description="Chi tiết thông tin tuyển dụng." />
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div className="space-y-5">
           <Card>
@@ -433,7 +433,7 @@ function SavedSearchesPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý bộ lọc tìm việc đã lưu từ API backend." />
+      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý các bộ lọc tìm việc bạn đã lưu." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title="Danh sách tìm kiếm đã lưu" description={`${savedSearches.length} bộ lọc`} />
@@ -484,9 +484,9 @@ function SavedSearchesPage() {
 function LegacySavedSearchesPage() {
   return (
     <PageContainer>
-      <PageHeader title="Tìm kiếm đã lưu" description="Backend hiện chưa có API lưu bộ lọc tìm kiếm cho ứng viên." />
+      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý các bộ lọc tìm việc bạn đã lưu." />
       <Card>
-        <EmptyState message="Chưa có dữ liệu tìm kiếm đã lưu từ API." />
+        <EmptyState message="Chưa có tìm kiếm đã lưu." />
         <Link to="/candidate/jobs" className="mt-4 inline-flex">
           <Button variant="secondary">Quay lại tìm việc</Button>
         </Link>

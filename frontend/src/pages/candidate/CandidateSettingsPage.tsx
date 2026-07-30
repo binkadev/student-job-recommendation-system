@@ -90,14 +90,14 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
   function notifyUnsupported(feature: string) {
     showToast({
       type: "info",
-      title: "Chức năng chưa có API backend",
-      message: `${feature} hiện chưa có endpoint để lưu dữ liệu thật.`,
+      title: "Chức năng chưa sẵn sàng",
+      message: `${feature} hiện chưa thể lưu thay đổi.`,
     });
   }
 
   return (
     <PageContainer>
-      <PageHeader title="Cài đặt ứng viên" description="Quản lý thông tin tài khoản và các tùy chọn hệ thống theo API hiện có." />
+      <PageHeader title="Cài đặt ứng viên" description="Quản lý thông tin tài khoản và các tùy chọn hệ thống." />
       <Card>
         <Tabs
           value={tab}
@@ -124,7 +124,7 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
       </Card>
 
       <Card className="mt-5 border-red-100">
-        <SectionHeader title="Khu vực nguy hiểm" description="Backend hiện chưa có API xóa tài khoản ứng viên từ giao diện." />
+        <SectionHeader title="Khu vực nguy hiểm" description="Các thao tác ảnh hưởng trực tiếp đến tài khoản của bạn." />
         <Button variant="danger" icon={<Trash2 size={16} />} onClick={() => setDeleteOpen(true)}>Xóa tài khoản</Button>
       </Card>
 
@@ -258,7 +258,7 @@ function SecuritySettings() {
 function PrivacySettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
   return (
     <div className="space-y-4">
-      <EmptyState message="Backend hiện chưa có API lưu cài đặt quyền riêng tư của ứng viên." />
+      <EmptyState message="Chưa có cài đặt quyền riêng tư để hiển thị." />
       <Switch label="Cho phép recruiter tìm thấy hồ sơ" checked={INITIAL_PRIVACY_SETTINGS.discoverable} onChange={() => onUnsupported("Quyền riêng tư")} />
       <Switch label="Hiển thị email" checked={INITIAL_PRIVACY_SETTINGS.showEmail} onChange={() => onUnsupported("Quyền riêng tư")} />
       <Switch label="Hiển thị số điện thoại" checked={INITIAL_PRIVACY_SETTINGS.showPhone} onChange={() => onUnsupported("Quyền riêng tư")} />
@@ -324,7 +324,7 @@ function DeleteAccountModal({ open, onClose, onConfirm }: { open: boolean; onClo
   return (
     <Modal open={open} title="Xóa tài khoản" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-700">Nhập <strong>XOA TAI KHOAN</strong> để xác nhận. Backend hiện chưa có API xóa tài khoản từ frontend nên thao tác này sẽ không xóa dữ liệu.</p>
+        <p className="text-sm text-slate-700">Nhập <strong>XOA TAI KHOAN</strong> để xác nhận thao tác.</p>
         <Input label="Mã xác nhận" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>

@@ -122,7 +122,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       }
     }
 
-    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Backend hiện chưa có API cho chức năng này." });
+    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Chức năng sẽ được xử lý khi sẵn sàng." });
   }
 
   if (type === "register") {

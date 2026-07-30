@@ -57,7 +57,7 @@ export function LoginPage() {
     try {
       const user = await login(email, password);
       navigate(dashboardByRole[user.role]);
-      showToast({ type: "success", title: "Đăng nhập thành công", message: "Phiên đăng nhập đã được xác thực bằng backend." });
+      showToast({ type: "success", title: "Đăng nhập thành công", message: "Phiên đăng nhập đã được xác thực." });
     } catch (error) {
       showToast({ type: "error", title: "Đăng nhập thất bại", message: getErrorMessage(error) });
     } finally {

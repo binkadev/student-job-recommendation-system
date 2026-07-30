@@ -74,7 +74,6 @@ export function CandidateRecommendedJobsPage() {
   const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
   const latestRun = runsQuery.data?.[0];
   const latestRunSuccess = latestRun?.status === "SUCCESS";
-  const latestRunBlocksCurrentResults = Boolean(latestRun && latestRun.status !== "SUCCESS");
   const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
   const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
   const successfulRuns = useMemo(
@@ -82,8 +81,8 @@ export function CandidateRecommendedJobsPage() {
     [latestRun?.id, runsQuery.data],
   );
   const jobsQuery = useAsyncData(
-    () => (!selectedRunId && !latestRunBlocksCurrentResults ? getRecommendedJobs() : Promise.resolve([])),
-    [latestRunBlocksCurrentResults, selectedRunId, reloadKey],
+    () => (!selectedRunId ? getRecommendedJobs() : Promise.resolve([])),
+    [selectedRunId, reloadKey],
   );
   const displayJobs = useMemo(() => {
     const sourceJobs = showingHistoricalRun ? runDetailQuery.data?.results ?? [] : jobsQuery.data ?? [];
@@ -163,7 +162,7 @@ export function CandidateRecommendedJobsPage() {
     try {
       await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
       setSelectedRunId("");
-      showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại từ backend." });
+      showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại khi có kết quả mới." });
       setReloadKey((current) => current + 1);
     } catch (error) {
       showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getApiErrorMessage(error) });
@@ -241,7 +240,7 @@ export function CandidateRecommendedJobsPage() {
           </div>
         ) : null}
         {runsQuery.error ? (
-          <p className="mt-3 text-sm text-amber-700">Không tải được lịch sử run. Kết quả hiện tại vẫn được lấy trực tiếp từ backend nếu có.</p>
+          <p className="mt-3 text-sm text-amber-700">Không tải được lịch sử gợi ý. Kết quả hiện tại vẫn được hiển thị nếu có.</p>
         ) : null}
         {showingHistoricalRun ? (
           <p className="mt-3 text-sm text-amber-700">Bạn đang xem kết quả lịch sử từ run #{runDetailQuery.data?.run.id}, không phải kết quả hiện tại.</p>
@@ -297,10 +296,8 @@ export function CandidateRecommendedJobsPage() {
 
       {jobsQuery.loading || runDetailQuery.loading ? (
         <LoadingState />
-      ) : jobsQuery.error && !latestRunBlocksCurrentResults && !selectedRunId ? (
+      ) : jobsQuery.error && !selectedRunId ? (
         <EmptyState message={jobsQuery.error} />
-      ) : latestRunBlocksCurrentResults && !selectedRunId ? (
-        <EmptyState message="Run mới nhất chưa có kết quả SUCCESS để hiển thị." />
       ) : pagedJobs.length === 0 ? (
         <EmptyState message={showHidden ? "Chưa có việc làm nào bị ẩn." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
       ) : (
@@ -362,7 +359,7 @@ function RecommendedJobCard({
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center">
           <p className="text-xs font-semibold uppercase text-emerald-700">Match score</p>
           <p className="mt-2 text-4xl font-bold text-emerald-700">{job.matchScore}%</p>
-          <p className="mt-1 text-xs text-emerald-700">{job.rankPosition ? `Hạng #${job.rankPosition}` : "Điểm backend"}</p>
+          <p className="mt-1 text-xs text-emerald-700">{job.rankPosition ? `Hạng #${job.rankPosition}` : "Điểm phù hợp"}</p>
         </div>
 
         <div className="min-w-0">
@@ -395,7 +392,7 @@ function RecommendedJobCard({
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
               {job.recommendationReasons.length ? job.recommendationReasons.map((reason) => (
                 <li key={reason}>{reason}</li>
-              )) : <li>Backend chưa trả về lý do gợi ý cho kết quả này.</li>}
+              )) : <li>Chưa có lý do gợi ý cho kết quả này.</li>}
             </ul>
           </div>
 
@@ -457,7 +454,7 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
         </div>
         <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <InfoPill label="Hạng gợi ý" value={job?.rankPosition ? `#${job.rankPosition}` : "Chưa cập nhật"} />
-          <InfoPill label="Điểm backend" value={`${job?.matchScore ?? 0}%`} />
+          <InfoPill label="Điểm phù hợp" value={`${job?.matchScore ?? 0}%`} />
           <InfoPill label="Điểm nội dung" value={job?.textScore == null ? "Không áp dụng" : `${job.textScore}%`} />
           <InfoPill label="Điểm kỹ năng" value={job?.skillScore == null ? "Chưa cập nhật" : `${job.skillScore}%`} />
           <InfoPill label="Chiến lược" value={job?.scoringStrategy ?? "Chưa cập nhật"} />
@@ -471,9 +468,9 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
           </div>
         </div>
         <div className="rounded-md border border-slate-100 p-3">
-          <p className="text-sm font-semibold text-slate-800">Lý do từ backend</p>
+          <p className="text-sm font-semibold text-slate-800">Lý do gợi ý</p>
           <div className="mt-2 space-y-1 text-sm text-slate-600">
-            {job?.recommendationReasons.length ? job.recommendationReasons.map((reason) => <p key={reason}>{reason}</p>) : <p>Backend chưa trả về reason/explanation.</p>}
+            {job?.recommendationReasons.length ? job.recommendationReasons.map((reason) => <p key={reason}>{reason}</p>) : <p>Chưa có giải thích cho kết quả này.</p>}
           </div>
         </div>
       </div>

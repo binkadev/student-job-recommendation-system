@@ -109,7 +109,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   if ((mode === "detail" || mode === "status") && !selectedApplication) {
     return (
       <PageContainer>
-        <PageHeader title="Không tìm thấy đơn ứng tuyển" description="Mã ứng tuyển không tồn tại trong dữ liệu backend hiện tại." />
+        <PageHeader title="Không tìm thấy đơn ứng tuyển" description="Mã ứng tuyển không tồn tại hoặc bạn không có quyền xem." />
         <Card>
           <EmptyState message="Không tìm thấy đơn ứng tuyển." />
           <div className="mt-4 flex justify-center">
@@ -130,7 +130,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
 
   return (
     <PageContainer>
-      <PageHeader title="Lịch sử ứng tuyển" description="Theo dõi các đơn ứng tuyển của ứng viên từ API backend." />
+      <PageHeader title="Lịch sử ứng tuyển" description="Theo dõi các đơn ứng tuyển của bạn." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

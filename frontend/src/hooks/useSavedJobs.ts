@@ -22,6 +22,8 @@ interface SavedJobResponse {
   status?: string | null;
 }
 
+const savedJobsChangedEvent = "candidate-saved-jobs-changed";
+
 export function useSavedJobs() {
   const storageKey = useMemo(() => `saved-job-ids:${getCurrentUserStorageScope()}`, []);
   const [savedJobIds, setSavedJobIds] = useLocalStorageState<string[]>(storageKey, []);
@@ -52,9 +54,25 @@ export function useSavedJobs() {
     void refreshSavedJobs();
   }, [refreshSavedJobs]);
 
+  useEffect(() => {
+    function syncSavedJobs(event: Event) {
+      const detail = (event as CustomEvent<{ jobId?: string; saved?: boolean }>).detail;
+      if (!detail?.jobId || typeof detail.saved !== "boolean") return;
+      setSavedJobIds((current) => {
+        if (detail.saved) return current.includes(detail.jobId!) ? current : [...current, detail.jobId!];
+        return current.filter((id) => id !== detail.jobId);
+      });
+    }
+
+    window.addEventListener(savedJobsChangedEvent, syncSavedJobs);
+    return () => window.removeEventListener(savedJobsChangedEvent, syncSavedJobs);
+  }, [setSavedJobIds]);
+
   async function toggleSavedJob(jobId: string) {
     const currentlySaved = savedSet.has(jobId);
+    const nextSaved = !currentlySaved;
     setSavedJobIds((current) => (currentlySaved ? current.filter((id) => id !== jobId) : Array.from(new Set([...current, jobId]))));
+    window.dispatchEvent(new CustomEvent(savedJobsChangedEvent, { detail: { jobId, saved: nextSaved } }));
 
     if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) return;
 

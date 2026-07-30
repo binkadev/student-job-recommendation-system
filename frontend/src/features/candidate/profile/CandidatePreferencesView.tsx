@@ -101,7 +101,7 @@ export function CandidatePreferencesView() {
       preferredLocation: updatedProfile.preferredLocation ?? "",
       preferredJobType: updatedProfile.preferredJobType ?? values.preferredJobType,
     });
-    showToast({ type: "success", title: "Đã lưu mong muốn nghề nghiệp", message: "Dữ liệu đã được cập nhật lên backend." });
+    showToast({ type: "success", title: "Đã lưu mong muốn nghề nghiệp", message: "Dữ liệu đã được cập nhật." });
   }
 
   return (

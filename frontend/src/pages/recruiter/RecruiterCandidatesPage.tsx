@@ -219,7 +219,7 @@ function ApplicationsListPage({
     <PageContainer>
       <PageHeader
         title={mode === "pipeline" ? "Pipeline ứng tuyển" : "Ứng viên ứng tuyển"}
-        description="Dữ liệu lấy từ API /companies/me/applications theo filter backend hỗ trợ."
+        description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
       />
       <Card>
         <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -337,7 +337,7 @@ function ApplicationDetailPage({
   if (applicationQuery.error || !application) {
     return (
       <PageContainer>
-        <PageHeader title="Chi tiết ứng viên" description="Không thể tải dữ liệu ứng tuyển từ backend." />
+        <PageHeader title="Chi tiết ứng viên" description="Không thể tải dữ liệu ứng tuyển." />
         <EmptyState message={applicationQuery.error ?? "Không tìm thấy hồ sơ ứng tuyển."} />
       </PageContainer>
     );
@@ -385,7 +385,6 @@ function ApplicationDetailPage({
               </div>
             ) : <EmptyState message="Hồ sơ ứng tuyển chưa có CV." />}
           </Card>
-          <UnsupportedCard title="Đánh giá & hoạt động" items={["Match score", "Tag", "Ghi chú nội bộ", "Lịch phỏng vấn", "Lịch sử hoạt động"]} />
         </div>
         <aside className="space-y-5">
           <Card>
@@ -436,7 +435,7 @@ function SavedCandidatesPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu từ API backend." />
+      <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu." />
       <Card>
         <SectionHeader title="Danh sách hồ sơ" description={`${result?.totalItems ?? 0} hồ sơ đã lưu`} />
         {savedCandidatesQuery.loading ? <LoadingState /> : null}
@@ -561,25 +560,14 @@ function UnsupportedCandidateMode({ mode }: { mode: "recommended" | "saved" | "s
 
   return (
     <PageContainer>
-      <PageHeader title={title} description="Backend hiện chưa có API riêng cho chức năng này." />
+      <PageHeader title={title} description="Chức năng đang chờ dữ liệu phù hợp." />
       <Card>
-        <EmptyState message="Chức năng này chưa có endpoint backend nên đang hiển thị dữ liệu 0." />
+        <EmptyState message="Chưa có dữ liệu phù hợp." />
         <div className="mt-4">
           <Link to="/recruiter/candidates"><Button>Quay lại ứng viên ứng tuyển</Button></Link>
         </div>
       </Card>
     </PageContainer>
-  );
-}
-
-function UnsupportedCard({ title, items }: { title: string; items: string[] }) {
-  return (
-    <Card>
-      <SectionHeader title={title} description="Backend hiện chưa có API cho các dữ liệu này." />
-      <div className="flex flex-wrap gap-2">
-        {items.map((item) => <StatusBadge key={item} label={item} />)}
-      </div>
-    </Card>
   );
 }
 
@@ -783,7 +771,7 @@ async function openApplicationCv(application: ApplicationResponse, showToast: Re
 function unsupportedToast(showToast: ReturnType<typeof useToast>["showToast"], feature: string) {
   showToast({
     type: "info",
-    title: "Chức năng chưa có API backend",
-    message: `${feature} hiện chưa có endpoint để xử lý dữ liệu thật.`,
+    title: "Chức năng chưa sẵn sàng",
+    message: `${feature} hiện chưa thể xử lý.`,
   });
 }

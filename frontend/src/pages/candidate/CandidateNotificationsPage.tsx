@@ -98,7 +98,7 @@ export function CandidateNotificationsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc từ API backend.`} />
+      <PageHeader title="Thông báo" description={`Bạn có ${unreadCount} thông báo chưa đọc.`} />
 
       <Card className="mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

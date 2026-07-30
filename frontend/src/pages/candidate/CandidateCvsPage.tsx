@@ -103,7 +103,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     setUploading(true);
     try {
       const cv = await uploadCandidateCv(selectedFile, active);
-      showToast({ type: "success", title: "Upload CV thành công", message: `${cv.originalFileName} đã được lưu vào backend.` });
+      showToast({ type: "success", title: "Upload CV thành công", message: `${cv.originalFileName} đã được lưu.` });
       setReloadKey((current) => current + 1);
       navigate(`/candidate/cvs/${cv.id}`);
     } finally {
@@ -161,10 +161,10 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   if (mode === "upload") {
     return (
       <PageContainer>
-        <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX theo API CV của backend." />
-        <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
+        <div className="max-w-5xl">
           <Card>
-            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, tối đa ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
+            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, giới hạn đang áp dụng là ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
             {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng xóa CV không còn dùng trước khi upload thêm.`} /></div> : null}
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
 
@@ -198,15 +198,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             </div>
           </Card>
 
-          <Card>
-            <SectionHeader title="Dữ liệu sẽ lưu" />
-            <div className="space-y-3 text-sm text-slate-700">
-              <InfoRow label="Endpoint" value="POST /api/students/me/cv" />
-              <InfoRow label="Form field" value="file" />
-              <InfoRow label="Query" value={`active=${active}`} />
-              <InfoRow label="Response" value="CvFileResponse" />
-            </div>
-          </Card>
         </div>
       </PageContainer>
     );
@@ -230,12 +221,12 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý CV" description="Danh sách file CV của ứng viên từ API backend." />
+      <PageHeader title="Quản lý CV" description="Quản lý các CV dùng để ứng tuyển và cập nhật gợi ý việc làm." />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <StatusBadge label={`${cvs.length} CV`} />
-          <StatusBadge label={`Tối đa ${cvSettings.maxCvsPerUser} CV`} />
-          <StatusBadge label={`${cvSettings.maxFileSizeMb} MB/file`} />
+          <StatusBadge label={`Giới hạn ${cvSettings.maxCvsPerUser} CV`} />
+          <StatusBadge label={`Giới hạn ${cvSettings.maxFileSizeMb} MB/file`} />
           {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV active" tone="success" /> : null}
         </div>
         <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Upload CV mới</Button></Link>
@@ -312,7 +303,7 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
 
   return (
     <PageContainer>
-      <PageHeader title="Chi tiết CV" description="Metadata file CV theo dữ liệu backend." />
+      <PageHeader title="Chi tiết CV" description="Thông tin file CV và trạng thái sử dụng hiện tại." />
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <main className="space-y-5">
           <Card>
@@ -438,7 +429,7 @@ function CvAnalysisView({
   if (mode === "edit-extracted") {
     return (
       <PageContainer>
-        <PageHeader title={title} description="Backend MVP hiện chưa hỗ trợ chỉnh tay dữ liệu trích xuất từ CV." />
+        <PageHeader title={title} description="Xem lại dữ liệu được trích xuất từ CV." />
         <Card>
           <EmptyState message="Chức năng chỉnh extracted data chưa được hỗ trợ trong MVP. Bạn có thể xem phân tích CV hoặc bấm phân tích lại để AI cập nhật dữ liệu." />
           <div className="mt-4 flex flex-wrap gap-2">
@@ -605,15 +596,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-slate-500">{label}</p>
       <p className="mt-1 break-words font-medium text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2 last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <strong className="max-w-[190px] text-right text-slate-900">{value}</strong>
     </div>
   );
 }

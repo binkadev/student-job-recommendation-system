@@ -181,7 +181,7 @@ function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvI
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-semibold text-slate-950">Không đính kèm CV</p>
-              <p className="mt-1 text-sm text-slate-600">Chỉ gửi thư giới thiệu theo đúng dữ liệu backend hiện hỗ trợ.</p>
+              <p className="mt-1 text-sm text-slate-600">Chỉ gửi thư giới thiệu, không đính kèm CV.</p>
             </div>
             <StatusBadge label="Tùy chọn" />
           </div>

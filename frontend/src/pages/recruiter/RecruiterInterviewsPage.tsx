@@ -11,10 +11,10 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
   if (mode === "create") {
     return (
       <PageContainer>
-        <PageHeader title="Tạo lịch phỏng vấn" description="Backend hiện chưa có API tạo lịch phỏng vấn." />
+        <PageHeader title="Tạo lịch phỏng vấn" description="Tạo lịch hẹn phỏng vấn với ứng viên." />
         <UnsupportedInterviewCard
           title="Chưa thể tạo lịch phỏng vấn"
-          message="Khi backend có endpoint interview, form tạo lịch sẽ gửi dữ liệu thật thay vì lưu cục bộ."
+          message="Chưa có dữ liệu để tạo lịch phỏng vấn."
         />
       </PageContainer>
     );
@@ -23,10 +23,10 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
   if (mode === "detail") {
     return (
       <PageContainer>
-        <PageHeader title="Chi tiết phỏng vấn" description="Backend hiện chưa có API chi tiết lịch phỏng vấn." />
+        <PageHeader title="Chi tiết phỏng vấn" description="Thông tin chi tiết của lịch phỏng vấn." />
         <UnsupportedInterviewCard
           title="Không có dữ liệu phỏng vấn"
-          message="Trang chi tiết phỏng vấn đang hiển thị dữ liệu 0 vì backend chưa có bảng/API tương ứng."
+          message="Chưa có dữ liệu chi tiết phỏng vấn."
         />
       </PageContainer>
     );
@@ -34,11 +34,11 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý phỏng vấn" description="Theo dõi lịch phỏng vấn sau khi backend bổ sung API interview." />
+      <PageHeader title="Quản lý phỏng vấn" description="Theo dõi lịch phỏng vấn của công ty." />
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
-          <SectionHeader title="Lịch phỏng vấn" description="Backend hiện chưa có endpoint danh sách/tạo/sửa/xác nhận lịch phỏng vấn." />
-          <EmptyState message="Chưa có dữ liệu phỏng vấn từ API backend." />
+          <SectionHeader title="Lịch phỏng vấn" />
+          <EmptyState message="Chưa có dữ liệu phỏng vấn." />
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to="/recruiter/candidates"><Button>Đi tới ứng viên ứng tuyển</Button></Link>
             <Link to="/recruiter/jobs"><Button variant="secondary">Đi tới tin tuyển dụng</Button></Link>
@@ -46,10 +46,10 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
         </Card>
 
         <aside className="space-y-5">
-          <InfoCard icon={<CalendarDays size={18} />} title="Danh sách lịch" message="Cần API lấy lịch phỏng vấn theo công ty hoặc theo job." />
-          <InfoCard icon={<Clock size={18} />} title="Tạo và đổi lịch" message="Cần API tạo, cập nhật thời gian, hình thức và người phỏng vấn." />
-          <InfoCard icon={<Users size={18} />} title="Người phỏng vấn" message="Cần API thành viên công ty hoặc interviewer để chọn người phụ trách." />
-          <InfoCard icon={<FileText size={18} />} title="Đánh giá sau phỏng vấn" message="Cần API lưu nhận xét, điểm đánh giá và kết quả phỏng vấn." />
+          <InfoCard icon={<CalendarDays size={18} />} title="Danh sách lịch" message="Chưa có lịch phỏng vấn." />
+          <InfoCard icon={<Clock size={18} />} title="Tạo và đổi lịch" message="Chưa có dữ liệu thời gian và hình thức phỏng vấn." />
+          <InfoCard icon={<Users size={18} />} title="Người phỏng vấn" message="Chưa có dữ liệu người phụ trách." />
+          <InfoCard icon={<FileText size={18} />} title="Đánh giá sau phỏng vấn" message="Chưa có nhận xét sau phỏng vấn." />
         </aside>
       </div>
     </PageContainer>
@@ -60,7 +60,7 @@ function UnsupportedInterviewCard({ title, message }: { title: string; message: 
   return (
     <Card>
       <SectionHeader title={title} description={message} />
-      <EmptyState message="Chức năng này chưa có endpoint backend nên đang hiển thị dữ liệu 0." />
+      <EmptyState message="Chưa có dữ liệu phù hợp." />
       <div className="mt-4">
         <Link to="/recruiter/candidates"><Button>Quay lại ứng viên ứng tuyển</Button></Link>
       </div>

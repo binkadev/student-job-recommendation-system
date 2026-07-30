@@ -160,7 +160,7 @@ function SkillCategoryManager() {
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý kỹ năng" description="Danh mục kỹ năng dùng bảng skills và API /api/skills." />
+      <PageHeader title="Quản lý kỹ năng" description="Quản lý danh mục kỹ năng dùng cho hồ sơ và tin tuyển dụng." />
       {skillsQuery.error ? <div className="mb-5"><ErrorState message={skillsQuery.error} /></div> : null}
 
       <Card className="mb-5">
@@ -202,14 +202,12 @@ function UnsupportedCategoryManager({ categoryType }: { categoryType: CategoryTy
 
   return (
     <PageContainer>
-      <PageHeader title={`Quản lý ${label.toLowerCase()}`} description="Danh mục này chưa có API/backend riêng trong scope hiện tại." />
+      <PageHeader title={`Quản lý ${label.toLowerCase()}`} description="Quản lý danh mục dữ liệu của hệ thống." />
       <Card>
-        <EmptyState message={`Backend hiện chưa có API quản lý ${label.toLowerCase()}. Trang đang hiển thị dữ liệu 0 theo trạng thái hiện có.`} />
+        <EmptyState message={`Chưa có dữ liệu ${label.toLowerCase()}.`} />
         <div className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <Info label="Bảng DB hiện có" value="skills" />
-          <Info label="API danh mục hiện có" value="/api/skills" />
           <Info label="Trạng thái dữ liệu" value="0" />
-          <Info label="Thao tác thêm/sửa/xóa" value="Chưa có API" />
+          <Info label="Thao tác thêm/sửa/xóa" value="Chưa cập nhật" />
         </div>
       </Card>
     </PageContainer>
