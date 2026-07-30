@@ -68,7 +68,7 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
 
   return (
     <PageContainer>
-      <PageHeader title="Báo cáo vi phạm" description="Trang giữ khung quản trị báo cáo. Backend hiện chưa có DB/API reports nên không hiển thị dữ liệu mock." />
+      <PageHeader title="Báo cáo vi phạm" description="Trang giữ khung quản trị báo cáo. Backend hiện chưa có DB/API reports nên hiển thị dữ liệu 0." />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -98,7 +98,7 @@ export function AdminReportsPage({ mode = "list" }: { mode?: "list" | "detail" }
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API reports nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+        <EmptyState message="Chưa có API reports nên bảng đang hiển thị 0 dòng." />
       </div>
     </PageContainer>
   );

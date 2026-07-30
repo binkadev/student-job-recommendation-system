@@ -2,10 +2,9 @@ import { isAxiosError } from "axios";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
-import { RoleSwitcher } from "../../components/navigation/RoleSwitcher";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -17,12 +16,6 @@ const dashboardByRole: Record<UserRole, string> = {
   recruiter: "/recruiter/dashboard",
   admin: "/admin/dashboard",
 };
-
-const demoAccounts = [
-  { label: "Ứng viên", email: "student@example.com", password: "123456" },
-  { label: "Nhà tuyển dụng", email: "company@example.com", password: "123456" },
-  { label: "Quản trị viên", email: "admin@example.com", password: "123456" },
-];
 
 function getErrorMessage(error: unknown) {
   if (isAxiosError<{ message?: string }>(error)) {
@@ -37,7 +30,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [prefill, setPrefill] = useState({ email: "", password: "" });
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
 
   useEffect(() => {
     const state = location.state as { registrationSuccess?: boolean; title?: string; message?: string } | null;
@@ -73,10 +66,6 @@ export function LoginPage() {
     }
   }
 
-  function fillDemoAccount(account: (typeof demoAccounts)[number]) {
-    setPrefill({ email: account.email, password: account.password });
-  }
-
   return (
     <PageContainer>
       <PageHeader title="Đăng nhập" description="Nhập email và mật khẩu để truy cập hệ thống." />
@@ -88,8 +77,8 @@ export function LoginPage() {
               label="Email"
               type="email"
               placeholder="email@example.com"
-              value={prefill.email}
-              onChange={(event) => setPrefill((current) => ({ ...current, email: event.target.value }))}
+              value={credentials.email}
+              onChange={(event) => setCredentials((current) => ({ ...current, email: event.target.value }))}
               required
             />
             <Input
@@ -97,33 +86,24 @@ export function LoginPage() {
               label="Mật khẩu"
               type="password"
               placeholder="Nhập mật khẩu"
-              value={prefill.password}
-              onChange={(event) => setPrefill((current) => ({ ...current, password: event.target.value }))}
+              value={credentials.password}
+              onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))}
               required
             />
             <Button type="submit" className="w-full" loading={loading}>
               Đăng nhập
             </Button>
           </form>
-          <div className="mt-5 grid gap-2 sm:grid-cols-3">
-            {demoAccounts.map((account) => (
-              <Button key={account.email} type="button" variant="secondary" onClick={() => fillDemoAccount(account)}>
-                {account.label}
-              </Button>
-            ))}
-          </div>
         </Card>
 
         <Card>
-          <h2 className="text-base font-semibold text-slate-900">Tài khoản demo</h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-700">
-            <p><strong>Ứng viên:</strong> student@example.com / 123456</p>
-            <p><strong>Nhà tuyển dụng:</strong> company@example.com / 123456</p>
-            <p><strong>Quản trị viên:</strong> admin@example.com / 123456</p>
-          </div>
-          <div className="mt-5">
-            <RoleSwitcher />
-          </div>
+          <h2 className="text-base font-semibold text-slate-900">Truy cập theo vai trò</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Hệ thống sẽ tự điều hướng đến trang ứng viên, nhà tuyển dụng hoặc quản trị viên theo role backend trả về sau khi đăng nhập thành công.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Nếu chưa có tài khoản, hãy đăng ký ứng viên hoặc nhà tuyển dụng từ thanh điều hướng phía trên.
+          </p>
         </Card>
       </div>
     </PageContainer>

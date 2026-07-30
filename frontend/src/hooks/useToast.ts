@@ -1,1 +1,1 @@
-export { useToast } from "../components/feedback/ToastProvider";
+export { useToastContext as useToast } from "../components/feedback/toastContext";

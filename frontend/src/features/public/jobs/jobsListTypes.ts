@@ -18,7 +18,7 @@ export interface PublicJobListItem {
   postedAt: string;
   deadline: string;
   applicants: number;
-  status: "published" | "featured" | "urgent";
+  status: "published" | "featured" | "urgent" | "unavailable";
   matchScore: number;
 }
 

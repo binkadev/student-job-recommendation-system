@@ -1,7 +1,7 @@
 import { BriefcaseBusiness, Building2, CalendarDays, Copy, ExternalLink, Globe, MapPin, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";

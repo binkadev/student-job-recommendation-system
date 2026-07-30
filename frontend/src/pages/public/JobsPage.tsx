@@ -1,7 +1,7 @@
 import { SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";

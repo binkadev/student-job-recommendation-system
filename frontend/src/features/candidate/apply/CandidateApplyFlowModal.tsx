@@ -7,15 +7,14 @@ import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import { Checkbox } from "../../../components/ui/Checkbox";
-import { Input } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
-import { Select } from "../../../components/ui/Select";
 import { Stepper } from "../../../components/ui/Stepper";
 import { Textarea } from "../../../components/ui/Textarea";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useToast } from "../../../hooks/useToast";
 import { httpClient } from "../../../services/api/httpClient";
 import type { Cv } from "../../../types/domain";
+import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 
 export interface ApplyFlowJob {
@@ -27,17 +26,9 @@ export interface ApplyFlowJob {
   workMode?: string;
 }
 
-interface ScreeningAnswers {
-  years: string;
-  startDate: string;
-  salary: string;
-  onsite: string;
-}
-
-const steps = ["Chọn CV", "Thư giới thiệu", "Câu hỏi sàng lọc", "Xem lại", "Thành công"];
+const steps = ["Chọn CV", "Thư giới thiệu", "Xem lại", "Thành công"];
 const coverTemplate =
   "Kính gửi nhà tuyển dụng, em quan tâm đến vị trí này vì công việc phù hợp với kỹ năng, định hướng nghề nghiệp và kinh nghiệm dự án hiện tại. Em mong có cơ hội trao đổi thêm để trình bày rõ hơn về năng lực của mình.";
-const maxExpectedSalary = 1_000_000_000;
 
 const cvStatusLabels: Record<Cv["status"], { label: string; tone: "neutral" | "success" | "warning" | "danger" }> = {
   uploaded: { label: "Đã tải lên", tone: "neutral" },
@@ -81,22 +72,19 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   const [step, setStep] = useState(0);
   const [selectedCvId, setSelectedCvId] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
-  const [answers, setAnswers] = useState<ScreeningAnswers>({ years: "", startDate: "", salary: "", onsite: "" });
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [applicationCode, setApplicationCode] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const cvs = useMemo(() => cvsQuery.data?.items ?? [], [cvsQuery.data?.items]);
-  const selectableCvs = useMemo(() => cvs.filter((cv) => cv.status === "analyzed"), [cvs]);
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId) ?? null;
-  const dirty = step > 0 || Boolean(selectedCvId || coverLetter || answers.years || answers.startDate || answers.salary || answers.onsite);
+  const dirty = step > 0 || Boolean(selectedCvId || coverLetter);
 
   useEffect(() => {
     if (!open) return;
     setStep(0);
     setCoverLetter("");
-    setAnswers({ years: "", startDate: "", salary: "", onsite: "" });
     setConfirmed(false);
     setSubmitting(false);
     setApplicationCode("");
@@ -104,47 +92,31 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   }, [open, job?.id]);
 
   useEffect(() => {
-    if (!open || selectedCvId || selectableCvs.length === 0) return;
-    const defaultCv = selectableCvs.find((cv) => cv.isDefault) ?? selectableCvs[0];
+    if (!open || selectedCvId || cvs.length === 0) return;
+    const defaultCv = cvs.find((cv) => cv.isDefault) ?? cvs[0];
     setSelectedCvId(defaultCv.id);
-  }, [open, selectableCvs, selectedCvId]);
+  }, [cvs, open, selectedCvId]);
 
   function requestClose() {
     if (submitting) return;
-    if (dirty && step < 4 && !window.confirm("Bạn đang ứng tuyển dở. Đóng luồng này sẽ mất dữ liệu chưa gửi. Tiếp tục đóng?")) return;
+    if (dirty && step < 3 && !window.confirm("Bạn đang ứng tuyển dở. Đóng luồng này sẽ mất dữ liệu chưa gửi. Tiếp tục đóng?")) return;
     onClose();
   }
 
   function validateStep(currentStep = step) {
     const nextErrors: Record<string, string> = {};
-    if (currentStep === 0) {
-      if (!selectedCvId) nextErrors.cv = "Vui lòng chọn một CV.";
-      if (selectedCv && selectedCv.status !== "analyzed") nextErrors.cv = "Chỉ có thể ứng tuyển bằng CV đã phân tích thành công.";
-    }
-    if (currentStep === 2) {
-      const years = Number(answers.years);
-      const salary = Number(answers.salary);
-      const tomorrow = getTomorrowDateValue();
-      if (!answers.years.trim()) nextErrors.years = "Vui lòng nhập số năm kinh nghiệm.";
-      if (answers.years.trim() && (!Number.isInteger(years) || years < 0 || years > 100)) nextErrors.years = "Số năm kinh nghiệm phải là số nguyên từ 0 đến 100.";
-      if (!answers.startDate) nextErrors.startDate = "Vui lòng chọn ngày có thể bắt đầu.";
-      if (answers.startDate && answers.startDate < tomorrow) nextErrors.startDate = "Ngày có thể bắt đầu phải lớn hơn ngày hiện tại.";
-      if (!answers.salary.trim()) nextErrors.salary = "Vui lòng nhập mức lương mong muốn.";
-      if (answers.salary.trim() && (!Number.isInteger(salary) || salary <= 0 || salary > maxExpectedSalary)) nextErrors.salary = "Mức lương phải là số nguyên dương và không vượt quá 1.000.000.000 đồng.";
-      if (!answers.onsite) nextErrors.onsite = "Vui lòng chọn câu trả lời.";
-    }
-    if (currentStep === 3 && !confirmed) nextErrors.confirmed = "Bạn cần xác nhận thông tin chính xác trước khi gửi.";
+    if (currentStep === 2 && !confirmed) nextErrors.confirmed = "Bạn cần xác nhận thông tin chính xác trước khi gửi.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   function nextStep() {
     if (!validateStep()) return;
-    setStep((current) => Math.min(3, current + 1));
+    setStep((current) => Math.min(2, current + 1));
   }
 
   async function submitApplication() {
-    if (!job || !validateStep(3)) return;
+    if (!job || !validateStep(2)) return;
     if (hasApplied(job.id)) {
       showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
       return;
@@ -158,10 +130,10 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       const code = `APP-${response.data.data.id}`;
       applyToJob(job.id);
       setApplicationCode(code);
-      setStep(4);
+      setStep(3);
       showToast({ type: "success", title: "Ứng tuyển thành công", message: `Mã ứng tuyển của bạn là ${code}.` });
-    } catch {
-      showToast({ type: "error", title: "Không thể gửi ứng tuyển", message: "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau." });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể gửi ứng tuyển", message: getApiErrorMessage(error, "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau.") });
     } finally {
       setSubmitting(false);
     }
@@ -178,19 +150,18 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
         {step === 1 ? (
           <CoverLetterStep coverLetter={coverLetter} onChange={setCoverLetter} onUseTemplate={() => setCoverLetter(coverTemplate)} />
         ) : null}
-        {step === 2 ? <ScreeningStep answers={answers} errors={errors} onChange={setAnswers} /> : null}
-        {step === 3 && job ? (
-          <ReviewStep job={job} cv={selectedCv} coverLetter={coverLetter} answers={answers} confirmed={confirmed} error={errors.confirmed} onConfirm={setConfirmed} />
+        {step === 2 && job ? (
+          <ReviewStep job={job} cv={selectedCv} coverLetter={coverLetter} confirmed={confirmed} error={errors.confirmed} onConfirm={setConfirmed} />
         ) : null}
-        {step === 4 ? <SuccessStep applicationCode={applicationCode} /> : null}
+        {step === 3 ? <SuccessStep applicationCode={applicationCode} /> : null}
       </div>
 
-      {step < 4 ? (
+      {step < 3 ? (
         <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
           <Button variant="secondary" onClick={requestClose}>Đóng</Button>
           {step > 0 ? <Button variant="secondary" onClick={() => setStep((current) => current - 1)} disabled={submitting}>Quay lại</Button> : null}
-          {step < 3 ? <Button onClick={nextStep}>Tiếp tục</Button> : null}
-          {step === 3 ? <Button onClick={submitApplication} loading={submitting} disabled={submitting}>Gửi ứng tuyển</Button> : null}
+          {step < 2 ? <Button onClick={nextStep}>Tiếp tục</Button> : null}
+          {step === 2 ? <Button onClick={submitApplication} loading={submitting} disabled={submitting}>Gửi ứng tuyển</Button> : null}
         </div>
       ) : null}
     </Modal>
@@ -200,18 +171,29 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
 function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvId: string; error?: string; onSelect: (id: string) => void }) {
   return (
     <div className="space-y-4">
-      <SectionHeader title="Chọn CV" description="Chọn một CV đã phân tích thành công. CV chưa READY, đang phân tích hoặc lỗi sẽ bị khóa." />
+      <SectionHeader title="Chọn CV" description="CV là tùy chọn khi ứng tuyển. Bạn có thể gửi hồ sơ không kèm CV hoặc chọn một CV đã tải lên." />
       <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => onSelect("")}
+          className={`rounded-lg border p-4 text-left transition ${selectedCvId === "" ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"}`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold text-slate-950">Không đính kèm CV</p>
+              <p className="mt-1 text-sm text-slate-600">Chỉ gửi thư giới thiệu theo đúng dữ liệu backend hiện hỗ trợ.</p>
+            </div>
+            <StatusBadge label="Tùy chọn" />
+          </div>
+        </button>
         {cvs.map((cv) => {
           const status = cvStatusLabels[cv.status];
-          const disabled = cv.status !== "analyzed";
           return (
             <button
               key={cv.id}
               type="button"
-              disabled={disabled}
               onClick={() => onSelect(cv.id)}
-              className={`rounded-lg border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${selectedCvId === cv.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"}`}
+              className={`rounded-lg border p-4 text-left transition ${selectedCvId === cv.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -249,38 +231,10 @@ function CoverLetterStep({ coverLetter, onChange, onUseTemplate }: { coverLetter
   );
 }
 
-function ScreeningStep({ answers, errors, onChange }: { answers: ScreeningAnswers; errors: Record<string, string>; onChange: (answers: ScreeningAnswers) => void }) {
-  function update(key: keyof ScreeningAnswers, value: string) {
-    onChange({ ...answers, [key]: value });
-  }
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader title="Câu hỏi sàng lọc" description="Các câu hỏi bắt buộc giúp nhà tuyển dụng đánh giá nhanh mức độ phù hợp." />
-      <Input label="Bạn có bao nhiêu năm kinh nghiệm?" type="number" min="0" max="100" step="1" value={answers.years} error={errors.years} onChange={(event) => update("years", event.target.value)} />
-      <Input label="Khi nào bạn có thể bắt đầu?" type="date" min={getTomorrowDateValue()} value={answers.startDate} error={errors.startDate} onChange={(event) => update("startDate", event.target.value)} />
-      <Input label="Mức lương mong muốn? (đồng)" type="number" min="1" max={String(maxExpectedSalary)} step="1" value={answers.salary} error={errors.salary} onChange={(event) => update("salary", event.target.value)} />
-      <Select
-        label="Bạn có sẵn sàng onsite 3 ngày mỗi tuần không?"
-        value={answers.onsite}
-        error={errors.onsite}
-        onChange={(event) => update("onsite", event.target.value)}
-        options={[
-          { label: "Chọn câu trả lời", value: "" },
-          { label: "Có", value: "Có" },
-          { label: "Không", value: "Không" },
-          { label: "Có thể trao đổi thêm", value: "Có thể trao đổi thêm" },
-        ]}
-      />
-    </div>
-  );
-}
-
 function ReviewStep({
   job,
   cv,
   coverLetter,
-  answers,
   confirmed,
   error,
   onConfirm,
@@ -288,7 +242,6 @@ function ReviewStep({
   job: ApplyFlowJob;
   cv: Cv | null;
   coverLetter: string;
-  answers: ScreeningAnswers;
   confirmed: boolean;
   error?: string;
   onConfirm: (checked: boolean) => void;
@@ -301,21 +254,11 @@ function ReviewStep({
           <ReviewItem label="Công việc" value={job.title} />
           <ReviewItem label="Công ty" value={job.companyName} />
           <ReviewItem label="CV" value={cv?.fileName ?? "Chưa chọn"} />
-          <ReviewItem label="Thông tin liên hệ" value="Nguyễn Văn An · an.nguyen@example.com · 0901 234 567" />
         </div>
       </Card>
       <Card>
         <p className="text-sm font-semibold text-slate-950">Thư giới thiệu</p>
         <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">{coverLetter || "Không có thư giới thiệu."}</p>
-      </Card>
-      <Card>
-        <p className="text-sm font-semibold text-slate-950">Câu trả lời sàng lọc</p>
-        <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
-          <ReviewItem label="Số năm kinh nghiệm" value={`${answers.years} năm`} />
-          <ReviewItem label="Ngày có thể bắt đầu" value={formatDate(answers.startDate)} />
-          <ReviewItem label="Lương mong muốn" value={formatCurrencyVnd(answers.salary)} />
-          <ReviewItem label="Onsite 3 ngày/tuần" value={answers.onsite} />
-        </div>
       </Card>
       <Checkbox label="Tôi xác nhận thông tin ứng tuyển là chính xác." checked={confirmed} onChange={(event) => onConfirm(event.target.checked)} />
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -355,18 +298,6 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 function formatDate(value: string) {
   if (!value) return "";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
-}
-
-function getTomorrowDateValue() {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().slice(0, 10);
-}
-
-function formatCurrencyVnd(value: string) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return "Chưa cập nhật";
-  return `${new Intl.NumberFormat("vi-VN").format(amount)} đồng`;
 }
 
 async function getSelectableCvs(open: boolean): Promise<{ items: Cv[] }> {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../services/api/httpClient";
+import { getCurrentUserStorageScope } from "../utils/authStorageScope";
 import { useLocalStorageState } from "./useLocalStorageState";
 
 interface ApiResponse<T> {
@@ -22,22 +23,26 @@ interface SavedJobResponse {
 }
 
 export function useSavedJobs() {
-  const [savedJobIds, setSavedJobIds] = useLocalStorageState<string[]>("saved-job-ids", []);
+  const storageKey = useMemo(() => `saved-job-ids:${getCurrentUserStorageScope()}`, []);
+  const [savedJobIds, setSavedJobIds] = useLocalStorageState<string[]>(storageKey, []);
   const [syncing, setSyncing] = useState(false);
 
   const savedSet = useMemo(() => new Set(savedJobIds), [savedJobIds]);
 
   const refreshSavedJobs = useCallback(async () => {
-    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) return;
+    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) {
+      setSavedJobIds([]);
+      return;
+    }
     setSyncing(true);
     try {
-      const response = await httpClient.get<ApiResponse<PageResponse<SavedJobResponse>>>("/students/me/saved-jobs", {
-        params: { page: 1, size: 200 },
-      });
-      const activeIds = response.data.data.items
+      const data = await getAllSavedJobs();
+      const activeIds = data
         .filter((item) => !item.status || item.status === "ACTIVE")
         .map((item) => String(item.jobId));
       setSavedJobIds(activeIds);
+    } catch {
+      setSavedJobIds([]);
     } finally {
       setSyncing(false);
     }
@@ -73,4 +78,14 @@ export function useSavedJobs() {
     toggleSavedJob,
     refreshSavedJobs,
   };
+}
+
+async function getAllSavedJobs(page = 1, items: SavedJobResponse[] = []): Promise<SavedJobResponse[]> {
+  const response = await httpClient.get<ApiResponse<PageResponse<SavedJobResponse>>>("/students/me/saved-jobs", {
+    params: { page, size: 100 },
+  });
+  const data = response.data.data;
+  const nextItems = [...items, ...data.items];
+  if (data.page < data.totalPages) return getAllSavedJobs(page + 1, nextItems);
+  return nextItems;
 }

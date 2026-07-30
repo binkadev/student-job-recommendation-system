@@ -1,5 +1,5 @@
 import { LogOut, RotateCcw } from "lucide-react";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
 import { resetMockStorage } from "../../utils/localStorage";
 
@@ -12,7 +12,7 @@ export function RoleSwitcher() {
     showToast({
       type: "success",
       title: "Đã khôi phục dữ liệu mẫu",
-      message: "Dữ liệu localStorage của prototype đã được xóa.",
+      message: "Dữ liệu cục bộ trên trình duyệt đã được xóa.",
     });
   }
 

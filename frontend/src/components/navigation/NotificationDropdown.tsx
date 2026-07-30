@@ -1,6 +1,6 @@
 import { Bell } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 
 export function NotificationDropdown() {
   const { currentRole } = useAuth();

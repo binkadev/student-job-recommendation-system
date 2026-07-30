@@ -1,6 +1,6 @@
 import { Camera, LogOut, ShieldAlert, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";

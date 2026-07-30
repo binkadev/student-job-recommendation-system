@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/Textarea";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
 import { registerRequest } from "../../services/auth/authService";
 import type { RegisterRequest } from "../../types/auth";

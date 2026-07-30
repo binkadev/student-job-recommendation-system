@@ -14,7 +14,7 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
         <PageHeader title="Tạo lịch phỏng vấn" description="Backend hiện chưa có API tạo lịch phỏng vấn." />
         <UnsupportedInterviewCard
           title="Chưa thể tạo lịch phỏng vấn"
-          message="Frontend đã bỏ dữ liệu mock. Khi backend có endpoint interview, form tạo lịch sẽ gửi dữ liệu thật thay vì lưu giả."
+          message="Khi backend có endpoint interview, form tạo lịch sẽ gửi dữ liệu thật thay vì lưu cục bộ."
         />
       </PageContainer>
     );
@@ -26,7 +26,7 @@ export function RecruiterInterviewsPage({ mode = "list" }: { mode?: "list" | "cr
         <PageHeader title="Chi tiết phỏng vấn" description="Backend hiện chưa có API chi tiết lịch phỏng vấn." />
         <UnsupportedInterviewCard
           title="Không có dữ liệu phỏng vấn"
-          message="Trang chi tiết phỏng vấn không hiển thị dữ liệu mock vì backend chưa có bảng/API tương ứng."
+          message="Trang chi tiết phỏng vấn đang hiển thị dữ liệu 0 vì backend chưa có bảng/API tương ứng."
         />
       </PageContainer>
     );
@@ -60,7 +60,7 @@ function UnsupportedInterviewCard({ title, message }: { title: string; message: 
   return (
     <Card>
       <SectionHeader title={title} description={message} />
-      <EmptyState message="Chức năng này chưa có endpoint backend nên không hiển thị dữ liệu mock." />
+      <EmptyState message="Chức năng này chưa có endpoint backend nên đang hiển thị dữ liệu 0." />
       <div className="mt-4">
         <Link to="/recruiter/candidates"><Button>Quay lại ứng viên ứng tuyển</Button></Link>
       </div>

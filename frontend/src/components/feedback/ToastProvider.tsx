@@ -1,20 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-
-type ToastType = "success" | "error" | "info";
-
-interface Toast {
-  id: string;
-  title: string;
-  message?: string;
-  type: ToastType;
-}
-
-interface ToastContextValue {
-  showToast: (toast: Omit<Toast, "id">) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+import { ToastContext, type Toast, type ToastType } from "./toastContext";
 const TOAST_DEDUPE_WINDOW_MS = 1500;
 
 const toneClasses: Record<ToastType, string> = {
@@ -83,10 +69,4 @@ function createToastId() {
     return crypto.randomUUID();
   }
   return `toast-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within ToastProvider");
-  return context;
 }

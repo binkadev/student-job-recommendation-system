@@ -105,7 +105,7 @@ function SkillCategoryManager() {
 
   const skillsQuery = useAsyncData(() => getSkills(filters), [reloadKey, filters.keyword, filters.category, filters.page]);
   const result = skillsQuery.data;
-  const skills = result?.items ?? [];
+  const skills = useMemo(() => result?.items ?? [], [result?.items]);
   const categoryOptions = useMemo(() => unique(skills.map((skill) => skill.category).filter((value): value is string => Boolean(value))).map((value) => ({ label: value, value })), [skills]);
 
   function updateFilter<Key extends keyof SkillFilters>(key: Key, value: SkillFilters[Key]) {
@@ -204,7 +204,7 @@ function UnsupportedCategoryManager({ categoryType }: { categoryType: CategoryTy
     <PageContainer>
       <PageHeader title={`Quản lý ${label.toLowerCase()}`} description="Danh mục này chưa có API/backend riêng trong scope hiện tại." />
       <Card>
-        <EmptyState message={`Backend hiện chưa có API quản lý ${label.toLowerCase()}. Trang chỉ giữ khung điều hướng admin, không hiển thị dữ liệu mock.`} />
+        <EmptyState message={`Backend hiện chưa có API quản lý ${label.toLowerCase()}. Trang đang hiển thị dữ liệu 0 theo trạng thái hiện có.`} />
         <div className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <Info label="Bảng DB hiện có" value="skills" />
           <Info label="API danh mục hiện có" value="/api/skills" />

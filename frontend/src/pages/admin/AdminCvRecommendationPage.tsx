@@ -117,7 +117,7 @@ function CvAnalysisPage({ mode }: { mode: "cv" | "errors" }) {
           ]}
         />
         <div className="mt-4">
-          <EmptyState message="Chưa có API admin CV nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+          <EmptyState message="Chưa có API admin CV nên bảng đang hiển thị 0 dòng." />
         </div>
       </div>
 
@@ -187,7 +187,7 @@ function RecommendationConfigurationPage() {
     <PageContainer>
       <PageHeader title="Cấu hình gợi ý" description="Phần cấu hình thuật toán chưa có DB/API admin. Thuật toán gợi ý theo CV sẽ làm sau." />
       <Card>
-        <EmptyState message="Backend hiện chưa có bảng/API lưu cấu hình trọng số thuật toán. Trang không dùng cấu hình mock." />
+        <EmptyState message="Backend hiện chưa có bảng/API lưu cấu hình trọng số thuật toán. Trang đang khóa phần cấu hình này." />
         <div className="mt-5 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <Info label="Cấu hình trọng số" value="Chưa có API" />
           <Info label="Preview match score" value="Chưa có API" />

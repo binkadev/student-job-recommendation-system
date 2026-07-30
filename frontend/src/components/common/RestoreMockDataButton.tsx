@@ -28,8 +28,8 @@ export function RestoreMockDataButton() {
       <Modal open={open} title="Khôi phục dữ liệu mẫu" onClose={() => setOpen(false)}>
         <ConfirmDialog
           danger
-          title="Xóa dữ liệu mock đã thay đổi?"
-          description="Hành động này sẽ xóa dữ liệu mock trong localStorage. Dữ liệu ban đầu sẽ được tạo lại khi bạn mở lại các danh sách."
+          title="Xóa dữ liệu cục bộ đã thay đổi?"
+          description="Hành động này sẽ xóa dữ liệu cục bộ trong trình duyệt. Dữ liệu ban đầu sẽ được tạo lại khi bạn mở lại các danh sách."
           confirmLabel="Khôi phục"
           onCancel={() => setOpen(false)}
           onConfirm={() => void handleRestore()}

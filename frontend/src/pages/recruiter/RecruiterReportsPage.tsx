@@ -119,8 +119,8 @@ export function RecruiterReportsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const reportQuery = useAsyncData(() => getRecruiterReportData(), []);
 
-  const jobs = reportQuery.data?.jobs ?? [];
-  const applications = reportQuery.data?.applications ?? [];
+  const jobs = useMemo(() => reportQuery.data?.jobs ?? [], [reportQuery.data?.jobs]);
+  const applications = useMemo(() => reportQuery.data?.applications ?? [], [reportQuery.data?.applications]);
   const jobOptions = useMemo(() => jobs.map((job) => ({ label: job.title, value: String(job.id) })), [jobs]);
   const monthRangeError = fromMonth && toMonth && fromMonth > toMonth ? "Từ tháng phải nhỏ hơn hoặc bằng đến tháng." : "";
   const filteredApplications = useMemo(() => {

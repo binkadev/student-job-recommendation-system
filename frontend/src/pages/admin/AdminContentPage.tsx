@@ -59,7 +59,7 @@ export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind 
 
       <Card className="mb-5">
         <p className="text-sm font-medium text-slate-900">Tổng nội dung: 0</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chưa có bảng/API cho articles, banners hoặc content pages. Trang không dùng dữ liệu mock.</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Backend chưa có bảng/API cho articles, banners hoặc content pages. Trang chỉ hiển thị dữ liệu 0 từ trạng thái hiện có.</p>
       </Card>
 
       <Table
@@ -74,7 +74,7 @@ export function AdminContentPage({ mode = "all" }: { mode?: "all" | ContentKind 
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API content nên bảng đang hiển thị 0 dòng, không dùng dữ liệu hard-code." />
+        <EmptyState message="Chưa có API content nên bảng đang hiển thị 0 dòng." />
       </div>
 
       <Card className="mt-5">

@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../app/providers/AuthProvider";
+import { useAuth } from "../hooks/useAuth";
 import type { UserRole } from "../types/auth";
 
 const dashboardByRole: Record<UserRole, string> = {

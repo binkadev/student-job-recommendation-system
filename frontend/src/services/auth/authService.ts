@@ -16,10 +16,17 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
-export function mapBackendRole(role: BackendUserRole): UserRole {
-  if (role === "STUDENT") return "candidate";
-  if (role === "COMPANY") return "recruiter";
-  return "admin";
+export function mapBackendRole(role: BackendUserRole | string | null): UserRole {
+  switch (role) {
+    case "STUDENT":
+      return "candidate";
+    case "COMPANY":
+      return "recruiter";
+    case "ADMIN":
+      return "admin";
+    default:
+      throw new Error("Unsupported role");
+  }
 }
 
 export function mapAuthUser(user: AuthUserResponse): CurrentUser {

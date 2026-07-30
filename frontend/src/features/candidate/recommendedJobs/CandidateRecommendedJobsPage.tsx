@@ -15,6 +15,7 @@ import { Select } from "../../../components/ui/Select";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
 import { useToast } from "../../../hooks/useToast";
+import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 import { formatExperience } from "../../public/jobs/experienceDisplay";
 import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
@@ -73,6 +74,7 @@ export function CandidateRecommendedJobsPage() {
   const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
   const latestRun = runsQuery.data?.[0];
   const latestRunSuccess = latestRun?.status === "SUCCESS";
+  const latestRunBlocksCurrentResults = Boolean(latestRun && latestRun.status !== "SUCCESS");
   const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
   const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
   const successfulRuns = useMemo(
@@ -80,12 +82,12 @@ export function CandidateRecommendedJobsPage() {
     [latestRun?.id, runsQuery.data],
   );
   const jobsQuery = useAsyncData(
-    () => (latestRunSuccess && !selectedRunId ? getRecommendedJobs(filters, showHidden ? [] : hiddenIds) : Promise.resolve([])),
-    [latestRun?.id, latestRun?.status, selectedRunId, filters, hiddenIds, showHidden, reloadKey],
+    () => (!selectedRunId && !latestRunBlocksCurrentResults ? getRecommendedJobs() : Promise.resolve([])),
+    [latestRunBlocksCurrentResults, selectedRunId, reloadKey],
   );
   const displayJobs = useMemo(() => {
     const sourceJobs = showingHistoricalRun ? runDetailQuery.data?.results ?? [] : jobsQuery.data ?? [];
-    return filterRecommendedJobs(sourceJobs, filters, showHidden ? [] : hiddenIds, showHidden);
+    return filterRecommendedJobs(sourceJobs, filters, hiddenIds, showHidden);
   }, [filters, hiddenIds, jobsQuery.data, runDetailQuery.data?.results, showingHistoricalRun, showHidden]);
   const options = useMemo(() => getRecommendedFilterOptions(displayJobs), [displayJobs]);
   const readyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => cv.ready), [cvsQuery.data]);
@@ -164,7 +166,7 @@ export function CandidateRecommendedJobsPage() {
       showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại từ backend." });
       setReloadKey((current) => current + 1);
     } catch (error) {
-      showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getApiErrorMessage(error) });
     } finally {
       generatingRef.current = false;
       setGenerating(false);
@@ -238,6 +240,9 @@ export function CandidateRecommendedJobsPage() {
             <p className="mt-2 text-sm leading-6 text-red-700">{latestRun.errorMessage ?? "Không thể tạo danh sách gợi ý mới. Vui lòng thử lại hoặc chọn một run SUCCESS trong lịch sử."}</p>
           </div>
         ) : null}
+        {runsQuery.error ? (
+          <p className="mt-3 text-sm text-amber-700">Không tải được lịch sử run. Kết quả hiện tại vẫn được lấy trực tiếp từ backend nếu có.</p>
+        ) : null}
         {showingHistoricalRun ? (
           <p className="mt-3 text-sm text-amber-700">Bạn đang xem kết quả lịch sử từ run #{runDetailQuery.data?.run.id}, không phải kết quả hiện tại.</p>
         ) : null}
@@ -292,9 +297,9 @@ export function CandidateRecommendedJobsPage() {
 
       {jobsQuery.loading || runDetailQuery.loading ? (
         <LoadingState />
-      ) : jobsQuery.error && latestRunSuccess && !selectedRunId ? (
+      ) : jobsQuery.error && !latestRunBlocksCurrentResults && !selectedRunId ? (
         <EmptyState message={jobsQuery.error} />
-      ) : latestRun && !latestRunSuccess && !selectedRunId ? (
+      ) : latestRunBlocksCurrentResults && !selectedRunId ? (
         <EmptyState message="Run mới nhất chưa có kết quả SUCCESS để hiển thị." />
       ) : pagedJobs.length === 0 ? (
         <EmptyState message={showHidden ? "Chưa có việc làm nào bị ẩn." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
@@ -349,6 +354,8 @@ function RecommendedJobCard({
   onOpenAnalysis: () => void;
   onApply: () => void;
 }) {
+  const unavailable = job.status === "unavailable";
+
   return (
     <Card>
       <div className="grid gap-4 lg:grid-cols-[116px_1fr]">
@@ -373,6 +380,7 @@ function RecommendedJobCard({
             </div>
             <div className="flex flex-wrap gap-2">
               {hidden ? <StatusBadge label="Đã ẩn" tone="warning" /> : null}
+              {unavailable ? <StatusBadge label="Không còn khả dụng" tone="danger" /> : null}
               <StatusBadge label={job.industry} />
             </div>
           </div>
@@ -396,7 +404,7 @@ function RecommendedJobCard({
             <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
               {saved ? "Bỏ lưu" : "Lưu"}
             </Button>
-            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
+            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied || unavailable}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
             <Link to={`/candidate/jobs/${job.id}`}>
               <Button variant="secondary" size="sm">Xem chi tiết</Button>
             </Link>
@@ -504,12 +512,4 @@ function normalizeText(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-}
-
-function getErrorMessage(error: unknown) {
-  if (typeof error === "object" && error && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message ?? "Vui long thu lai sau.";
-  }
-  return "Vui long thu lai sau.";
 }

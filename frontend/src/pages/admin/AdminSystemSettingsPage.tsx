@@ -10,8 +10,7 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Switch } from "../../components/ui/Switch";
 import { Tabs } from "../../components/ui/Tabs";
-import { useToast } from "../../hooks/useToast";
-import { getSystemSettings, setSystemSettings } from "../../utils/systemSettings";
+import { getSystemSettings } from "../../utils/systemSettings";
 
 type SettingsTab = "general" | "cv" | "jobs" | "email" | "notifications" | "security" | "privacy";
 
@@ -27,13 +26,7 @@ const tabs = [
 
 export function AdminSystemSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-  const { showToast } = useToast();
   const [settings, setSettings] = useState(() => getSystemSettings());
-
-  function saveCvSettings() {
-    setSystemSettings(settings);
-    showToast({ type: "success", title: "Đã cập nhật cấu hình CV", message: "Trang CV ứng viên sẽ áp dụng cấu hình mới trong frontend." });
-  }
 
   return (
     <PageContainer>
@@ -51,7 +44,7 @@ export function AdminSystemSettingsPage() {
       <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
         <div>
           {activeTab === "general" ? <GeneralSettings /> : null}
-          {activeTab === "cv" ? <CvUploadSettings settings={settings.cv} onChange={(cv) => setSettings((current) => ({ ...current, cv }))} onSave={saveCvSettings} /> : null}
+          {activeTab === "cv" ? <CvUploadSettings settings={settings.cv} onChange={(cv) => setSettings((current) => ({ ...current, cv }))} /> : null}
           {activeTab === "jobs" ? <JobsSettings /> : null}
           {activeTab === "email" ? <EmailSettings /> : null}
           {activeTab === "notifications" ? <NotificationSettings /> : null}
@@ -61,7 +54,7 @@ export function AdminSystemSettingsPage() {
 
         <Card>
           <SectionHeader title="System settings API" />
-          <EmptyState message="Chưa có bảng/API lưu cấu hình hệ thống. Các field đang bị khóa để tránh hiểu nhầm là đã lưu được." />
+          <EmptyState message="Chưa có bảng/API lưu cấu hình hệ thống. Các giá trị CV chỉ là cấu hình cục bộ frontend đang dùng để kiểm tra form, không phải cấu hình backend hay DB." />
           <div className="mt-5 flex flex-wrap gap-2">
             {["setting_key", "setting_value", "setting_group", "description", "updated_by", "created_at", "updated_at"].map((field) => <StatusBadge key={field} label={field} />)}
           </div>
@@ -77,7 +70,7 @@ function GeneralSettings() {
       <SectionHeader title="General" />
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Tên hệ thống" value="" onChange={() => undefined} placeholder="setting_key: system.name" disabled />
-        <Input label="Logo placeholder" value="" onChange={() => undefined} placeholder="setting_key: system.logo_placeholder" disabled />
+        <Input label="Logo hệ thống" value="" onChange={() => undefined} placeholder="setting_key: system.logo" disabled />
         <Input label="Support email" value="" onChange={() => undefined} placeholder="setting_key: system.support_email" disabled />
         <Select label="Ngôn ngữ mặc định" value="" onChange={() => undefined} options={[{ label: "Chưa có API", value: "" }]} disabled />
         <Select label="Timezone" value="" onChange={() => undefined} options={[{ label: "Chưa có API", value: "" }]} disabled />
@@ -89,23 +82,21 @@ function GeneralSettings() {
 function CvUploadSettings({
   settings,
   onChange,
-  onSave,
 }: {
   settings: { maxFileSizeMb: number; maxCvsPerUser: number };
   onChange: (settings: { maxFileSizeMb: number; maxCvsPerUser: number }) => void;
-  onSave: () => void;
 }) {
   return (
     <Card>
       <SectionHeader title="CV Upload" />
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="File type cho phép" value="PDF,DOCX" onChange={() => undefined} disabled />
-        <Input label="Dung lượng tối đa (MB)" type="number" min="1" value={String(settings.maxFileSizeMb)} onChange={(event) => onChange({ ...settings, maxFileSizeMb: Math.max(1, Number(event.target.value) || 1) })} />
-        <Input label="Số CV tối đa mỗi ứng viên" type="number" min="1" value={String(settings.maxCvsPerUser)} onChange={(event) => onChange({ ...settings, maxCvsPerUser: Math.max(1, Number(event.target.value) || 1) })} />
+        <Input label="Dung lượng tối đa FE đang hiển thị (MB)" type="number" min="1" value={String(settings.maxFileSizeMb)} onChange={(event) => onChange({ ...settings, maxFileSizeMb: Math.max(1, Number(event.target.value) || 1) })} disabled />
+        <Input label="Số CV tối đa FE đang hiển thị" type="number" min="1" value={String(settings.maxCvsPerUser)} onChange={(event) => onChange({ ...settings, maxCvsPerUser: Math.max(1, Number(event.target.value) || 1) })} disabled />
         <Input label="Analysis timeout (giây)" type="number" value="" onChange={() => undefined} disabled />
       </div>
       <div className="mt-5">
-        <Button onClick={onSave}>Cập nhật cấu hình</Button>
+        <Button disabled>Chưa có API lưu cấu hình</Button>
       </div>
     </Card>
   );

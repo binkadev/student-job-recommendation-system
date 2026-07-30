@@ -1,7 +1,7 @@
 import { ChevronDown, LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 
 export function UserDropdown() {
   const { currentUser, logout } = useAuth();

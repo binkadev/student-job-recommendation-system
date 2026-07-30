@@ -16,6 +16,8 @@ import { useAsyncData } from "../../hooks/useAsyncData";
 import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
+import { getApiErrorMessage } from "../../utils/apiErrors";
+import { getCurrentUserStorageScope } from "../../utils/authStorageScope";
 import { getSystemSettings } from "../../utils/systemSettings";
 
 interface CandidateCvsPageProps {
@@ -50,7 +52,7 @@ interface CvAnalysisResponse {
   processedText?: string | null;
   skills?: string[] | null;
   status?: string | null;
-  errorMessage?: string | null;
+  analysisError?: string | null;
   uploadedAt?: string | null;
   updatedAt?: string | null;
 }
@@ -64,13 +66,18 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [active, setActive] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [hiddenCvIds, setHiddenCvIds] = useLocalStorageState<string[]>("candidate-hidden-cv-ids", []);
+  const hiddenCvStorageKey = useMemo(() => `candidate-hidden-cv-ids:${getCurrentUserStorageScope()}`, []);
+  const [hiddenCvIds, setHiddenCvIds] = useLocalStorageState<string[]>(hiddenCvStorageKey, []);
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
   const cvSettings = getSystemSettings().cv;
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
-  const cvs = (cvsQuery.data ?? []).filter((cv) => !hiddenCvIds.includes(String(cv.id)));
-  const selectedCv = useMemo(() => cvs.find((cv) => String(cv.id) === cvId) ?? cvs[0], [cvId, cvs]);
-  const reachedCvLimit = cvs.length >= cvSettings.maxCvsPerUser;
+  const allCvs = cvsQuery.data ?? [];
+  const cvs = allCvs.filter((cv) => !hiddenCvIds.includes(String(cv.id)));
+  const selectedCv = useMemo(() => {
+    if (cvId) return cvs.find((cv) => String(cv.id) === cvId) ?? null;
+    return cvs[0] ?? null;
+  }, [cvId, cvs]);
+  const reachedCvLimit = allCvs.length >= cvSettings.maxCvsPerUser;
 
   function handleFile(file: File) {
     const error = validateFile(file, cvSettings.maxFileSizeMb);
@@ -118,7 +125,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã xóa CV", message: cv.originalFileName });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể xóa CV", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể xóa CV", message: getApiErrorMessage(error) });
     }
   }
 
@@ -129,7 +136,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       window.open(blobUrl, "_blank", "noopener,noreferrer");
       window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
     } catch (error) {
-      showToast({ type: "error", title: "Không thể mở CV", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể mở CV", message: getApiErrorMessage(error) });
     }
   }
 
@@ -158,7 +165,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
           <Card>
             <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, tối đa ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
-            {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng ẩn bớt CV trên giao diện trước khi upload thêm.`} /></div> : null}
+            {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng xóa CV không còn dùng trước khi upload thêm.`} /></div> : null}
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
 
             {selectedFile ? (
@@ -201,6 +208,14 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             </div>
           </Card>
         </div>
+      </PageContainer>
+    );
+  }
+
+  if ((mode === "detail" || mode === "analysis" || mode === "edit-extracted" || mode === "review") && cvId && !selectedCv && !cvsQuery.loading) {
+    return (
+      <PageContainer>
+        <ErrorState message="Không tìm thấy CV phù hợp." />
       </PageContainer>
     );
   }
@@ -283,7 +298,7 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
       showToast({ type: "success", title: "Đã đặt CV active", message: cv.originalFileName });
       navigate("/candidate/cvs");
     } catch (error) {
-      showToast({ type: "error", title: "Không thể đặt CV active", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể đặt CV active", message: getApiErrorMessage(error) });
     }
   }
 
@@ -291,7 +306,7 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
     try {
       await openCandidateCvFile(cv.id);
     } catch (error) {
-      showToast({ type: "error", title: "Không thể mở CV", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể mở CV", message: getApiErrorMessage(error) });
     }
   }
 
@@ -358,7 +373,7 @@ function CvAnalysisView({
 }: {
   mode: Exclude<NonNullable<CandidateCvsPageProps["mode"]>, "list" | "upload" | "detail">;
   cvId: string;
-  fallbackCv?: CvFileResponse;
+  fallbackCv?: CvFileResponse | null;
   onReload: () => void;
 }) {
   const { showToast } = useToast();
@@ -378,7 +393,7 @@ function CvAnalysisView({
       setReloadKey((current) => current + 1);
       onReload();
     } catch (error) {
-      showToast({ type: "error", title: "Không thể phân tích lại CV", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể phân tích lại CV", message: getApiErrorMessage(error) });
     } finally {
       setReanalyzing(false);
     }
@@ -462,7 +477,7 @@ function CvAnalysisView({
           {analysisFailed ? (
             <Card>
               <SectionHeader title="Phân tích thất bại" />
-              <EmptyState message={analysis?.errorMessage ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
+              <EmptyState message={analysis?.analysisError ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
               <div className="mt-4">
                 <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
               </div>
@@ -620,13 +635,5 @@ function formatFileSize(size?: number | null) {
 function formatDateTime(value?: string | null) {
   if (!value) return "Chưa cập nhật";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function getErrorMessage(error: unknown) {
-  if (typeof error === "object" && error && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message ?? "Vui lòng thử lại.";
-  }
-  return "Vui lòng thử lại.";
 }
 

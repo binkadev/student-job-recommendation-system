@@ -87,7 +87,7 @@ export async function getPublicJobs(filters: JobsListFilters): Promise<JobsListR
     },
   });
   const data = response.data.data;
-  const items = data.items.map(mapJob).filter((job) => matchesClientFilters(job, filters));
+  const items = data.items.map(mapJob);
 
   return {
     items,
@@ -127,29 +127,6 @@ function mapJob(job: PublicJobResponse): PublicJobListItem {
 
 function getApplicantCount(job: PublicJobResponse) {
   return Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0);
-}
-
-function matchesClientFilters(job: PublicJobListItem, filters: JobsListFilters) {
-  const keyword = normalizeText(filters.keyword.trim());
-  const searchable = normalizeText(`${job.title} ${job.companyName} ${job.skills.join(" ")}`);
-  const matchKeyword = !keyword || searchable.includes(keyword);
-  const matchLocation = !filters.location || normalizeLocation(job.location).includes(normalizeLocation(filters.location));
-  return matchKeyword && matchLocation;
-}
-
-function normalizeLocation(value: string) {
-  const normalized = normalizeText(value).replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
-  if (/\b(hcm|hcmc|ho chi minh|ho chi minh city|sai gon|saigon)\b/.test(normalized)) return "ho chi minh";
-  if (/\b(ha noi|hanoi)\b/.test(normalized)) return "ha noi";
-  if (/\b(da nang|danang)\b/.test(normalized)) return "da nang";
-  return normalized;
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
 }
 
 function formatSalary(job: Pick<PublicJobResponse, "salaryMin" | "salaryMax" | "currency">) {

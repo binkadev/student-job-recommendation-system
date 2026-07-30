@@ -1,6 +1,6 @@
 export type UserRole = "candidate" | "recruiter" | "admin";
 export type BackendUserRole = "STUDENT" | "COMPANY" | "ADMIN";
-export type BackendUserStatus = "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED";
+export type BackendUserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 export interface CurrentUser {
   id: string;
@@ -18,7 +18,7 @@ export interface AuthUserResponse {
   email: string;
   fullName: string;
   phone?: string | null;
-  role: BackendUserRole;
+  role: BackendUserRole | string | null;
   status: BackendUserStatus;
   lastLoginAt?: string | null;
   createdAt?: string;

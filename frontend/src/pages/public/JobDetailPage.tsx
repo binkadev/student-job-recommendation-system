@@ -1,7 +1,7 @@
 import { BriefcaseBusiness, Building2, CalendarDays, Copy, MapPin, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";

@@ -1,7 +1,7 @@
 import { ArrowRight, FileUp, Search } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";

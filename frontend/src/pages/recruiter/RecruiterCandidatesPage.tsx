@@ -18,6 +18,7 @@ import { Table } from "../../components/ui/Table";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 interface RecruiterCandidatesPageProps {
   mode?: "list" | "detail" | "evaluation" | "pipeline" | "recommended" | "saved" | "search";
@@ -91,6 +92,8 @@ interface ApplicationListQuery {
   keyword: string;
   status: string;
   jobId: string;
+  appliedFrom: string;
+  appliedTo: string;
   sort: string;
   jobIds: number[];
 }
@@ -172,22 +175,16 @@ function ApplicationsListPage({
     keyword: query,
     status: statusFilter,
     jobId: jobFilter,
+    appliedFrom,
+    appliedTo,
     sort: sortOrder,
     jobIds: jobs.map((job) => job.id),
-  }), [page, query, statusFilter, jobFilter, sortOrder, jobIdsKey, reloadKey]);
+  }), [page, query, statusFilter, jobFilter, appliedFrom, appliedTo, sortOrder, jobIdsKey, reloadKey]);
   const applicationsPage = applicationsQuery.data;
   const applications = useMemo(() => applicationsPage?.items ?? [], [applicationsPage?.items]);
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
   const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
-  const filteredApplications = useMemo(() => {
-    if (dateRangeError) return [];
-    return applications.filter((application) => {
-      const appliedDate = application.appliedAt.slice(0, 10);
-      const matchFrom = !appliedFrom || appliedDate >= appliedFrom;
-      const matchTo = !appliedTo || appliedDate <= appliedTo;
-      return matchFrom && matchTo;
-    });
-  }, [applications, appliedFrom, appliedTo, dateRangeError]);
+  const filteredApplications = dateRangeError ? [] : applications;
 
   async function changeStatus(application: ApplicationResponse, status: ApplicationStatus) {
     if (!canChangeApplicationStatus(application.status, status)) {
@@ -202,7 +199,7 @@ function ApplicationsListPage({
       setSelectedApplication(null);
       setReloadKey((current) => current + 1);
     } catch (updateError) {
-      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getErrorMessage(updateError) });
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getApiErrorMessage(updateError) });
     } finally {
       setUpdating(false);
     }
@@ -214,7 +211,7 @@ function ApplicationsListPage({
       setSavedReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getApiErrorMessage(error) });
     }
   }
 
@@ -313,7 +310,7 @@ function ApplicationDetailPage({
       showToast({ type: "success", title: "Đã cập nhật trạng thái ứng tuyển", message: APPLICATION_STATUS_LABELS[nextStatus] });
       onReload();
     } catch (updateError) {
-      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getErrorMessage(updateError) });
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getApiErrorMessage(updateError) });
     } finally {
       setUpdating(false);
     }
@@ -325,7 +322,7 @@ function ApplicationDetailPage({
       setSavedReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getApiErrorMessage(error) });
     }
   }
 
@@ -433,7 +430,7 @@ function SavedCandidatesPage() {
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã bỏ lưu hồ sơ ứng viên" });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể bỏ lưu hồ sơ", message: getErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể bỏ lưu hồ sơ", message: getApiErrorMessage(error) });
     }
   }
 
@@ -566,7 +563,7 @@ function UnsupportedCandidateMode({ mode }: { mode: "recommended" | "saved" | "s
     <PageContainer>
       <PageHeader title={title} description="Backend hiện chưa có API riêng cho chức năng này." />
       <Card>
-        <EmptyState message="Chức năng này chưa có endpoint backend nên không hiển thị dữ liệu mock." />
+        <EmptyState message="Chức năng này chưa có endpoint backend nên đang hiển thị dữ liệu 0." />
         <div className="mt-4">
           <Link to="/recruiter/candidates"><Button>Quay lại ứng viên ứng tuyển</Button></Link>
         </div>
@@ -596,6 +593,10 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 async function getCompanyApplicationsPage(query: ApplicationListQuery) {
+  if (query.appliedFrom || query.appliedTo) {
+    return getCompanyApplicationsByJobs(query);
+  }
+
   try {
     const response = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
       params: {
@@ -608,10 +609,9 @@ async function getCompanyApplicationsPage(query: ApplicationListQuery) {
       },
     });
     const page = response.data.data;
-    const visibleItems = filterVisibleApplicationsForRecruiter(page.items);
-    const sortedItems = sortApplicationsForRecruiter(visibleItems, query.sort);
+    const sortedItems = sortApplicationsForRecruiter(page.items, query.sort);
     if (page.totalItems > 0 || query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
-      return { ...page, items: sortedItems, totalItems: visibleItems.length, totalPages: Math.max(1, Math.ceil(visibleItems.length / query.size)) };
+      return { ...page, items: sortedItems };
     }
   } catch {
     if (query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
@@ -628,10 +628,10 @@ async function getCompanyApplicationsByJobs(query: ApplicationListQuery): Promis
   );
   const applications = responses
     .flatMap((response) => response.status === "fulfilled" ? response.value.data.data : [])
-    .filter((application, index, list) => list.findIndex((item) => item.id === application.id) === index);
-  const visibleApplications = filterVisibleApplicationsForRecruiter(applications);
-  const sortedApplications = sortApplicationsForRecruiter(visibleApplications, query.sort);
-  const totalItems = visibleApplications.length;
+    .filter((application, index, list) => list.findIndex((item) => item.id === application.id) === index)
+    .filter((application) => matchesApplicationQuery(application, query));
+  const sortedApplications = sortApplicationsForRecruiter(applications, query.sort);
+  const totalItems = applications.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / query.size));
   const currentPage = Math.min(Math.max(query.page, 1), totalPages);
   const start = (currentPage - 1) * query.size;
@@ -647,9 +647,6 @@ async function getCompanyApplicationsByJobs(query: ApplicationListQuery): Promis
 
 async function getCompanyApplicationDetail(applicationId: number) {
   const response = await httpClient.get<ApiResponse<ApplicationResponse>>(`/companies/me/applications/${applicationId}`);
-  if (response.data.data.status === "WITHDRAWN") {
-    throw new Error("Hồ sơ ứng tuyển này đã được ứng viên rút và không còn hiển thị cho nhà tuyển dụng.");
-  }
   return response.data.data;
 }
 
@@ -731,8 +728,16 @@ function hasAllowedStatusTransition(currentStatus: ApplicationStatus) {
   return getAllowedNextStatuses(currentStatus).length > 0;
 }
 
-function filterVisibleApplicationsForRecruiter(applications: ApplicationResponse[]) {
-  return applications.filter((application) => application.status !== "WITHDRAWN");
+function matchesApplicationQuery(application: ApplicationResponse, query: ApplicationListQuery) {
+  const keyword = query.keyword.trim().toLowerCase();
+  const appliedDate = application.appliedAt.slice(0, 10);
+  const matchesKeyword = !keyword || [application.studentName, application.studentEmail, application.jobTitle, application.cvFileName]
+    .some((value) => value?.toLowerCase().includes(keyword));
+  const matchesStatus = !query.status || application.status === query.status;
+  const matchesJob = !query.jobId || String(application.jobId) === query.jobId;
+  const matchesFrom = !query.appliedFrom || appliedDate >= query.appliedFrom;
+  const matchesTo = !query.appliedTo || appliedDate <= query.appliedTo;
+  return matchesKeyword && matchesStatus && matchesJob && matchesFrom && matchesTo;
 }
 
 function sortApplicationsForRecruiter(applications: ApplicationResponse[], sort: string) {
@@ -770,7 +775,7 @@ async function openApplicationCv(application: ApplicationResponse, showToast: Re
     showToast({
       type: "error",
       title: "Không thể mở CV",
-      message: getErrorMessage(error),
+      message: getApiErrorMessage(error),
     });
   }
 }
@@ -781,12 +786,4 @@ function unsupportedToast(showToast: ReturnType<typeof useToast>["showToast"], f
     title: "Chức năng chưa có API backend",
     message: `${feature} hiện chưa có endpoint để xử lý dữ liệu thật.`,
   });
-}
-
-function getErrorMessage(error: unknown) {
-  if (typeof error === "object" && error && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message ?? "Vui lòng thử lại.";
-  }
-  return "Vui lòng thử lại.";
 }

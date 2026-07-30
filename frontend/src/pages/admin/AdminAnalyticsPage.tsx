@@ -85,7 +85,7 @@ export function AdminAnalyticsPage({ mode = "analytics" }: { mode?: "analytics" 
 
 function AnalyticsPage() {
   const analyticsQuery = useAsyncData(getAnalyticsData, []);
-  const jobs = analyticsQuery.data?.jobs ?? [];
+  const jobs = useMemo(() => analyticsQuery.data?.jobs ?? [], [analyticsQuery.data?.jobs]);
   const totalJobs = analyticsQuery.data?.totalJobs ?? 0;
   const totalUsers = analyticsQuery.data?.totalUsers ?? 0;
   const totalCompanies = analyticsQuery.data?.totalCompanies ?? 0;
@@ -188,7 +188,7 @@ function AuditLogsPage() {
         ]}
       />
       <div className="mt-4">
-        <EmptyState message="Chưa có API audit logs nên bảng đang hiển thị 0 dòng, không dùng dữ liệu mock." />
+        <EmptyState message="Chưa có API audit logs nên bảng đang hiển thị 0 dòng." />
       </div>
     </PageContainer>
   );

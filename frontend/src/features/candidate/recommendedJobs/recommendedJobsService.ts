@@ -1,6 +1,7 @@
 import { httpClient } from "../../../services/api/httpClient";
+import { getCurrentUserStorageScope } from "../../../utils/authStorageScope";
 import { getPublicJobDetail } from "../../public/jobs/jobDetailService";
-import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun, RecommendedJobFilters } from "./recommendedJobsTypes";
+import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun } from "./recommendedJobsTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -57,36 +58,26 @@ interface CvAnalysisResponse {
   status?: string | null;
 }
 
+const recommendedJobStateStoragePrefix = "candidate-recommended-job-state";
+
 export function getRecommendedJobState() {
-  return {
-    hiddenIds: [],
-    notInterestedIds: [],
-  };
+  return readRecommendedJobState();
 }
 
 export function saveRecommendedJobState(hiddenIds: string[], notInterestedIds: string[]) {
-  void hiddenIds;
-  void notInterestedIds;
+  writeRecommendedJobState({
+    hiddenIds: Array.from(new Set(hiddenIds)),
+    notInterestedIds: Array.from(new Set(notInterestedIds)),
+  });
 }
 
-export async function getRecommendedJobs(filters: RecommendedJobFilters, hiddenIds: string[]) {
+const jobDetailCache = new Map<string, ReturnType<typeof getPublicJobDetail>>();
+
+export async function getRecommendedJobs() {
   const response = await httpClient.get<ApiResponse<RecommendationResultResponse[]>>("/students/me/recommendation-results/latest");
   const items = response.data.data ?? [];
   const jobs = await Promise.all(items.map(mapRecommendationResult));
-  return jobs
-    .filter((job) => {
-      const matchHidden = !hiddenIds.includes(job.id);
-      const matchScore = job.matchScore >= filters.minMatch;
-      const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
-      const matchIndustry = !filters.industry || job.industry === filters.industry;
-      const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
-      const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
-      return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
-    })
-    .sort((a, b) => {
-      if (a.rankPosition != null && b.rankPosition != null) return a.rankPosition - b.rankPosition;
-      return b.matchScore - a.matchScore;
-    });
+  return sortRecommendedJobs(jobs);
 }
 
 export async function getRecommendationRuns(): Promise<RecommendationRun[]> {
@@ -107,9 +98,9 @@ function mapRecommendationRun(run: RecommendationRunResponse): RecommendationRun
   return {
     id: String(run.id),
     cvId: run.cvId == null ? null : String(run.cvId),
-    sourceType: run.sourceType ?? "Chua cap nhat",
-    algorithm: run.algorithm ?? "Chua cap nhat",
-    algorithmVersion: run.algorithmVersion ?? "Chua cap nhat",
+    sourceType: run.sourceType ?? "Chưa cập nhật",
+    algorithm: run.algorithm ?? "Chưa cập nhật",
+    algorithmVersion: run.algorithmVersion ?? "Chưa cập nhật",
     totalJobsScanned: run.totalJobsScanned ?? 0,
     totalRecommended: run.totalRecommended ?? 0,
     status: run.status ?? "UNKNOWN",
@@ -159,8 +150,8 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
   const score = toPercent(result.score);
   const textScore = result.textScore == null ? null : toPercent(result.textScore);
   const skillScore = result.skillScore == null ? null : toPercent(result.skillScore);
-  const jobTitle = result.jobTitle || `Cong viec #${result.jobId}`;
-  const detail = await getPublicJobDetail(String(result.jobId)).catch(() => null);
+  const jobTitle = result.jobTitle || `Công việc #${result.jobId}`;
+  const detail = await getCachedPublicJobDetail(String(result.jobId)).catch(() => null);
   const job = detail?.job;
 
   return {
@@ -168,21 +159,21 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
     logo: job?.logo ?? getInitials(result.companyName),
     title: job?.title ?? jobTitle,
     companyId: job?.companyId,
-    companyName: job?.companyName ?? result.companyName ?? "Chua cap nhat",
-    salary: job?.salary ?? "Chua cap nhat",
+    companyName: job?.companyName ?? result.companyName ?? "Chưa cập nhật",
+    salary: job?.salary ?? "Chưa cập nhật",
     salaryMax: job?.salaryMax ?? 0,
-    location: job?.location ?? "Chua cap nhat",
+    location: job?.location ?? "Chưa cập nhật",
     industry: job?.industry ?? jobTitle,
     experienceYears: job?.experienceYears ?? null,
     experienceLabel: job?.experienceLabel ?? null,
     level: job?.level ?? null,
-    jobType: job?.jobType ?? "Chua cap nhat",
-    workMode: job?.workMode ?? "Chua cap nhat",
+    jobType: job?.jobType ?? "Chưa cập nhật",
+    workMode: job?.workMode ?? "Chưa cập nhật",
     skills: job?.skills?.length ? job.skills : matchedSkills,
     postedAt: job?.postedAt ?? formatDate(result.createdAt),
-    deadline: job?.deadline ?? "Chua cap nhat",
+    deadline: job?.deadline ?? "Chưa cập nhật",
     applicants: job?.applicants ?? 0,
-    status: job?.status ?? "published",
+    status: job?.status ?? "unavailable",
     matchScore: score,
     rankPosition: result.rankPosition ?? null,
     textScore,
@@ -215,20 +206,13 @@ function toPercent(value?: number | string | null) {
   return Math.max(0, Math.min(100, Math.round(percent)));
 }
 
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
 function formatDate(value?: string | null) {
-  if (!value) return "Chua cap nhat";
+  if (!value) return "Chưa cập nhật";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) return "Chua cap nhat";
+  if (!value) return "Chưa cập nhật";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
@@ -241,4 +225,46 @@ function getInitials(value?: string | null) {
     .slice(-2)
     .toUpperCase();
   return initials || "CT";
+}
+
+function getCachedPublicJobDetail(jobId: string) {
+  const cached = jobDetailCache.get(jobId);
+  if (cached) return cached;
+  const request = getPublicJobDetail(jobId);
+  jobDetailCache.set(jobId, request);
+  return request;
+}
+
+function sortRecommendedJobs(jobs: CandidateRecommendedJob[]) {
+  return jobs.slice().sort((a, b) => {
+    if (a.rankPosition != null && b.rankPosition != null) return a.rankPosition - b.rankPosition;
+    return b.matchScore - a.matchScore;
+  });
+}
+
+function readRecommendedJobState() {
+  try {
+    const raw = window.localStorage.getItem(getRecommendedJobStateStorageKey());
+    if (!raw) return { hiddenIds: [], notInterestedIds: [] };
+    const parsed = JSON.parse(raw) as { hiddenIds?: unknown; notInterestedIds?: unknown };
+    return {
+      hiddenIds: normalizeStorageIds(parsed.hiddenIds),
+      notInterestedIds: normalizeStorageIds(parsed.notInterestedIds),
+    };
+  } catch {
+    return { hiddenIds: [], notInterestedIds: [] };
+  }
+}
+
+function writeRecommendedJobState(state: { hiddenIds: string[]; notInterestedIds: string[] }) {
+  window.localStorage.setItem(getRecommendedJobStateStorageKey(), JSON.stringify(state));
+}
+
+function normalizeStorageIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item)).filter(Boolean);
+}
+
+function getRecommendedJobStateStorageKey() {
+  return `${recommendedJobStateStoragePrefix}:${getCurrentUserStorageScope()}`;
 }
