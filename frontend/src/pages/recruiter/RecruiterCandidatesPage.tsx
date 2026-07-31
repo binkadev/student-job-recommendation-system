@@ -64,10 +64,6 @@ interface JobResponse {
   title: string;
 }
 
-interface CompanyResponse {
-  id: number;
-}
-
 interface SavedCandidateResponse {
   id: number;
   applicationId: number;
@@ -629,14 +625,28 @@ async function deleteSavedCandidate(savedCandidateId: number) {
 }
 
 async function getCompanyJobs() {
-  const [companyResponse, jobsResponse] = await Promise.all([
-    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
-    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-      params: { page: 1, size: 100 },
-    }),
-  ]);
-  const companyId = companyResponse.data.data.id;
-  return jobsResponse.data.data.items.filter((job) => job.companyId === companyId);
+  const applications = await getCompanyApplicationJobSources();
+  const jobsById = new Map<number, JobResponse>();
+  applications.forEach((application) => {
+    if (!jobsById.has(application.jobId)) {
+      jobsById.set(application.jobId, {
+        id: application.jobId,
+        companyId: application.companyId,
+        title: application.jobTitle,
+      });
+    }
+  });
+  return Array.from(jobsById.values());
+}
+
+async function getCompanyApplicationJobSources(page = 1, items: ApplicationResponse[] = []): Promise<ApplicationResponse[]> {
+  const response = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
+    params: { page, size: 100, sort: "appliedAt,desc" },
+  });
+  const data = response.data.data;
+  const nextItems = [...items, ...data.items];
+  if (data.page < data.totalPages) return getCompanyApplicationJobSources(page + 1, nextItems);
+  return nextItems;
 }
 
 async function updateApplicationStatus(applicationId: number, status: ApplicationStatus) {

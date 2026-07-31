@@ -57,9 +57,15 @@ export function clearToken() {
 }
 
 export async function loginRequest(payload: LoginRequest): Promise<CurrentUser> {
-  const response = await httpClient.post<ApiResponse<LoginResponse>>("/auth/login", payload);
-  storeToken(response.data.data.token);
-  return mapAuthUser(response.data.data.user);
+  try {
+    const response = await httpClient.post<ApiResponse<LoginResponse>>("/auth/login", payload);
+    const user = mapAuthUser(response.data.data.user);
+    storeToken(response.data.data.token);
+    return user;
+  } catch (error) {
+    clearToken();
+    throw error;
+  }
 }
 
 export async function registerRequest(payload: RegisterRequest): Promise<CurrentUser> {

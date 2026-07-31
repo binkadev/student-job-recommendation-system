@@ -48,6 +48,7 @@ export interface CareerArticle {
 
 export interface HomeData {
   statistics: HomeStatistic[];
+  statisticsUnavailable?: boolean;
   jobs: FeaturedHomeJob[];
   industries: FeaturedIndustry[];
   companies: FeaturedHomeCompany[];

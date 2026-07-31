@@ -29,18 +29,6 @@ interface PublicCompanyResponse {
   logoUrl: string | null;
 }
 
-interface PublicJobStatsResponse {
-  id: number;
-  applicantCount?: number | null;
-  applicationCount?: number | null;
-  applicants?: number | null;
-  totalApplications?: number | null;
-  applicationsCount?: number | null;
-  applicationTotal?: number | null;
-  totalApplicants?: number | null;
-  totalApplicantCount?: number | null;
-}
-
 interface PublicStatsResponse {
   totalJobs?: number | null;
   jobCount?: number | null;
@@ -60,13 +48,12 @@ interface PublicStatsResponse {
 }
 
 export async function getHomeData(): Promise<HomeData> {
-  const [jobsResult, companiesResponse, publicStats, allJobsForStats] = await Promise.all([
+  const [jobsResult, companiesResponse, publicStats] = await Promise.all([
     getPublicJobs({ keyword: "", location: "", jobType: "", workingModel: "", page: 1 }),
     httpClient.get<ApiResponse<PageResponse<PublicCompanyResponse>>>("/public/companies", {
       params: { page: 1, size: 6, sort: "createdAt,desc" },
     }),
     getPublicStats(),
-    getAllPublicJobsForStats(1, []),
   ]);
   const companiesPage = companiesResponse.data.data;
 
@@ -75,8 +62,9 @@ export async function getHomeData(): Promise<HomeData> {
       { id: "jobs", label: "Việc làm đang tuyển", value: String(getTotalJobs(publicStats, jobsResult.totalItems)) },
       { id: "candidates", label: "Ứng viên", value: String(getTotalCandidates(publicStats)) },
       { id: "companies", label: "Công ty", value: String(getTotalCompanies(publicStats, companiesPage.totalItems)) },
-      { id: "applications", label: "Lượt ứng tuyển", value: String(getTotalApplications(publicStats, allJobsForStats)) },
+      { id: "applications", label: "Lượt ứng tuyển", value: String(getTotalApplications(publicStats)) },
     ],
+    statisticsUnavailable: !publicStats,
     jobs: jobsResult.items.map(mapFeaturedJob),
     industries: [],
     companies: companiesPage.items.map(mapFeaturedCompany),
@@ -85,26 +73,12 @@ export async function getHomeData(): Promise<HomeData> {
 }
 
 async function getPublicStats(): Promise<PublicStatsResponse | null> {
-  const endpoints = ["/public/statistics", "/public/stats", "/public/overview", "/public/dashboard"];
-  for (const endpoint of endpoints) {
-    try {
-      const response = await httpClient.get<ApiResponse<PublicStatsResponse>>(endpoint);
-      return response.data.data;
-    } catch {
-      // Continue to support whichever public stats endpoint the backend exposes.
-    }
+  try {
+    const response = await httpClient.get<ApiResponse<PublicStatsResponse>>("/public/statistics");
+    return response.data.data;
+  } catch {
+    return null;
   }
-  return null;
-}
-
-async function getAllPublicJobsForStats(page: number, items: PublicJobStatsResponse[]): Promise<PublicJobStatsResponse[]> {
-  const response = await httpClient.get<ApiResponse<PageResponse<PublicJobStatsResponse>>>("/public/jobs", {
-    params: { page, size: 100 },
-  });
-  const data = response.data.data;
-  const nextItems = [...items, ...data.items];
-  if (data.page < data.totalPages) return getAllPublicJobsForStats(page + 1, nextItems);
-  return nextItems;
 }
 
 function getTotalJobs(stats: PublicStatsResponse | null, fallback: number) {
@@ -119,10 +93,10 @@ function getTotalCandidates(stats: PublicStatsResponse | null) {
   return Number(stats?.totalCandidates ?? stats?.candidateCount ?? stats?.candidates ?? stats?.totalStudents ?? stats?.studentCount ?? 0);
 }
 
-function getTotalApplications(stats: PublicStatsResponse | null, jobs: PublicJobStatsResponse[]) {
+function getTotalApplications(stats: PublicStatsResponse | null) {
   const statsValue = stats?.totalApplications ?? stats?.applicationCount ?? stats?.applications ?? stats?.totalApplicants;
   if (statsValue != null) return Number(statsValue);
-  return jobs.reduce((total, job) => total + Number(job.applicantCount ?? job.applicationCount ?? job.applicants ?? job.totalApplications ?? job.applicationsCount ?? job.applicationTotal ?? job.totalApplicants ?? job.totalApplicantCount ?? 0), 0);
+  return 0;
 }
 
 function mapFeaturedJob(job: PublicJobListItem): FeaturedHomeJob {

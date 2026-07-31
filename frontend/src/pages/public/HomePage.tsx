@@ -34,6 +34,7 @@ const fallbackHomeData: HomeData = {
     { id: "companies", label: "Công ty", value: "0" },
     { id: "applications", label: "Lượt ứng tuyển", value: "0" },
   ],
+  statisticsUnavailable: false,
   jobs: [],
   industries: [],
   companies: [],
@@ -48,7 +49,7 @@ export function HomePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const homeQuery = useAsyncData(() => getHomeData(), [reloadKey]);
-  const { statistics, jobs, companies, articles } = homeQuery.data ?? fallbackHomeData;
+  const { statistics, statisticsUnavailable, jobs, companies, articles } = homeQuery.data ?? fallbackHomeData;
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,6 +125,9 @@ export function HomePage() {
             </Card>
           ))}
         </div>
+        {statisticsUnavailable ? (
+          <p className="text-sm text-amber-700 lg:col-span-2">Không tải được thống kê công khai từ API, các số liệu chưa có dữ liệu sẽ hiển thị 0.</p>
+        ) : null}
       </section>
 
       {homeQuery.error ? (
@@ -153,11 +157,13 @@ export function HomePage() {
 
       <section className="mt-8">
         <SectionHeader title="Công ty nổi bật" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {companies.length
-            ? companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)
-            : ["Công ty A", "Công ty B", "Công ty C"].map((name) => <CompanyPlaceholderCard key={name} name={name} />)}
-        </div>
+        {companies.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)}
+          </div>
+        ) : (
+          <EmptyState message="Chưa có công ty nổi bật để hiển thị." />
+        )}
       </section>
 
       <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
@@ -206,24 +212,6 @@ export function HomePage() {
         </div>
       </Modal>
     </PageContainer>
-  );
-}
-
-function CompanyPlaceholderCard({ name }: { name: string }) {
-  return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">CT</div>
-        <div>
-          <h3 className="font-semibold text-slate-900">{name}</h3>
-          <p className="text-sm text-slate-600">Chưa có công ty phù hợp</p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-2 text-sm text-slate-600">
-        <span>0 việc làm đang tuyển</span>
-        <span>Thông tin sẽ hiển thị khi có dữ liệu phù hợp</span>
-      </div>
-    </article>
   );
 }
 

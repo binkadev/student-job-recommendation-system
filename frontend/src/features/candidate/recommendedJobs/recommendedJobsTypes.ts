@@ -43,6 +43,7 @@ export interface CandidateCvOption {
   active: boolean;
   analysisStatus: string;
   ready: boolean;
+  readinessReason?: string | null;
   uploadedAt: string;
 }
 

@@ -74,6 +74,8 @@ const WORKING_MODEL_LABELS: Record<BackendWorkingModel, string> = {
   REMOTE: "Remote",
 };
 
+const companyDetailCache = new Map<number, Promise<PublicCompanyDetailResponse | null>>();
+
 export async function getPublicJobDetail(jobId: string): Promise<JobDetailResult | null> {
   if (!jobId) return null;
   const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/public/jobs/${jobId}`);
@@ -86,6 +88,14 @@ export async function getPublicJobDetail(jobId: string): Promise<JobDetailResult
 }
 
 async function getPublicCompanyDetailOrNull(companyId: number) {
+  const cached = companyDetailCache.get(companyId);
+  if (cached) return cached;
+  const request = fetchPublicCompanyDetailOrNull(companyId);
+  companyDetailCache.set(companyId, request);
+  return request;
+}
+
+async function fetchPublicCompanyDetailOrNull(companyId: number) {
   try {
     const response = await httpClient.get<ApiResponse<PublicCompanyDetailResponse>>(`/public/companies/${companyId}`);
     return response.data.data;

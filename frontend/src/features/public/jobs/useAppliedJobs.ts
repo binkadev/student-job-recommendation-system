@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalStorageState } from "../../../hooks/useLocalStorageState";
+import { useAuth } from "../../../hooks/useAuth";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../../services/api/httpClient";
-import { getCurrentUserStorageScope } from "../../../utils/authStorageScope";
+import { readStorage } from "../../../utils/localStorage";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -16,7 +17,8 @@ interface ApplicationResponse {
 const appliedJobsChangedEvent = "candidate-applied-jobs-changed";
 
 export function useAppliedJobs() {
-  const storageKey = useMemo(() => `applied-job-ids:${getCurrentUserStorageScope()}`, []);
+  const { currentUser } = useAuth();
+  const storageKey = useMemo(() => `applied-job-ids:${currentUser?.id ?? "anonymous"}`, [currentUser?.id]);
   const [appliedJobIds, setAppliedJobIds] = useLocalStorageState<string[]>(storageKey, []);
   const [syncing, setSyncing] = useState(false);
   const appliedSet = useMemo(() => new Set(appliedJobIds), [appliedJobIds]);
@@ -38,8 +40,9 @@ export function useAppliedJobs() {
   }, [setAppliedJobIds]);
 
   useEffect(() => {
+    setAppliedJobIds(readStorage(storageKey, []));
     void refreshAppliedJobs();
-  }, [refreshAppliedJobs]);
+  }, [refreshAppliedJobs, setAppliedJobIds, storageKey]);
 
   useEffect(() => {
     function syncAppliedJobs(event: Event) {

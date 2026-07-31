@@ -36,8 +36,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let redirecting = false;
+
     function handleSessionExpired() {
       setCurrentUser(null);
+      if (redirecting) return;
+      redirecting = true;
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (!window.location.pathname.startsWith("/login")) {
+        const next = currentPath && currentPath !== "/" ? `?next=${encodeURIComponent(currentPath)}` : "";
+        window.location.assign(`/login${next}`);
+      }
     }
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);

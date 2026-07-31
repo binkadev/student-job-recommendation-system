@@ -56,6 +56,9 @@ interface CvFileResponse {
 
 interface CvAnalysisResponse {
   status?: string | null;
+  extractedText?: string | null;
+  processedText?: string | null;
+  analysisError?: string | null;
 }
 
 const recommendedJobStateStoragePrefix = "candidate-recommended-job-state";
@@ -76,8 +79,7 @@ const jobDetailCache = new Map<string, ReturnType<typeof getPublicJobDetail>>();
 export async function getRecommendedJobs() {
   const response = await httpClient.get<ApiResponse<RecommendationResultResponse[]>>("/students/me/recommendation-results/latest");
   const items = response.data.data ?? [];
-  const jobs = await Promise.all(items.map(mapRecommendationResult));
-  return sortRecommendedJobs(jobs);
+  return Promise.all(items.map(mapRecommendationResult));
 }
 
 export async function getRecommendationRuns(): Promise<RecommendationRun[]> {
@@ -123,13 +125,14 @@ export async function generateRecommendations(payload: GenerateRecommendationPay
 export async function getCandidateCvOptions(): Promise<CandidateCvOption[]> {
   const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
   return Promise.all((response.data.data ?? []).map(async (cv) => {
-    const analysisStatus = await getCvAnalysisStatus(cv.id);
+    const analysis = await getCvAnalysisSummary(cv.id);
     return {
       id: String(cv.id),
       name: cv.originalFileName || cv.fileName || `CV #${cv.id}`,
       active: Boolean(cv.isActive ?? cv.active),
-      analysisStatus,
-      ready: analysisStatus === "READY",
+      analysisStatus: analysis.status,
+      ready: analysis.ready,
+      readinessReason: analysis.reason,
       uploadedAt: formatDateTime(cv.uploadedAt),
     };
   }));
@@ -185,12 +188,23 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
   };
 }
 
-async function getCvAnalysisStatus(cvId: number) {
+async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {
   try {
     const response = await httpClient.get<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
-    return response.data.data?.status ?? "NOT_READY";
-  } catch {
-    return "NOT_READY";
+    const analysis = response.data.data;
+    const status = analysis?.status ?? "NOT_READY";
+    if (status !== "READY") {
+      return { status, ready: false, reason: analysis?.analysisError || getCvReadinessReason(status) };
+    }
+    if (!analysis?.extractedText?.trim()) {
+      return { status, ready: false, reason: "Thiếu extracted text." };
+    }
+    if (!analysis?.processedText?.trim()) {
+      return { status, ready: false, reason: "Thiếu processed text." };
+    }
+    return { status, ready: true, reason: null };
+  } catch (error) {
+    return { status: "ERROR", ready: false, reason: getCvAnalysisErrorReason(error) };
   }
 }
 
@@ -235,13 +249,6 @@ function getCachedPublicJobDetail(jobId: string) {
   return request;
 }
 
-function sortRecommendedJobs(jobs: CandidateRecommendedJob[]) {
-  return jobs.slice().sort((a, b) => {
-    if (a.rankPosition != null && b.rankPosition != null) return a.rankPosition - b.rankPosition;
-    return b.matchScore - a.matchScore;
-  });
-}
-
 function readRecommendedJobState() {
   try {
     const raw = window.localStorage.getItem(getRecommendedJobStateStorageKey());
@@ -267,4 +274,19 @@ function normalizeStorageIds(value: unknown) {
 
 function getRecommendedJobStateStorageKey() {
   return `${recommendedJobStateStoragePrefix}:${getCurrentUserStorageScope()}`;
+}
+
+function getCvReadinessReason(status: string) {
+  if (status === "FAILED") return "Phân tích CV thất bại.";
+  if (status === "PROCESSING") return "CV đang được phân tích.";
+  return "CV chưa sẵn sàng.";
+}
+
+function getCvAnalysisErrorReason(error: unknown) {
+  if (typeof error === "object" && error && "response" in error) {
+    const status = (error as { response?: { status?: number } }).response?.status;
+    if (status === 403) return "Không có quyền xem phân tích CV.";
+    if (status === 404) return "Chưa có dữ liệu phân tích CV.";
+  }
+  return "Không thể tải dữ liệu phân tích CV.";
 }

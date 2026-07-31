@@ -90,6 +90,7 @@ export function CandidateRecommendedJobsPage() {
   }, [filters, hiddenIds, jobsQuery.data, runDetailQuery.data?.results, showingHistoricalRun, showHidden]);
   const options = useMemo(() => getRecommendedFilterOptions(displayJobs), [displayJobs]);
   const readyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => cv.ready), [cvsQuery.data]);
+  const notReadyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => !cv.ready), [cvsQuery.data]);
   const selectedCv = useMemo(() => cvsQuery.data?.find((cv) => cv.id === selectedCvId), [cvsQuery.data, selectedCvId]);
   const selectedCvReady = Boolean(selectedCv?.ready);
   const generateDisabled = generating || cvsQuery.loading || !selectedCvId || !selectedCvReady;
@@ -144,7 +145,7 @@ export function CandidateRecommendedJobsPage() {
       return;
     }
     if (!selectedCv?.ready) {
-      showToast({ type: "error", title: "CV chưa sẵn sàng", message: "Chỉ có thể tạo gợi ý bằng CV có trạng thái READY." });
+      showToast({ type: "error", title: "CV chưa sẵn sàng", message: selectedCv?.readinessReason ?? "Chỉ có thể tạo gợi ý bằng CV READY và có đầy đủ dữ liệu phân tích." });
       return;
     }
     const thresholdValue = Number(threshold);
@@ -246,7 +247,14 @@ export function CandidateRecommendedJobsPage() {
           <p className="mt-3 text-sm text-amber-700">Bạn đang xem kết quả lịch sử từ run #{runDetailQuery.data?.run.id}, không phải kết quả hiện tại.</p>
         ) : null}
         {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
-          <p className="mt-3 text-sm text-amber-700">Chưa có CV nào ở trạng thái READY. Hãy vào trang CV và bấm Phân tích lại trước khi tạo gợi ý.</p>
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p>Chưa có CV nào sẵn sàng để tạo gợi ý. CV cần ở trạng thái READY và có đủ extracted text, processed text.</p>
+            {notReadyCvs.length ? (
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {notReadyCvs.slice(0, 3).map((cv) => <li key={cv.id}>{cv.name}: {cv.readinessReason ?? cv.analysisStatus}</li>)}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
       </Card>
 
@@ -488,20 +496,15 @@ function InfoPill({ label, value }: { label: string; value: string }) {
 }
 
 function filterRecommendedJobs(jobs: CandidateRecommendedJob[], filters: RecommendedJobFilters, hiddenIds: string[], showHidden: boolean) {
-  return jobs
-    .filter((job) => {
-      const matchHidden = showHidden ? hiddenIds.includes(job.id) : !hiddenIds.includes(job.id);
-      const matchScore = job.matchScore >= filters.minMatch;
-      const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
-      const matchIndustry = !filters.industry || job.industry === filters.industry;
-      const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
-      const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
-      return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
-    })
-    .sort((left, right) => {
-      if (left.rankPosition != null && right.rankPosition != null) return left.rankPosition - right.rankPosition;
-      return right.matchScore - left.matchScore;
-    });
+  return jobs.filter((job) => {
+    const matchHidden = showHidden ? hiddenIds.includes(job.id) : !hiddenIds.includes(job.id);
+    const matchScore = job.matchScore >= filters.minMatch;
+    const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
+    const matchIndustry = !filters.industry || job.industry === filters.industry;
+    const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
+    const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
+    return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
+  });
 }
 
 function normalizeText(value: string) {
