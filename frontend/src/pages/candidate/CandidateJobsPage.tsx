@@ -155,7 +155,10 @@ const vietnamProvinceOptions = [
   "TP. Hồ Chí Minh",
   "Tuyên Quang",
   "Vĩnh Long",
-];
+].map((label) => ({
+  label,
+  value: label === "TP. Hồ Chí Minh" ? "Ho Chi Minh City" : label,
+}));
 
 export function CandidateJobsPage({ mode = "list" }: CandidateJobsPageProps) {
   if (mode === "recommended") {
@@ -230,7 +233,7 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_120px]">
           <Input label="Từ khóa" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Vị trí, kỹ năng..." />
-          <Select label="Địa điểm" value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...locations.map((value) => ({ label: value, value }))]} />
+          <Select label="Địa điểm" value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...locations]} />
           <Select label="Loại hình" value={jobType} onChange={(event) => { setJobType(event.target.value as JobType | ""); setPage(1); }} options={jobTypeOptions} />
           <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value as WorkingModel | ""); setPage(1); }} options={workingModelOptions} />
           <div className="flex h-10 items-center text-sm text-slate-600">{totalResults} kết quả</div>

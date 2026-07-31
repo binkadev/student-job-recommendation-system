@@ -22,7 +22,7 @@ import { useToast } from "../../hooks/useToast";
 const locationOptions = [
   { label: "Tất cả địa điểm", value: "" },
   { label: "Hà Nội", value: "Hà Nội" },
-  { label: "TP. Hồ Chí Minh", value: "TP. Hồ Chí Minh" },
+  { label: "TP. Hồ Chí Minh", value: "Ho Chi Minh City" },
   { label: "Đà Nẵng", value: "Đà Nẵng" },
   { label: "Remote", value: "Remote" },
 ];

@@ -70,7 +70,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   const { hasApplied, applyToJob } = useAppliedJobs();
   const { showToast } = useToast();
   const [step, setStep] = useState(0);
-  const [selectedCvId, setSelectedCvId] = useState("");
+  const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -84,7 +84,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   useEffect(() => {
     if (!open) return;
     setStep(0);
-    setSelectedCvId("");
+    setSelectedCvId(null);
     setCoverLetter("");
     setConfirmed(false);
     setSubmitting(false);
@@ -93,7 +93,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   }, [open, job?.id]);
 
   useEffect(() => {
-    if (!open || selectedCvId || cvs.length === 0) return;
+    if (!open || selectedCvId !== null || cvs.length === 0) return;
     const defaultCv = cvs.find((cv) => cv.isDefault) ?? cvs[0];
     setSelectedCvId(defaultCv.id);
   }, [cvs, open, selectedCvId]);
@@ -147,7 +147,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       <div className="mt-5 max-h-[70vh] overflow-y-auto pr-1">
         {cvsQuery.loading && step === 0 ? <LoadingState /> : null}
         {!cvsQuery.loading && step === 0 ? (
-          <CvStep cvs={cvs} selectedCvId={selectedCvId} error={errors.cv} onSelect={setSelectedCvId} />
+          <CvStep cvs={cvs} selectedCvId={selectedCvId ?? ""} error={errors.cv} onSelect={setSelectedCvId} />
         ) : null}
         {step === 1 ? (
           <CoverLetterStep coverLetter={coverLetter} onChange={setCoverLetter} onUseTemplate={() => setCoverLetter(coverTemplate)} />

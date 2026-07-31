@@ -588,9 +588,7 @@ async function getCompanyApplicationsPage(query: ApplicationListQuery) {
         sort: query.sort,
       },
     });
-    const page = response.data.data;
-    const sortedItems = sortApplicationsForRecruiter(page.items, query.sort);
-    return { ...page, items: sortedItems };
+    return response.data.data;
   } catch {
     throw new Error("Không thể tải danh sách ứng viên ứng tuyển.");
   }
@@ -677,15 +675,6 @@ function canChangeApplicationStatus(currentStatus: ApplicationStatus, nextStatus
 
 function hasAllowedStatusTransition(currentStatus: ApplicationStatus) {
   return getAllowedNextStatuses(currentStatus).length > 0;
-}
-
-function sortApplicationsForRecruiter(applications: ApplicationResponse[], sort: string) {
-  const direction = sort.endsWith(",asc") ? 1 : -1;
-  return applications.slice().sort((left, right) => {
-    if (left.status === "ACCEPTED" && right.status !== "ACCEPTED") return 1;
-    if (left.status !== "ACCEPTED" && right.status === "ACCEPTED") return -1;
-    return (new Date(left.appliedAt).getTime() - new Date(right.appliedAt).getTime()) * direction;
-  });
 }
 
 function formatDateTime(value?: string | null) {

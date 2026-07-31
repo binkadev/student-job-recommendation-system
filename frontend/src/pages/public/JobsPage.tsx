@@ -30,6 +30,9 @@ const workModeOptions = [
   { label: "Hybrid", value: "HYBRID" },
   { label: "Onsite", value: "ONSITE" },
 ];
+const locationFilterOptions = [
+  { label: "TP. Hồ Chí Minh", value: "Ho Chi Minh City" },
+];
 
 function readFilters(searchParams: URLSearchParams): JobsListFilters {
   return {
@@ -49,6 +52,10 @@ function writeFilters(filters: JobsListFilters) {
   if (filters.workingModel) params.set("workingModel", filters.workingModel);
   if (filters.page > 1) params.set("page", String(filters.page));
   return params;
+}
+
+function getLocationLabel(value: string) {
+  return locationFilterOptions.find((option) => option.value === value)?.label ?? value;
 }
 
 export function JobsPage() {
@@ -128,9 +135,10 @@ export function JobsPage() {
 
   const activeChips = getActiveChips(filters);
   const result = jobsQuery.data;
-  const locationOptions = filters.location && !filterOptions.locations.some((option) => option.value === filters.location)
-    ? [emptyOption, { label: filters.location, value: filters.location }, ...filterOptions.locations]
-    : [emptyOption, ...filterOptions.locations];
+  const baseLocationOptions = [...locationFilterOptions, ...filterOptions.locations.filter((option) => !locationFilterOptions.some((staticOption) => staticOption.value === option.value))];
+  const locationOptions = filters.location && !baseLocationOptions.some((option) => option.value === filters.location)
+    ? [emptyOption, { label: getLocationLabel(filters.location), value: filters.location }, ...baseLocationOptions]
+    : [emptyOption, ...baseLocationOptions];
 
   const filterPanel = (
     <div className="space-y-4">
@@ -251,7 +259,7 @@ export function JobsPage() {
   function getActiveChips(currentFilters: JobsListFilters) {
     const chips: Array<{ key: string; value: string; label: string; onRemove: () => void }> = [];
     if (currentFilters.keyword) chips.push({ key: "keyword", value: currentFilters.keyword, label: currentFilters.keyword, onRemove: () => updateFilter("keyword", "") });
-    if (currentFilters.location) chips.push({ key: "location", value: currentFilters.location, label: currentFilters.location, onRemove: () => updateFilter("location", "") });
+    if (currentFilters.location) chips.push({ key: "location", value: currentFilters.location, label: getLocationLabel(currentFilters.location), onRemove: () => updateFilter("location", "") });
     if (currentFilters.jobType) {
       const label = filterOptions.jobTypes.find((option) => option.value === currentFilters.jobType)?.label ?? currentFilters.jobType;
       chips.push({ key: "jobType", value: currentFilters.jobType, label, onRemove: () => updateFilter("jobType", "") });

@@ -18,7 +18,6 @@ import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 import { getCurrentUserStorageScope } from "../../utils/authStorageScope";
-import { getSystemSettings } from "../../utils/systemSettings";
 
 interface CandidateCvsPageProps {
   mode?: "list" | "upload" | "detail" | "analysis" | "edit-extracted" | "review";
@@ -69,7 +68,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const hiddenCvStorageKey = useMemo(() => `candidate-hidden-cv-ids:${getCurrentUserStorageScope()}`, []);
   const [hiddenCvIds, setHiddenCvIds] = useLocalStorageState<string[]>(hiddenCvStorageKey, []);
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
-  const cvSettings = getSystemSettings().cv;
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
   const cvs = (cvsQuery.data ?? []).filter((cv) => !hiddenCvIds.includes(String(cv.id)));
   const selectedCv = useMemo(() => {
@@ -78,7 +76,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   }, [cvId, cvs]);
 
   function handleFile(file: File) {
-    const error = validateFile(file, cvSettings.maxFileSizeMb);
+    const error = validateFile(file);
     setUploadError(error);
     if (error) {
       setSelectedFile(null);
@@ -100,6 +98,8 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       showToast({ type: "success", title: "Upload CV thành công", message: `${cv.originalFileName} đã được lưu.` });
       setReloadKey((current) => current + 1);
       navigate(`/candidate/cvs/${cv.id}`);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể upload CV", message: getApiErrorMessage(error) });
     } finally {
       setUploading(false);
     }
@@ -158,7 +158,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
         <div className="max-w-5xl">
           <Card>
-            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, kiểm tra nhanh trên giao diện với giới hạn ${cvSettings.maxFileSizeMb} MB/file. Nếu cấu hình backend khác, backend sẽ là nơi quyết định cuối cùng.`} />
+            <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF/DOCX. Giao diện chỉ kiểm tra định dạng file, backend là nơi quyết định giới hạn dung lượng cuối cùng." />
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
 
             {selectedFile ? (
@@ -218,7 +218,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <StatusBadge label={`${cvs.length} CV`} />
-          <StatusBadge label={`Giới hạn ${cvSettings.maxFileSizeMb} MB/file`} />
           {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV active" tone="success" /> : null}
         </div>
         <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Upload CV mới</Button></Link>
@@ -576,10 +575,9 @@ function isActiveCv(cv: CvFileResponse) {
   return Boolean(cv.active ?? cv.isActive);
 }
 
-function validateFile(file: File, maxFileSizeMb: number) {
+function validateFile(file: File) {
   const isValidExtension = [".pdf", ".docx"].some((extension) => file.name.toLowerCase().endsWith(extension));
   if (!isValidExtension) return "Chỉ chấp nhận file PDF hoặc DOCX.";
-  if (file.size > maxFileSizeMb * 1024 * 1024) return `Dung lượng file không được vượt quá ${maxFileSizeMb} MB.`;
   return "";
 }
 
