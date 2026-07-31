@@ -71,13 +71,11 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
   const cvSettings = getSystemSettings().cv;
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
-  const allCvs = cvsQuery.data ?? [];
-  const cvs = allCvs.filter((cv) => !hiddenCvIds.includes(String(cv.id)));
+  const cvs = (cvsQuery.data ?? []).filter((cv) => !hiddenCvIds.includes(String(cv.id)));
   const selectedCv = useMemo(() => {
     if (cvId) return cvs.find((cv) => String(cv.id) === cvId) ?? null;
     return cvs[0] ?? null;
   }, [cvId, cvs]);
-  const reachedCvLimit = allCvs.length >= cvSettings.maxCvsPerUser;
 
   function handleFile(file: File) {
     const error = validateFile(file, cvSettings.maxFileSizeMb);
@@ -91,10 +89,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   }
 
   async function uploadCv() {
-    if (reachedCvLimit) {
-      setUploadError(`Bạn chỉ được upload tối đa ${cvSettings.maxCvsPerUser} CV.`);
-      return;
-    }
     if (!selectedFile) {
       setUploadError("Vui lòng chọn file CV trước khi upload.");
       return;
@@ -164,8 +158,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
         <div className="max-w-5xl">
           <Card>
-            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, giới hạn đang áp dụng là ${cvSettings.maxFileSizeMb} MB/file và ${cvSettings.maxCvsPerUser} CV mỗi ứng viên.`} />
-            {reachedCvLimit ? <div className="mb-4"><EmptyState message={`Bạn đã đạt giới hạn ${cvSettings.maxCvsPerUser} CV. Vui lòng xóa CV không còn dùng trước khi upload thêm.`} /></div> : null}
+            <SectionHeader title="Chọn file CV" description={`Hỗ trợ PDF/DOCX, kiểm tra nhanh trên giao diện với giới hạn ${cvSettings.maxFileSizeMb} MB/file. Nếu cấu hình backend khác, backend sẽ là nơi quyết định cuối cùng.`} />
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
 
             {selectedFile ? (
@@ -193,7 +186,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading || reachedCvLimit} onClick={() => void uploadCv()}>Upload</Button>
+              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Upload</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
             </div>
           </Card>
@@ -225,7 +218,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <StatusBadge label={`${cvs.length} CV`} />
-          <StatusBadge label={`Giới hạn ${cvSettings.maxCvsPerUser} CV`} />
           <StatusBadge label={`Giới hạn ${cvSettings.maxFileSizeMb} MB/file`} />
           {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV active" tone="success" /> : null}
         </div>

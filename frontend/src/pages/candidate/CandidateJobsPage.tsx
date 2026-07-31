@@ -199,9 +199,8 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
   }
 
   const result = jobsQuery.data;
-  const visibleItems = filterJobsByLocation(result?.items ?? [], location);
-  const jobs = visibleItems.map(mapJobListItem);
-  const totalResults = location ? visibleItems.length : result?.totalItems ?? 0;
+  const jobs = (result?.items ?? []).map(mapJobListItem);
+  const totalResults = result?.totalItems ?? 0;
   const locations = vietnamProvinceOptions;
   const savedJobIds = new Set((savedJobsQuery.data?.items ?? []).map((item) => String(item.jobId)));
 
@@ -509,7 +508,7 @@ async function getJobs(params: {
       page: params.page,
       size: params.size,
       keyword: emptyToUndefined(params.keyword),
-      location: emptyToUndefined(toBackendLocationQuery(params.location)),
+      location: emptyToUndefined(params.location),
       jobType: emptyToUndefined(params.jobType),
       workingModel: emptyToUndefined(params.workingModel),
       status: params.status,
@@ -647,39 +646,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <strong className="max-w-[190px] text-right text-slate-900">{value}</strong>
     </div>
   );
-}
-
-function filterJobsByLocation(jobs: BackendJobResponse[], selectedLocation: string) {
-  if (!selectedLocation) return jobs;
-  const selected = normalizeLocation(selectedLocation);
-  const aliases = getLocationAliases(selectedLocation).map(normalizeLocation);
-
-  return jobs.filter((job) => {
-    const value = normalizeLocation(job.location ?? "");
-    return value.includes(selected) || aliases.some((alias) => value.includes(alias));
-  });
-}
-
-function getLocationAliases(location: string) {
-  if (normalizeLocation(location) !== "hochiminh") return [location];
-  return [location, "Thành phố Hồ Chí Minh", "Hồ Chí Minh", "Ho Chi Minh City", "HCMC", "Saigon", "Sài Gòn"];
-}
-
-function normalizeLocation(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\u0111/g, "d")
-    .replace(/\u0110/g, "D")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase()
-    .replace(/\b(tp|thanh pho|city)\b/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function toBackendLocationQuery(location: string) {
-  return normalizeLocation(location) === "hochiminh" ? "Ho Chi Minh City" : location;
 }
 
 function formatSavedSearchSummary(search: SavedSearchResponse) {

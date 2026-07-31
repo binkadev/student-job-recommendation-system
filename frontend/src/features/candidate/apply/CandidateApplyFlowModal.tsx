@@ -84,6 +84,7 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
   useEffect(() => {
     if (!open) return;
     setStep(0);
+    setSelectedCvId("");
     setCoverLetter("");
     setConfirmed(false);
     setSubmitting(false);
@@ -123,8 +124,9 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
     }
     setSubmitting(true);
     try {
+      const validCvId = selectedCvId && cvs.some((cv) => cv.id === selectedCvId) ? Number(selectedCvId) : null;
       const response = await httpClient.post<ApiResponse<BackendApplicationResponse>>(`/jobs/${job.id}/apply`, {
-        cvFileId: selectedCvId ? Number(selectedCvId) : null,
+        cvFileId: validCvId,
         coverLetter: coverLetter.trim() || null,
       });
       const code = `APP-${response.data.data.id}`;

@@ -156,8 +156,6 @@ function ApplicationsListPage({
   const [query, setQuery] = useState("");
   const [jobFilter, setJobFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [appliedFrom, setAppliedFrom] = useState("");
-  const [appliedTo, setAppliedTo] = useState("");
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedApplication, setSelectedApplication] = useState<ApplicationResponse | null>(null);
@@ -166,25 +164,23 @@ function ApplicationsListPage({
   const [sortOrder, setSortOrder] = useState("appliedAt,desc");
   const [savedReloadKey, setSavedReloadKey] = useState(0);
 
-  const dateRangeError = appliedFrom && appliedTo && appliedFrom > appliedTo ? "Từ ngày phải nhỏ hơn hoặc bằng đến ngày." : "";
   const jobOptions = useMemo(() => jobs.slice().sort((left, right) => left.title.localeCompare(right.title)), [jobs]);
-  const jobIdsKey = useMemo(() => jobs.map((job) => job.id).sort((left, right) => left - right).join(","), [jobs]);
   const applicationsQuery = useAsyncData(() => getCompanyApplicationsPage({
     page,
     size: 8,
     keyword: query,
     status: statusFilter,
     jobId: jobFilter,
-    appliedFrom,
-    appliedTo,
+    appliedFrom: "",
+    appliedTo: "",
     sort: sortOrder,
-    jobIds: jobs.map((job) => job.id),
-  }), [page, query, statusFilter, jobFilter, appliedFrom, appliedTo, sortOrder, jobIdsKey, reloadKey]);
+    jobIds: [],
+  }), [page, query, statusFilter, jobFilter, sortOrder, reloadKey]);
   const applicationsPage = applicationsQuery.data;
   const applications = useMemo(() => applicationsPage?.items ?? [], [applicationsPage?.items]);
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
   const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
-  const filteredApplications = dateRangeError ? [] : applications;
+  const filteredApplications = applications;
 
   async function changeStatus(application: ApplicationResponse, status: ApplicationStatus) {
     if (!canChangeApplicationStatus(application.status, status)) {
@@ -225,8 +221,8 @@ function ApplicationsListPage({
         <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Input label="Tìm kiếm" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tên, email, vị trí..." />
           <Select label="Vị trí tuyển dụng" value={jobFilter} disabled={jobsLoading} onChange={(event) => { setJobFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...jobOptions.map((job) => ({ label: job.title, value: String(job.id) }))]} />
-          <Input label="Từ ngày" type="date" value={appliedFrom} max={appliedTo || undefined} error={dateRangeError} onChange={(event) => { setAppliedFrom(event.target.value); setPage(1); }} />
-          <Input label="Đến ngày" type="date" value={appliedTo} min={appliedFrom || undefined} onChange={(event) => { setAppliedTo(event.target.value); setPage(1); }} />
+          <Input label="Từ ngày" type="date" value="" onChange={() => undefined} disabled />
+          <Input label="Đến ngày" type="date" value="" onChange={() => undefined} disabled />
           <div className="grid items-start gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-4 xl:grid-cols-4">
             <Select label="Trạng thái" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
             <Select label="Sắp xếp" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} options={[{ label: "Mới nhất", value: "appliedAt,desc" }, { label: "Cũ nhất", value: "appliedAt,asc" }]} />
@@ -241,10 +237,10 @@ function ApplicationsListPage({
 
       <Card className="mt-5">
         <SectionHeader title="Danh sách ứng viên" description={`${applicationsPage?.totalItems ?? 0} hồ sơ ứng tuyển`} />
+        <p className="mb-4 text-sm text-amber-700">Bộ lọc ngày chưa được hỗ trợ nên đang tạm khóa để tránh hiển thị thiếu dữ liệu.</p>
         {applicationsQuery.loading ? <LoadingState /> : null}
         {!applicationsQuery.loading && applicationsQuery.error ? <EmptyState message={applicationsQuery.error} /> : null}
-        {!applicationsQuery.loading && !applicationsQuery.error && dateRangeError ? <EmptyState message={dateRangeError} /> : null}
-        {!applicationsQuery.loading && !applicationsQuery.error && !dateRangeError && filteredApplications.length === 0 ? <EmptyState message="Không có hồ sơ ứng tuyển phù hợp." /> : null}
+        {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length === 0 ? <EmptyState message="Không có hồ sơ ứng tuyển phù hợp." /> : null}
         {!applicationsQuery.loading && filteredApplications.length > 0 ? (
           <div className="space-y-4">
             <Table
@@ -581,10 +577,6 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 async function getCompanyApplicationsPage(query: ApplicationListQuery) {
-  if (query.appliedFrom || query.appliedTo) {
-    return getCompanyApplicationsByJobs(query);
-  }
-
   try {
     const response = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
       params: {
@@ -598,39 +590,10 @@ async function getCompanyApplicationsPage(query: ApplicationListQuery) {
     });
     const page = response.data.data;
     const sortedItems = sortApplicationsForRecruiter(page.items, query.sort);
-    if (page.totalItems > 0 || query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
-      return { ...page, items: sortedItems };
-    }
+    return { ...page, items: sortedItems };
   } catch {
-    if (query.keyword.trim() || query.status || query.jobId || query.jobIds.length === 0) {
-      throw new Error("Cannot load company applications");
-    }
+    throw new Error("Không thể tải danh sách ứng viên ứng tuyển.");
   }
-
-  return getCompanyApplicationsByJobs(query);
-}
-
-async function getCompanyApplicationsByJobs(query: ApplicationListQuery): Promise<PageResponse<ApplicationResponse>> {
-  const responses = await Promise.allSettled(
-    query.jobIds.map((jobId) => httpClient.get<ApiResponse<ApplicationResponse[]>>(`/companies/me/jobs/${jobId}/applications`)),
-  );
-  const applications = responses
-    .flatMap((response) => response.status === "fulfilled" ? response.value.data.data : [])
-    .filter((application, index, list) => list.findIndex((item) => item.id === application.id) === index)
-    .filter((application) => matchesApplicationQuery(application, query));
-  const sortedApplications = sortApplicationsForRecruiter(applications, query.sort);
-  const totalItems = applications.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / query.size));
-  const currentPage = Math.min(Math.max(query.page, 1), totalPages);
-  const start = (currentPage - 1) * query.size;
-
-  return {
-    items: sortedApplications.slice(start, start + query.size),
-    page: currentPage,
-    size: query.size,
-    totalItems,
-    totalPages,
-  };
 }
 
 async function getCompanyApplicationDetail(applicationId: number) {
@@ -714,18 +677,6 @@ function canChangeApplicationStatus(currentStatus: ApplicationStatus, nextStatus
 
 function hasAllowedStatusTransition(currentStatus: ApplicationStatus) {
   return getAllowedNextStatuses(currentStatus).length > 0;
-}
-
-function matchesApplicationQuery(application: ApplicationResponse, query: ApplicationListQuery) {
-  const keyword = query.keyword.trim().toLowerCase();
-  const appliedDate = application.appliedAt.slice(0, 10);
-  const matchesKeyword = !keyword || [application.studentName, application.studentEmail, application.jobTitle, application.cvFileName]
-    .some((value) => value?.toLowerCase().includes(keyword));
-  const matchesStatus = !query.status || application.status === query.status;
-  const matchesJob = !query.jobId || String(application.jobId) === query.jobId;
-  const matchesFrom = !query.appliedFrom || appliedDate >= query.appliedFrom;
-  const matchesTo = !query.appliedTo || appliedDate <= query.appliedTo;
-  return matchesKeyword && matchesStatus && matchesJob && matchesFrom && matchesTo;
 }
 
 function sortApplicationsForRecruiter(applications: ApplicationResponse[], sort: string) {

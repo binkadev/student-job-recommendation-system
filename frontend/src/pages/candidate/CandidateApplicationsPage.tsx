@@ -68,8 +68,10 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   const applicationDetailQuery = useAsyncData(() => detailMode && applicationId ? getMyApplicationDetail(applicationId) : Promise.resolve(null), [applicationId, detailMode, reloadKey]);
   const applications = useMemo(() => applicationsQuery.data ?? [], [applicationsQuery.data]);
   const selectedApplication = detailMode ? applicationDetailQuery.data : applicationId ? applications.find((application) => String(application.id) === applicationId) : applications[0];
+  const dateRangeError = dateFrom && dateTo && dateFrom > dateTo ? "Từ ngày phải nhỏ hơn hoặc bằng đến ngày." : "";
 
   const filteredApplications = useMemo(() => {
+    if (dateRangeError) return [];
     return applications
       .filter((application) => {
         const appliedDate = application.appliedAt.slice(0, 10);
@@ -80,7 +82,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         return matchQuery && matchStatus && matchFrom && matchTo;
       })
       .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt));
-  }, [applications, dateFrom, dateTo, query, status]);
+  }, [applications, dateFrom, dateRangeError, dateTo, query, status]);
 
   const totalPages = Math.max(1, Math.ceil(filteredApplications.length / pageSize));
   const pagedApplications = filteredApplications.slice((page - 1) * pageSize, page * pageSize);
@@ -136,12 +138,16 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Input label="Từ khóa" value={query} onChange={(event) => updateFilter(() => setQuery(event.target.value))} placeholder="Tên việc làm, công ty..." />
           <Select label="Trạng thái" value={status} onChange={(event) => updateFilter(() => setStatus(event.target.value as ApplicationStatus | ""))} options={statusOptions} />
-          <Input label="Từ ngày" type="date" value={dateFrom} onChange={(event) => updateFilter(() => setDateFrom(event.target.value))} />
-          <Input label="Đến ngày" type="date" value={dateTo} onChange={(event) => updateFilter(() => setDateTo(event.target.value))} />
+          <Input label="Từ ngày" type="date" value={dateFrom} max={dateTo || undefined} error={dateRangeError} onChange={(event) => updateFilter(() => setDateFrom(event.target.value))} />
+          <Input label="Đến ngày" type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => updateFilter(() => setDateTo(event.target.value))} />
         </div>
       </Card>
 
-      {pagedApplications.length === 0 ? (
+      {dateRangeError ? (
+        <Card>
+          <EmptyState message={dateRangeError} />
+        </Card>
+      ) : pagedApplications.length === 0 ? (
         <Card>
           <EmptyState message="Chưa có đơn ứng tuyển." />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
