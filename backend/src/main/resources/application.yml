@@ -30,6 +30,9 @@ app:
     recommendation:
       algorithm: ${APP_AI_RECOMMENDATION_ALGORITHM:tfidf-cosine-hybrid}
       algorithm-version: ${APP_AI_RECOMMENDATION_ALGORITHM_VERSION:bilingual-recommendation-v2}
+    candidate-ranking:
+      max-candidates-per-request: ${APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST:500}
+      max-request-bytes: ${APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES:8388608}
 
 springdoc:
   api-docs:
