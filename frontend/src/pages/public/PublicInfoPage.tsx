@@ -13,14 +13,6 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
-interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
-  totalItems: number;
-  totalPages: number;
-}
-
 interface PublicInfoPageProps {
   title: string;
   description: string;
@@ -31,6 +23,13 @@ interface AboutStats {
   jobs: number;
   companies: number;
   users: number;
+}
+
+interface PublicStatisticsResponse {
+  totalJobs?: number;
+  totalCompanies?: number;
+  totalStudents?: number;
+  totalApplications?: number;
 }
 
 const aboutSections = [
@@ -194,21 +193,16 @@ function FloatingPanel({ className, icon, title }: { className: string; icon: Re
 }
 
 async function getAboutStats(): Promise<AboutStats> {
-  const [jobsResponse, companiesResponse, usersResponse] = await Promise.allSettled([
-    httpClient.get<ApiResponse<PageResponse<unknown>>>("/public/jobs", {
-      params: { page: 1, size: 1 },
-    }),
-    httpClient.get<ApiResponse<PageResponse<unknown>>>("/public/companies", {
-      params: { page: 1, size: 1 },
-    }),
-    httpClient.get<ApiResponse<PageResponse<unknown>>>("/admin/users", {
-      params: { page: 1, size: 1, role: "STUDENT" },
-    }),
-  ]);
+  try {
+    const response = await httpClient.get<ApiResponse<PublicStatisticsResponse>>("/public/statistics");
+    const stats = response.data.data;
 
-  return {
-    jobs: jobsResponse.status === "fulfilled" ? jobsResponse.value.data.data.totalItems ?? 0 : 0,
-    companies: companiesResponse.status === "fulfilled" ? companiesResponse.value.data.data.totalItems ?? 0 : 0,
-    users: usersResponse.status === "fulfilled" ? usersResponse.value.data.data.totalItems ?? 0 : 0,
-  };
+    return {
+      jobs: Number(stats?.totalJobs ?? 0),
+      companies: Number(stats?.totalCompanies ?? 0),
+      users: Number(stats?.totalStudents ?? 0),
+    };
+  } catch {
+    return { jobs: 0, companies: 0, users: 0 };
+  }
 }

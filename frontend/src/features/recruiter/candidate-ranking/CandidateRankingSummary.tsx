@@ -6,10 +6,10 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
   const skipped = run.skippedNoCv + run.skippedNotReady + run.skippedTerminalStatus;
   const items = [
     { label: "Tổng hồ sơ", value: run.totalApplications, icon: Users },
-    { label: "Có CV", value: run.eligibleCandidates, icon: FileCheck2 },
+    { label: "Đủ điều kiện", value: run.eligibleCandidates, icon: FileCheck2 },
     { label: "Bị bỏ qua", value: skipped, icon: FileX2 },
-    { label: "Đang hiển thị", value: run.resultCount, icon: BarChart3 },
-    { label: "Nguồn dữ liệu", value: run.algorithmVersion, icon: Brain },
+    { label: "Kết quả hiển thị", value: run.resultCount, icon: BarChart3 },
+    { label: "Thuật toán", value: run.algorithmVersion, icon: Brain },
   ];
 
   return (
