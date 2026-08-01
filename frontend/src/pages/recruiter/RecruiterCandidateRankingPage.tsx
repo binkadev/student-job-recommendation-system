@@ -87,7 +87,7 @@ export function RecruiterCandidateRankingPage() {
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Run #${detail.run.id}` });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể chạy xếp hạng", message: getApiErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể chạy xếp hạng", message: getCreateRunErrorMessage(error) });
     } finally {
       setCreating(false);
     }
@@ -251,9 +251,17 @@ function getRankingErrorMessage(error?: string | null) {
   if (error.includes("404")) return "Không tìm thấy tin tuyển dụng hoặc ranking run.";
   if (error.includes("409")) return "Tin tuyển dụng này đang có ranking run xử lý. Vui lòng đợi hoàn tất rồi thử lại.";
   if (error.includes("500") || error.toLowerCase().includes("internal server error")) {
-    return "Backend đang lỗi khi tải hoặc chạy xếp hạng ứng viên. Vui lòng kiểm tra log BE và migration candidate ranking.";
+    return "Backend đang lỗi khi tải dữ liệu xếp hạng ứng viên. Vui lòng kiểm tra log BE, version container và schema Candidate Ranking.";
   }
   return error;
+}
+
+function getCreateRunErrorMessage(error: unknown) {
+  const message = getApiErrorMessage(error, "Không thể tạo lượt xếp hạng ứng viên. Vui lòng thử lại.");
+  if (message.toLowerCase().includes("internal server error")) {
+    return "Backend đang lỗi khi tạo lượt xếp hạng ứng viên. Vui lòng kiểm tra log BE, version container và schema Candidate Ranking.";
+  }
+  return message;
 }
 
 function jobStatusTone(status: string) {
