@@ -41,6 +41,21 @@ public enum ErrorCode {
             "AI service returned an invalid response",
             HttpStatus.BAD_GATEWAY
     ),
+    CANDIDATE_RANKING_ALREADY_PROCESSING(
+            "CANDIDATE_RANKING_ALREADY_PROCESSING",
+            "Candidate ranking is already processing",
+            HttpStatus.CONFLICT
+    ),
+    CANDIDATE_RANKING_CAPACITY_EXCEEDED(
+            "CANDIDATE_RANKING_CAPACITY_EXCEEDED",
+            "Candidate ranking capacity exceeded",
+            HttpStatus.SERVICE_UNAVAILABLE
+    ),
+    CANDIDATE_RANKING_GENERATION_FAILED(
+            "CANDIDATE_RANKING_GENERATION_FAILED",
+            "Candidate ranking generation failed",
+            HttpStatus.BAD_GATEWAY
+    ),
     RECOMMENDATION_RUN_NOT_FOUND(
             "RECOMMENDATION_RUN_NOT_FOUND",
             "Recommendation run not found",

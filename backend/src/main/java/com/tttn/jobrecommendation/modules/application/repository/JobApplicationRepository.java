@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
 
@@ -46,6 +47,12 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             order by application.id asc
             """)
     List<CandidateRankingApplicationRow> findCandidateRankingRowsByJobId(@Param("jobId") Long jobId);
+
+    @EntityGraph(attributePaths = {"job", "cvFile"})
+    @Query("select application from JobApplication application where application.id in :applicationIds")
+    List<JobApplication> findCandidateRankingApplicationsByIdIn(
+            @Param("applicationIds") Set<Long> applicationIds
+    );
 
     @Override
     @EntityGraph(attributePaths = {"student.user", "job.company", "cvFile"})
