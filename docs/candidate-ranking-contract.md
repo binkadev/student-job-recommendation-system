@@ -428,9 +428,17 @@ rank. Backend validates all results, sorts the accepted results again by
 `score DESC, applicationId ASC`, assigns continuous `rankPosition` values from
 one, and persists that ordering.
 
-Backend compares the raw score against the threshold before rounding scores to
-the database scale. One invalid result invalidates the whole AI response; no
-partial result is persisted.
+AI response score components are projected to scale `8` with `HALF_UP`
+rounding. For same-language results with declared Job skills, Backend projects
+`0.65 * returnedTextScore + 0.35 * returnedSkillScore` to that same scale and
+accepts an absolute difference from the returned score of at most
+`0.00000001`, the maximum one-unit double-rounding discrepancy. Non-weighted
+branches require exact numeric score equality, and the expected canonical
+skill-overlap score is projected to scale `8` with `HALF_UP` and compared
+exactly. Backend compares the returned raw score against the threshold and
+sorts by that raw score before projecting persistence-ready scores to database
+scale `5` with `HALF_UP`. One invalid result invalidates the whole AI response;
+no partial result is persisted.
 
 ## 8. Backend-generated explanations
 
