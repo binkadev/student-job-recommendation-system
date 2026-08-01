@@ -25,6 +25,28 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     Optional<JobApplication> findByIdAndStudentId(Long id, Long studentId);
 
+    @Query("""
+            select new com.tttn.jobrecommendation.modules.application.repository.CandidateRankingApplicationRow(
+                application.id,
+                application.status,
+                application.student.id,
+                application.job.id,
+                cv.id,
+                cv.student.id,
+                cv.extractedText,
+                cv.processedText,
+                cv.extractedSkills,
+                cv.analysisStatus,
+                cv.processingVersion,
+                cv.analyzedAt
+            )
+            from JobApplication application
+            left join application.cvFile cv
+            where application.job.id = :jobId
+            order by application.id asc
+            """)
+    List<CandidateRankingApplicationRow> findCandidateRankingRowsByJobId(@Param("jobId") Long jobId);
+
     @Override
     @EntityGraph(attributePaths = {"student.user", "job.company", "cvFile"})
     Page<JobApplication> findAll(Specification<JobApplication> specification, Pageable pageable);
