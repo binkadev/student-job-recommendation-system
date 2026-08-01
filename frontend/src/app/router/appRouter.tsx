@@ -38,6 +38,7 @@ import { JobDetailPage } from "../../pages/public/JobDetailPage";
 import { JobsPage } from "../../pages/public/JobsPage";
 import { PublicInfoPage } from "../../pages/public/PublicInfoPage";
 import { RecruiterCandidatesPage } from "../../pages/recruiter/RecruiterCandidatesPage";
+import { RecruiterCandidateRankingPage } from "../../pages/recruiter/RecruiterCandidateRankingPage";
 import { RecruiterCompanyPage } from "../../pages/recruiter/RecruiterCompanyPage";
 import { RecruiterDashboardPage } from "../../pages/recruiter/RecruiterDashboardPage";
 import { RecruiterJobsPage } from "../../pages/recruiter/RecruiterJobsPage";
@@ -155,6 +156,8 @@ function recruiterRouteElement(route: AppRoute) {
       return <RecruiterJobsPage mode="preview" />;
     case "/recruiter/jobs/:jobId/statistics":
       return <RecruiterJobsPage mode="statistics" />;
+    case "/recruiter/jobs/:jobId/candidate-ranking":
+      return <RecruiterCandidateRankingPage />;
     case "/recruiter/campaigns":
     case "/recruiter/campaigns/:campaignId":
       return <RecruiterJobsPage />;
@@ -167,7 +170,7 @@ function recruiterRouteElement(route: AppRoute) {
     case "/recruiter/pipeline":
       return <RecruiterCandidatesPage mode="pipeline" />;
     case "/recruiter/recommended-candidates":
-      return <RecruiterCandidatesPage mode="recommended" />;
+      return <Navigate to="/recruiter/jobs" replace />;
     case "/recruiter/saved-candidates":
       return <RecruiterCandidatesPage mode="saved" />;
     case "/recruiter/candidate-search":

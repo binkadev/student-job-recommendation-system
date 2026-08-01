@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.observability.RequestIdSupport;
+import com.tttn.jobrecommendation.infrastructure.ai.config.AiCandidateRankingProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import org.junit.jupiter.api.AfterEach;
@@ -269,7 +270,7 @@ class RestAiServiceClientTest {
         return new RestAiServiceClient(RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(requestFactory)
-                .build(), properties);
+                .build(), properties, OBJECT_MAPPER, new AiCandidateRankingProperties());
     }
 
     private AiRecommendationRequest recommendationRequest() {

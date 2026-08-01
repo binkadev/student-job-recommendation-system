@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, Eye, Pencil, Plus, RefreshCcw, XCircle } from "lucide-react";
+import { BriefcaseBusiness, Eye, Pencil, Plus, RefreshCcw, Users, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -364,6 +364,7 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
     <PageContainer>
       <PageHeader title={job.title} description={`${job.companyName} • ${job.location || "Chưa cập nhật địa điểm"}`} />
       <div className="mb-5 flex flex-wrap gap-2">
+        <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}><Button icon={<Users size={16} />}>Ứng viên phù hợp</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>Sửa tin</Button></Link>
         <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
       </div>
@@ -628,11 +629,16 @@ function JobTitleCell({ job }: { job: JobResponse }) {
 
 function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResponse; canPublish: boolean; onUpdateStatus: (job: JobResponse, status: JobStatus) => void; onClose: (job: JobResponse) => void }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link to={`/recruiter/jobs/${job.id}`}><Button variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
-      <Link to={`/recruiter/jobs/${job.id}/edit`}><Button variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>
-      {job.status === "DRAFT" || job.status === "REJECTED" ? <Button size="sm" disabled={!canPublish} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button> : null}
-      {job.status !== "CLOSED" ? <Button variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button> : null}
+    <div className="flex min-w-52 flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Link to={`/recruiter/jobs/${job.id}`}><Button variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
+        <Link to={`/recruiter/jobs/${job.id}/edit`}><Button variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>
+        {job.status === "DRAFT" || job.status === "REJECTED" ? <Button size="sm" disabled={!canPublish} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button> : null}
+        {job.status !== "CLOSED" ? <Button variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button> : null}
+      </div>
+      <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`} className="w-full">
+        <Button className="w-full justify-center" variant="secondary" size="sm" icon={<Users size={14} />}>Ứng viên phù hợp</Button>
+      </Link>
     </div>
   );
 }

@@ -43,6 +43,11 @@ app:
     connect-timeout: ${APP_AI_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${APP_AI_SERVICE_READ_TIMEOUT:15s}
 
+  ai:
+    candidate-ranking:
+      max-candidates-per-request: ${APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST}
+      max-request-bytes: ${APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES}
+
 springdoc:
   api-docs:
     enabled: false
