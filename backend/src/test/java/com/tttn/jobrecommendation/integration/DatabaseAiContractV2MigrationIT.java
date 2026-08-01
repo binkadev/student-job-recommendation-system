@@ -25,7 +25,7 @@ class DatabaseAiContractV2MigrationIT extends AbstractPostgresIntegrationTest {
             Flyway flyway = migrate(schema, null);
 
             assertThat(flyway.info().current()).isNotNull();
-            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("15");
+            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("16");
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 
             assertCvBackfill(schema);

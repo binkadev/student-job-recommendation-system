@@ -67,6 +67,8 @@ public abstract class AbstractPostgresIntegrationTest {
                     user_notification_settings,
                     saved_candidates,
                     saved_searches,
+                    candidate_ranking_results,
+                    candidate_ranking_runs,
                     recommendation_results,
                     recommendation_runs,
                     applications,
