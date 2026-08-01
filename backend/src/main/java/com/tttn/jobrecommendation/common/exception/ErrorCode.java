@@ -56,6 +56,11 @@ public enum ErrorCode {
             "Candidate ranking generation failed",
             HttpStatus.BAD_GATEWAY
     ),
+    CANDIDATE_RANKING_RUN_NOT_FOUND(
+            "CANDIDATE_RANKING_RUN_NOT_FOUND",
+            "Candidate ranking run not found",
+            HttpStatus.NOT_FOUND
+    ),
     RECOMMENDATION_RUN_NOT_FOUND(
             "RECOMMENDATION_RUN_NOT_FOUND",
             "Recommendation run not found",
