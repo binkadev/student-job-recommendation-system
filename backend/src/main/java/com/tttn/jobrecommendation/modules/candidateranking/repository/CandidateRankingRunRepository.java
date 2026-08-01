@@ -5,6 +5,7 @@ import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRanki
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,10 @@ public interface CandidateRankingRunRepository extends JpaRepository<CandidateRa
 
     Page<CandidateRankingRun> findByJobId(Long jobId, Pageable pageable);
 
+    @EntityGraph(attributePaths = "job")
+    Page<CandidateRankingRun> findByJobIdOrderByCreatedAtDescIdDesc(Long jobId, Pageable pageable);
+
+    @EntityGraph(attributePaths = "job")
     Optional<CandidateRankingRun> findByIdAndJobId(Long id, Long jobId);
 
     Optional<CandidateRankingRun> findByRequestId(UUID requestId);
