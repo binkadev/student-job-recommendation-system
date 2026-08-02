@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 import hmac
 import os
 import re
+from typing import Any
 
 from fastapi import APIRouter, Depends, Request
+from pydantic import ValidationError
 from starlette.datastructures import UploadFile
 
 from .cv_service import CvParsingService
+from .candidate_ranking_schemas import (
+    CandidateRankingRequest,
+    CandidateRankingResponse,
+)
+from .candidate_ranking_service import rank_candidate_request
 from .http_errors import (
     V2ApiError,
     V2ErrorResponse,
+    candidate_ranking_capacity_exceeded_error,
     internal_error,
     unauthorized_error,
     validation_error,
@@ -72,6 +81,68 @@ _CV_MULTIPART_OPENAPI = {
             }
         },
     }
+}
+
+
+def _dereference_generated_json_schema(
+    schema: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Inline generated local definitions without mutating the source schema."""
+
+    copied_schema = deepcopy(schema)
+    definitions = copied_schema.pop("$defs", {})
+    if not isinstance(definitions, Mapping):
+        raise RuntimeError("Generated candidate-ranking schema has invalid $defs")
+
+    def resolve(value: Any, resolving: frozenset[str] = frozenset()) -> Any:
+        if isinstance(value, dict):
+            reference = value.get("$ref")
+            if isinstance(reference, str) and reference.startswith("#/$defs/"):
+                encoded_name = reference.removeprefix("#/$defs/")
+                definition_name = encoded_name.replace("~1", "/").replace("~0", "~")
+                if definition_name not in definitions:
+                    raise RuntimeError(
+                        "Generated candidate-ranking schema references missing "
+                        f"definition: {reference}"
+                    )
+                if definition_name in resolving:
+                    raise RuntimeError(
+                        "Generated candidate-ranking schema contains recursive "
+                        f"definition: {reference}"
+                    )
+                replacement = deepcopy(definitions[definition_name])
+                siblings = {
+                    key: item for key, item in value.items() if key != "$ref"
+                }
+                replacement.update(siblings)
+                return resolve(replacement, resolving | {definition_name})
+            return {key: resolve(item, resolving) for key, item in value.items()}
+        if isinstance(value, list):
+            return [resolve(item, resolving) for item in value]
+        return value
+
+    resolved_schema = resolve(copied_schema)
+    if not isinstance(resolved_schema, dict):
+        raise RuntimeError("Generated candidate-ranking schema root is not an object")
+    return resolved_schema
+
+
+_CANDIDATE_RANKING_REQUEST_SCHEMA = _dereference_generated_json_schema(
+    CandidateRankingRequest.model_json_schema()
+)
+_CANDIDATE_RANKING_OPENAPI = {
+    "requestBody": {
+        "required": True,
+        "content": {
+            "application/json": {
+                "schema": _CANDIDATE_RANKING_REQUEST_SCHEMA,
+            }
+        },
+    }
+}
+_CANDIDATE_RANKING_ERROR_RESPONSES = {
+    status_code: {"model": V2ErrorResponse}
+    for status_code in (401, 413, 422, 500)
 }
 
 
@@ -241,6 +312,30 @@ async def require_v2_multipart_file(request: Request) -> UploadFile:
     return files[0]
 
 
+async def require_candidate_ranking_request(
+    request: Request,
+    runtime: V2Runtime,
+) -> CandidateRankingRequest:
+    """Read and validate one candidate-ranking request without reparsing it."""
+
+    raw_body = await request.body()
+    if len(raw_body) > runtime.max_candidate_ranking_request_bytes:
+        raise candidate_ranking_capacity_exceeded_error()
+
+    media_type = request.headers.get("content-type", "").partition(";")[0].strip()
+    if media_type.casefold() != "application/json":
+        raise validation_error()
+
+    try:
+        candidate_request = CandidateRankingRequest.model_validate_json(raw_body)
+    except ValidationError as error:
+        raise validation_error() from error
+
+    if len(candidate_request.candidates) > runtime.max_candidate_ranking_candidates:
+        raise candidate_ranking_capacity_exceeded_error()
+    return candidate_request
+
+
 async def _close_uploads(uploads: Iterable[UploadFile]) -> None:
     for upload in uploads:
         try:
@@ -298,6 +393,29 @@ def create_v2_router(runtime: V2Runtime) -> APIRouter:
             if recommend_english is not recommend_bilingual:
                 recommendation_callable = recommend_english
             return recommendation_callable(request, catalog=runtime.catalog)
+        except V2ApiError:
+            raise
+        except Exception as error:
+            raise internal_error() from error
+
+    async def candidate_ranking_request_dependency(
+        request: Request,
+    ) -> CandidateRankingRequest:
+        return await require_candidate_ranking_request(request, runtime)
+
+    @router.post(
+        "/candidate-rankings",
+        response_model=CandidateRankingResponse,
+        responses=_CANDIDATE_RANKING_ERROR_RESPONSES,
+        openapi_extra=_CANDIDATE_RANKING_OPENAPI,
+    )
+    def candidate_rankings(
+        request: CandidateRankingRequest = Depends(
+            candidate_ranking_request_dependency
+        ),
+    ) -> CandidateRankingResponse:
+        try:
+            return rank_candidate_request(request, catalog=runtime.catalog)
         except V2ApiError:
             raise
         except Exception as error:
