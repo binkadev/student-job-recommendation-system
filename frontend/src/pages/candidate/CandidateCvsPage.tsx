@@ -166,7 +166,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="font-semibold text-slate-950">File đã chọn</h2>
-                    <p className="mt-2 truncate text-sm font-medium text-slate-800">{selectedFile.name}</p>
+                    <p className="mt-2 break-words text-sm font-medium text-slate-800" title={selectedFile.name}>{selectedFile.name}</p>
                   </div>
                   <button type="button" className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-red-600" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
                     <X size={16} />
@@ -236,10 +236,10 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         {cvs.map((cv) => (
           <Card key={cv.id}>
             <div className="flex items-start justify-between gap-3">
-              <div className="flex gap-3">
+              <div className="flex min-w-0 gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><FileText size={20} /></div>
-                <div>
-                  <h2 className="font-semibold text-slate-950">{cv.originalFileName}</h2>
+                <div className="min-w-0">
+                  <h2 className="break-words font-semibold text-slate-950" title={cv.originalFileName || cv.fileName || ""}>{cv.originalFileName || cv.fileName || "CV chưa cập nhật tên"}</h2>
                   <p className="mt-1 text-sm text-slate-500">{getFileType(cv.contentType)} • {formatFileSize(cv.fileSize)}</p>
                 </div>
               </div>
@@ -253,7 +253,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
               <p>Upload: {formatDateTime(cv.uploadedAt)}</p>
-              <p>Tên file: {cv.originalFileName || cv.fileName || "Chưa cập nhật"}</p>
+              <p className="break-words">Tên file: {cv.originalFileName || cv.fileName || "Chưa cập nhật"}</p>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">

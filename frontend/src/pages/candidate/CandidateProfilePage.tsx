@@ -57,7 +57,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
   }
 
   if (mode === "edit") {
-    return <CandidateProfileEditView profile={profile} />;
+    return <CandidateProfileEditView profile={profile} onSaved={profileQuery.setData} />;
   }
 
   if (mode === "preferences") {

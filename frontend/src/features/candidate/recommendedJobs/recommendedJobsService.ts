@@ -149,13 +149,22 @@ export function getRecommendedFilterOptions(jobs: CandidateRecommendedJob[]) {
 async function mapRecommendationResult(result: RecommendationResultResponse): Promise<CandidateRecommendedJob> {
   const matchedSkills = normalizeStringArray(result.matchedSkills ?? result.matchedKeywords);
   const missingSkills = normalizeStringArray(result.missingSkills ?? result.missingKeywords);
-  const reason = result.reason || result.explanation;
+  const reason = result.reason || result.explanation || "";
   const score = toPercent(result.score);
   const textScore = result.textScore == null ? null : toPercent(result.textScore);
   const skillScore = result.skillScore == null ? null : toPercent(result.skillScore);
   const jobTitle = result.jobTitle || `Công việc #${result.jobId}`;
   const detail = await getCachedPublicJobDetail(String(result.jobId)).catch(() => null);
   const job = detail?.job;
+  const scoringStrategyLabel = getScoringStrategyLabel(result.scoringStrategy, reason, textScore);
+  const recommendationReasons = buildRecommendationReasons({
+    matchedSkills,
+    missingSkills,
+    jobSkills: job?.skills ?? [],
+    textScore,
+    skillScore,
+    rawReason: reason,
+  });
 
   return {
     id: String(result.jobId),
@@ -182,10 +191,69 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
     textScore,
     skillScore,
     scoringStrategy: result.scoringStrategy ?? null,
+    scoringStrategyLabel,
     matchedSkills,
     missingSkills,
-    recommendationReasons: reason ? [reason] : [],
+    recommendationReasons,
   };
+}
+
+function getScoringStrategyLabel(strategy?: string | null, reason = "", textScore?: number | null) {
+  const normalizedStrategy = String(strategy ?? "").toUpperCase();
+  const normalizedReason = reason.toLowerCase();
+  if (
+    normalizedStrategy === "CROSS_LANGUAGE_SKILL_BASED" ||
+    normalizedReason.includes("skill-only matching") ||
+    normalizedReason.includes("text similarity was not used") ||
+    textScore == null
+  ) {
+    return "Đối sánh kỹ năng khác ngôn ngữ";
+  }
+  if (normalizedStrategy === "SAME_LANGUAGE_HYBRID") return "Hybrid cùng ngôn ngữ";
+  return normalizedStrategy ? normalizedStrategy : "Chưa cập nhật";
+}
+
+function buildRecommendationReasons({
+  matchedSkills,
+  missingSkills,
+  jobSkills,
+  textScore,
+  skillScore,
+  rawReason,
+}: {
+  matchedSkills: string[];
+  missingSkills: string[];
+  jobSkills: string[];
+  textScore: number | null;
+  skillScore: number | null;
+  rawReason: string;
+}) {
+  const uniqueJobSkills = Array.from(new Set([...jobSkills, ...matchedSkills, ...missingSkills].map((skill) => skill.trim()).filter(Boolean)));
+  const totalSkills = uniqueJobSkills.length || matchedSkills.length + missingSkills.length;
+  const reasons: string[] = [];
+
+  if (totalSkills > 0) {
+    reasons.push(`Phù hợp ${matchedSkills.length}/${totalSkills} kỹ năng${matchedSkills.length ? `: ${matchedSkills.join(", ")}.` : "."}`);
+  }
+
+  if (missingSkills.length) {
+    reasons.push(`Còn thiếu ${missingSkills.length} kỹ năng: ${missingSkills.join(", ")}.`);
+  } else {
+    reasons.push("Không thiếu kỹ năng bắt buộc.");
+  }
+
+  const reasonLower = rawReason.toLowerCase();
+  if (textScore == null || reasonLower.includes("text similarity was not used")) {
+    reasons.push("Không dùng điểm văn bản vì CV và việc làm khác ngôn ngữ hoặc không đủ an toàn để so sánh cùng ngôn ngữ.");
+  } else {
+    reasons.push(`Độ tương đồng nội dung: ${textScore}%.`);
+  }
+
+  if (skillScore != null) {
+    reasons.push(`Mức phủ kỹ năng: ${skillScore}%.`);
+  }
+
+  return reasons;
 }
 
 async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {

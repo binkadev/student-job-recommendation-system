@@ -380,7 +380,7 @@ function RecommendedJobCard({
               <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600">
                 <span className="inline-flex items-center gap-1"><Wallet size={15} />{job.salary}</span>
                 <span className="inline-flex items-center gap-1"><MapPin size={15} />{job.location}</span>
-                <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={15} />{formatExperience(job.experienceYears, job.experienceLabel)} - {job.workMode}</span>
+                <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={15} />{formatExperience(job.experienceYears, job.experienceLabel)} - {job.scoringStrategyLabel ?? "Chưa cập nhật"}</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -391,8 +391,8 @@ function RecommendedJobCard({
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SkillGroup title="Keyword phù hợp" skills={job.matchedSkills} tone="success" />
-            <SkillGroup title="Keyword còn thiếu" skills={job.missingSkills} tone="warning" />
+            <SkillGroup title="Keyword phù hợp" skills={job.matchedSkills} tone="success" emptyLabel="Chưa cập nhật" />
+            <SkillGroup title="Keyword còn thiếu" skills={job.missingSkills} tone="warning" emptyLabel="Không thiếu kỹ năng" />
           </div>
 
           <div className="mt-4 rounded-md bg-slate-50 p-3">
@@ -425,12 +425,12 @@ function RecommendedJobCard({
   );
 }
 
-function SkillGroup({ title, skills, tone }: { title: string; skills: string[]; tone: "success" | "warning" }) {
+function SkillGroup({ title, skills, tone, emptyLabel }: { title: string; skills: string[]; tone: "success" | "warning"; emptyLabel: string }) {
   return (
     <div>
       <p className="mb-2 text-sm font-semibold text-slate-800">{title}</p>
       <div className="flex flex-wrap gap-2">
-        {skills.length ? skills.map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />) : <StatusBadge label="Chưa cập nhật" />}
+        {skills.length ? skills.map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />) : <StatusBadge label={emptyLabel} tone={tone} />}
       </div>
     </div>
   );
@@ -465,7 +465,7 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
           <InfoPill label="Điểm phù hợp" value={`${job?.matchScore ?? 0}%`} />
           <InfoPill label="Điểm nội dung" value={job?.textScore == null ? "Không áp dụng" : `${job.textScore}%`} />
           <InfoPill label="Điểm kỹ năng" value={job?.skillScore == null ? "Chưa cập nhật" : `${job.skillScore}%`} />
-          <InfoPill label="Chiến lược" value={job?.scoringStrategy ?? "Chưa cập nhật"} />
+          <InfoPill label="Chiến lược" value={job?.scoringStrategyLabel ?? "Chưa cập nhật"} />
           <InfoPill label="Ngày tạo kết quả" value={job?.postedAt ?? "Chưa cập nhật"} />
           <InfoPill label="Số keyword khớp" value={String(job?.matchedSkills.length ?? 0)} />
         </div>

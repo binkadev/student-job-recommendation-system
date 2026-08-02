@@ -198,8 +198,8 @@ function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvI
               className={`rounded-lg border p-4 text-left transition ${selectedCvId === cv.id ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200"}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-950">{cv.fileName}</p>
+                <div className="min-w-0">
+                  <p className="break-words font-semibold text-slate-950" title={cv.fileName}>{cv.fileName}</p>
                   <p className="mt-1 text-sm text-slate-600">Cập nhật ngày {formatDate(cv.uploadedAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
