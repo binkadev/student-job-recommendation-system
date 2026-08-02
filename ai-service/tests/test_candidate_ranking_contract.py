@@ -269,6 +269,33 @@ def test_candidate_ranking_schema_has_no_rank_reason_identity_or_storage_fields(
         CandidateRankingResponse.model_validate(payload)
 
 
+def test_job_skills_are_bounded_to_the_locked_result_skill_capacity() -> None:
+    accepted = valid_request()
+    accepted["job"]["skills"] = [
+        f"job-skill-{index:03d}" for index in range(100)
+    ]
+    request = CandidateRankingRequest.model_validate(accepted)
+    assert len(request.job.skills) == 100
+
+    rejected = valid_request()
+    rejected["job"]["skills"] = [
+        f"job-skill-{index:03d}" for index in range(101)
+    ]
+    with pytest.raises(ValidationError):
+        CandidateRankingRequest.model_validate(rejected)
+
+
+def test_candidate_skills_keep_the_unbounded_input_skill_type() -> None:
+    payload = valid_request()
+    payload["candidates"][0]["skills"] = [
+        f"candidate-skill-{index:03d}" for index in range(101)
+    ]
+
+    request = CandidateRankingRequest.model_validate(payload)
+
+    assert len(request.candidates[0].skills) == 101
+
+
 def test_candidate_count_has_no_schema_maximum() -> None:
     schema = CandidateRankingRequest.model_json_schema()
     candidates = schema["properties"]["candidates"]

@@ -249,13 +249,18 @@ def tokenize_vietnamese(text: str) -> tuple[str, ...]:
     return tuple(tokens)
 
 
-def preprocess_english(text: str) -> EnglishPreprocessingResult:
+def preprocess_english(
+    text: str,
+    *,
+    detection: LanguageDetection | None = None,
+) -> EnglishPreprocessingResult:
     """Validate English language and produce deterministic TF-IDF text."""
 
     if not isinstance(text, str):
         raise TypeError("English preprocessing text must be a string")
 
-    detection = detect_language(text)
+    if detection is None:
+        detection = detect_language(text)
     if (
         detection.language_code is not LanguageCode.ENGLISH
         or detection.confidence < ENGLISH_LANGUAGE_CONFIDENCE_THRESHOLD
@@ -270,20 +275,29 @@ def preprocess_english(text: str) -> EnglishPreprocessingResult:
     )
 
 
-def preprocess_english_job(text: str) -> EnglishPreprocessingResult:
+def preprocess_english_job(
+    text: str,
+    *,
+    detection: LanguageDetection | None = None,
+) -> EnglishPreprocessingResult:
     """Parse a Job and preprocess only its non-SKILLS lexical content."""
 
     job_document = parse_job_document(text)
-    return preprocess_english(job_document.similarity_text)
+    return preprocess_english(job_document.similarity_text, detection=detection)
 
 
-def preprocess_vietnamese(text: str) -> VietnamesePreprocessingResult:
+def preprocess_vietnamese(
+    text: str,
+    *,
+    detection: LanguageDetection | None = None,
+) -> VietnamesePreprocessingResult:
     """Validate Vietnamese language and produce deterministic TF-IDF text."""
 
     if not isinstance(text, str):
         raise TypeError("Vietnamese preprocessing text must be a string")
 
-    detection = detect_language(text)
+    if detection is None:
+        detection = detect_language(text)
     if (
         detection.language_code is not LanguageCode.VIETNAMESE
         or detection.confidence < ENGLISH_LANGUAGE_CONFIDENCE_THRESHOLD
@@ -298,11 +312,18 @@ def preprocess_vietnamese(text: str) -> VietnamesePreprocessingResult:
     )
 
 
-def preprocess_vietnamese_job(text: str) -> VietnamesePreprocessingResult:
+def preprocess_vietnamese_job(
+    text: str,
+    *,
+    detection: LanguageDetection | None = None,
+) -> VietnamesePreprocessingResult:
     """Parse a Job and preprocess only its non-SKILLS Vietnamese content."""
 
     job_document = parse_job_document(text)
-    return preprocess_vietnamese(job_document.similarity_text)
+    return preprocess_vietnamese(
+        job_document.similarity_text,
+        detection=detection,
+    )
 
 
 def preprocess_supported(
@@ -320,5 +341,5 @@ def preprocess_supported(
     ):
         raise UnsupportedLanguageError(detection)
     if detection.language_code is LanguageCode.ENGLISH:
-        return preprocess_english(text)
-    return preprocess_vietnamese(text)
+        return preprocess_english(text, detection=detection)
+    return preprocess_vietnamese(text, detection=detection)

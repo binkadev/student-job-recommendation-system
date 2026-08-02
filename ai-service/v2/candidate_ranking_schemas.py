@@ -47,6 +47,10 @@ Skill = Annotated[
     ),
 ]
 Skills = Annotated[list[Skill], Field(strict=True)]
+CandidateRankingJobSkills = Annotated[
+    list[Skill],
+    Field(strict=True, max_length=100),
+]
 ResultSkills = Annotated[list[Skill], Field(strict=True, max_length=100)]
 CandidateList = Annotated[
     list["CandidateRankingCandidate"],
@@ -91,7 +95,7 @@ class CandidateRankingModel(BaseModel):
 class CandidateRankingJob(CandidateRankingModel):
     id: PositiveId
     text: CandidateRankingText
-    skills: Skills
+    skills: CandidateRankingJobSkills
 
 
 class CandidateRankingCandidate(CandidateRankingModel):
