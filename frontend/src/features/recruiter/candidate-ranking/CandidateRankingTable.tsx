@@ -1,4 +1,4 @@
-import { BookmarkPlus, Eye, FileText, Search, UserCheck } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Eye, FileText, Search, UserCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Avatar } from "../../../components/ui/Avatar";
@@ -25,6 +25,7 @@ const statusOptions = [
 
 interface CandidateRankingTableProps {
   results: CandidateRankingResult[];
+  savedApplicationIds: Set<string>;
   updatingId: string;
   onAnalyze: (result: CandidateRankingResult) => void;
   onOpenCv: (result: CandidateRankingResult) => void;
@@ -32,19 +33,19 @@ interface CandidateRankingTableProps {
   onUpdateStatus: (result: CandidateRankingResult, status: string) => void;
 }
 
-export function CandidateRankingTable({ results, updatingId, onAnalyze, onOpenCv, onSave, onUpdateStatus }: CandidateRankingTableProps) {
+export function CandidateRankingTable({ results, savedApplicationIds, updatingId, onAnalyze, onOpenCv, onSave, onUpdateStatus }: CandidateRankingTableProps) {
   return (
     <Table
       rows={results}
       getRowKey={(result) => `${result.applicationId}-${result.rankPosition ?? result.id}`}
       columns={[
-        { key: "rank", header: "Thứ tự", render: (result) => <strong className="text-slate-950">#{result.rankPosition}</strong> },
+        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">{result.rankPosition == null ? "Chưa cập nhật" : `#${result.rankPosition}`}</strong> },
         { key: "candidate", header: "Ứng viên", render: (result) => <CandidateCell result={result} /> },
-        { key: "score", header: "Điểm AI", render: (result) => <ScoreCell result={result} /> },
+        { key: "score", header: "Điểm", render: (result) => <ScoreCell result={result} /> },
         { key: "matched", header: "Kỹ năng phù hợp", render: (result) => <SkillChips skills={result.matchedSkills} /> },
         { key: "missing", header: "Kỹ năng thiếu", render: (result) => <SkillChips skills={result.missingSkills} tone="warning" /> },
         { key: "status", header: "Trạng thái", render: (result) => <StatusBadge label={applicationStatusLabels[result.applicationStatus]} tone={statusTone(result.applicationStatus)} /> },
-        { key: "actions", header: "Thao tác", render: (result) => <Actions result={result} updating={updatingId === result.applicationId} onAnalyze={onAnalyze} onOpenCv={onOpenCv} onSave={onSave} onUpdateStatus={onUpdateStatus} /> },
+        { key: "actions", header: "Thao tác", render: (result) => <Actions result={result} saved={savedApplicationIds.has(result.applicationId)} updating={updatingId === result.applicationId} onAnalyze={onAnalyze} onOpenCv={onOpenCv} onSave={onSave} onUpdateStatus={onUpdateStatus} /> },
       ]}
     />
   );
@@ -64,10 +65,6 @@ function CandidateCell({ result }: { result: CandidateRankingResult }) {
 }
 
 function ScoreCell({ result }: { result: CandidateRankingResult }) {
-  if (result.score == null && result.textScore == null && result.skillScore == null) {
-    return <span className="text-xs text-slate-500">Chưa có API xếp hạng</span>;
-  }
-
   return (
     <div>
       <p className="font-semibold text-slate-950">{formatScore(result.score)}</p>
@@ -77,7 +74,7 @@ function ScoreCell({ result }: { result: CandidateRankingResult }) {
 }
 
 function SkillChips({ skills, tone = "neutral" }: { skills: string[]; tone?: "neutral" | "warning" }) {
-  if (!skills.length) return <span className="text-xs text-slate-500">Chưa có dữ liệu</span>;
+  if (!skills.length) return <span className="text-xs text-slate-500">Không có dữ liệu</span>;
   return (
     <div className="flex max-w-52 flex-wrap gap-1">
       {skills.slice(0, 3).map((skill) => <StatusBadge key={skill} label={skill} tone={tone} />)}
@@ -88,6 +85,7 @@ function SkillChips({ skills, tone = "neutral" }: { skills: string[]; tone?: "ne
 
 interface ActionsProps {
   result: CandidateRankingResult;
+  saved: boolean;
   updating: boolean;
   onAnalyze: (result: CandidateRankingResult) => void;
   onOpenCv: (result: CandidateRankingResult) => void;
@@ -95,13 +93,13 @@ interface ActionsProps {
   onUpdateStatus: (result: CandidateRankingResult, status: string) => void;
 }
 
-function Actions({ result, updating, onAnalyze, onOpenCv, onSave, onUpdateStatus }: ActionsProps) {
+function Actions({ result, saved, updating, onAnalyze, onOpenCv, onSave, onUpdateStatus }: ActionsProps) {
   return (
     <div className="flex min-w-72 flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${result.applicationId}`}><Button size="sm" variant="secondary" icon={<Eye size={14} />}>Chi tiết</Button></Link>
       <Button size="sm" variant="secondary" icon={<FileText size={14} />} disabled={!result.cvFileId} onClick={() => onOpenCv(result)}>CV</Button>
       <Button size="sm" variant="secondary" icon={<Search size={14} />} onClick={() => onAnalyze(result)}>Phân tích</Button>
-      <Button size="sm" variant="secondary" icon={<BookmarkPlus size={14} />} disabled={result.saved} onClick={() => onSave(result)}>{result.saved ? "Đã lưu" : "Lưu"}</Button>
+      <Button size="sm" variant="secondary" icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} disabled={saved} onClick={() => onSave(result)}>{saved ? "Đã lưu" : "Lưu"}</Button>
       <div className="w-36">
         <Select
           label="Trạng thái"

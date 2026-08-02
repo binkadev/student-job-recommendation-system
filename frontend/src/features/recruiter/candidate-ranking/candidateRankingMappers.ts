@@ -1,6 +1,8 @@
 import type {
   CandidateRankingApplicationStatus,
   CandidateRankingJob,
+  CandidateRankingResult,
+  CandidateRankingRun,
   CandidateRankingRunDetail,
   CandidateRankingRunStatus,
 } from "./candidateRankingTypes";
@@ -22,71 +24,97 @@ export interface JobDetailResponse {
   workingModel: string | null;
 }
 
-export interface ApplicationResponse {
-  id: number;
-  status: string;
-  studentId: number;
-  studentName: string | null;
-  studentEmail: string | null;
-  jobId: number;
-  jobTitle: string;
-  cvFileId: number | null;
-  cvFileName: string | null;
-  appliedAt: string;
-  reviewedAt: string | null;
+export interface CandidateRankingRunResponse {
+  id?: number | string | null;
+  jobId?: number | string | null;
+  jobTitle?: string | null;
+  status?: string | null;
+  algorithm?: string | null;
+  algorithmVersion?: string | null;
+  threshold?: number | string | null;
+  requestedLimit?: number | string | null;
+  totalApplicationsScanned?: number | string | null;
+  eligibleCandidates?: number | string | null;
+  skippedNoCv?: number | string | null;
+  skippedNotReady?: number | string | null;
+  skippedTerminalStatus?: number | string | null;
+  totalRanked?: number | string | null;
+  errorMessage?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  createdAt?: string | null;
 }
 
-export interface SavedCandidateResponse {
-  id: number;
-  applicationId: number;
-  studentId: number;
+export interface CandidateRankingRunDetailResponse extends CandidateRankingRunResponse {
+  results?: CandidateRankingResultResponse[] | null;
 }
 
-export function buildApplicationRankingDetail(
-  jobId: string,
-  applications: ApplicationResponse[],
-  savedCandidates: SavedCandidateResponse[],
-): CandidateRankingRunDetail {
-  const savedApplicationIds = new Set(savedCandidates.map((candidate) => String(candidate.applicationId)));
-  const eligibleCandidates = applications.filter((application) => Boolean(application.cvFileId)).length;
+export interface CandidateRankingResultResponse {
+  id?: number | string | null;
+  applicationId?: number | string | null;
+  studentId?: number | string | null;
+  studentName?: string | null;
+  studentEmail?: string | null;
+  cvFileId?: number | string | null;
+  cvFileName?: string | null;
+  applicationStatus?: string | null;
+  appliedAt?: string | null;
+  score?: number | string | null;
+  textScore?: number | string | null;
+  skillScore?: number | string | null;
+  scoringStrategy?: string | null;
+  matchedSkills?: string[] | null;
+  missingSkills?: string[] | null;
+  reason?: string | null;
+  rankPosition?: number | string | null;
+  createdAt?: string | null;
+}
 
+export function mapRankingRun(run: CandidateRankingRunResponse | null | undefined): CandidateRankingRun {
   return {
-    run: {
-      id: "",
-      jobId,
-      jobTitle: applications[0]?.jobTitle ?? "Chưa cập nhật",
-      status: "SUCCESS",
-      algorithm: "application-list",
-      algorithmVersion: "Danh sách ứng viên đã ứng tuyển",
-      startedAt: "Chưa có API xếp hạng",
-      finishedAt: "Chưa có API xếp hạng",
-      errorMessage: null,
-      totalApplications: applications.length,
-      eligibleCandidates,
-      skippedNoCv: applications.length - eligibleCandidates,
-      skippedNotReady: 0,
-      skippedTerminalStatus: applications.filter((application) => isTerminalStatus(application.status)).length,
-      resultCount: applications.length,
-    },
-    results: applications.map((application, index) => ({
-      id: String(application.id),
-      applicationId: String(application.id),
-      studentId: String(application.studentId),
-      studentName: application.studentName || "Chưa cập nhật",
-      studentEmail: application.studentEmail || "Chưa cập nhật",
-      cvFileId: application.cvFileId == null ? null : String(application.cvFileId),
-      cvFileName: application.cvFileName,
-      rankPosition: index + 1,
-      score: null,
-      textScore: null,
-      skillScore: null,
-      scoringStrategy: null,
-      matchedSkills: [],
-      missingSkills: [],
-      reason: "Backend hiện có API danh sách ứng viên theo tin tuyển dụng. API xếp hạng AI cho recruiter chưa có controller REST để FE gọi.",
-      applicationStatus: mapApplicationStatus(application.status),
-      saved: savedApplicationIds.has(String(application.id)),
-    })),
+    id: toId(run?.id),
+    jobId: toId(run?.jobId),
+    jobTitle: run?.jobTitle || "Chưa cập nhật",
+    status: mapRunStatus(run?.status),
+    algorithm: run?.algorithm || "Chưa cập nhật",
+    algorithmVersion: run?.algorithmVersion || "Chưa cập nhật",
+    startedAt: formatDateTime(run?.startedAt ?? run?.createdAt),
+    finishedAt: formatDateTime(run?.finishedAt),
+    errorMessage: run?.errorMessage || null,
+    totalApplications: toNumber(run?.totalApplicationsScanned),
+    eligibleCandidates: toNumber(run?.eligibleCandidates),
+    skippedNoCv: toNumber(run?.skippedNoCv),
+    skippedNotReady: toNumber(run?.skippedNotReady),
+    skippedTerminalStatus: toNumber(run?.skippedTerminalStatus),
+    resultCount: toNumber(run?.totalRanked),
+  };
+}
+
+export function mapRankingResult(result: CandidateRankingResultResponse): CandidateRankingResult {
+  return {
+    id: toId(result.id ?? result.applicationId),
+    applicationId: toId(result.applicationId),
+    studentId: toId(result.studentId),
+    studentName: result.studentName || "Chưa cập nhật",
+    studentEmail: result.studentEmail || "Chưa cập nhật",
+    cvFileId: result.cvFileId == null ? null : toId(result.cvFileId),
+    cvFileName: result.cvFileName || null,
+    rankPosition: toNullableNumber(result.rankPosition),
+    score: toNullableNumber(result.score),
+    textScore: toNullableNumber(result.textScore),
+    skillScore: toNullableNumber(result.skillScore),
+    scoringStrategy: result.scoringStrategy || null,
+    matchedSkills: normalizeStringArray(result.matchedSkills),
+    missingSkills: normalizeStringArray(result.missingSkills),
+    reason: result.reason || null,
+    applicationStatus: mapApplicationStatus(result.applicationStatus),
+  };
+}
+
+export function mapRankingRunDetail(run: CandidateRankingRunDetailResponse): CandidateRankingRunDetail {
+  return {
+    run: mapRankingRun(run),
+    results: (run.results ?? []).map(mapRankingResult),
   };
 }
 
@@ -108,11 +136,11 @@ export function formatScore(value: number | null) {
 }
 
 export function sanitizeErrorMessage(value?: string | null) {
-  if (!value) return "Không thể tải dữ liệu ứng viên. Vui lòng thử lại sau.";
+  if (!value) return "Không thể tải dữ liệu xếp hạng ứng viên. Vui lòng thử lại sau.";
   return value.replace(/Bearer\s+[A-Za-z0-9._-]+/g, "[token]").slice(0, 300);
 }
 
-export function mapRunStatus(status?: string | null): CandidateRankingRunStatus {
+function mapRunStatus(status?: string | null): CandidateRankingRunStatus {
   if (status === "PENDING" || status === "PROCESSING" || status === "SUCCESS" || status === "FAILED") return status;
   return "UNKNOWN";
 }
@@ -122,6 +150,29 @@ function mapApplicationStatus(status?: string | null): CandidateRankingApplicati
   return "UNKNOWN";
 }
 
-function isTerminalStatus(status?: string | null) {
-  return status === "ACCEPTED" || status === "REJECTED" || status === "WITHDRAWN";
+function normalizeStringArray(value?: string[] | null) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function toId(value?: number | string | null) {
+  return value == null ? "" : String(value);
+}
+
+function toNumber(value?: number | string | null) {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function toNullableNumber(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(date);
 }

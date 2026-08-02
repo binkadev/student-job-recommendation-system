@@ -26,7 +26,6 @@ export const breadcrumbLabels: Record<string, string> = {
   "audit-logs": "Nhật ký hệ thống",
   "system-settings": "Cấu hình",
   saved: "Đã lưu",
-  "saved-searches": "Tìm kiếm đã lưu",
   "saved-candidates": "Hồ sơ đã lưu",
   recommended: "Gợi ý",
   "recommended-candidates": "Ứng viên được gợi ý",

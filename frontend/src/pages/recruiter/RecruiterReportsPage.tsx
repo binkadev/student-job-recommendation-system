@@ -271,9 +271,8 @@ export function RecruiterReportsPage() {
         </ChartCard>
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div className="mt-5">
         <JobPerformanceTable rows={jobPerformance} />
-        <UnsupportedReportCard />
       </div>
     </PageContainer>
   );
@@ -290,7 +289,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 function JobPerformanceTable({ rows }: { rows: JobPerformanceRow[] }) {
   return (
     <Card>
-      <SectionHeader title="Tin tuyển dụng" description="Hiệu quả theo số lượng application thật." />
+      <SectionHeader title="Tin tuyển dụng" />
       {rows.length ? (
         <Table
           rows={rows}
@@ -304,18 +303,6 @@ function JobPerformanceTable({ rows }: { rows: JobPerformanceRow[] }) {
           ]}
         />
       ) : <EmptyState message="Chưa có dữ liệu tin tuyển dụng." />}
-    </Card>
-  );
-}
-
-function UnsupportedReportCard() {
-  return (
-    <Card>
-      <SectionHeader title="Chỉ số bổ sung" description="Các chỉ số chưa có dữ liệu sẽ hiển thị bằng 0." />
-      <div className="flex flex-wrap gap-2">
-        {["Nguồn ứng viên", "Offer accepted", "Time-to-hire", "Recruiter phụ trách", "Phòng ban"].map((item) => <StatusBadge key={item} label={item} />)}
-      </div>
-      <p className="mt-4 text-sm leading-6 text-slate-600">Các chỉ số sẽ được cập nhật khi có dữ liệu phù hợp.</p>
     </Card>
   );
 }

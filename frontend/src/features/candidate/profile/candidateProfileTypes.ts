@@ -8,6 +8,7 @@ export interface CandidateProfileHeader {
   email: string;
   phone: string;
   availability: string;
+  preferredJobType?: string | null;
   completion: number;
 }
 

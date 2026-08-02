@@ -10,7 +10,6 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  Tags,
   UserRound,
   Users,
 } from "lucide-react";
@@ -24,7 +23,6 @@ export const candidateMenu: MenuItem[] = [
       { label: "Tìm việc", path: "/candidate/jobs", icon: Search },
       { label: "Việc làm gợi ý", path: "/candidate/jobs/recommended", icon: BriefcaseBusiness },
       { label: "Việc làm đã lưu", path: "/candidate/jobs/saved", icon: Inbox },
-      { label: "Tìm kiếm đã lưu", path: "/candidate/jobs/saved-searches", icon: Search },
     ],
   },
   {
@@ -32,7 +30,7 @@ export const candidateMenu: MenuItem[] = [
     children: [
       { label: "Hồ sơ cá nhân", path: "/candidate/profile", icon: UserRound },
       { label: "Quản lý CV", path: "/candidate/cvs", icon: FileText },
-      { label: "Đánh giá CV", path: "/candidate/cvs/upload", icon: ShieldCheck },
+      { label: "Tải CV", path: "/candidate/cvs/upload", icon: ShieldCheck },
     ],
   },
   {
@@ -58,7 +56,6 @@ export const recruiterMenu: MenuItem[] = [
     label: "Ứng viên",
     children: [
       { label: "Tất cả ứng viên", path: "/recruiter/candidates", icon: Users },
-      { label: "Pipeline tuyen dung", path: "/recruiter/pipeline", icon: FolderKanban },
       { label: "Hồ sơ đã lưu", path: "/recruiter/saved-candidates", icon: Inbox },
     ],
   },
@@ -70,10 +67,8 @@ export const recruiterMenu: MenuItem[] = [
 export const adminMenu: MenuItem[] = [
   { label: "Tổng quan", path: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Người dùng", path: "/admin/users", icon: Users },
-  { label: "Nhà tuyển dụng", path: "/admin/recruiters", icon: UserRound },
   { label: "Doanh nghiệp", path: "/admin/companies", icon: Building2 },
   { label: "Tin tuyển dụng", path: "/admin/jobs", icon: BriefcaseBusiness },
   { label: "Đơn ứng tuyển", path: "/admin/applications", icon: FolderKanban },
-  { label: "Danh mục", path: "/admin/categories", icon: Tags },
   { label: "Thống kê", path: "/admin/analytics", icon: BarChart3 },
 ];

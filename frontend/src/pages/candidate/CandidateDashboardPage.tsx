@@ -62,7 +62,7 @@ export function CandidateDashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/candidate/profile/edit"><Button>Hoàn thiện hồ sơ</Button></Link>
-          <Link to="/candidate/cvs/upload"><Button variant="secondary">Upload CV</Button></Link>
+          <Link to="/candidate/cvs/upload"><Button variant="secondary">Tải CV</Button></Link>
         </div>
       </div>
 
@@ -136,27 +136,27 @@ export function CandidateDashboardPage() {
           </Card>
 
           <Card>
-            <SectionHeader title="CV active" />
+            <SectionHeader title="CV đang dùng" />
             {data.cv ? (
               <div>
                 <div className="flex items-start gap-3">
                   <FileText className="mt-1 text-brand-600" size={22} />
                   <div className="min-w-0">
                     <p className="font-medium text-slate-950">{data.cv.fileName}</p>
-                    <p className="mt-1 text-sm text-slate-600">Upload: {data.cv.uploadedAt}</p>
+                    <p className="mt-1 text-sm text-slate-600">Ngày tải lên: {data.cv.uploadedAt}</p>
                     <p className="mt-1 text-sm text-slate-600">Dung lượng: {data.cv.fileSize}</p>
                   </div>
                 </div>
                 <div className="mt-3">
-                  <StatusBadge label={data.cv.active ? "Active" : "Inactive"} tone={data.cv.active ? "success" : "neutral"} />
+                  <StatusBadge label={data.cv.active ? "Đang dùng" : "Chưa dùng"} tone={data.cv.active ? "success" : "neutral"} />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link to={`/candidate/cvs/${data.cv.id}`}><Button size="sm" variant="secondary">Xem</Button></Link>
-                  <Link to="/candidate/cvs/upload"><Button size="sm" variant="secondary">Upload CV mới</Button></Link>
+                  <Link to="/candidate/cvs/upload"><Button size="sm" variant="secondary">Tải CV mới</Button></Link>
                 </div>
               </div>
             ) : (
-              <EmptyState message="Bạn chưa có CV active." />
+              <EmptyState message="Bạn chưa có CV đang dùng." />
             )}
           </Card>
 

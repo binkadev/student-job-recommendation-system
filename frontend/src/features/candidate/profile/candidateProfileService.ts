@@ -127,7 +127,7 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
     projects: profile.projects.length ? serializeProjects(profile.projects) : null,
     targetPosition: emptyToNull(profile.header.currentTitle || profile.careerGoal.slice(0, 255)),
     preferredLocation: emptyToNull(profile.header.location),
-    preferredJobType: null as BackendJobType | null,
+    preferredJobType: normalizeJobType(profile.header.preferredJobType),
   };
 
   await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
@@ -160,6 +160,7 @@ function mapCandidateProfile(
       email: student.email,
       phone: student.phone || "",
       availability: profile.preferredJobType ? JOB_TYPE_LABELS[profile.preferredJobType] : "Đang cập nhật",
+      preferredJobType: profile.preferredJobType,
       completion: profile.profileCompleteness ?? calculateProfileCompleteness(student, profile, skills),
     },
     summary: profile.summary || "",
@@ -268,6 +269,11 @@ function findSkillId(skill: CandidateSkill, catalog: SkillResponse[]) {
 
 function mapSkillLevel(value: string): BackendSkillLevel {
   return LEVEL_VALUES[normalize(value)] ?? "BEGINNER";
+}
+
+function normalizeJobType(value?: string | null): BackendJobType | null {
+  if (value === "FULL_TIME" || value === "PART_TIME" || value === "INTERNSHIP" || value === "CONTRACT") return value;
+  return null;
 }
 
 function serializeExperiences(items: CandidateProfileData["experiences"]) {

@@ -36,7 +36,6 @@ export interface CandidateRankingResult {
   missingSkills: string[];
   reason: string | null;
   applicationStatus: CandidateRankingApplicationStatus | "UNKNOWN";
-  saved: boolean;
 }
 
 export interface CandidateRankingRunDetail {
@@ -52,4 +51,3 @@ export interface CandidateRankingJob {
   jobType: string;
   workingModel: string;
 }
-

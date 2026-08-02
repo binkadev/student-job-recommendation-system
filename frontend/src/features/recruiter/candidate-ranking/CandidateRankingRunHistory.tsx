@@ -29,7 +29,7 @@ export function CandidateRankingRunHistory({ runs, selectedRunId, onSelect }: Ca
             <p className="mt-1 text-xs text-slate-500">{run.resultCount} kết quả · {run.algorithmVersion}</p>
           </button>
         ))}
-        {selectedRunId ? <Button variant="secondary" onClick={() => onSelect("")}>Dùng kết quả mới nhất</Button> : null}
+        {selectedRunId ? <Button variant="secondary" onClick={() => onSelect("")}>Dùng run mới nhất</Button> : null}
       </div>
     </Card>
   );

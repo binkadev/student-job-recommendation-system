@@ -1,4 +1,5 @@
 import { useEffect, useState, type DependencyList } from "react";
+import { getApiErrorMessage } from "../utils/apiErrors";
 
 export function useAsyncData<T>(loader: () => Promise<T>, dependencies: DependencyList = []) {
   const [data, setData] = useState<T | null>(null);
@@ -14,8 +15,8 @@ export function useAsyncData<T>(loader: () => Promise<T>, dependencies: Dependen
       .then((result) => {
         if (active) setData(result);
       })
-      .catch(() => {
-        if (active) setError("Không thể tải dữ liệu mẫu. Vui lòng thử lại.");
+      .catch((error) => {
+        if (active) setError(getApiErrorMessage(error, "Không thể tải dữ liệu. Vui lòng thử lại."));
       })
       .finally(() => {
         if (active) setLoading(false);

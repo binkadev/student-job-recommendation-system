@@ -153,9 +153,6 @@ export function RecruiterSettingsPage({ section = "account" }: { section?: "main
           {tab === "security" ? <SecuritySettings onUnsupported={notifyUnsupported} /> : null}
         </div>
       </Card>
-      <div className="mt-5 max-w-xl">
-        <DangerZone onUnsupported={notifyUnsupported} />
-      </div>
     </PageContainer>
   );
 }
@@ -420,15 +417,6 @@ function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) 
       <Switch label="Bật xác thực hai bước" checked={false} onChange={() => onUnsupported("Xác thực hai bước")} />
       <Button loading={saving} onClick={() => void changePassword()}>Đổi mật khẩu</Button>
     </div>
-  );
-}
-
-function DangerZone({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Khu vực nguy hiểm" description="Các thao tác nhạy cảm với tài khoản doanh nghiệp." />
-      <Button variant="danger" onClick={() => onUnsupported("Khóa tài khoản doanh nghiệp")}>Khóa tài khoản</Button>
-    </Card>
   );
 }
 

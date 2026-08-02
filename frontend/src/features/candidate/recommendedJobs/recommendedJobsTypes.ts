@@ -11,6 +11,7 @@ export interface CandidateRecommendedJob extends PublicJobListItem {
   textScore?: number | null;
   skillScore?: number | null;
   scoringStrategy?: string | null;
+  scoringStrategyLabel?: string | null;
   matchedSkills: string[];
   missingSkills: string[];
   recommendationReasons: string[];

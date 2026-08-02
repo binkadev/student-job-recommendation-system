@@ -12,13 +12,12 @@ import { Card } from "../../../components/ui/Card";
 import { Input } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
 import { Select } from "../../../components/ui/Select";
-import { Tabs } from "../../../components/ui/Tabs";
 import { Textarea } from "../../../components/ui/Textarea";
 import { useToast } from "../../../hooks/useToast";
 import { updateCandidateProfileData } from "./candidateProfileService";
-import type { CandidateCertificate, CandidateEducation, CandidateExperience, CandidateLanguage, CandidateProfileData, CandidateProject, CandidateSkill } from "./candidateProfileTypes";
+import type { CandidateEducation, CandidateExperience, CandidateProfileData, CandidateProject, CandidateSkill } from "./candidateProfileTypes";
 
-type EditTab = "personal" | "about" | "experience" | "education" | "skills" | "certificates" | "projects" | "languages" | "links";
+type EditTab = "personal" | "about" | "experience" | "education" | "skills" | "projects";
 
 const tabs: Array<{ label: string; value: EditTab }> = [
   { label: "Thông tin cá nhân", value: "personal" },
@@ -26,11 +25,23 @@ const tabs: Array<{ label: string; value: EditTab }> = [
   { label: "Kinh nghiệm", value: "experience" },
   { label: "Học vấn", value: "education" },
   { label: "Kỹ năng", value: "skills" },
-  { label: "Chứng chỉ", value: "certificates" },
   { label: "Dự án", value: "projects" },
-  { label: "Ngoại ngữ", value: "languages" },
-  { label: "Liên kết", value: "links" },
 ];
+
+const availabilityOptions = [
+  { label: "Chọn trạng thái", value: "" },
+  { label: "Toàn thời gian", value: "FULL_TIME" },
+  { label: "Bán thời gian", value: "PART_TIME" },
+  { label: "Thực tập", value: "INTERNSHIP" },
+  { label: "Hợp đồng", value: "CONTRACT" },
+];
+
+const availabilityLabels: Record<string, string> = {
+  FULL_TIME: "Toàn thời gian",
+  PART_TIME: "Bán thời gian",
+  INTERNSHIP: "Thực tập",
+  CONTRACT: "Hợp đồng",
+};
 
 const phoneRegex = /^$|^(0|\+84)(\d{9})$/;
 const urlSchema = z.string().url("URL không hợp lệ.").or(z.literal(""));
@@ -55,50 +66,32 @@ const editSchema = z.object({
 
 type EditFormValues = z.infer<typeof editSchema>;
 
-interface EditableExperience extends Omit<CandidateExperience, "period"> {
+interface EditableExperience extends CandidateExperience {
   startDate: string;
   endDate: string;
   current: boolean;
 }
 
-interface EditableEducation extends Omit<CandidateEducation, "period"> {
+interface EditableEducation extends CandidateEducation {
   startDate: string;
   endDate: string;
   description: string;
 }
 
-export function CandidateProfileEditView({ profile }: { profile: CandidateProfileData }) {
+export function CandidateProfileEditView({ profile, onSaved }: { profile: CandidateProfileData; onSaved?: (profile: CandidateProfileData) => void }) {
   const [searchParams] = useSearchParams();
   const initialTab = normalizeTab(searchParams.get("section"));
   const [activeTab, setActiveTab] = useState<EditTab>(initialTab);
-  const [experiences, setExperiences] = useState<EditableExperience[]>(profile.experiences.map((item) => ({ ...item, startDate: "2026-03-01", endDate: "2026-07-01", current: false })));
-  const [education, setEducation] = useState<EditableEducation[]>(profile.education.map((item) => ({ ...item, startDate: "2022-09-01", endDate: "2026-06-01", description: "Sinh viên ngành Công nghệ thông tin." })));
+  const [experiences, setExperiences] = useState<EditableExperience[]>(toEditableExperiences(profile));
+  const [education, setEducation] = useState<EditableEducation[]>(toEditableEducation(profile));
   const [skills, setSkills] = useState(flattenSkills(profile));
-  const [certificates, setCertificates] = useState(profile.certificates);
   const [projects, setProjects] = useState(profile.projects);
-  const [languages, setLanguages] = useState(profile.languages);
   const [deleteTarget, setDeleteTarget] = useState<{ label: string; onConfirm: () => void } | null>(null);
   const [listError, setListError] = useState("");
   const [savedProfile, setSavedProfile] = useState(profile);
   const { showToast } = useToast();
 
-  const defaultValues = useMemo<EditFormValues>(() => ({
-    avatar: profile.header.avatar,
-    name: profile.header.name,
-    birthDate: profile.header.birthDate,
-    email: profile.header.email,
-    phone: profile.header.phone.replaceAll(" ", ""),
-    location: profile.header.location,
-    address: profile.header.address,
-    currentTitle: profile.header.currentTitle,
-    availability: profile.header.availability,
-    summary: profile.summary,
-    careerGoal: profile.careerGoal,
-    linkedIn: profile.links.linkedIn,
-    github: profile.links.github,
-    portfolio: profile.links.portfolio,
-    website: profile.links.website,
-  }), [profile]);
+  const defaultValues = useMemo<EditFormValues>(() => toEditFormValues(profile), [profile]);
 
   const { register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, getValues } = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
@@ -123,27 +116,29 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
     }
 
     const nextProfile = buildProfile(values);
-    await updateCandidateProfileData(nextProfile);
-    setSavedProfile(nextProfile);
-    reset(values);
+    const updatedProfile = await updateCandidateProfileData(nextProfile);
+    setSavedProfile(updatedProfile);
+    setExperiences(toEditableExperiences(updatedProfile));
+    setEducation(toEditableEducation(updatedProfile));
+    setSkills(flattenSkills(updatedProfile));
+    setProjects(updatedProfile.projects);
+    onSaved?.(updatedProfile);
+    reset(toEditFormValues(updatedProfile));
     setListError("");
-    showToast({ type: "success", title: "Đã lưu toàn bộ hồ sơ", message: "Dữ liệu hồ sơ đã được cập nhật." });
+    showToast({ type: "success", title: "Đã lưu hồ sơ", message: "Dữ liệu hồ sơ đã được cập nhật từ backend." });
   }
 
   async function saveCurrentSection() {
     const values = getValues();
     await saveAll(values);
-    showToast({ type: "success", title: "Đã lưu section hiện tại" });
   }
 
   function cancelChanges() {
     reset(defaultValues);
-    setExperiences(profile.experiences.map((item) => ({ ...item, startDate: "2026-03-01", endDate: "2026-07-01", current: false })));
-    setEducation(profile.education.map((item) => ({ ...item, startDate: "2022-09-01", endDate: "2026-06-01", description: "Sinh viên ngành Công nghệ thông tin." })));
+    setExperiences(toEditableExperiences(profile));
+    setEducation(toEditableEducation(profile));
     setSkills(flattenSkills(profile));
-    setCertificates(profile.certificates);
     setProjects(profile.projects);
-    setLanguages(profile.languages);
     setListError("");
     showToast({ type: "success", title: "Đã hủy thay đổi" });
   }
@@ -161,30 +156,29 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
         location: values.location,
         address: values.address,
         currentTitle: values.currentTitle,
-        availability: values.availability,
+        availability: availabilityLabels[values.availability] ?? "Đang cập nhật",
+        preferredJobType: values.availability || null,
         completion: calculateCompletion(values),
       },
       summary: values.summary,
       careerGoal: values.careerGoal,
-      experiences: experiences.filter((item) => item.company && item.position).map(({ startDate, endDate, current, ...item }) => ({ ...item, period: `${startDate} - ${current ? "Hiện tại" : endDate}` })),
+      experiences: experiences.filter((item) => item.company && item.position).map(({ startDate, endDate, current, ...item }) => ({
+        ...item,
+        period: startDate ? `${startDate} - ${current ? "Hiện tại" : endDate}` : item.period,
+      })),
       education: education.filter((item) => item.school && item.major).map((item) => ({
         id: item.id,
         school: item.school,
         major: item.major,
         degree: item.degree,
         gpa: item.gpa,
-        period: `${item.startDate} - ${item.endDate}`,
+        period: item.startDate || item.endDate ? `${item.startDate} - ${item.endDate}` : item.period,
       })),
       skills: groupSkills(skills),
-      certificates: certificates.filter((item) => item.name && item.issuer),
+      certificates: savedProfile.certificates,
       projects: projects.filter((item) => item.name && item.role),
-      languages: languages.filter((item) => item.name && item.level),
-      links: {
-        linkedIn: values.linkedIn,
-        github: values.github,
-        portfolio: values.portfolio,
-        website: values.website,
-      },
+      languages: savedProfile.languages,
+      links: savedProfile.links,
     };
   }
 
@@ -211,7 +205,7 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
           <p className="mt-1 text-sm text-slate-600">Cập nhật thông tin cá nhân, kinh nghiệm, học vấn, kỹ năng và liên kết nghề nghiệp.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={saveCurrentSection} icon={<Save size={16} />}>Lưu section</Button>
+          <Button type="button" variant="secondary" onClick={saveCurrentSection} icon={<Save size={16} />}>Lưu mục hiện tại</Button>
           <Button type="button" variant="secondary" onClick={cancelChanges} icon={<X size={16} />}>Hủy thay đổi</Button>
           <Link to="/candidate/profile"><Button type="button" variant="secondary">Xem hồ sơ</Button></Link>
         </div>
@@ -220,7 +214,22 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
       <form onSubmit={handleSubmit(saveAll)} className="grid gap-5 lg:grid-cols-[260px_1fr]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <Card>
-            <Tabs items={tabs} value={activeTab} onChange={(value) => setActiveTab(value as EditTab)} />
+            <div className="grid gap-2">
+              {tabs.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setActiveTab(item.value)}
+                  className={`flex min-h-10 w-full items-center rounded-md border px-3 text-left text-sm font-medium transition ${
+                    activeTab === item.value
+                      ? "border-brand-200 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="mt-5">
               <Button className="w-full" type="submit" loading={isSubmitting}>Lưu toàn bộ</Button>
             </div>
@@ -234,17 +243,12 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
             <Card>
               <SectionHeader title="Thông tin cá nhân" />
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Avatar" error={errors.avatar?.message} {...register("avatar")} />
                 <Input label="Họ tên" error={errors.name?.message} {...register("name")} />
-                <Input label="Ngày sinh" type="date" error={errors.birthDate?.message} {...register("birthDate")} />
-                <Input label="Email" error={errors.email?.message} {...register("email")} />
+                <Input label="Email" error={errors.email?.message} readOnly {...register("email")} />
                 <Input label="Số điện thoại" error={errors.phone?.message} {...register("phone")} />
                 <Input label="Tỉnh thành" error={errors.location?.message} {...register("location")} />
-                <Input label="Địa chỉ" error={errors.address?.message} {...register("address")} />
                 <Input label="Chức danh hiện tại" error={errors.currentTitle?.message} {...register("currentTitle")} />
-                <div className="md:col-span-2">
-                  <Input label="Trạng thái sẵn sàng làm việc" error={errors.availability?.message} {...register("availability")} />
-                </div>
+                <Select label="Trạng thái sẵn sàng làm việc" options={availabilityOptions} error={errors.availability?.message} {...register("availability")} />
               </div>
             </Card>
           ) : null}
@@ -262,21 +266,7 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
           {activeTab === "experience" ? <ExperienceEditor items={experiences} setItems={setExperiences} onDelete={setDeleteTarget} /> : null}
           {activeTab === "education" ? <EducationEditor items={education} setItems={setEducation} onDelete={setDeleteTarget} /> : null}
           {activeTab === "skills" ? <SkillEditor items={skills} setItems={setSkills} onDelete={setDeleteTarget} /> : null}
-          {activeTab === "certificates" ? <CertificateEditor items={certificates} setItems={setCertificates} onDelete={setDeleteTarget} /> : null}
           {activeTab === "projects" ? <ProjectEditor items={projects} setItems={setProjects} onDelete={setDeleteTarget} /> : null}
-          {activeTab === "languages" ? <LanguageEditor items={languages} setItems={setLanguages} onDelete={setDeleteTarget} /> : null}
-
-          {activeTab === "links" ? (
-            <Card>
-              <SectionHeader title="Liên kết" />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input label="LinkedIn" error={errors.linkedIn?.message} {...register("linkedIn")} />
-                <Input label="GitHub" error={errors.github?.message} {...register("github")} />
-                <Input label="Portfolio" error={errors.portfolio?.message} {...register("portfolio")} />
-                <Input label="Website" error={errors.website?.message} {...register("website")} />
-              </div>
-            </Card>
-          ) : null}
         </main>
       </form>
 
@@ -300,8 +290,36 @@ export function CandidateProfileEditView({ profile }: { profile: CandidateProfil
 
 function normalizeTab(section: string | null): EditTab {
   if (section === "summary" || section === "career-goal") return "about";
-  if (section === "experience" || section === "education" || section === "skills" || section === "certificates" || section === "projects" || section === "languages" || section === "links") return section;
+  if (section === "experience" || section === "education" || section === "skills" || section === "projects") return section;
   return "personal";
+}
+
+function toEditFormValues(profile: CandidateProfileData): EditFormValues {
+  return {
+    avatar: profile.header.avatar,
+    name: profile.header.name,
+    birthDate: profile.header.birthDate,
+    email: profile.header.email,
+    phone: profile.header.phone.replaceAll(" ", ""),
+    location: profile.header.location,
+    address: profile.header.address,
+    currentTitle: profile.header.currentTitle,
+    availability: profile.header.preferredJobType ?? "",
+    summary: profile.summary,
+    careerGoal: profile.careerGoal,
+    linkedIn: profile.links.linkedIn,
+    github: profile.links.github,
+    portfolio: profile.links.portfolio,
+    website: profile.links.website,
+  };
+}
+
+function toEditableExperiences(profile: CandidateProfileData): EditableExperience[] {
+  return profile.experiences.map((item) => ({ ...item, startDate: "", endDate: "", current: false }));
+}
+
+function toEditableEducation(profile: CandidateProfileData): EditableEducation[] {
+  return profile.education.map((item) => ({ ...item, startDate: "", endDate: "", description: "" }));
 }
 
 function flattenSkills(profile: CandidateProfileData) {
@@ -365,7 +383,7 @@ function swapItems<T>(items: T[], index: number, direction: -1 | 1) {
 function ExperienceEditor({ items, setItems, onDelete }: { items: EditableExperience[]; setItems: (items: EditableExperience[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
-      <SectionHeader title="Kinh nghiệm" action={<SectionActions onAdd={() => setItems([...items, { id: newId("exp"), company: "", position: "", startDate: "", endDate: "", current: false, description: "", achievements: [], technologies: [] }])} />} />
+      <SectionHeader title="Kinh nghiệm" action={<SectionActions onAdd={() => setItems([...items, { id: newId("exp"), company: "", position: "", period: "", startDate: "", endDate: "", current: false, description: "", achievements: [], technologies: [] }])} />} />
       <div className="space-y-4">
         {items.map((item, index) => (
           <div key={item.id} className="rounded-lg border border-slate-200 p-4">
@@ -392,7 +410,7 @@ function ExperienceEditor({ items, setItems, onDelete }: { items: EditableExperi
 function EducationEditor({ items, setItems, onDelete }: { items: EditableEducation[]; setItems: (items: EditableEducation[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
-      <SectionHeader title="Học vấn" action={<SectionActions onAdd={() => setItems([...items, { id: newId("edu"), school: "", major: "", degree: "", startDate: "", endDate: "", gpa: "", description: "" }])} />} />
+      <SectionHeader title="Học vấn" action={<SectionActions onAdd={() => setItems([...items, { id: newId("edu"), school: "", major: "", degree: "", period: "", startDate: "", endDate: "", gpa: "", description: "" }])} />} />
       <div className="space-y-4">
         {items.map((item) => (
           <div key={item.id} className="rounded-lg border border-slate-200 p-4">
@@ -434,29 +452,11 @@ function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkil
   );
 }
 
-function CertificateEditor({ items, setItems, onDelete }: { items: CandidateCertificate[]; setItems: (items: CandidateCertificate[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Chứng chỉ" action={<SectionActions onAdd={() => setItems([...items, { id: newId("cert"), name: "", issuer: "", issuedAt: "", expiresAt: "", code: "", url: "" }])} />} />
-      <SimpleGrid items={items} setItems={setItems} onDelete={onDelete} fields={["name", "issuer", "issuedAt", "expiresAt", "code", "url"]} deleteLabel="Chứng chỉ sẽ bị xóa." />
-    </Card>
-  );
-}
-
 function ProjectEditor({ items, setItems, onDelete }: { items: CandidateProject[]; setItems: (items: CandidateProject[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
       <SectionHeader title="Dự án" action={<SectionActions onAdd={() => setItems([...items, { id: newId("project"), name: "", role: "", period: "", description: "", technologies: [], url: "" }])} />} />
       <SimpleGrid items={items} setItems={setItems} onDelete={onDelete} fields={["name", "role", "period", "description", "technologies", "url"]} deleteLabel="Dự án sẽ bị xóa." />
-    </Card>
-  );
-}
-
-function LanguageEditor({ items, setItems, onDelete }: { items: CandidateLanguage[]; setItems: (items: CandidateLanguage[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Ngoại ngữ" action={<SectionActions onAdd={() => setItems([...items, { id: newId("lang"), name: "", level: "" }])} />} />
-      <SimpleGrid items={items} setItems={setItems} onDelete={onDelete} fields={["name", "level"]} deleteLabel="Ngoại ngữ sẽ bị xóa." />
     </Card>
   );
 }

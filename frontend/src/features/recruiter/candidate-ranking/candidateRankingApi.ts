@@ -1,11 +1,12 @@
 import { httpClient } from "../../../services/api/httpClient";
 import {
-  buildApplicationRankingDetail,
   mapRankingJob,
-  type ApplicationResponse,
+  mapRankingRun,
+  mapRankingRunDetail,
+  type CandidateRankingRunDetailResponse,
+  type CandidateRankingRunResponse,
   type JobDetailResponse,
   type PageResponse,
-  type SavedCandidateResponse,
 } from "./candidateRankingMappers";
 import type { CandidateRankingJob, CandidateRankingRunDetail } from "./candidateRankingTypes";
 
@@ -16,26 +17,31 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
+interface CreateRankingRunPayload {
+  threshold: number;
+  limit: number;
+}
+
 export async function getCandidateRankingJob(jobId: string): Promise<CandidateRankingJob> {
   const response = await httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`);
   return mapRankingJob(response.data.data);
 }
 
-export async function getCandidateRankingApplications(jobId: string): Promise<CandidateRankingRunDetail> {
-  const [applicationsResponse, savedCandidatesResponse] = await Promise.all([
-    httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>(`/companies/me/jobs/${jobId}/applications`, {
-      params: { page: 1, size: 100, sort: "appliedAt,desc" },
-    }),
-    httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
-      params: { page: 1, size: 200 },
-    }),
-  ]);
+export async function createCandidateRankingRun(jobId: string, payload: CreateRankingRunPayload): Promise<CandidateRankingRunDetail> {
+  const response = await httpClient.post<ApiResponse<CandidateRankingRunDetailResponse>>(`/companies/me/jobs/${jobId}/candidate-ranking-runs`, payload);
+  return mapRankingRunDetail(response.data.data);
+}
 
-  return buildApplicationRankingDetail(
-    jobId,
-    applicationsResponse.data.data?.items ?? [],
-    savedCandidatesResponse.data.data?.items ?? [],
-  );
+export async function getCandidateRankingRuns(jobId: string) {
+  const response = await httpClient.get<ApiResponse<PageResponse<CandidateRankingRunResponse>>>(`/companies/me/jobs/${jobId}/candidate-ranking-runs`, {
+    params: { page: 1, size: 20 },
+  });
+  return (response.data.data?.items ?? []).map(mapRankingRun);
+}
+
+export async function getCandidateRankingRun(jobId: string, runId: string): Promise<CandidateRankingRunDetail> {
+  const response = await httpClient.get<ApiResponse<CandidateRankingRunDetailResponse>>(`/companies/me/jobs/${jobId}/candidate-ranking-runs/${runId}`);
+  return mapRankingRunDetail(response.data.data);
 }
 
 export async function openCandidateRankingCv(applicationId: string) {
