@@ -1,0 +1,29 @@
+# Isolated real-process Candidate Ranking evidence stack. Run only through
+# scripts/run-candidate-ranking-real-e2e.ps1, which supplies the project name
+# and removes these volumes unless its -KeepE2EStack debug flag is set.
+services:
+  postgres:
+    ports: !override
+      - "127.0.0.1:15432:5432"
+    volumes: !override
+      - candidate_ranking_e2e_postgres:/var/lib/postgresql/data
+
+  ai-service:
+    ports: !override
+      - "127.0.0.1:18000:8000"
+
+  backend:
+    ports: !override
+      - "127.0.0.1:18080:8080"
+    volumes: !override
+      - candidate_ranking_e2e_cvs:/app/data/cvs
+    environment:
+      # Keep this database empty apart from the runner fixture; the dev seed
+      # profile would otherwise add unrelated candidates and jobs.
+      SPRING_PROFILES_ACTIVE: e2e
+
+volumes:
+  candidate_ranking_e2e_postgres:
+    name: ${COMPOSE_PROJECT_NAME:-candidate-ranking-real-e2e}_postgres
+  candidate_ranking_e2e_cvs:
+    name: ${COMPOSE_PROJECT_NAME:-candidate-ranking-real-e2e}_cvs
