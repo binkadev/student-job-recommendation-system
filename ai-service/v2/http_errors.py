@@ -67,6 +67,14 @@ def document_too_large_error() -> V2ApiError:
     )
 
 
+def candidate_ranking_capacity_exceeded_error() -> V2ApiError:
+    return V2ApiError(
+        413,
+        "CANDIDATE_RANKING_CAPACITY_EXCEEDED",
+        "Candidate ranking request exceeds synchronous capacity.",
+    )
+
+
 def empty_document_error() -> V2ApiError:
     return V2ApiError(
         400,

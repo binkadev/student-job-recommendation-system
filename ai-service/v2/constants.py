@@ -5,6 +5,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 ALGORITHM = "tfidf-cosine-hybrid"
 ALGORITHM_VERSION = "bilingual-recommendation-v2"
+CANDIDATE_RANKING_ALGORITHM_VERSION = "bilingual-candidate-ranking-v2"
 PROCESSING_VERSION = "bilingual-nlp-v2-skills-v1"
 SKILL_CATALOG_VERSION = "skills-v1"
 

@@ -37,10 +37,18 @@ from .skill_extractor import SkillExtractor
 recommend_english = recommend_bilingual
 
 _MAX_FILE_SIZE_ENVIRONMENT_KEY = "AI_CV_MAX_FILE_SIZE_BYTES"
+_CANDIDATE_RANKING_MAX_CANDIDATES_ENVIRONMENT_KEY = (
+    "AI_CANDIDATE_RANKING_MAX_CANDIDATES"
+)
+_CANDIDATE_RANKING_MAX_REQUEST_BYTES_ENVIRONMENT_KEY = (
+    "AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES"
+)
 _INTERNAL_API_KEY_ENVIRONMENT_KEY = "AI_INTERNAL_API_KEY"
 _INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key"
 _MINIMUM_INTERNAL_API_KEY_LENGTH = 32
 _DEFAULT_MAX_FILE_SIZE_BYTES = 10_485_760
+_DEFAULT_CANDIDATE_RANKING_MAX_CANDIDATES = 500
+_DEFAULT_CANDIDATE_RANKING_MAX_REQUEST_BYTES = 8_388_608
 _POSITIVE_INTEGER_PATTERN = re.compile(r"[1-9][0-9]*")
 _ERROR_RESPONSES = {
     status_code: {"model": V2ErrorResponse}
@@ -80,6 +88,10 @@ class V2Runtime:
     catalog: SkillCatalog
     skill_extractor: SkillExtractor
     cv_service: CvParsingService
+    max_candidate_ranking_candidates: int = _DEFAULT_CANDIDATE_RANKING_MAX_CANDIDATES
+    max_candidate_ranking_request_bytes: int = (
+        _DEFAULT_CANDIDATE_RANKING_MAX_REQUEST_BYTES
+    )
 
 
 def parse_max_file_size_bytes(environment: Mapping[str, str]) -> int:
@@ -93,6 +105,45 @@ def parse_max_file_size_bytes(environment: Mapping[str, str]) -> int:
             f"{_MAX_FILE_SIZE_ENVIRONMENT_KEY} must be a positive integer"
         )
     return int(value)
+
+
+def _parse_positive_integer(
+    environment: Mapping[str, str],
+    environment_key: str,
+    default: int,
+) -> int:
+    value = environment.get(environment_key)
+    if value is None:
+        return default
+    if not _POSITIVE_INTEGER_PATTERN.fullmatch(value):
+        raise V2ConfigurationError(
+            f"{environment_key} must be a positive integer"
+        )
+    return int(value)
+
+
+def parse_candidate_ranking_max_candidates(
+    environment: Mapping[str, str],
+) -> int:
+    """Resolve the synchronous candidate-count safeguard."""
+
+    return _parse_positive_integer(
+        environment,
+        _CANDIDATE_RANKING_MAX_CANDIDATES_ENVIRONMENT_KEY,
+        _DEFAULT_CANDIDATE_RANKING_MAX_CANDIDATES,
+    )
+
+
+def parse_candidate_ranking_max_request_bytes(
+    environment: Mapping[str, str],
+) -> int:
+    """Resolve the synchronous serialized-request safeguard."""
+
+    return _parse_positive_integer(
+        environment,
+        _CANDIDATE_RANKING_MAX_REQUEST_BYTES_ENVIRONMENT_KEY,
+        _DEFAULT_CANDIDATE_RANKING_MAX_REQUEST_BYTES,
+    )
 
 
 def parse_internal_api_key(environment: Mapping[str, str]) -> str:
@@ -130,6 +181,12 @@ def build_v2_runtime(
     configured_environment = os.environ if environment is None else environment
     internal_api_key = parse_internal_api_key(configured_environment)
     max_file_size_bytes = parse_max_file_size_bytes(configured_environment)
+    max_candidate_ranking_candidates = parse_candidate_ranking_max_candidates(
+        configured_environment
+    )
+    max_candidate_ranking_request_bytes = parse_candidate_ranking_max_request_bytes(
+        configured_environment
+    )
     catalog = catalog_loader()
     extractor = SkillExtractor.from_catalog(catalog)
     cv_service = CvParsingService(
@@ -142,6 +199,8 @@ def build_v2_runtime(
         catalog=catalog,
         skill_extractor=extractor,
         cv_service=cv_service,
+        max_candidate_ranking_candidates=max_candidate_ranking_candidates,
+        max_candidate_ranking_request_bytes=max_candidate_ranking_request_bytes,
     )
 
 
