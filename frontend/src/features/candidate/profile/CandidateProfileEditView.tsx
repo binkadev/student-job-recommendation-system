@@ -12,7 +12,6 @@ import { Card } from "../../../components/ui/Card";
 import { Input } from "../../../components/ui/Input";
 import { Modal } from "../../../components/ui/Modal";
 import { Select } from "../../../components/ui/Select";
-import { Tabs } from "../../../components/ui/Tabs";
 import { Textarea } from "../../../components/ui/Textarea";
 import { useToast } from "../../../hooks/useToast";
 import { updateCandidateProfileData } from "./candidateProfileService";
@@ -206,7 +205,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
           <p className="mt-1 text-sm text-slate-600">Cập nhật thông tin cá nhân, kinh nghiệm, học vấn, kỹ năng và liên kết nghề nghiệp.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={saveCurrentSection} icon={<Save size={16} />}>Lưu section</Button>
+          <Button type="button" variant="secondary" onClick={saveCurrentSection} icon={<Save size={16} />}>Lưu mục hiện tại</Button>
           <Button type="button" variant="secondary" onClick={cancelChanges} icon={<X size={16} />}>Hủy thay đổi</Button>
           <Link to="/candidate/profile"><Button type="button" variant="secondary">Xem hồ sơ</Button></Link>
         </div>
@@ -215,7 +214,22 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
       <form onSubmit={handleSubmit(saveAll)} className="grid gap-5 lg:grid-cols-[260px_1fr]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <Card>
-            <Tabs items={tabs} value={activeTab} onChange={(value) => setActiveTab(value as EditTab)} />
+            <div className="grid gap-2">
+              {tabs.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setActiveTab(item.value)}
+                  className={`flex min-h-10 w-full items-center rounded-md border px-3 text-left text-sm font-medium transition ${
+                    activeTab === item.value
+                      ? "border-brand-200 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="mt-5">
               <Button className="w-full" type="submit" loading={isSubmitting}>Lưu toàn bộ</Button>
             </div>

@@ -117,7 +117,7 @@ export function CandidateNotificationsPage() {
               onChange={(event) => setType(event.target.value)}
               options={[
                 { label: "Tất cả", value: "" },
-                ...Array.from(new Set((result?.items ?? []).map((notification) => notification.type))).map((value) => ({ label: value, value })),
+                ...Array.from(new Set((result?.items ?? []).map((notification) => notification.type))).map((value) => ({ label: getNotificationTypeLabel(value), value })),
               ]}
             />
             <Button variant="secondary" className="self-end" onClick={() => void markAllRead()} disabled={unreadCount === 0}>
@@ -156,6 +156,7 @@ function NotificationItem({
   onMarkRead: () => void;
 }) {
   const targetPath = resolveNotificationPath(notification);
+  const display = getNotificationDisplay(notification);
   return (
     <Card className={notification.isRead ? "" : "border-brand-200 bg-brand-50/40"}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -165,11 +166,11 @@ function NotificationItem({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-semibold text-slate-950">{notification.title}</h2>
-              <StatusBadge label={notification.type} />
+              <h2 className="font-semibold text-slate-950">{display.title}</h2>
+              <StatusBadge label={display.typeLabel} />
               <StatusBadge label={notification.isRead ? "Đã đọc" : "Chưa đọc"} tone={notification.isRead ? "neutral" : "warning"} />
             </div>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{display.message}</p>
             <p className="mt-1 text-xs text-slate-500">{formatDateTime(notification.createdAt)}</p>
           </div>
         </Link>
@@ -206,6 +207,79 @@ function resolveNotificationPath(notification: NotificationResponse) {
   if (notification.referenceType === "APPLICATION" && notification.referenceId) return `/candidate/applications/${notification.referenceId}`;
   if (notification.referenceType === "JOB" && notification.referenceId) return `/candidate/jobs/${notification.referenceId}`;
   return "/candidate/notifications";
+}
+
+function getNotificationDisplay(notification: NotificationResponse) {
+  return {
+    title: translateNotificationTitle(notification.title, notification.type),
+    typeLabel: getNotificationTypeLabel(notification.type),
+    message: translateNotificationMessage(notification.message),
+  };
+}
+
+function translateNotificationTitle(title: string, type: string) {
+  const normalized = normalizeText(title);
+  if (normalized === "application status updated") return "Trạng thái ứng tuyển đã cập nhật";
+  if (normalized === "job status updated") return "Trạng thái việc làm đã cập nhật";
+  if (normalized === "recommendation updated") return "Gợi ý việc làm đã cập nhật";
+  if (normalized === "system notification") return "Thông báo hệ thống";
+  return title && !looksLikeCode(title) ? title : getNotificationTypeLabel(type);
+}
+
+function getNotificationTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    APPLICATION_STATUS_CHANGED: "Trạng thái ứng tuyển",
+    APPLICATION_STATUS_UPDATED: "Trạng thái ứng tuyển",
+    JOB_STATUS_CHANGED: "Trạng thái việc làm",
+    JOB_STATUS_UPDATED: "Trạng thái việc làm",
+    RECOMMENDATION_UPDATED: "Gợi ý việc làm",
+    CV_ANALYSIS_UPDATED: "Phân tích CV",
+    SYSTEM: "Hệ thống",
+  };
+  return labels[type] ?? toReadableVietnameseLabel(type);
+}
+
+function translateNotificationMessage(message: string) {
+  const match = message.match(/^Your application for (.+) has been updated to ([A-Z_]+)\.?$/i);
+  if (match) {
+    return `Đơn ứng tuyển cho ${match[1]} đã được cập nhật sang trạng thái ${getApplicationStatusLabel(match[2])}.`;
+  }
+
+  return message
+    .replace(/\bPENDING\b/g, "Chờ xử lý")
+    .replace(/\bREVIEWED\b/g, "Đã xem xét")
+    .replace(/\bACCEPTED\b/g, "Được chấp nhận")
+    .replace(/\bREJECTED\b/g, "Bị từ chối")
+    .replace(/\bWITHDRAWN\b/g, "Đã rút đơn");
+}
+
+function getApplicationStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    PENDING: "Chờ xử lý",
+    REVIEWED: "Đã xem xét",
+    ACCEPTED: "Được chấp nhận",
+    REJECTED: "Bị từ chối",
+    WITHDRAWN: "Đã rút đơn",
+  };
+  return labels[status.toUpperCase()] ?? toReadableVietnameseLabel(status);
+}
+
+function toReadableVietnameseLabel(value: string) {
+  if (!value) return "Thông báo";
+  return value
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function looksLikeCode(value: string) {
+  return /^[A-Z0-9_]+$/.test(value.trim());
 }
 
 function formatDateTime(value: string) {

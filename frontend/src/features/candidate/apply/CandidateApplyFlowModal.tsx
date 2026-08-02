@@ -214,7 +214,7 @@ function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvI
       </div>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <Link to="/candidate/cvs/upload">
-        <Button variant="secondary" icon={<FileUp size={16} />}>Upload CV mới</Button>
+        <Button variant="secondary" icon={<FileUp size={16} />}>Tải CV mới</Button>
       </Link>
     </div>
   );

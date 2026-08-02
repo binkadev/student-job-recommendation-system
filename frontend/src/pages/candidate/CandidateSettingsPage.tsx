@@ -1,15 +1,13 @@
-import { Camera, LogOut, ShieldAlert, Trash2 } from "lucide-react";
+import { Camera, LogOut, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
-import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
-import { Modal } from "../../components/ui/Modal";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { Switch } from "../../components/ui/Switch";
 import { Tabs } from "../../components/ui/Tabs";
@@ -69,7 +67,6 @@ const INITIAL_PRIVACY_SETTINGS = {
 export function CandidateSettingsPage({ section = "account" }: { section?: "main" | SettingsTab }) {
   const { showToast } = useToast();
   const [tab, setTab] = useState<SettingsTab>(section === "main" ? "account" : section);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const studentQuery = useAsyncData(() => getStudentSettings(), [reloadKey]);
 
@@ -123,19 +120,6 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
         </div>
       </Card>
 
-      <Card className="mt-5 border-red-100">
-        <SectionHeader title="Khu vực nguy hiểm" description="Các thao tác ảnh hưởng trực tiếp đến tài khoản của bạn." />
-        <Button variant="danger" icon={<Trash2 size={16} />} onClick={() => setDeleteOpen(true)}>Xóa tài khoản</Button>
-      </Card>
-
-      <DeleteAccountModal
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          setDeleteOpen(false);
-          notifyUnsupported("Xóa tài khoản");
-        }}
-      />
     </PageContainer>
   );
 }
@@ -181,7 +165,7 @@ function AccountSettings({
       <Card>
         <div className="flex flex-col items-center text-center">
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-50 text-2xl font-semibold text-brand-700">{form.avatar}</div>
-          <Button className="mt-4" variant="secondary" icon={<Camera size={16} />} onClick={() => onUnsupported("Upload avatar")}>Upload avatar</Button>
+          <Button className="mt-4" variant="secondary" icon={<Camera size={16} />} onClick={() => onUnsupported("Tải ảnh đại diện")}>Tải ảnh đại diện</Button>
         </div>
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
@@ -311,27 +295,6 @@ function NotificationSettings() {
       <Switch label="Thông báo hệ thống" checked={settings.systemEnabled} onChange={(value) => update("systemEnabled", value)} />
       <Button loading={saving} onClick={() => void save()}>Lưu cài đặt thông báo</Button>
     </div>
-  );
-}
-
-function DeleteAccountModal({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
-  const [confirmation, setConfirmation] = useState("");
-
-  useEffect(() => {
-    if (open) setConfirmation("");
-  }, [open]);
-
-  return (
-    <Modal open={open} title="Xóa tài khoản" onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-sm text-slate-700">Nhập <strong>XOA TAI KHOAN</strong> để xác nhận thao tác.</p>
-        <Input label="Mã xác nhận" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="danger" disabled={confirmation !== "XOA TAI KHOAN"} onClick={onConfirm}>Xóa tài khoản</Button>
-        </div>
-      </div>
-    </Modal>
   );
 }
 

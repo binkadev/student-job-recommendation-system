@@ -214,17 +214,13 @@ function ApplicationsListPage({
         description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
       />
       <Card>
-        <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]">
           <Input label="Tìm kiếm" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tên, email, vị trí..." />
           <Select label="Vị trí tuyển dụng" value={jobFilter} disabled={jobsLoading} onChange={(event) => { setJobFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...jobOptions.map((job) => ({ label: job.title, value: String(job.id) }))]} />
-          <Input label="Từ ngày" type="date" value="" onChange={() => undefined} disabled />
-          <Input label="Đến ngày" type="date" value="" onChange={() => undefined} disabled />
-          <div className="grid items-start gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-4 xl:grid-cols-4">
-            <Select label="Trạng thái" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
-            <Select label="Sắp xếp" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} options={[{ label: "Mới nhất", value: "appliedAt,desc" }, { label: "Cũ nhất", value: "appliedAt,asc" }]} />
-            <div className="flex items-end pt-6">
-              <Button className="w-full" icon={<Search size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tìm kiếm</Button>
-            </div>
+          <Select label="Trạng thái" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
+          <Select label="Sắp xếp" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} options={[{ label: "Mới nhất", value: "appliedAt,desc" }, { label: "Cũ nhất", value: "appliedAt,asc" }]} />
+          <div className="flex items-end pt-6">
+            <Button className="w-full" icon={<Search size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tìm kiếm</Button>
           </div>
         </div>
       </Card>
@@ -233,7 +229,6 @@ function ApplicationsListPage({
 
       <Card className="mt-5">
         <SectionHeader title="Danh sách ứng viên" description={`${applicationsPage?.totalItems ?? 0} hồ sơ ứng tuyển`} />
-        <p className="mb-4 text-sm text-amber-700">Bộ lọc ngày chưa được hỗ trợ nên đang tạm khóa để tránh hiển thị thiếu dữ liệu.</p>
         {applicationsQuery.loading ? <LoadingState /> : null}
         {!applicationsQuery.loading && applicationsQuery.error ? <EmptyState message={applicationsQuery.error} /> : null}
         {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length === 0 ? <EmptyState message="Không có hồ sơ ứng tuyển phù hợp." /> : null}

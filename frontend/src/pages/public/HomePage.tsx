@@ -178,7 +178,7 @@ export function HomePage() {
         <Card>
           <SectionHeader title="Quy trình sử dụng" />
           <ol className="grid gap-3 sm:grid-cols-4">
-            {["Tạo hồ sơ", "Upload CV", "Nhận gợi ý", "Ứng tuyển"].map((step, index) => (
+            {["Tạo hồ sơ", "Tải CV", "Nhận gợi ý", "Ứng tuyển"].map((step, index) => (
               <li key={step} className="rounded-lg bg-slate-50 p-4 text-sm">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-white">{index + 1}</span>
                 <p className="mt-3 font-medium text-slate-900">{step}</p>

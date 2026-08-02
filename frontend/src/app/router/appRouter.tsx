@@ -21,7 +21,6 @@ import { NotFoundPage } from "../../pages/errors/NotFoundPage";
 import { PlaceholderPage } from "../../pages/PlaceholderPage";
 import { AdminAnalyticsPage } from "../../pages/admin/AdminAnalyticsPage";
 import { AdminApplicationsPage } from "../../pages/admin/AdminApplicationsPage";
-import { AdminCategoriesPage } from "../../pages/admin/AdminCategoriesPage";
 import { AdminCompaniesPage } from "../../pages/admin/AdminCompaniesPage";
 import { AdminContentPage } from "../../pages/admin/AdminContentPage";
 import { AdminCvRecommendationPage } from "../../pages/admin/AdminCvRecommendationPage";
@@ -80,8 +79,6 @@ function candidateRouteElement(route: AppRoute) {
       return <CandidateJobsPage mode="recommended" />;
     case "/candidate/jobs/saved":
       return <CandidateJobsPage mode="saved" />;
-    case "/candidate/jobs/saved-searches":
-      return <CandidateJobsPage mode="saved-searches" />;
     case "/candidate/profile":
       return <CandidateProfilePage />;
     case "/candidate/profile/edit":
@@ -167,8 +164,6 @@ function recruiterRouteElement(route: AppRoute) {
       return <RecruiterCandidatesPage mode="detail" />;
     case "/recruiter/candidates/:candidateId/evaluation":
       return <RecruiterCandidatesPage mode="evaluation" />;
-    case "/recruiter/pipeline":
-      return <RecruiterCandidatesPage mode="pipeline" />;
     case "/recruiter/recommended-candidates":
       return <Navigate to="/recruiter/jobs" replace />;
     case "/recruiter/saved-candidates":
@@ -209,10 +204,6 @@ function adminRouteElement(route: AppRoute) {
       return <AdminUsersPage />;
     case "/admin/users/:userId":
       return <AdminUsersPage mode="detail" />;
-    case "/admin/recruiters":
-      return <AdminUsersPage mode="recruiters" />;
-    case "/admin/recruiters/:recruiterId":
-      return <AdminUsersPage mode="detail" />;
     case "/admin/companies":
       return <AdminCompaniesPage />;
     case "/admin/companies/:companyId":
@@ -231,14 +222,6 @@ function adminRouteElement(route: AppRoute) {
       return <AdminApplicationsPage />;
     case "/admin/applications/:applicationId":
       return <AdminApplicationsPage mode="detail" />;
-    case "/admin/categories":
-    case "/admin/categories/industries":
-    case "/admin/categories/job-titles":
-    case "/admin/categories/skills":
-    case "/admin/categories/locations":
-    case "/admin/categories/job-types":
-    case "/admin/categories/experience-levels":
-      return <AdminCategoriesPage />;
     case "/admin/cv-analysis":
       return <AdminCvRecommendationPage />;
     case "/admin/cv-analysis/errors":

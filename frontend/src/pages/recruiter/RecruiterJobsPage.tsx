@@ -537,7 +537,6 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
               <Link to={editing && job ? `/recruiter/jobs/${job.id}` : "/recruiter/jobs"}><Button className="w-full" variant="secondary">Quay lại</Button></Link>
             </div>
           </Card>
-          <UnsupportedCard title="Cài đặt chưa hỗ trợ" items={["Phòng ban", "Recruiter phụ trách", "Câu hỏi sàng lọc", "Auto reject", "Min match score", "Preview nâng cao"]} />
         </aside>
       </div>
     </PageContainer>
@@ -640,17 +639,6 @@ function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResp
         <Button className="w-full justify-center" variant="secondary" size="sm" icon={<Users size={14} />}>Ứng viên phù hợp</Button>
       </Link>
     </div>
-  );
-}
-
-function UnsupportedCard({ title, items }: { title: string; items: string[] }) {
-  return (
-    <Card>
-      <SectionHeader title={title} />
-      <div className="flex flex-wrap gap-2">
-        {items.map((item) => <StatusBadge key={item} label={item} />)}
-      </div>
-    </Card>
   );
 }
 

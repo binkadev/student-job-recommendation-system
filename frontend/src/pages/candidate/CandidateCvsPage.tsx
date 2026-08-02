@@ -88,18 +88,18 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
   async function uploadCv() {
     if (!selectedFile) {
-      setUploadError("Vui lòng chọn file CV trước khi upload.");
+      setUploadError("Vui lòng chọn file CV trước khi tải lên.");
       return;
     }
 
     setUploading(true);
     try {
       const cv = await uploadCandidateCv(selectedFile, active);
-      showToast({ type: "success", title: "Upload CV thành công", message: `${cv.originalFileName} đã được lưu.` });
+      showToast({ type: "success", title: "Tải CV thành công", message: `${cv.originalFileName} đã được lưu.` });
       setReloadKey((current) => current + 1);
       navigate(`/candidate/cvs/${cv.id}`);
     } catch (error) {
-      showToast({ type: "error", title: "Không thể upload CV", message: getApiErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể tải CV", message: getApiErrorMessage(error) });
     } finally {
       setUploading(false);
     }
@@ -107,7 +107,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
 
   async function activateCv(cv: CvFileResponse) {
     const updatedCv = await activateCandidateCv(cv.id);
-    showToast({ type: "success", title: "Đã đặt CV active", message: `${updatedCv.originalFileName} đang là CV active.` });
+    showToast({ type: "success", title: "Đã đặt CV đang dùng", message: `${updatedCv.originalFileName} đang là CV được dùng.` });
     setReloadKey((current) => current + 1);
   }
 
@@ -155,7 +155,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   if (mode === "upload") {
     return (
       <PageContainer>
-        <PageHeader title="Upload CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
+        <PageHeader title="Tải CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
         <div className="max-w-5xl">
           <Card>
             <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF/DOCX. Giao diện chỉ kiểm tra định dạng file, backend là nơi quyết định giới hạn dung lượng cuối cùng." />
@@ -182,11 +182,11 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             {uploadError ? <p className="mt-4 text-sm text-red-600">{uploadError}</p> : null}
 
             <div className="mt-5">
-              <Switch label="Đặt làm CV active" checked={active} onChange={setActive} disabled={uploading} />
+              <Switch label="Đặt làm CV đang dùng" checked={active} onChange={setActive} disabled={uploading} />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Upload</Button>
+              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Tải lên</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
             </div>
           </Card>
@@ -218,16 +218,16 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <StatusBadge label={`${cvs.length} CV`} />
-          {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV active" tone="success" /> : null}
+          {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV đang dùng" tone="success" /> : null}
         </div>
-        <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Upload CV mới</Button></Link>
+        <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Tải CV mới</Button></Link>
       </div>
 
       {cvs.length === 0 ? (
         <Card>
           <EmptyState message="Bạn chưa có CV nào." />
           <div className="mt-4">
-            <Link to="/candidate/cvs/upload"><Button>Upload CV đầu tiên</Button></Link>
+            <Link to="/candidate/cvs/upload"><Button>Tải CV đầu tiên</Button></Link>
           </div>
         </Card>
       ) : null}
@@ -244,7 +244,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                {isActiveCv(cv) ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
+                {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
                 <button type="button" className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => setDeleteTarget(cv)} aria-label="Xóa CV">
                   <X size={16} />
                 </button>
@@ -252,7 +252,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             </div>
 
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
-              <p>Upload: {formatDateTime(cv.uploadedAt)}</p>
+              <p>Ngày tải lên: {formatDateTime(cv.uploadedAt)}</p>
               <p className="break-words">Tên file: {cv.originalFileName || cv.fileName || "Chưa cập nhật"}</p>
             </div>
 
@@ -260,7 +260,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
-              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt active</Button> : null}
+              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
         ))}
@@ -277,10 +277,10 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
   async function setActive() {
     try {
       await activateCandidateCv(cv.id);
-      showToast({ type: "success", title: "Đã đặt CV active", message: cv.originalFileName });
+      showToast({ type: "success", title: "Đã đặt CV đang dùng", message: cv.originalFileName });
       navigate("/candidate/cvs");
     } catch (error) {
-      showToast({ type: "error", title: "Không thể đặt CV active", message: getApiErrorMessage(error) });
+      showToast({ type: "error", title: "Không thể đặt CV đang dùng", message: getApiErrorMessage(error) });
     }
   }
 
@@ -302,10 +302,10 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
               <SummaryItem label="Tên file gốc" value={cv.originalFileName} />
-              <SummaryItem label="Content type" value={cv.contentType || "Chưa cập nhật"} />
+              <SummaryItem label="Loại nội dung" value={cv.contentType || "Chưa cập nhật"} />
               <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
-              <SummaryItem label="Ngày upload" value={formatDateTime(cv.uploadedAt)} />
-              <SummaryItem label="Active" value={isActiveCv(cv) ? "Có" : "Không"} />
+              <SummaryItem label="Ngày tải lên" value={formatDateTime(cv.uploadedAt)} />
+              <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
             </div>
           </Card>
         </main>
@@ -314,9 +314,9 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
-              <Link to="/candidate/cvs/upload"><Button className="w-full">Upload CV mới</Button></Link>
+              <Link to="/candidate/cvs/upload"><Button className="w-full">Tải CV mới</Button></Link>
               <Button variant="secondary" className="w-full" onClick={() => void openFile()}>Mở file CV</Button>
-              {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt CV active</Button> : null}
+              {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
         </aside>
@@ -364,7 +364,7 @@ function CvAnalysisView({
   const cvQuery = useAsyncData(() => (cvId ? getCandidateCvDetail(Number(cvId)) : Promise.resolve(fallbackCv)), [cvId, reloadKey]);
   const analysisQuery = useAsyncData(() => (cvId ? getCandidateCvAnalysis(Number(cvId)) : Promise.resolve(null)), [cvId, reloadKey]);
   const cv = cvQuery.data ?? fallbackCv;
-  const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Review CV";
+  const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Đánh giá CV";
 
   async function reanalyzeCv() {
     if (!cv) return;
@@ -446,11 +446,11 @@ function CvAnalysisView({
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
               <SummaryItem label="Tên file" value={cv.originalFileName || cv.fileName || "Chưa cập nhật"} />
-              <SummaryItem label="Content type" value={cv.contentType || "Chưa cập nhật"} />
+              <SummaryItem label="Loại nội dung" value={cv.contentType || "Chưa cập nhật"} />
               <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
-              <SummaryItem label="Active" value={isActiveCv(cv) ? "Có" : "Không"} />
+              <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
               <SummaryItem label="Trạng thái phân tích" value={analysis?.status ?? "Chưa cập nhật"} />
-              <SummaryItem label="Ngày upload" value={formatDateTime(analysis?.uploadedAt ?? cv.uploadedAt)} />
+              <SummaryItem label="Ngày tải lên" value={formatDateTime(analysis?.uploadedAt ?? cv.uploadedAt)} />
               <SummaryItem label="Ngày tạo" value={formatDateTime(cv.createdAt)} />
               <SummaryItem label="Cập nhật" value={formatDateTime(analysis?.updatedAt ?? cv.updatedAt)} />
             </div>
@@ -476,11 +476,11 @@ function CvAnalysisView({
           {analysisReady ? (
             <>
               <Card>
-                <SectionHeader title="Processed text" />
+                <SectionHeader title="Văn bản đã xử lý" />
                 {analysis?.processedText ? (
                   <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
                 ) : (
-                  <EmptyState message="Chưa có processedText cho CV này." />
+                  <EmptyState message="Chưa có văn bản đã xử lý cho CV này." />
                 )}
               </Card>
 
@@ -511,7 +511,7 @@ function CvAnalysisView({
           <Card>
             <SectionHeader title="Trạng thái" />
             <div className="flex flex-wrap gap-2">
-              {isActiveCv(cv) ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Inactive" />}
+              {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
               <StatusBadge label={analysis?.status ?? "Chưa cập nhật"} tone={analysisReady ? "success" : analysisFailed ? "danger" : "warning"} />
               <StatusBadge label={analysisReady ? "Có dữ liệu phân tích" : "Chưa hiển thị dữ liệu"} tone={analysisReady ? "success" : "warning"} />
             </div>
