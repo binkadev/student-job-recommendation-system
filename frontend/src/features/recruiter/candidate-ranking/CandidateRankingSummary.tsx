@@ -1,5 +1,6 @@
 import { BarChart3, Brain, FileCheck2, FileX2, Users } from "lucide-react";
 import { Card } from "../../../components/ui/Card";
+import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import type { CandidateRankingRun } from "./candidateRankingTypes";
 
 export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
@@ -13,7 +14,11 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <Card>
+        <p className="text-sm font-medium text-slate-500">Trạng thái run</p>
+        <div className="mt-2"><StatusBadge label={run.status} tone={statusTone(run.status)} /></div>
+      </Card>
       {items.map((item) => {
         const Icon = item.icon;
         return (
@@ -28,4 +33,11 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
       })}
     </div>
   );
+}
+
+function statusTone(status: CandidateRankingRun["status"]) {
+  if (status === "SUCCESS") return "success" as const;
+  if (status === "FAILED") return "danger" as const;
+  if (status === "PROCESSING" || status === "PENDING") return "warning" as const;
+  return "neutral" as const;
 }
