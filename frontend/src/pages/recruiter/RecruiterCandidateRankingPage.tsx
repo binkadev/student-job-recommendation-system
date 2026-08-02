@@ -261,7 +261,7 @@ function getCreateRunErrorMessage(error: unknown) {
   if (message.toLowerCase().includes("internal server error")) {
     return "Không thể tạo lượt xếp hạng ứng viên. Hãy tải lại trang; nếu vẫn lỗi, đảm bảo Backend đã rebuild và DB đã migrate V16.";
   }
-  return message;
+  return sanitizeErrorMessage(message);
 }
 
 function jobStatusTone(status: string) {
