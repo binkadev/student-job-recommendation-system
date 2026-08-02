@@ -7,7 +7,7 @@ const apiErrorMessages: Record<string, string> = {
   BAD_REQUEST: "Yêu cầu chưa hợp lệ. Vui lòng kiểm tra lại thông tin.",
   CANDIDATE_RANKING_ALREADY_PROCESSING: "Tin tuyển dụng này đang có lượt xếp hạng ứng viên xử lý. Vui lòng đợi hoàn tất rồi thử lại.",
   CANDIDATE_RANKING_CAPACITY_EXCEEDED: "Số lượng ứng viên hoặc dữ liệu gửi đi vượt giới hạn xử lý. Vui lòng giảm giới hạn và thử lại.",
-  CANDIDATE_RANKING_GENERATION_FAILED: "Không thể tạo lượt xếp hạng ứng viên. Vui lòng kiểm tra dữ liệu ứng tuyển, CV và thử lại.",
+  CANDIDATE_RANKING_GENERATION_FAILED: "Không thể tạo lượt xếp hạng ứng viên. Nếu tin đã có ứng viên thật, vui lòng kiểm tra AI Service Candidate Ranking.",
   CANDIDATE_RANKING_RUN_NOT_FOUND: "Không tìm thấy lượt xếp hạng ứng viên phù hợp.",
   CV_ANALYSIS_NOT_READY: "CV chưa sẵn sàng để dùng cho tính năng này.",
   CV_IN_USE: "CV đang được sử dụng nên chưa thể xóa.",

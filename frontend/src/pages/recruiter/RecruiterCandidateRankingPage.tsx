@@ -195,7 +195,7 @@ export function RecruiterCandidateRankingPage() {
 
       {!runsQuery.loading && !runDetailQuery.loading && !runsQuery.error && !runDetailQuery.error && !run ? (
         <Card className="mt-5">
-          <EmptyState message="Chưa có run xếp hạng cho tin tuyển dụng này. Bấm Chạy xếp hạng để Backend tạo ranking run." />
+          <EmptyState message="Chưa có lượt xếp hạng cho tin tuyển dụng này. Bấm Chạy xếp hạng để tạo run mới; nếu tin chưa có ứng viên phù hợp, kết quả có thể là 0 hồ sơ." />
         </Card>
       ) : null}
 
@@ -221,7 +221,7 @@ export function RecruiterCandidateRankingPage() {
             <SectionHeader title="Thống kê bỏ qua" description={`Không có CV: ${run.skippedNoCv} · CV chưa sẵn sàng: ${run.skippedNotReady} · Trạng thái kết thúc: ${run.skippedTerminalStatus} · Tổng bỏ qua: ${skipTotal}`} />
           </Card>
           {run.status === "SUCCESS" && results.length === 0 ? (
-            <Card><EmptyState message="Không có ứng viên vượt threshold hoặc chưa có application đủ điều kiện cho tin tuyển dụng này." /></Card>
+            <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng. Đây là trạng thái hợp lệ nếu tin chưa có application/CV sẵn sàng." /></Card>
           ) : null}
           {results.length ? (
             <Card>
@@ -251,7 +251,7 @@ function getRankingErrorMessage(error?: string | null) {
   if (error.includes("404")) return "Không tìm thấy tin tuyển dụng hoặc ranking run.";
   if (error.includes("409")) return "Tin tuyển dụng này đang có ranking run xử lý. Vui lòng đợi hoàn tất rồi thử lại.";
   if (error.includes("500") || error.toLowerCase().includes("internal server error")) {
-    return "Backend đang lỗi khi tải dữ liệu xếp hạng ứng viên. Vui lòng kiểm tra log BE, version container và schema Candidate Ranking.";
+    return "Không thể tải dữ liệu xếp hạng ứng viên. Hãy tải lại trang; nếu vẫn lỗi, kiểm tra Backend đã rebuild và DB đã migrate V16.";
   }
   return error;
 }
@@ -259,7 +259,7 @@ function getRankingErrorMessage(error?: string | null) {
 function getCreateRunErrorMessage(error: unknown) {
   const message = getApiErrorMessage(error, "Không thể tạo lượt xếp hạng ứng viên. Vui lòng thử lại.");
   if (message.toLowerCase().includes("internal server error")) {
-    return "Backend đang lỗi khi tạo lượt xếp hạng ứng viên. Vui lòng kiểm tra log BE, version container và schema Candidate Ranking.";
+    return "Không thể tạo lượt xếp hạng ứng viên. Hãy tải lại trang; nếu vẫn lỗi, đảm bảo Backend đã rebuild và DB đã migrate V16.";
   }
   return message;
 }
