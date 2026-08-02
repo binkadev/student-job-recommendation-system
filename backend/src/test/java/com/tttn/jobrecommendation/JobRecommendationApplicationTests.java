@@ -1,6 +1,8 @@
 package com.tttn.jobrecommendation;
 
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
+import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingResultRepository;
+import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingRunRepository;
 import com.tttn.jobrecommendation.modules.company.repository.CompanyRepository;
 import com.tttn.jobrecommendation.modules.company.repository.SavedCandidateRepository;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
@@ -70,6 +72,12 @@ class JobRecommendationApplicationTests {
 
     @MockitoBean
     private RecommendationResultRepository recommendationResultRepository;
+
+    @MockitoBean
+    private CandidateRankingRunRepository candidateRankingRunRepository;
+
+    @MockitoBean
+    private CandidateRankingResultRepository candidateRankingResultRepository;
 
     @MockitoBean
     private UserNotificationSettingsRepository userNotificationSettingsRepository;

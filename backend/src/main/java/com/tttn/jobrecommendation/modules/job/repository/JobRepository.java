@@ -25,6 +25,8 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
 
     Optional<Job> findFirstByCompanyIdAndTitleOrderByIdAsc(Long companyId, String title);
 
+    Optional<Job> findByIdAndCompanyId(Long id, Long companyId);
+
     long countByCompanyIdAndStatus(Long companyId, JobStatus status);
 
     List<Job> findByCompanyIdAndStatusOrderByPublishedAtDescIdDesc(Long companyId, JobStatus status);

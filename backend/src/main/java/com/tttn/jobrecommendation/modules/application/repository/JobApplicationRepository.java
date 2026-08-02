@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
 
@@ -24,6 +25,34 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     List<JobApplication> findByJobIdOrderByAppliedAtDesc(Long jobId);
 
     Optional<JobApplication> findByIdAndStudentId(Long id, Long studentId);
+
+    @Query("""
+            select new com.tttn.jobrecommendation.modules.application.repository.CandidateRankingApplicationRow(
+                application.id,
+                application.status,
+                application.student.id,
+                application.job.id,
+                cv.id,
+                cv.student.id,
+                cv.extractedText,
+                cv.processedText,
+                cv.extractedSkills,
+                cv.analysisStatus,
+                cv.processingVersion,
+                cv.analyzedAt
+            )
+            from JobApplication application
+            left join application.cvFile cv
+            where application.job.id = :jobId
+            order by application.id asc
+            """)
+    List<CandidateRankingApplicationRow> findCandidateRankingRowsByJobId(@Param("jobId") Long jobId);
+
+    @EntityGraph(attributePaths = {"job", "cvFile"})
+    @Query("select application from JobApplication application where application.id in :applicationIds")
+    List<JobApplication> findCandidateRankingApplicationsByIdIn(
+            @Param("applicationIds") Set<Long> applicationIds
+    );
 
     @Override
     @EntityGraph(attributePaths = {"student.user", "job.company", "cvFile"})
