@@ -27,9 +27,11 @@ eligible jobs, recommendation validation, `rankPosition`, and persistence.
 From `frontend/`:
 
 ```powershell
-npm ci
-Copy-Item .env.example .env
-npm run dev
+npm.cmd ci
+if (-not (Test-Path .env.local)) {
+    Copy-Item .env.example .env.local
+}
+npm.cmd run dev
 ```
 
 The default development URL is `http://localhost:5173`. Vite proxies `/api` to
@@ -42,13 +44,20 @@ environment variables.
 ## Verification
 
 ```powershell
-npm ci
-npm run lint
-npm run build
+npm.cmd ci
+npm.cmd run test:run
+npm.cmd run lint
+npm.cmd run build
 ```
 
-CI performs the same locked install, lint, and production build. No dependency
+CI performs the same locked install, tests, lint, and production build. No dependency
 or lockfile update is needed for documentation-only changes.
+
+The recruiter page is available at
+/recruiter/jobs/{jobId}/candidate-ranking. It calls the Backend Candidate
+Ranking endpoints, shows Backend-owned rankPosition, and exposes authorized CV,
+saved-candidate, and application-status actions. It does not call the AI
+Service or calculate scores.
 
 ## CV Runtime States
 

@@ -420,6 +420,20 @@ Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
 
+## Recruiter Candidate Ranking
+
+The recruiter Candidate Ranking endpoints are documented in the locked
+[Candidate Ranking contract](candidate-ranking-contract.md), including
+eligibility, the Backend-to-AI internal request, scoring strategies, response
+validation, rank assignment, persistence, and error behavior:
+
+- POST /api/companies/me/jobs/{jobId}/candidate-ranking-runs
+- GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs?page=1&size=20
+- GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs/{runId}
+
+The Frontend calls these Backend endpoints only. The AI internal endpoint is
+not a public API and requires the shared internal API key.
+
 ## Recruiter Saved Candidates
 
 All saved-candidate APIs require role `COMPANY` and operate only on the authenticated company.

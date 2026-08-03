@@ -215,6 +215,31 @@ An empty eligible corpus still creates a successful run with zero jobs scanned a
 
 The latest-results endpoint selects the latest `SUCCESS` run. Newer `FAILED` or `PROCESSING` runs do not hide the last successful result set.
 
+## Recruiter Candidate Ranking
+
+Company-only endpoints rank eligible Applications for one owned Job:
+
+- POST /api/companies/me/jobs/{jobId}/candidate-ranking-runs
+- GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs?page=1&size=20
+- GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs/{runId}
+
+The Backend starts from all Applications of the selected Job, includes only
+PENDING or REVIEWED Applications with a submitted CV whose persisted analysis
+is READY and has non-blank extracted and processed text, and records skip
+counters for the remaining statuses. The submitted Application CV is used even
+if it is not the Student's active CV. An empty eligible corpus is a successful
+zero-result run and does not call AI.
+
+Candidate Ranking is synchronous. The Backend commits PROCESSING, makes one
+bulk Contract V2 call outside a database transaction, validates the complete
+response, sorts by score DESC then applicationId ASC, generates the
+human-facing reason, assigns rankPosition, and persists all results
+transactionally. Failure is persisted as FAILED with a sanitized message. The
+AI Service never receives a user JWT and never assigns public rank.
+
+See [the Candidate Ranking contract](../docs/candidate-ranking-contract.md) and
+[the final verification evidence](../docs/final-verification.md).
+
 ## Demo Accounts
 
 All demo accounts use password `123456`.

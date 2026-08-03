@@ -349,11 +349,15 @@ The current master implementation persists component scores as PostgreSQL `DECIM
 | Spring Security | JWT authentication and role authorization |
 | Spring Data JPA / Hibernate | Persistence and entity mapping |
 | PostgreSQL | `17` |
-| Flyway | Versioned schema migrations through the current `V15` baseline |
+| Flyway | Versioned schema migrations through the current `V16` baseline |
 | JJWT | `0.13.0` |
 | Springdoc OpenAPI | `2.8.17` |
 | Testcontainers | PostgreSQL integration lifecycle |
 | Maven Wrapper | Build, unit tests, integration tests |
+
+`<POSTGRES_PORT>` must match the effective root .env value: 5432 by default, or
+55432 in the recorded verification environment. The Backend and AI internal
+keys must be identical. Do not print a real password or secret.
 
 ### AI Service
 
@@ -394,10 +398,12 @@ The current master implementation persists component scores as PostgreSQL `DECIM
 ```powershell
 git clone https://github.com/binkadev/student-job-recommendation-system.git
 cd student-job-recommendation-system
-Copy-Item .env.example .env -Force
+if (-not (Test-Path .env)) {
+    Copy-Item .env.example .env
+}
 ```
 
-`.env.example` contains local-development placeholders only. Never reuse them in staging or production, and never commit `.env`.
+`.env.example` contains local-development placeholders only. Existing local environment files must not be overwritten. Never reuse the placeholders in staging or production, and never commit `.env`.
 
 ### 2. Start the core Docker stack
 
@@ -433,9 +439,11 @@ SMOKE RESULT: PASS
 
 ```powershell
 cd frontend
-npm ci
-Copy-Item .env.example .env -Force
-npm run dev
+npm.cmd ci
+if (-not (Test-Path .env.local)) {
+    Copy-Item .env.example .env.local
+}
+npm.cmd run dev
 ```
 
 The Vite development server normally starts at `http://localhost:5173` and proxies `/api` to the Backend at `http://127.0.0.1:8080`.
@@ -463,6 +471,11 @@ These credentials are for **local development and demonstration only**. Never re
 
 ```powershell
 cd backend
+$env:SPRING_DATASOURCE_URL = "jdbc:postgresql://127.0.0.1:<POSTGRES_PORT>/student_job_recommendation"
+$env:SPRING_DATASOURCE_USERNAME = "postgres"
+$env:SPRING_DATASOURCE_PASSWORD = "<same as POSTGRES_PASSWORD>"
+$env:APP_AI_SERVICE_BASE_URL = "http://127.0.0.1:8000"
+$env:APP_AI_SERVICE_INTERNAL_API_KEY = "<same as AI_INTERNAL_API_KEY>"
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
@@ -471,18 +484,19 @@ cd backend
 ```powershell
 cd ai-service
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+$Python = ".\.venv\Scripts\python.exe"
+& $Python -m pip install --require-hashes --only-binary=:all: -r requirements.lock
+& $Python -m pip check
+$env:AI_INTERNAL_API_KEY = "<shared local key>"
+& $Python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend
 
 ```powershell
 cd frontend
-npm ci
-npm run dev
+npm.cmd ci
+npm.cmd run dev
 ```
 
 ---
@@ -570,9 +584,10 @@ python -m pytest
 
 ```powershell
 cd frontend
-npm ci
-npm run lint
-npm run build
+npm.cmd ci
+npm.cmd run test:run
+npm.cmd run lint
+npm.cmd run build
 ```
 
 ### Verified integration evidence
@@ -593,17 +608,34 @@ The recorded output did not print passwords, JWTs, raw CV text, or storage paths
 
 This evidence verifies the core Backend–AI contract, orchestration, eligible-corpus flow, deterministic sorting, rank creation, and persistence. It does **not** replace full manual Student/Company/Admin browser E2E evidence or prove ranking quality according to human judgment.
 
+### Candidate Ranking real E2E
+
+Run the isolated real-process Candidate Ranking evidence harness from the
+repository root:
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-candidate-ranking-real-e2e.ps1
+
+It uses dedicated ports 15432, 18000, and 18080, performs one real bulk AI
+request, checks three deterministic persisted results, and removes its
+isolated Compose project and volumes. It does not prove production readiness or
+human ranking quality.
+
+Final local verification on 2026-08-03 passed: Backend 388 tests, AI 646
+tests, Frontend 51 tests, lint, build, both Compose validations, and the
+isolated real E2E. See [final-verification.md](docs/final-verification.md) for
+sanitized evidence and named limitations.
+
 ### CI workflows
 
 | Workflow | Scope |
 |---|---|
 | [Backend CI](.github/workflows/backend-ci.yml) | Java 21, Maven `clean verify` |
 | [AI Service CI](.github/workflows/ai-ci.yml) | Python 3.11.9, locked install, `pip check`, pytest |
-| [Frontend CI](.github/workflows/frontend-ci.yml) | Node 24, locked install, ESLint, production build |
+| [Frontend CI](.github/workflows/frontend-ci.yml) | Node 24, locked install, `npm run test:run`, ESLint, production build |
 | [Core Smoke CI](.github/workflows/core-smoke-ci.yml) | Clean Docker Compose acceptance flow |
 | [Container Images](.github/workflows/container-images.yml) | Backend and AI image build; publish on eligible pushes/tags |
 
-No fixed test-count claim is included here because counts can change as the suites evolve.
+The 2026-08-03 test counts above are a dated, commit-bound snapshot; counts may change as the suites evolve.
 
 ---
 
@@ -646,15 +678,16 @@ See [Offline Recommendation Evaluation](ai-service/evaluation/README.md).
 | Area | Status | Evidence boundary |
 |---|---|---|
 | Spring Boot Backend core and public API | Implemented | Source, tests, Backend CI |
-| PostgreSQL and Flyway through current V15 baseline | Implemented | Migrations and integration lifecycle |
+| PostgreSQL and Flyway through current V16 baseline | Implemented | Migrations and integration lifecycle |
 | FastAPI Contract V2 | Implemented | Strict V2 models, service tests, integration smoke |
 | PDF/DOCX parsing | Implemented | AI parser and tests |
 | Bilingual VI/EN recommendation | Implemented | Same-language and cross-language strategies |
 | Backend-owned validation, sorting, rank, persistence | Implemented | Validator, transaction services, smoke evidence |
+| Recruiter Candidate Ranking | Implemented | Backend/AI/Frontend tests and isolated E2E harness; final local result is recorded in docs/final-verification.md |
 | Docker Compose core stack | Implemented | PostgreSQL + AI + Backend |
 | Backend CI | Implemented | GitHub Actions workflow |
 | AI Service CI | Implemented | GitHub Actions workflow |
-| Frontend CI | Implemented | Node 24 lint/build workflow |
+| Frontend CI | Implemented | Node 24 locked test/lint/build workflow |
 | Automated core smoke | Implemented and recorded PASS | Functional integration evidence only |
 | GHCR workflow and container runbook | Implemented | Package access, pull, release, and rollback verification still pending |
 | Production profile hardening | Implemented in configuration scope | Does not constitute a deployed production environment |
@@ -700,6 +733,7 @@ student-job-recommendation-system/
 ├── performance/             # Benchmark tooling and evidence
 ├── scripts/smoke-core.ps1   # Reproducible Backend-to-AI acceptance flow
 ├── docker-compose.yml       # PostgreSQL + AI Service + Backend core stack
+├── docker-compose.e2e.yml   # Isolated Candidate Ranking E2E overrides
 ├── .env.example             # Local configuration template
 ├── AGENTS.md                # Repository source-of-truth and contribution rules
 └── README.md
@@ -711,6 +745,13 @@ student-job-recommendation-system/
 
 | Topic | Document |
 |---|---|
+| Candidate Ranking contract | [candidate-ranking-contract.md](docs/candidate-ranking-contract.md) |
+| Project status and evidence matrix | [project-status.md](docs/project-status.md) |
+| Windows setup/runbook | [runbook.md](docs/runbook.md) |
+| Candidate Ranking demo | [demo-runbook.md](docs/demo-runbook.md) |
+| Vietnamese defense guide | [defense-guide.md](docs/defense-guide.md) |
+| Known limitations | [known-limitations.md](docs/known-limitations.md) |
+| Final verification evidence | [final-verification.md](docs/final-verification.md) |
 | Documentation index | [`docs/README.md`](docs/README.md) |
 | Repository rules and architecture | [`AGENTS.md`](AGENTS.md) |
 | Backend | [`backend/README.md`](backend/README.md) |
