@@ -1,6 +1,6 @@
-import { BarChart3, Brain, FileCheck2, FileX2, Users } from "lucide-react";
-import { Card } from "../../../components/ui/Card";
+import { BarChart3, FileCheck2, FileX2, Users } from "lucide-react";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
+import { Card } from "../../../components/ui/Card";
 import type { CandidateRankingRun } from "./candidateRankingTypes";
 
 export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
@@ -10,11 +10,10 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
     { label: "Đủ điều kiện", value: run.eligibleCandidates, icon: FileCheck2 },
     { label: "Bị bỏ qua", value: skipped, icon: FileX2 },
     { label: "Kết quả hiển thị", value: run.resultCount, icon: BarChart3 },
-    { label: "Thuật toán", value: run.algorithmVersion, icon: Brain },
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       <Card>
         <p className="text-sm font-medium text-slate-500">Trạng thái run</p>
         <div className="mt-2"><StatusBadge label={run.status} tone={statusTone(run.status)} /></div>

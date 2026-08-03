@@ -27,10 +27,10 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
         <Card className="mt-4">
           <SectionHeader title="Thông tin thuật toán" />
           <div className="grid gap-3 text-sm md:grid-cols-2">
-            <Info label="Scoring strategy" value={result.scoringStrategy || "Chưa cập nhật"} />
-            <Info label="Algorithm version" value={run?.algorithmVersion || "Chưa cập nhật"} />
+            <Info label="Chiến lược chấm điểm" value={result.scoringStrategy || "Chưa cập nhật"} />
+            <Info label="Phiên bản thuật toán" value={run?.algorithmVersion || "Chưa cập nhật"} />
             <Info label="Hạng gợi ý" value={result.rankPosition == null ? "Chưa cập nhật" : `#${result.rankPosition}`} />
-            <Info label="Application" value={`#${result.applicationId}`} />
+            <Info label="Mã ứng tuyển" value={`#${result.applicationId}`} />
           </div>
         </Card>
         <Card className="mt-4">
@@ -42,11 +42,11 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
           <SkillList skills={result.missingSkills} tone="warning" />
         </Card>
         <Card className="mt-4">
-          <SectionHeader title="Giải thích" />
-          <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{result.reason || "Backend chưa trả explanation cho kết quả này."}</p>
+          <SectionHeader title="Giải thích từ hệ thống" />
+          <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{result.reason || "Chưa có giải thích cho kết quả này."}</p>
         </Card>
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <Link to={`/recruiter/candidates/${result.applicationId}`}><Button>Chi tiết application</Button></Link>
+          <Link to={`/recruiter/candidates/${result.applicationId}`}><Button>Chi tiết ứng tuyển</Button></Link>
           <Button variant="secondary" disabled={!result.cvFileId} onClick={() => onOpenCv(result)}>Xem CV</Button>
         </div>
       </div>

@@ -9,6 +9,14 @@ interface CandidateRankingRunHistoryProps {
   onSelect: (runId: string) => void;
 }
 
+const runStatusLabels: Record<CandidateRankingRun["status"], string> = {
+  PENDING: "Đang chờ",
+  PROCESSING: "Đang xử lý",
+  SUCCESS: "Thành công",
+  FAILED: "Thất bại",
+  UNKNOWN: "Chưa cập nhật",
+};
+
 export function CandidateRankingRunHistory({ runs, selectedRunId, onSelect }: CandidateRankingRunHistoryProps) {
   if (!runs.length) return null;
   return (
@@ -22,14 +30,14 @@ export function CandidateRankingRunHistory({ runs, selectedRunId, onSelect }: Ca
             className={`rounded-md border p-3 text-left text-sm transition ${selectedRunId === run.id ? "border-brand-400 bg-brand-50" : "border-slate-200 hover:border-brand-200"}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <strong className="text-slate-950">Run #{run.id}</strong>
-              <StatusBadge label={run.status} tone={runStatusTone(run.status)} />
+              <strong className="text-slate-950">Lần chạy #{run.id}</strong>
+              <StatusBadge label={runStatusLabels[run.status]} tone={runStatusTone(run.status)} />
             </div>
             <p className="mt-1 text-slate-600">{run.startedAt}</p>
             <p className="mt-1 text-xs text-slate-500">{run.resultCount} kết quả · {run.algorithmVersion}</p>
           </button>
         ))}
-        {selectedRunId ? <Button variant="secondary" onClick={() => onSelect("")}>Dùng run mới nhất</Button> : null}
+        {selectedRunId ? <Button variant="secondary" onClick={() => onSelect("")}>Dùng lần chạy mới nhất</Button> : null}
       </div>
     </Card>
   );

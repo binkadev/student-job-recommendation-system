@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, History, RefreshCw, RotateCcw } from "lucide-react";
+import { ArrowLeft, History, RefreshCw, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -11,8 +11,7 @@ import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
-import { useAsyncData } from "../../hooks/useAsyncData";
-import { useToast } from "../../hooks/useToast";
+import { CandidateRankingAnalysisModal } from "../../features/recruiter/candidate-ranking/CandidateRankingAnalysisModal";
 import {
   createCandidateRankingRun,
   getCandidateRankingJob,
@@ -20,14 +19,14 @@ import {
   getCandidateRankingRuns,
   openCandidateRankingCv,
   saveRankingCandidate,
-  updateRankingApplicationStatus,
 } from "../../features/recruiter/candidate-ranking/candidateRankingApi";
 import { sanitizeErrorMessage } from "../../features/recruiter/candidate-ranking/candidateRankingMappers";
-import { CandidateRankingAnalysisModal } from "../../features/recruiter/candidate-ranking/CandidateRankingAnalysisModal";
 import { CandidateRankingRunHistory } from "../../features/recruiter/candidate-ranking/CandidateRankingRunHistory";
 import { CandidateRankingSummary } from "../../features/recruiter/candidate-ranking/CandidateRankingSummary";
 import { CandidateRankingTable } from "../../features/recruiter/candidate-ranking/CandidateRankingTable";
 import type { CandidateRankingResult } from "../../features/recruiter/candidate-ranking/candidateRankingTypes";
+import { useAsyncData } from "../../hooks/useAsyncData";
+import { useToast } from "../../hooks/useToast";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 
 export function RecruiterCandidateRankingPage() {
@@ -40,7 +39,6 @@ export function RecruiterCandidateRankingPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState("");
   const [analysisResult, setAnalysisResult] = useState<CandidateRankingResult | null>(null);
-  const [updatingApplicationId, setUpdatingApplicationId] = useState("");
   const [savedApplicationIds, setSavedApplicationIds] = useState<Set<string>>(() => new Set());
 
   const jobQuery = useAsyncData(() => getCandidateRankingJob(jobId), [jobId]);
@@ -57,9 +55,6 @@ export function RecruiterCandidateRankingPage() {
   const results = runDetail?.results ?? [];
   const isProcessing = run?.status === "PROCESSING" || run?.status === "PENDING";
   const canCreateRun = !creating && !isProcessing && Boolean(jobId);
-  const skipTotal = (run?.skippedNoCv ?? 0) + (run?.skippedNotReady ?? 0) + (run?.skippedTerminalStatus ?? 0);
-  const showingHistoricalRun = Boolean(selectedRunId && selectedRunId !== latestRunId);
-
   useEffect(() => {
     if (!isProcessing || selectedRunId) return;
     const timer = window.setTimeout(() => setReloadKey((current) => current + 1), 5000);
@@ -72,11 +67,11 @@ export function RecruiterCandidateRankingPage() {
     const thresholdValue = Number(threshold);
     const limitValue = Number(limit);
     if (!Number.isFinite(thresholdValue) || thresholdValue < 0 || thresholdValue > 1) {
-      showToast({ type: "error", title: "Threshold không hợp lệ", message: "Threshold phải nằm trong khoảng 0 đến 1." });
+      showToast({ type: "error", title: "Ngưỡng điểm không hợp lệ", message: "Ngưỡng điểm phải nằm trong khoảng 0 đến 1." });
       return;
     }
     if (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 100) {
-      showToast({ type: "error", title: "Limit không hợp lệ", message: "Limit phải nằm trong khoảng 1 đến 100." });
+      showToast({ type: "error", title: "Giới hạn kết quả không hợp lệ", message: "Giới hạn kết quả phải nằm trong khoảng 1 đến 100." });
       return;
     }
 
@@ -85,7 +80,7 @@ export function RecruiterCandidateRankingPage() {
       const detail = await createCandidateRankingRun(jobId, { threshold: thresholdValue, limit: limitValue });
       setSelectedRunId(detail.run.id);
       setReloadKey((current) => current + 1);
-      showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Run #${detail.run.id}` });
+      showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Lần chạy #${detail.run.id}` });
     } catch (error) {
       showToast({ type: "error", title: "Không thể chạy xếp hạng", message: getCreateRunErrorMessage(error) });
     } finally {
@@ -108,20 +103,6 @@ export function RecruiterCandidateRankingPage() {
       showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: result.studentName });
     } catch (error) {
       showToast({ type: "error", title: "Không thể lưu hồ sơ", message: getApiErrorMessage(error) });
-    }
-  }
-
-  async function updateStatus(result: CandidateRankingResult, status: string) {
-    if (!status) return;
-    setUpdatingApplicationId(result.applicationId);
-    try {
-      await updateRankingApplicationStatus(result.applicationId, status);
-      setReloadKey((current) => current + 1);
-      showToast({ type: "success", title: "Đã cập nhật trạng thái ứng tuyển" });
-    } catch (error) {
-      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getApiErrorMessage(error) });
-    } finally {
-      setUpdatingApplicationId("");
     }
   }
 
@@ -148,13 +129,6 @@ export function RecruiterCandidateRankingPage() {
   return (
     <PageContainer>
       <PageHeader title="Ứng viên phù hợp" description="Xếp hạng ứng viên đã ứng tuyển theo từng tin tuyển dụng." />
-      <Card className="mb-5 border-amber-200 bg-amber-50">
-        <div className="flex items-start gap-3 text-sm text-amber-800">
-          <AlertTriangle className="mt-0.5 shrink-0" size={18} />
-          <p>Điểm phù hợp chỉ hỗ trợ sàng lọc ban đầu, không thay thế quyết định tuyển dụng của nhà tuyển dụng.</p>
-        </div>
-      </Card>
-
       <Card>
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
           <div>
@@ -172,8 +146,8 @@ export function RecruiterCandidateRankingPage() {
         </div>
 
         <div className="mt-5 grid gap-3 lg:grid-cols-[160px_160px_auto]">
-          <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
-          <Input label="Limit" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
+          <Input label="Ngưỡng điểm" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
+          <Input label="Giới hạn kết quả" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
           <div className="flex items-end">
             <Button className="w-full lg:w-auto" loading={creating} disabled={!canCreateRun} icon={run ? <RotateCcw size={16} /> : <RefreshCw size={16} />} onClick={() => void createRun()}>
               {run ? "Chạy lại" : "Chạy xếp hạng"}
@@ -195,45 +169,34 @@ export function RecruiterCandidateRankingPage() {
 
       {!runsQuery.loading && !runDetailQuery.loading && !runsQuery.error && !runDetailQuery.error && !run ? (
         <Card className="mt-5">
-          <EmptyState message="Chưa có lượt xếp hạng cho tin tuyển dụng này. Bấm Chạy xếp hạng để tạo run mới; nếu tin chưa có ứng viên phù hợp, kết quả có thể là 0 hồ sơ." />
+          <EmptyState message="Chưa có lượt xếp hạng cho tin tuyển dụng này." />
         </Card>
       ) : null}
 
       {run ? (
         <div className="mt-5 space-y-5">
-          {showingHistoricalRun ? (
-            <Card className="border-amber-200 bg-amber-50">
-              <p className="text-sm text-amber-800">Đang hiển thị kết quả lịch sử từ run #{run.id}. Kết quả này không phải run mới nhất.</p>
-            </Card>
-          ) : null}
           {isProcessing ? (
             <Card>
-              <LoadingState message="Backend đang xếp hạng ứng viên. Trang sẽ tự tải lại sau vài giây." />
+              <LoadingState message="Đang xếp hạng ứng viên..." />
             </Card>
           ) : null}
           {run.status === "FAILED" ? (
             <Card className="border-red-200 bg-red-50">
-              <SectionHeader title={`Run #${run.id} thất bại`} description={sanitizeErrorMessage(run.errorMessage)} />
+              <SectionHeader title={`Lần chạy #${run.id} thất bại`} description={sanitizeErrorMessage(run.errorMessage)} />
             </Card>
           ) : null}
           <CandidateRankingSummary run={run} />
-          <Card>
-            <SectionHeader title="Thống kê bỏ qua" description={`Không có CV: ${run.skippedNoCv} · CV chưa sẵn sàng: ${run.skippedNotReady} · Trạng thái kết thúc: ${run.skippedTerminalStatus} · Tổng bỏ qua: ${skipTotal}`} />
-          </Card>
           {run.status === "SUCCESS" && results.length === 0 ? (
-            <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng. Đây là trạng thái hợp lệ nếu tin chưa có application/CV sẵn sàng." /></Card>
+            <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng." /></Card>
           ) : null}
           {results.length ? (
             <Card>
-              <SectionHeader title="Top ứng viên" description={`${results.length} kết quả, giữ nguyên rankPosition từ Backend.`} />
+              <SectionHeader title="Top ứng viên" />
               <CandidateRankingTable
                 results={results}
                 savedApplicationIds={savedApplicationIds}
-                updatingId={updatingApplicationId}
                 onAnalyze={setAnalysisResult}
-                onOpenCv={(result) => void openCv(result)}
                 onSave={(result) => void saveCandidate(result)}
-                onUpdateStatus={(result, status) => void updateStatus(result, status)}
               />
             </Card>
           ) : null}
@@ -247,11 +210,11 @@ export function RecruiterCandidateRankingPage() {
 
 function getRankingErrorMessage(error?: string | null) {
   if (!error) return "Không thể tải dữ liệu xếp hạng ứng viên.";
-  if (error.includes("403")) return "Bạn không có quyền truy cập tin tuyển dụng hoặc ranking run này.";
-  if (error.includes("404")) return "Không tìm thấy tin tuyển dụng hoặc ranking run.";
-  if (error.includes("409")) return "Tin tuyển dụng này đang có ranking run xử lý. Vui lòng đợi hoàn tất rồi thử lại.";
+  if (error.includes("403")) return "Bạn không có quyền truy cập tin tuyển dụng hoặc lượt xếp hạng này.";
+  if (error.includes("404")) return "Không tìm thấy tin tuyển dụng hoặc lượt xếp hạng.";
+  if (error.includes("409")) return "Tin tuyển dụng này đang có lượt xếp hạng xử lý. Vui lòng đợi hoàn tất rồi thử lại.";
   if (error.includes("500") || error.toLowerCase().includes("internal server error")) {
-    return "Không thể tải dữ liệu xếp hạng ứng viên. Hãy tải lại trang; nếu vẫn lỗi, kiểm tra Backend đã rebuild và DB đã migrate V16.";
+    return "Không thể tải dữ liệu xếp hạng ứng viên. Vui lòng tải lại trang rồi thử lại.";
   }
   return error;
 }
@@ -259,7 +222,7 @@ function getRankingErrorMessage(error?: string | null) {
 function getCreateRunErrorMessage(error: unknown) {
   const message = getApiErrorMessage(error, "Không thể tạo lượt xếp hạng ứng viên. Vui lòng thử lại.");
   if (message.toLowerCase().includes("internal server error")) {
-    return "Không thể tạo lượt xếp hạng ứng viên. Hãy tải lại trang; nếu vẫn lỗi, đảm bảo Backend đã rebuild và DB đã migrate V16.";
+    return "Không thể tạo lượt xếp hạng ứng viên. Vui lòng tải lại trang rồi thử lại.";
   }
   return sanitizeErrorMessage(message);
 }
