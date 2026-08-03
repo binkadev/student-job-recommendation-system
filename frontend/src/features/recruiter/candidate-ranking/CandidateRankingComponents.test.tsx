@@ -14,11 +14,8 @@ function renderTable(result = makeResult(), overrides: Partial<React.ComponentPr
       <CandidateRankingTable
         results={[result]}
         savedApplicationIds={new Set()}
-        updatingId=""
         onAnalyze={vi.fn()}
-        onOpenCv={vi.fn()}
         onSave={vi.fn()}
-        onUpdateStatus={vi.fn()}
         {...overrides}
       />
     </MemoryRouter>,
@@ -31,7 +28,10 @@ describe("CandidateRankingTable", () => {
 
     expect(screen.getByText("#7")).toBeInTheDocument();
     expect(screen.getByText("61%")).toBeInTheDocument();
-    expect(screen.getByText("Text Chưa có điểm · Skill 0%")).toBeInTheDocument();
+    expect(screen.getByText(/Nội dung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa có điểm/)).toBeInTheDocument();
+    expect(screen.getByText(/Kỹ năng:/)).toBeInTheDocument();
+    expect(screen.getByText(/0%/)).toBeInTheDocument();
   });
 
   it("renders matched and missing skills with the existing overflow indicator", () => {
@@ -45,10 +45,10 @@ describe("CandidateRankingTable", () => {
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
   });
 
-  it("disables CV when there is no cvFileId and links candidate detail by applicationId", () => {
+  it("links candidate detail by applicationId and does not render the CV action", () => {
     renderTable(makeResult({ cvFileId: null, applicationId: "555" }));
 
-    expect(screen.getByRole("button", { name: "CV" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "CV" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Chi tiết" })).toHaveAttribute("href", "/recruiter/candidates/555");
   });
 
@@ -58,30 +58,15 @@ describe("CandidateRankingTable", () => {
     expect(screen.getByRole("button", { name: "Đã lưu" })).toBeDisabled();
   });
 
-  it("disables status changes for terminal applications", () => {
-    renderTable(makeResult({ applicationStatus: "REJECTED" }));
-
-    expect(screen.getByRole("combobox", { name: "Trạng thái" })).toBeDisabled();
-  });
-
-  it("emits the selected status and analysis result", async () => {
+  it("emits the analysis result", async () => {
     const user = userEvent.setup();
     const result = makeResult();
-    const onUpdateStatus = vi.fn();
     const onAnalyze = vi.fn();
-    renderTable(result, { onUpdateStatus, onAnalyze });
+    renderTable(result, { onAnalyze });
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Trạng thái" }), "REVIEWED");
     await user.click(screen.getByRole("button", { name: "Phân tích" }));
 
-    expect(onUpdateStatus).toHaveBeenCalledWith(result, "REVIEWED");
     expect(onAnalyze).toHaveBeenCalledWith(result);
-  });
-
-  it("shows the in-progress status update state", () => {
-    renderTable(makeResult({ applicationId: "101" }), { updatingId: "101" });
-
-    expect(screen.getByRole("combobox", { name: "Trạng thái" })).toBeDisabled();
   });
 });
 
@@ -102,8 +87,8 @@ describe("candidate ranking summary, history, and analysis", () => {
     render(<CandidateRankingRunHistory runs={runs} selectedRunId="older" onSelect={onSelect} />);
 
     const buttons = screen.getAllByRole("button");
-    expect(buttons[0]).toHaveTextContent("Run #newest");
-    expect(buttons[1]).toHaveTextContent("Run #older");
+    expect(buttons[0]).toHaveTextContent("Lần chạy #newest");
+    expect(buttons[1]).toHaveTextContent("Lần chạy #older");
     await user.click(buttons[1]);
     expect(onSelect).toHaveBeenCalledWith("older");
   });

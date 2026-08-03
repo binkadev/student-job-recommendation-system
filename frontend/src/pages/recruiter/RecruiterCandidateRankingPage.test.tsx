@@ -9,9 +9,7 @@ import {
   getCandidateRankingJob,
   getCandidateRankingRun,
   getCandidateRankingRuns,
-  openCandidateRankingCv,
   saveRankingCandidate,
-  updateRankingApplicationStatus,
 } from "../../features/recruiter/candidate-ranking/candidateRankingApi";
 import { RecruiterCandidateRankingPage } from "./RecruiterCandidateRankingPage";
 
@@ -20,9 +18,7 @@ vi.mock("../../features/recruiter/candidate-ranking/candidateRankingApi", () => 
   getCandidateRankingJob: vi.fn(),
   getCandidateRankingRun: vi.fn(),
   getCandidateRankingRuns: vi.fn(),
-  openCandidateRankingCv: vi.fn(),
   saveRankingCandidate: vi.fn(),
-  updateRankingApplicationStatus: vi.fn(),
 }));
 
 const api = {
@@ -30,9 +26,7 @@ const api = {
   job: vi.mocked(getCandidateRankingJob),
   run: vi.mocked(getCandidateRankingRun),
   runs: vi.mocked(getCandidateRankingRuns),
-  cv: vi.mocked(openCandidateRankingCv),
   save: vi.mocked(saveRankingCandidate),
-  status: vi.mocked(updateRankingApplicationStatus),
 };
 
 function renderPage() {
@@ -57,18 +51,14 @@ function configureEmptyPage() {
   api.job.mockResolvedValue(rankingJob);
   api.runs.mockResolvedValue([]);
   api.create.mockResolvedValue(makeDetail({ results: [] }));
-  api.cv.mockResolvedValue(undefined);
   api.save.mockResolvedValue(undefined);
-  api.status.mockResolvedValue(undefined);
 }
 
 function configureRun(run = makeRun(), results = [makeResult()]) {
   api.job.mockResolvedValue(rankingJob);
   api.runs.mockResolvedValue([run]);
   api.run.mockResolvedValue({ run, results });
-  api.cv.mockResolvedValue(undefined);
   api.save.mockResolvedValue(undefined);
-  api.status.mockResolvedValue(undefined);
   return { run, results };
 }
 
@@ -107,17 +97,17 @@ describe("initial page states and validation", () => {
   });
 
   it.each([
-    ["threshold below zero", "threshold", "-0.01", "Threshold không hợp lệ"],
-    ["threshold above one", "threshold", "1.01", "Threshold không hợp lệ"],
-    ["nonfinite threshold", "threshold", "Infinity", "Threshold không hợp lệ"],
-    ["limit below one", "limit", "0", "Limit không hợp lệ"],
-    ["limit above one hundred", "limit", "101", "Limit không hợp lệ"],
-    ["noninteger limit", "limit", "1.5", "Limit không hợp lệ"],
+    ["threshold below zero", "threshold", "-0.01", "Ngưỡng điểm không hợp lệ"],
+    ["threshold above one", "threshold", "1.01", "Ngưỡng điểm không hợp lệ"],
+    ["nonfinite threshold", "threshold", "Infinity", "Ngưỡng điểm không hợp lệ"],
+    ["limit below one", "limit", "0", "Giới hạn kết quả không hợp lệ"],
+    ["limit above one hundred", "limit", "101", "Giới hạn kết quả không hợp lệ"],
+    ["noninteger limit", "limit", "1.5", "Giới hạn kết quả không hợp lệ"],
   ])("rejects %s without calling create", async (_name, field, value, message) => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(/Chưa có lượt xếp hạng cho tin tuyển dụng này/);
-    const input = screen.getByLabelText(field === "threshold" ? "Threshold" : "Limit");
+    const input = screen.getByLabelText(field === "threshold" ? "Ngưỡng điểm" : "Giới hạn kết quả");
     await user.clear(input);
     if (value === "Infinity") {
       input.setAttribute("type", "text");
@@ -188,7 +178,7 @@ describe("create run and processing behavior", () => {
     const { run } = configureRun(makeRun({ status: "PROCESSING" }), []);
     const { unmount } = renderPage();
     await flushEffects();
-    expect(screen.getByText(/Backend đang xếp hạng ứng viên/)).toBeInTheDocument();
+    expect(screen.getByText(/Đang xếp hạng ứng viên/)).toBeInTheDocument();
     const initialCalls = api.runs.mock.calls.length;
 
     expect(screen.getByRole("button", { name: "Chạy lại" })).toBeDisabled();
@@ -215,11 +205,11 @@ describe("create run and processing behavior", () => {
     await flushEffects();
     expect(screen.getByText("Tổng hồ sơ")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Xem lịch sử" }));
-    fireEvent.click(screen.getByRole("button", { name: /Run #older/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Lần chạy #older/ }));
     await flushEffects();
-    expect(screen.getByText(/Đang hiển thị kết quả lịch sử/)).toBeInTheDocument();
-    expect(screen.getByText(/Backend đang xếp hạng ứng viên/)).toBeInTheDocument();
-    expect(screen.getAllByText("PROCESSING")).toHaveLength(3);
+    expect(screen.queryByText(/Đang hiển thị kết quả lịch sử/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Đang xếp hạng ứng viên/)).toBeInTheDocument();
+    expect(screen.getAllByText("PROCESSING")).toHaveLength(1);
     const calls = api.runs.mock.calls.length;
     await act(async () => { vi.advanceTimersByTime(5_000); });
     expect(api.runs).toHaveBeenCalledTimes(calls);
@@ -240,7 +230,7 @@ describe("run result states and recruiter actions", () => {
     expect(await screen.findByText(/Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng/)).toBeInTheDocument();
   });
 
-  it("renders Backend rank, scores, skills, candidate link, and recruiter warning", async () => {
+  it("renders rank, scores, skills, and candidate link", async () => {
     configureRun(makeRun(), [makeResult({ applicationId: "777", rankPosition: 12, score: 0.12, matchedSkills: ["React"], missingSkills: ["Go"] })]);
     renderPage();
 
@@ -249,19 +239,17 @@ describe("run result states and recruiter actions", () => {
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("Go")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Chi tiết" })).toHaveAttribute("href", "/recruiter/candidates/777");
-    expect(screen.getByText(/không thay thế quyết định tuyển dụng/)).toBeInTheDocument();
+    expect(screen.queryByText(/không thay thế quyết định tuyển dụng/)).not.toBeInTheDocument();
   });
 
-  it("opens CV with applicationId and marks a successfully saved candidate", async () => {
+  it("marks a successfully saved candidate", async () => {
     const user = userEvent.setup();
     configureRun(makeRun(), [makeResult({ applicationId: "303" })]);
     renderPage();
     await screen.findByText("Top ứng viên");
 
-    await user.click(screen.getByRole("button", { name: "CV" }));
     await user.click(screen.getByRole("button", { name: "Lưu" }));
 
-    expect(api.cv).toHaveBeenCalledWith("303");
     expect(api.save).toHaveBeenCalledWith("303");
     expect(await screen.findByRole("button", { name: "Đã lưu" })).toBeDisabled();
   });
@@ -279,20 +267,4 @@ describe("run result states and recruiter actions", () => {
     expect(screen.queryByRole("button", { name: "Đã lưu" })).not.toBeInTheDocument();
   });
 
-  it("updates status with exact applicationId and status, refreshes on success, and restores on failure", async () => {
-    const user = userEvent.setup();
-    configureRun(makeRun(), [makeResult({ applicationId: "404" })]);
-    renderPage();
-    await screen.findByText("Top ứng viên");
-    const select = screen.getByRole("combobox", { name: "Trạng thái" });
-
-    await user.selectOptions(select, "REVIEWED");
-    expect(api.status).toHaveBeenCalledWith("404", "REVIEWED");
-    await waitFor(() => expect(api.runs.mock.calls.length).toBeGreaterThan(1));
-
-    api.status.mockRejectedValueOnce(new Error("status failed"));
-    await user.selectOptions(select, "ACCEPTED");
-    await waitFor(() => expect(select).toBeEnabled());
-    expect(await screen.findByText("Không thể cập nhật trạng thái")).toBeInTheDocument();
-  });
 });
