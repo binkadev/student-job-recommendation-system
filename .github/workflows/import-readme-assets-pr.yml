@@ -28,7 +28,13 @@ jobs:
           set -euo pipefail
           mapfile -t chunks < <(find .readme-image-import -maxdepth 1 -type f -name 'chunk-*.txt' | sort -V)
           test "${#chunks[@]}" -gt 0
-          cat "${chunks[@]}" | tr -d '\r\n' | base64 --decode > /tmp/readme-import.gz
+          : > /tmp/readme-import.gz
+          for chunk in "${chunks[@]}"; do
+            clean="$(mktemp)"
+            tr -cd 'A-Za-z0-9+/=' < "$chunk" > "$clean"
+            echo "Decoding $chunk: $(wc -c < "$clean") base64 characters"
+            base64 --decode "$clean" >> /tmp/readme-import.gz
+          done
 
           extract_dir="$(mktemp -d)"
           if tar -tzf /tmp/readme-import.gz >/dev/null 2>&1; then
