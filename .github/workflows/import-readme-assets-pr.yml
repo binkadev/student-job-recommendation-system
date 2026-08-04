@@ -1,0 +1,70 @@
+name: Import README Assets from PR
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.readme-image-import/**'
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/fix-readme-images'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decode and install assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t chunks < <(find .readme-image-import -maxdepth 1 -type f -name 'chunk-*.txt' | sort -V)
+          test "${#chunks[@]}" -gt 0
+          cat "${chunks[@]}" | tr -d '\r\n' | base64 --decode > /tmp/readme-import.gz
+
+          extract_dir="$(mktemp -d)"
+          if tar -tzf /tmp/readme-import.gz >/dev/null 2>&1; then
+            tar -xzf /tmp/readme-import.gz -C "$extract_dir"
+          else
+            gunzip -c /tmp/readme-import.gz > /tmp/readme-import.payload
+            unzip -q /tmp/readme-import.payload -d "$extract_dir"
+          fi
+
+          readme_file="$(find "$extract_dir" -type f -name README.md | head -n 1)"
+          test -n "$readme_file"
+          cp "$readme_file" README.md
+
+          mkdir -p docs/images/readme
+          rm -f docs/images/readme/*.svg docs/images/readme/*.webp
+          find "$extract_dir" -type f -name '*.webp' -exec cp '{}' docs/images/readme/ ';'
+
+          image_count="$(find docs/images/readme -maxdepth 1 -type f -name '*.webp' | wc -l | tr -d ' ')"
+          echo "Imported ${image_count} WebP images"
+          test "$image_count" -ge 8
+          test -f docs/images/readme/trang-chu.webp
+          grep -q 'docs/images/readme/trang-chu.webp' README.md
+          if grep -q '\.svg' README.md; then
+            echo 'README still references SVG assets' >&2
+            exit 1
+          fi
+
+          rm -rf .readme-image-import
+
+      - name: Commit generated assets to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md docs/images/readme .readme-image-import
+          git diff --cached --check
+          git commit -m 'docs: replace broken README images with optimized WebP assets'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
