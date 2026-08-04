@@ -44,12 +44,7 @@ jobs:
           data = b''.join(parts)
           alphabet = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
           prefix_len = sum(len(part) for part in parts[:-1])
-          candidate_positions = [
-              len(data),
-              prefix_len,
-              prefix_len + 17000,
-              max(0, len(data) - 1),
-          ]
+          join_position = prefix_len + 17000
 
           def decode_and_test(encoded: bytes):
               encoded = encoded.rstrip(b'=')
@@ -63,7 +58,10 @@ jobs:
 
           raw = decode_and_test(data)
           if raw is None and len(data) % 4 == 3:
-              for position in dict.fromkeys(candidate_positions):
+              positions = list(range(max(0, len(data) - 96), len(data) + 1))
+              positions += list(range(max(0, join_position - 24), min(len(data), join_position + 24) + 1))
+              positions += [prefix_len]
+              for position in dict.fromkeys(positions):
                   for char in alphabet:
                       trial = data[:position] + bytes([char]) + data[position:]
                       raw = decode_and_test(trial)
