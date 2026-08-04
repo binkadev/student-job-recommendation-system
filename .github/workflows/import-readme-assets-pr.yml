@@ -26,30 +26,61 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t chunks < <(find .readme-image-import -maxdepth 1 -type f -name 'chunk-*.txt' | sort -V)
-          test "${#chunks[@]}" -gt 0
-          : > /tmp/readme-import.gz
-          for chunk in "${chunks[@]}"; do
-            echo "Decoding $chunk"
-            python - "$chunk" >> /tmp/readme-import.gz <<'PY'
+          python <<'PY'
           import base64
+          import gzip
+          import pathlib
           import re
-          import sys
 
-          data = open(sys.argv[1], 'rb').read()
-          data = re.sub(rb'[^A-Za-z0-9+/=]', b'', data)
-          data += b'=' * (-len(data) % 4)
-          sys.stdout.buffer.write(base64.b64decode(data, validate=False))
+          chunk_dir = pathlib.Path('.readme-image-import')
+          chunks = sorted(chunk_dir.glob('chunk-*.txt'))
+          if not chunks:
+              raise SystemExit('No chunks found')
+
+          parts = [re.sub(rb'[^A-Za-z0-9+/=]', b'', path.read_bytes()) for path in chunks]
+          for path, part in zip(chunks, parts):
+              print(f'{path}: {len(part)} base64 characters')
+
+          data = b''.join(parts)
+          alphabet = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+          prefix_len = sum(len(part) for part in parts[:-1])
+          candidate_positions = [
+              len(data),
+              prefix_len,
+              prefix_len + 17000,
+              max(0, len(data) - 1),
+          ]
+
+          def decode_and_test(encoded: bytes):
+              encoded = encoded.rstrip(b'=')
+              encoded += b'=' * (-len(encoded) % 4)
+              try:
+                  raw = base64.b64decode(encoded, validate=True)
+                  gzip.decompress(raw)
+                  return raw
+              except Exception:
+                  return None
+
+          raw = decode_and_test(data)
+          if raw is None and len(data) % 4 == 3:
+              for position in dict.fromkeys(candidate_positions):
+                  for char in alphabet:
+                      trial = data[:position] + bytes([char]) + data[position:]
+                      raw = decode_and_test(trial)
+                      if raw is not None:
+                          print(f'Recovered one missing base64 character at position {position}: {chr(char)}')
+                          break
+                  if raw is not None:
+                      break
+
+          if raw is None:
+              raise SystemExit('Unable to reconstruct valid gzip archive from chunks')
+
+          pathlib.Path('/tmp/readme-import.gz').write_bytes(raw)
           PY
-          done
 
           extract_dir="$(mktemp -d)"
-          if tar -tzf /tmp/readme-import.gz >/dev/null 2>&1; then
-            tar -xzf /tmp/readme-import.gz -C "$extract_dir"
-          else
-            gunzip -c /tmp/readme-import.gz > /tmp/readme-import.payload
-            unzip -q /tmp/readme-import.payload -d "$extract_dir"
-          fi
+          tar -xzf /tmp/readme-import.gz -C "$extract_dir"
 
           readme_file="$(find "$extract_dir" -type f -name README.md | head -n 1)"
           test -n "$readme_file"
