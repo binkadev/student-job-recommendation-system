@@ -30,10 +30,17 @@ jobs:
           test "${#chunks[@]}" -gt 0
           : > /tmp/readme-import.gz
           for chunk in "${chunks[@]}"; do
-            clean="$(mktemp)"
-            tr -cd 'A-Za-z0-9+/=' < "$chunk" > "$clean"
-            echo "Decoding $chunk: $(wc -c < "$clean") base64 characters"
-            base64 --decode "$clean" >> /tmp/readme-import.gz
+            echo "Decoding $chunk"
+            python - "$chunk" >> /tmp/readme-import.gz <<'PY'
+          import base64
+          import re
+          import sys
+
+          data = open(sys.argv[1], 'rb').read()
+          data = re.sub(rb'[^A-Za-z0-9+/=]', b'', data)
+          data += b'=' * (-len(data) % 4)
+          sys.stdout.buffer.write(base64.b64decode(data, validate=False))
+          PY
           done
 
           extract_dir="$(mktemp -d)"
