@@ -1,0 +1,50 @@
+name: Restore README image assets
+
+on:
+  push:
+    branches:
+      - agent/fix-readme-image-corruption
+    paths:
+      - '.readme-image-import/**'
+      - '.github/workflows/restore-readme-images.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout restoration branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/fix-readme-image-corruption
+          fetch-depth: 0
+
+      - name: Restore verified assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t chunks < <(find .readme-image-import -maxdepth 1 -type f -name 'chunk-*' | sort -V)
+          test "${#chunks[@]}" -eq 19
+          cat "${chunks[@]}" > /tmp/archive.b64
+          base64 --decode /tmp/archive.b64 > /tmp/readme-images.tar.gz
+          echo "05f9c395b0619558ad973a0bf0be4eb5fe3844f1d1919021cc666c73709758f7  /tmp/readme-images.tar.gz" | sha256sum -c -
+          extract_dir="$(mktemp -d)"
+          tar -xzf /tmp/readme-images.tar.gz -C "$extract_dir"
+          test "$(find "$extract_dir/payload" -maxdepth 1 -type f -name '*.webp' | wc -l | tr -d ' ')" = "9"
+          mkdir -p docs/images/readme
+          rm -f docs/images/readme/*.webp
+          cp "$extract_dir"/payload/*.webp docs/images/readme/
+          rm -rf .readme-image-import
+
+      - name: Commit restored assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images/readme .readme-image-import
+          git diff --cached --check
+          git commit -m "docs: restore verified README image assets"
+          git push origin HEAD:agent/fix-readme-image-corruption
