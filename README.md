@@ -33,7 +33,7 @@
 
 <br />
 
-<img src="docs/images/readme/trang-chu.svg" alt="Trang chủ hệ thống gợi ý việc làm" width="100%" />
+<img src="docs/images/readme/trang-chu.webp" alt="Trang chủ hệ thống gợi ý việc làm" width="100%" />
 
 </div>
 
@@ -68,10 +68,12 @@
 
 ## 🖼️ Giao diện hệ thống
 
+Ảnh được chọn trực tiếp từ bộ giao diện hiện tại và tối ưu WebP để hiển thị rõ, tải nhanh trên GitHub.
+
 ### Public
 
 <p align="center">
-  <img src="docs/images/readme/trang-chu.svg" alt="Trang chủ công khai" width="100%" />
+  <img src="docs/images/readme/trang-chu.webp" alt="Trang chủ công khai" width="100%" />
   <br />
   <strong>Trang chủ công khai và khám phá cơ hội việc làm</strong>
 </p>
@@ -79,25 +81,57 @@
 ### Student
 
 <p align="center">
-  <img src="docs/images/readme/quan-ly-cv.svg" alt="Quản lý CV sinh viên" width="92%" />
+  <img src="docs/images/readme/tong-quan-sinh-vien.webp" alt="Tổng quan sinh viên" width="100%" />
   <br />
-  <strong>Quản lý CV, trạng thái phân tích và hồ sơ ứng tuyển</strong>
+  <strong>Dashboard sinh viên và trạng thái hồ sơ</strong>
 </p>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/quan-ly-cv.webp" alt="Quản lý CV sinh viên" width="100%" />
+  <p align="center"><strong>Quản lý CV và trạng thái phân tích</strong></p>
+</td>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/goi-y-viec-lam.webp" alt="Gợi ý việc làm cho sinh viên" width="100%" />
+  <p align="center"><strong>Kết quả gợi ý việc làm từ CV</strong></p>
+</td>
+</tr>
+</table>
 
 ### Company
 
 <p align="center">
-  <img src="docs/images/readme/quan-ly-ung-vien.svg" alt="Quản lý ứng viên doanh nghiệp" width="92%" />
+  <img src="docs/images/readme/tong-quan-doanh-nghiep.webp" alt="Tổng quan doanh nghiệp" width="100%" />
   <br />
-  <strong>Quản lý ứng viên và thao tác theo phạm vi Job thuộc sở hữu</strong>
+  <strong>Dashboard tuyển dụng và thống kê doanh nghiệp</strong>
 </p>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/danh-sach-tin-tuyen-dung.webp" alt="Danh sách tin tuyển dụng" width="100%" />
+  <p align="center"><strong>Quản lý tin tuyển dụng thuộc sở hữu</strong></p>
+</td>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/quan-ly-ung-vien.webp" alt="Quản lý ứng viên" width="100%" />
+  <p align="center"><strong>Quản lý ứng viên và CV đã ứng tuyển</strong></p>
+</td>
+</tr>
+</table>
 
 ### Admin
 
 <p align="center">
-  <img src="docs/images/readme/tong-quan-quan-tri.svg" alt="Tổng quan quản trị viên" width="92%" />
+  <img src="docs/images/readme/tong-quan-quan-tri.webp" alt="Tổng quan quản trị viên" width="100%" />
   <br />
-  <strong>Tổng quan vận hành và quản trị dữ liệu nền tảng</strong>
+  <strong>Tổng quan vận hành toàn hệ thống</strong>
+</p>
+
+<p align="center">
+  <img src="docs/images/readme/quan-ly-nguoi-dung.webp" alt="Quản lý người dùng" width="92%" />
+  <br />
+  <strong>Quản lý người dùng và trạng thái tài khoản</strong>
 </p>
 
 ---
