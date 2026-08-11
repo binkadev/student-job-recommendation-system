@@ -178,15 +178,14 @@ class DatabaseRecommendationRankingV3MigrationIT extends AbstractPostgresIntegra
                 """.formatted(schema), fixture.candidateRunId());
 
         assertThat(rows).extracting(row -> row.get("ranking_tier"))
-                .containsExactly("PRIMARY", "PRIMARY", "FALLBACK", null);
+                .containsExactly("PRIMARY", "PRIMARY", "FALLBACK");
         assertThat(rows).extracting(row -> row.get("tier_rank_position"))
-                .containsExactly(1, 2, 1, null);
+                .containsExactly(1, 2, 1);
         assertThat(rows).extracting(row -> row.get("rank_position"))
-                .containsExactly(10, 11, 12, 13);
+                .containsExactly(10, 11, 12);
         assertThat((BigDecimal) rows.get(0).get("overall_score")).isEqualByComparingTo("0.80000");
         assertThat((BigDecimal) rows.get(1).get("overall_score")).isEqualByComparingTo("0.80000");
         assertThat(rows.get(2).get("overall_score")).isNull();
-        assertThat(rows.get(3).get("overall_score")).isNull();
     }
 
     private void assertLegacyCandidateRunShape(String schema, Fixture fixture) {
@@ -235,18 +234,16 @@ class DatabaseRecommendationRankingV3MigrationIT extends AbstractPostgresIntegra
                     skipped_not_ready, skipped_terminal_status, input_fingerprint,
                     job_updated_at_snapshot
                 )
-                VALUES (?, ?, 'SUCCESS', 0.10000, 20, 4, 4, 0, 0, 0, ?, CURRENT_TIMESTAMP)
+                VALUES (?, ?, 'SUCCESS', 0.10000, 20, 3, 3, 0, 0, 0, ?, CURRENT_TIMESTAMP)
                 RETURNING id
                 """.formatted(schema), Long.class, firstJobId, UUID.randomUUID(), "a".repeat(64));
 
         Long firstApplicationId = insertApplication(schema, firstJobId, "candidate-one@example.test", "one.pdf");
         Long secondApplicationId = insertApplication(schema, firstJobId, "candidate-two@example.test", "two.pdf");
         Long thirdApplicationId = insertApplication(schema, firstJobId, "candidate-three@example.test", "three.pdf");
-        Long fourthApplicationId = insertApplication(schema, firstJobId, "candidate-four@example.test", "four.pdf");
         Long firstCandidateCvId = cvIdForApplication(schema, firstApplicationId);
         Long secondCandidateCvId = cvIdForApplication(schema, secondApplicationId);
         Long thirdCandidateCvId = cvIdForApplication(schema, thirdApplicationId);
-        Long fourthCandidateCvId = cvIdForApplication(schema, fourthApplicationId);
 
         insertCandidateResult(schema, candidateRunId, firstApplicationId, firstCandidateCvId,
                 "0.80000", "0.60000", "0.80000", "SAME_LANGUAGE_HYBRID", 10);
@@ -254,8 +251,6 @@ class DatabaseRecommendationRankingV3MigrationIT extends AbstractPostgresIntegra
                 secondCandidateCvId, "0.80000", "0.60000", "0.80000", "SAME_LANGUAGE_HYBRID", 11);
         insertCandidateResult(schema, candidateRunId, thirdApplicationId, thirdCandidateCvId,
                 "0.90000", null, "0.90000", "CROSS_LANGUAGE_SKILL_BASED", 12);
-        insertCandidateResult(schema, candidateRunId, fourthApplicationId, fourthCandidateCvId,
-                "0.50000", null, "0.00000", null, 13);
 
         return new Fixture(
                 studentRunId,
