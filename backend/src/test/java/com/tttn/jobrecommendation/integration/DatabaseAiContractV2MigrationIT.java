@@ -25,7 +25,7 @@ class DatabaseAiContractV2MigrationIT extends AbstractPostgresIntegrationTest {
             Flyway flyway = migrate(schema, null);
 
             assertThat(flyway.info().current()).isNotNull();
-            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("16");
+            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("17");
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 
             assertCvBackfill(schema);
@@ -192,7 +192,10 @@ class DatabaseAiContractV2MigrationIT extends AbstractPostgresIntegrationTest {
                     skill_score,
                     scoring_strategy,
                     missing_skills::text AS missing_skills,
-                    reason
+                    reason,
+                    overall_score,
+                    ranking_tier,
+                    tier_rank_position
                 FROM %s.recommendation_results
                 WHERE id = ?
                 """.formatted(schema), fixture.resultId());
@@ -203,6 +206,9 @@ class DatabaseAiContractV2MigrationIT extends AbstractPostgresIntegrationTest {
         assertThat(result.get("scoring_strategy")).isNull();
         assertThat(result.get("missing_skills")).isEqualTo("[]");
         assertThat(result.get("reason")).isNull();
+        assertThat(result.get("overall_score")).isNull();
+        assertThat(result.get("ranking_tier")).isNull();
+        assertThat(result.get("tier_rank_position")).isNull();
     }
 
     private record LegacyFixture(Long runId, Long resultId) {

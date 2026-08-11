@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.candidateranking.entity;
 
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import jakarta.persistence.Column;
@@ -67,13 +68,20 @@ public class CandidateRankingResult {
     private CvFile cvFile;
 
     @Column(name = "score", nullable = false, precision = 8, scale = 5)
-    private BigDecimal score;
+    private BigDecimal rankingScore;
+
+    @Column(name = "overall_score", precision = 8, scale = 5)
+    private BigDecimal overallScore;
 
     @Column(name = "text_score", precision = 8, scale = 5)
     private BigDecimal textScore;
 
     @Column(name = "skill_score", nullable = false, precision = 8, scale = 5)
     private BigDecimal skillScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ranking_tier", length = 20)
+    private RecommendationRankingTier rankingTier;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "scoring_strategy", nullable = false, length = 50)
@@ -95,6 +103,9 @@ public class CandidateRankingResult {
     @Column(name = "rank_position", nullable = false)
     private Integer rankPosition;
 
+    @Column(name = "tier_rank_position")
+    private Integer tierRankPosition;
+
     @Column(name = "cv_processing_version", length = 100)
     private String cvProcessingVersion;
 
@@ -108,4 +119,31 @@ public class CandidateRankingResult {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Transitional V2 source compatibility. V3 code must use rankingScore.
+     */
+    @Deprecated(forRemoval = false)
+    public BigDecimal getScore() {
+        return rankingScore;
+    }
+
+    /**
+     * Transitional V2 source compatibility. V3 code must use rankingScore.
+     */
+    @Deprecated(forRemoval = false)
+    public void setScore(BigDecimal score) {
+        this.rankingScore = score;
+    }
+
+    public static class CandidateRankingResultBuilder {
+
+        /**
+         * Transitional V2 builder compatibility. V3 code must use rankingScore.
+         */
+        @Deprecated(forRemoval = false)
+        public CandidateRankingResultBuilder score(BigDecimal score) {
+            return rankingScore(score);
+        }
+    }
 }
