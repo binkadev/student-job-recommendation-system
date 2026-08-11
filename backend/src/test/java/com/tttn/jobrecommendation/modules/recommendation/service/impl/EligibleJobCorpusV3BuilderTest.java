@@ -58,6 +58,27 @@ class EligibleJobCorpusV3BuilderTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RECOMMENDATION_GENERATION_FAILED));
     }
 
+    @Test
+    void acceptsExactlyOneHundredCanonicalSkillsAndCountsAliasesAfterCollapse() {
+        JobRepository jobs = mock(JobRepository.class);
+        JobSkillRepository skills = mock(JobSkillRepository.class);
+        LocalDate today = LocalDate.of(2026, 8, 12);
+        Job job = Job.builder().id(10L).build();
+        List<JobSkill> declared = new ArrayList<>();
+        for (int index = 0; index < 99; index++) {
+            declared.add(jobSkill(job, "unknown-v3-skill-" + index));
+        }
+        declared.add(jobSkill(job, "js"));
+        declared.add(jobSkill(job, "javascript"));
+        when(jobs.findEligibleForRecommendation(JobStatus.ACTIVE, CompanyStatus.VERIFIED, today)).thenReturn(List.of(job));
+        when(skills.findByJobIdInOrderByJobIdAscIdAsc(List.of(10L))).thenReturn(declared);
+
+        var corpus = new EligibleJobCorpusV3Builder(jobs, skills, new SkillCatalogCanonicalizer()).build(today);
+
+        assertThat(corpus.getFirst().skills()).hasSize(100).contains("javascript");
+        assertThat(corpus.getFirst().skills()).doesNotContain("js");
+    }
+
     private JobSkill jobSkill(Job job, String name) {
         return JobSkill.builder().job(job).skill(Skill.builder().name(name).normalizedName(name).build()).build();
     }

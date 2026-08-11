@@ -126,9 +126,15 @@ class AiRecommendationV3ResponseValidator {
             BigDecimal text = score(result.textScore());
             BigDecimal overall = score(result.overallScore());
             exact(rankingScore, overall);
-            BigDecimal expected = jobSkills.isEmpty() ? text : TEXT_WEIGHT.multiply(text).add(SKILL_WEIGHT.multiply(skillScore)).setScale(AI_SCORE_SCALE, RoundingMode.HALF_UP);
-            if (overall.subtract(expected).abs().compareTo(FORMULA_ALLOWANCE) > 0) {
-                throw invalid();
+            if (jobSkills.isEmpty()) {
+                exact(skillScore, BigDecimal.ZERO);
+                exact(overall, text);
+            } else {
+                BigDecimal expected = TEXT_WEIGHT.multiply(text).add(SKILL_WEIGHT.multiply(skillScore))
+                        .setScale(AI_SCORE_SCALE, RoundingMode.HALF_UP);
+                if (overall.subtract(expected).abs().compareTo(FORMULA_ALLOWANCE) > 0) {
+                    throw invalid();
+                }
             }
             return new RawResult(result.jobId(), result.rankingTier(), rankingScore, overall, text, skillScore,
                     result.scoringStrategy(), evidence.matched(), evidence.missing(), result.reason().strip());
