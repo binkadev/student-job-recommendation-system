@@ -194,13 +194,13 @@ def test_unexpected_v3_failure_is_sanitized_and_not_logged(
     assert secret not in " ".join(record.getMessage() for record in caplog.records)
 
 
-def test_openapi_exposes_only_the_requested_v3_student_endpoint() -> None:
+def test_openapi_exposes_student_and_company_v3_without_v3_cv_parse() -> None:
     document = _client().get("/openapi.json").json()
     paths = document["paths"]
     operation = paths["/internal/v3/recommendations"]["post"]
     request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
 
-    assert "/internal/v3/candidate-rankings" not in paths
+    assert "/internal/v3/candidate-rankings" in paths
     assert "/internal/v3/cv/parse" not in paths
     assert "post" in paths["/internal/v2/recommendations"]
     assert "post" in paths["/internal/v2/cv/parse"]
