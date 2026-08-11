@@ -9,9 +9,13 @@ import com.tttn.jobrecommendation.infrastructure.ai.config.AiCandidateRankingPro
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingRequest;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingResponse;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingV3Response;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCvParseResponse;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationResponse;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Response;
 import com.tttn.jobrecommendation.infrastructure.ai.exception.AiCandidateRankingCapacityException;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -101,6 +105,24 @@ public class RestAiServiceClient implements AiServiceClient {
     }
 
     @Override
+    public AiRecommendationV3Response recommendV3(AiRecommendationV3Request request) {
+        Objects.requireNonNull(request, "request must not be null");
+        try {
+            byte[] responseBody = restClient.post()
+                    .uri("/internal/v3/recommendations")
+                    .header(INTERNAL_API_KEY_HEADER, internalApiKey)
+                    .header(RequestIdSupport.HEADER_NAME, outboundRequestId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(byte[].class);
+            return deserializeRecommendationV3Response(responseBody);
+        } catch (RestClientException exception) {
+            throw mapException(exception);
+        }
+    }
+
+    @Override
     public AiCandidateRankingResponse rankCandidates(
             AiCandidateRankingRequest request,
             String transportRequestId
@@ -141,6 +163,45 @@ public class RestAiServiceClient implements AiServiceClient {
         }
     }
 
+    @Override
+    public AiCandidateRankingV3Response rankCandidatesV3(
+            AiCandidateRankingV3Request request,
+            String transportRequestId
+    ) {
+        Objects.requireNonNull(request, "request must not be null");
+        Objects.requireNonNull(transportRequestId, "transportRequestId must not be null");
+        Objects.requireNonNull(request.candidates(), "request.candidates must not be null");
+        if (request.candidates().size() > maxCandidatesPerRequest) {
+            throw new AiCandidateRankingCapacityException();
+        }
+        byte[] serializedRequest = serializeCandidateRankingV3Request(request);
+        if (serializedRequest.length > maxRequestBytes) {
+            throw new AiCandidateRankingCapacityException();
+        }
+        try {
+            byte[] responseBody = restClient.post()
+                    .uri("/internal/v3/candidate-rankings")
+                    .header(INTERNAL_API_KEY_HEADER, internalApiKey)
+                    .header(RequestIdSupport.HEADER_NAME, transportRequestId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(serializedRequest)
+                    .retrieve()
+                    .onStatus(status -> !status.is2xxSuccessful(), (sentRequest, response) -> {
+                        if (response.getStatusCode().value() == 413) {
+                            throw new AiCandidateRankingCapacityException();
+                        }
+                        if (response.getStatusCode().is5xxServerError()) {
+                            throw new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE);
+                        }
+                        throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+                    })
+                    .body(byte[].class);
+            return deserializeCandidateRankingV3Response(responseBody);
+        } catch (RestClientException exception) {
+            throw mapCandidateRankingException(exception);
+        }
+    }
+
     private byte[] serializeCandidateRankingRequest(AiCandidateRankingRequest request) {
         try {
             return objectMapper.writeValueAsBytes(request);
@@ -157,6 +218,35 @@ public class RestAiServiceClient implements AiServiceClient {
             return objectMapper.readerFor(AiCandidateRankingResponse.class)
                     .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                     .readValue(responseBody);
+        } catch (IOException exception) {
+            throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+        }
+    }
+
+    private AiRecommendationV3Response deserializeRecommendationV3Response(byte[] responseBody) {
+        return deserializeResponse(responseBody, AiRecommendationV3Response.class);
+    }
+
+    private AiCandidateRankingV3Response deserializeCandidateRankingV3Response(byte[] responseBody) {
+        return deserializeResponse(responseBody, AiCandidateRankingV3Response.class);
+    }
+
+    private <T> T deserializeResponse(byte[] responseBody, Class<T> responseType) {
+        if (responseBody == null || responseBody.length == 0) {
+            throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+        }
+        try {
+            return objectMapper.readerFor(responseType)
+                    .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .readValue(responseBody);
+        } catch (IOException exception) {
+            throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+        }
+    }
+
+    private byte[] serializeCandidateRankingV3Request(AiCandidateRankingV3Request request) {
+        try {
+            return objectMapper.writeValueAsBytes(request);
         } catch (IOException exception) {
             throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
         }
