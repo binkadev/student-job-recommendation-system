@@ -85,6 +85,17 @@ def test_valid_request_is_strict_and_preserves_processed_text_verbatim() -> None
     assert request.candidates[0].processedText == "  java spring_boot  \n"
 
 
+def test_student_job_skill_bound_does_not_cap_company_candidate_skills() -> None:
+    payload = valid_request()
+    payload["candidates"][0]["skills"] = [
+        f"candidate-skill-{index:03d}" for index in range(101)
+    ]
+
+    request = CandidateRankingRequest.model_validate(payload)
+
+    assert len(request.candidates[0].skills) == 101
+
+
 @pytest.mark.parametrize(
     ("primary_limit", "fallback_limit"),
     [(100, 0), (0, 100), (50, 50), (1, 0), (0, 1)],

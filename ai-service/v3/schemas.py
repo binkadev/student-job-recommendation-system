@@ -97,6 +97,7 @@ Reason = Annotated[
     ),
 ]
 InputSkills = Annotated[list[Skill], Field(strict=True)]
+StudentJobSkills = Annotated[list[Skill], Field(strict=True, max_length=100)]
 ResultSkills = Annotated[list[Skill], Field(strict=True, max_length=100)]
 Results = Annotated[list["RecommendationResult"], Field(strict=True, max_length=100)]
 
@@ -124,7 +125,7 @@ class CvSnapshotInput(ContractModel):
 class JobInput(ContractModel):
     id: PositiveId
     text: JobText
-    skills: InputSkills
+    skills: StudentJobSkills
 
 
 class RecommendationRequest(ContractModel):

@@ -160,6 +160,13 @@ Existing internal authentication, request tracing, timeout, capacity, sanitizati
 }
 ```
 
+Student V3 Job skill evidence is bounded by the response contract:
+
+- each internal Student V3 Job `skills` list accepts at most 100 values;
+- the AI request rejects more than 100 Job skill values and never truncates them;
+- Backend request preparation must fail explicitly when a Job has more than 100
+  canonical skills, rather than truncating the canonical skill set.
+
 Public Student generation request may remain:
 
 ```json

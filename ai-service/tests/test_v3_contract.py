@@ -83,6 +83,36 @@ def test_valid_strict_request_preserves_processed_text_verbatim() -> None:
     assert request.limit == 20
 
 
+def test_exactly_one_hundred_student_job_skills_are_accepted() -> None:
+    payload = valid_request()
+    payload["jobs"][0]["skills"] = [
+        f"job-skill-{index:03d}" for index in range(100)
+    ]
+
+    request = RecommendationRequest.model_validate(payload)
+
+    assert len(request.jobs[0].skills) == 100
+
+
+def test_one_hundred_one_student_job_skills_are_rejected_without_truncation() -> None:
+    payload = valid_request()
+    payload["jobs"][0]["skills"] = [
+        f"job-skill-{index:03d}" for index in range(101)
+    ]
+
+    with pytest.raises(ValidationError):
+        RecommendationRequest.model_validate(payload)
+
+
+def test_cv_skills_remain_unbounded() -> None:
+    payload = valid_request()
+    payload["cv"]["skills"] = [f"cv-skill-{index:03d}" for index in range(101)]
+
+    request = RecommendationRequest.model_validate(payload)
+
+    assert len(request.cv.skills) == 101
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -192,6 +222,18 @@ def test_exact_v3_metadata_and_primary_fallback_results_are_valid() -> None:
 
     assert response.algorithm == "tfidf-cosine-hybrid"
     assert response.algorithmVersion == "bilingual-recommendation-v3"
+    assert set(RecommendationResult.model_fields) == {
+        "jobId",
+        "rankingTier",
+        "rankingScore",
+        "overallScore",
+        "textScore",
+        "skillScore",
+        "scoringStrategy",
+        "matchedSkills",
+        "missingSkills",
+        "reason",
+    }
 
 
 def test_result_scores_reject_more_than_eight_decimal_places() -> None:
