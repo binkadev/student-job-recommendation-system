@@ -10,6 +10,7 @@ from request_context import install_request_context_middleware
 from v2.api import build_v2_runtime, create_v2_router
 from v2.constants import ALGORITHM_VERSION, PROCESSING_VERSION
 from v2.http_errors import install_v2_error_handlers
+from v3.api import create_v3_router
 
 
 LEGACY_V1_VERSION = "tfidf-cosine-v1"
@@ -164,6 +165,7 @@ def get_recommendations(req: RecommendationRequest):
 
 
 app.include_router(create_v2_router(v2_runtime))
+app.include_router(create_v3_router(v2_runtime))
 
 
 # ---------------------------------------------------------------------------
