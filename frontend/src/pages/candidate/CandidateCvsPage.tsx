@@ -38,6 +38,8 @@ interface CvFileResponse {
   fileSize?: number | null;
   extractedText?: string | null;
   processedText?: string | null;
+  analysisStatus?: string | null;
+  status?: string | null;
   active?: boolean;
   isActive?: boolean;
   uploadedAt?: string | null;
@@ -245,7 +247,16 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               </div>
               <div className="flex items-start gap-2">
                 {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
-                <button type="button" className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => setDeleteTarget(cv)} aria-label="Xóa CV">
+                <button
+                  type="button"
+                  className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                  disabled={isActiveCv(cv)}
+                  title={isActiveCv(cv) ? "Không thể xóa CV đang dùng. Hãy đặt CV khác làm CV đang dùng trước." : "Xóa CV"}
+                  onClick={() => {
+                    if (!isActiveCv(cv)) setDeleteTarget(cv);
+                  }}
+                  aria-label="Xóa CV"
+                >
                   <X size={16} />
                 </button>
               </div>
@@ -259,7 +270,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
-              <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
+              <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">{hasCvAnalysis(cv) ? "Phân tích lại" : "Phân tích"}</Button></Link>
               {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
@@ -332,7 +343,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
         <p className="text-sm text-slate-700">
           Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> khỏi danh sách hiển thị không?
         </p>
-        <p className="text-sm text-slate-500">CV này sẽ được xóa bằng API xóa CV của ứng viên.</p>
+        <p className="text-sm text-slate-500">Chỉ CV chưa từng dùng trong ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên mới có thể xóa.</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="danger" onClick={() => cv && onConfirm(cv)}>Có, xóa CV</Button>
@@ -435,6 +446,7 @@ function CvAnalysisView({
   const analysis = analysisQuery.data;
   const analysisReady = analysis?.status === "READY";
   const analysisFailed = analysis?.status === "FAILED";
+  const analyzeButtonLabel = analysis?.status ? "Phân tích lại" : "Phân tích";
 
   return (
     <PageContainer>
@@ -461,7 +473,7 @@ function CvAnalysisView({
               <SectionHeader title="Phân tích thất bại" />
               <EmptyState message={analysis?.analysisError ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
               <div className="mt-4">
-                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
+                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
               </div>
             </Card>
           ) : null}
@@ -519,7 +531,7 @@ function CvAnalysisView({
           <Card>
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
-              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
+              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
@@ -573,6 +585,11 @@ async function openCandidateCvFile(cvId: number) {
 
 function isActiveCv(cv: CvFileResponse) {
   return Boolean(cv.active ?? cv.isActive);
+}
+
+function hasCvAnalysis(cv: CvFileResponse) {
+  const status = String(cv.analysisStatus ?? cv.status ?? "").toUpperCase();
+  return Boolean(cv.extractedText?.trim() || cv.processedText?.trim() || ["READY", "FAILED", "PROCESSING"].includes(status));
 }
 
 function validateFile(file: File) {

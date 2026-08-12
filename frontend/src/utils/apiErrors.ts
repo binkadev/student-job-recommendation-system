@@ -10,7 +10,7 @@ const apiErrorMessages: Record<string, string> = {
   CANDIDATE_RANKING_GENERATION_FAILED: "Không thể tạo lượt xếp hạng ứng viên. Nếu tin đã có ứng viên thật, vui lòng kiểm tra AI Service Candidate Ranking.",
   CANDIDATE_RANKING_RUN_NOT_FOUND: "Không tìm thấy lượt xếp hạng ứng viên phù hợp.",
   CV_ANALYSIS_NOT_READY: "CV chưa sẵn sàng để dùng cho tính năng này.",
-  CV_IN_USE: "CV đang được sử dụng nên chưa thể xóa.",
+  CV_IN_USE: "CV đã được dùng trong đơn ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên nên chưa thể xóa.",
   DUPLICATE_RESOURCE: "Dữ liệu đã tồn tại trong hệ thống.",
   INVALID_CREDENTIALS: "Email hoặc mật khẩu không đúng.",
   JOB_NOT_ACTIVE: "Tin tuyển dụng không còn ở trạng thái đang tuyển.",

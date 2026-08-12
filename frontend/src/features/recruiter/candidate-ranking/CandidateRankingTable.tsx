@@ -4,6 +4,7 @@ import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Avatar } from "../../../components/ui/Avatar";
 import { Button } from "../../../components/ui/Button";
 import { Table } from "../../../components/ui/Table";
+import { getScorePresentation } from "../../shared/ranking/rankingScoreTypes";
 import { formatScore } from "./candidateRankingMappers";
 import type { CandidateRankingApplicationStatus, CandidateRankingResult } from "./candidateRankingTypes";
 
@@ -27,14 +28,14 @@ export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze,
   return (
     <Table
       rows={results}
-      getRowKey={(result) => `${result.applicationId}-${result.rankPosition ?? result.id}`}
+      getRowKey={(result) => `${result.applicationId}-${result.rankingTier}-${result.tierRankPosition}-${result.id}`}
       columns={[
-        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">{result.rankPosition == null ? "Chưa cập nhật" : `#${result.rankPosition}`}</strong> },
+        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">#{result.tierRankPosition}</strong> },
         { key: "candidate", header: "Ứng viên", render: (result) => <CandidateCell result={result} /> },
-        { key: "score", header: "Điểm", render: (result) => <ScoreCell result={result} /> },
+        { key: "score", header: "Kết quả đối sánh", render: (result) => <ScoreCell result={result} /> },
         { key: "matched", header: "Kỹ năng phù hợp", render: (result) => <SkillChips skills={result.matchedSkills} /> },
         { key: "missing", header: "Kỹ năng thiếu", render: (result) => <SkillChips skills={result.missingSkills} tone="warning" /> },
-        { key: "status", header: "Trạng thái", render: (result) => <StatusBadge label={applicationStatusLabels[result.applicationStatus]} tone={statusTone(result.applicationStatus)} /> },
+        { key: "status", header: "Trạng thái", render: (result) => <div className="min-w-24 whitespace-nowrap"><StatusBadge label={applicationStatusLabels[result.applicationStatus]} tone={statusTone(result.applicationStatus)} /></div> },
         { key: "actions", header: "Thao tác", render: (result) => <Actions result={result} saved={savedApplicationIds.has(result.applicationId)} onAnalyze={onAnalyze} onSave={onSave} /> },
       ]}
     />
@@ -55,12 +56,16 @@ function CandidateCell({ result }: { result: CandidateRankingResult }) {
 }
 
 function ScoreCell({ result }: { result: CandidateRankingResult }) {
+  const presentation = getScorePresentation(result);
+
   return (
     <div className="min-w-28">
-      <p className="font-semibold text-slate-950">{formatScore(result.score)}</p>
+      <p className="text-xs font-semibold uppercase text-brand-700">{presentation.label}</p>
+      <p className="font-semibold text-slate-950">{formatScore(presentation.value)}</p>
       <div className="mt-1 space-y-0.5 text-xs leading-5 text-slate-500">
-        <p>Nội dung: {formatScore(result.textScore)}</p>
-        <p>Kỹ năng: {formatScore(result.skillScore)}</p>
+        <p>Final Score: {formatScore(result.overallScore)}</p>
+        <p>Text Score: {formatScore(result.textScore)}</p>
+        <p>Skill Score: {formatScore(result.skillScore)}</p>
       </div>
     </div>
   );

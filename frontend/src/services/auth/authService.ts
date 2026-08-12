@@ -43,12 +43,62 @@ export function mapAuthUser(user: AuthUserResponse): CurrentUser {
 }
 
 export function getStoredToken() {
-  return window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const token = window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  if (token) return token;
+  return consumeTransferredToken();
 }
 
 export function storeToken(token: string) {
   window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+const AUTH_TRANSFER_QUERY_PARAM = "authTransfer";
+const AUTH_TRANSFER_STORAGE_PREFIX = "job-system:auth-transfer:";
+
+export function createAuthenticatedTabUrl(path: string) {
+  const url = new URL(path, window.location.origin);
+  const token = window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  if (!token) return url.toString();
+
+  const transferId = createTransferId();
+  window.localStorage.setItem(
+    `${AUTH_TRANSFER_STORAGE_PREFIX}${transferId}`,
+    JSON.stringify({ token, expiresAt: Date.now() + 30_000 }),
+  );
+  url.searchParams.set(AUTH_TRANSFER_QUERY_PARAM, transferId);
+  return url.toString();
+}
+
+function consumeTransferredToken() {
+  const transferId = new URLSearchParams(window.location.search).get(AUTH_TRANSFER_QUERY_PARAM);
+  if (!transferId) return null;
+
+  const storageKey = `${AUTH_TRANSFER_STORAGE_PREFIX}${transferId}`;
+  const raw = window.localStorage.getItem(storageKey);
+  window.localStorage.removeItem(storageKey);
+  removeTransferParamFromAddressBar();
+  if (!raw) return null;
+
+  try {
+    const payload = JSON.parse(raw) as { token?: string; expiresAt?: number };
+    if (!payload.token || !payload.expiresAt || payload.expiresAt < Date.now()) return null;
+    window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.token);
+    return payload.token;
+  } catch {
+    return null;
+  }
+}
+
+function removeTransferParamFromAddressBar() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(AUTH_TRANSFER_QUERY_PARAM);
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function createTransferId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function clearToken() {

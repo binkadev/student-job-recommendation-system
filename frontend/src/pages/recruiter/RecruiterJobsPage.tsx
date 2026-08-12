@@ -11,6 +11,7 @@ import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
+import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
 import { Textarea } from "../../components/ui/Textarea";
@@ -253,6 +254,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
   const [status, setStatus] = useState("");
   const [jobType, setJobType] = useState("");
   const [workingModel, setWorkingModel] = useState("");
+  const [closeTarget, setCloseTarget] = useState<JobResponse | null>(null);
   const jobsQuery = useAsyncData(() => getJobs({ page, keyword, status, jobType, workingModel }), [page, reloadKey, keyword, status, jobType, workingModel]);
   const jobs = jobsQuery.data?.items ?? [];
 
@@ -275,6 +277,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
     try {
       await deleteJob(job.id);
       setReloadKey((current) => current + 1);
+      setCloseTarget(null);
       showToast({ type: "success", title: "Đã đóng tin tuyển dụng" });
     } catch (error) {
       showToast({ type: "error", title: "Không thể đóng tin", message: getErrorMessage(error) });
@@ -322,13 +325,14 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
                 { key: "salary", header: "Mức lương", render: (job) => formatSalary(job) },
                 { key: "deadline", header: "Hạn nộp", render: (job) => formatDate(job.deadline) },
                 { key: "status", header: "Trạng thái", render: (job) => <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} /> },
-                { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} canPublish={Boolean(company && isCompanyVerified(company))} onUpdateStatus={updateStatus} onClose={closeJob} /> },
+                { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} canPublish={Boolean(company && isCompanyVerified(company))} onUpdateStatus={updateStatus} onClose={setCloseTarget} /> },
               ]}
             />
             <Pagination page={page} totalPages={jobsQuery.data?.totalPages ?? 1} onPageChange={setPage} />
           </div>
         ) : null}
       </Card>
+      <CloseJobModal job={closeTarget} onClose={() => setCloseTarget(null)} onConfirm={(job) => void closeJob(job)} />
     </PageContainer>
   );
 }
@@ -410,6 +414,8 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
   const editing = mode === "edit";
   const verifiedCompany = Boolean(company && isCompanyVerified(company));
   const deadlineMinDate = getNextDateValue(job?.createdAt);
+  const initialForm = useMemo(() => job ? mapJobToForm(job) : DEFAULT_FORM, [job]);
+  const formChanged = !areJobFormsEqual(form, initialForm);
 
   useEffect(() => {
     if (job) setForm(mapJobToForm(job));
@@ -532,7 +538,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
             <SectionHeader title="Trạng thái" />
             {!verifiedCompany ? <EmptyState message={`Trạng thái công ty hiện tại: ${company ? COMPANY_STATUS_LABELS[company.status] : "Chưa cập nhật"}. Chỉ công ty đã xác thực mới được gửi tin sang admin chờ duyệt.`} /> : null}
             <div className="mt-5 flex flex-col gap-2">
-              <Button loading={saving} disabled={!verifiedCompany} onClick={() => void save("PENDING_APPROVAL")}>{editing ? "Gửi duyệt" : "Tạo tin"}</Button>
+              <Button loading={saving} disabled={!verifiedCompany || (editing && !formChanged)} onClick={() => void save("PENDING_APPROVAL")}>{editing ? "Gửi duyệt" : "Tạo tin"}</Button>
               <Button variant="secondary" loading={saving} onClick={() => void save("DRAFT")}>Lưu nháp</Button>
               <Link to={editing && job ? `/recruiter/jobs/${job.id}` : "/recruiter/jobs"}><Button className="w-full" variant="secondary">Quay lại</Button></Link>
             </div>
@@ -627,18 +633,42 @@ function JobTitleCell({ job }: { job: JobResponse }) {
 }
 
 function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResponse; canPublish: boolean; onUpdateStatus: (job: JobResponse, status: JobStatus) => void; onClose: (job: JobResponse) => void }) {
+  const canClose = job.status !== "CLOSED" && job.status !== "PENDING_APPROVAL";
+
   return (
-    <div className="flex min-w-52 flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Link to={`/recruiter/jobs/${job.id}`}><Button variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
-        <Link to={`/recruiter/jobs/${job.id}/edit`}><Button variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>
-        {job.status === "DRAFT" || job.status === "REJECTED" ? <Button size="sm" disabled={!canPublish} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button> : null}
-        {job.status !== "CLOSED" ? <Button variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button> : null}
+    <div className="flex min-w-64 flex-col gap-2">
+      <div className="grid grid-cols-3 gap-2">
+        <Link to={`/recruiter/jobs/${job.id}`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
+        <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>
+        {job.status === "DRAFT" || job.status === "REJECTED" ? (
+          <Button className="w-full justify-center" size="sm" disabled={!canPublish} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button>
+        ) : canClose ? (
+          <Button className="w-full justify-center" variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button>
+        ) : (
+          <span />
+        )}
       </div>
       <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`} className="w-full">
         <Button className="w-full justify-center" variant="secondary" size="sm" icon={<Users size={14} />}>Ứng viên phù hợp</Button>
       </Link>
     </div>
+  );
+}
+
+function CloseJobModal({ job, onClose, onConfirm }: { job: JobResponse | null; onClose: () => void; onConfirm: (job: JobResponse) => void }) {
+  return (
+    <Modal open={Boolean(job)} title="Xác nhận đóng tin tuyển dụng" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-slate-700">
+          Bạn có chắc muốn đóng tin <strong>{job?.title}</strong> không?
+        </p>
+        <p className="text-sm text-slate-500">Tin đã đóng sẽ không còn hiển thị như tin đang tuyển.</p>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Hủy</Button>
+          <Button variant="danger" onClick={() => job && onConfirm(job)}>Xác nhận đóng</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -749,6 +779,22 @@ function mapJobToForm(job: JobDetailResponse): JobFormState {
     deadline: job.deadline ? job.deadline.slice(0, 10) : "",
     skillIds: job.skills?.map((skill) => String(skill.skillId)) ?? [],
   };
+}
+
+function areJobFormsEqual(left: JobFormState, right: JobFormState) {
+  const normalize = (form: JobFormState) => ({
+    ...form,
+    title: form.title.trim(),
+    description: form.description.trim(),
+    requirements: form.requirements.trim(),
+    benefits: form.benefits.trim(),
+    location: form.location.trim(),
+    salaryMin: form.salaryMin.trim(),
+    salaryMax: form.salaryMax.trim(),
+    deadline: form.deadline.trim(),
+    skillIds: [...form.skillIds].sort(),
+  });
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 }
 
 function buildJobPayload(form: JobFormState) {

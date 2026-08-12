@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CandidateRankingApplicationStatus,
   CandidateRankingJob,
   CandidateRankingResult,
@@ -6,6 +6,14 @@ import type {
   CandidateRankingRunDetail,
   CandidateRankingRunStatus,
 } from "./candidateRankingTypes";
+import {
+  formatNormalizedScore,
+  normalizeRankingTier,
+  normalizeScoringStrategy,
+  toLegacyNormalizedScore,
+  toNormalizedScore,
+  type RankingScoreFields,
+} from "../../shared/ranking/rankingScoreTypes";
 
 export interface PageResponse<T> {
   items: T[];
@@ -60,6 +68,10 @@ export interface CandidateRankingResultResponse {
   applicationStatus?: string | null;
   appliedAt?: string | null;
   score?: number | string | null;
+  rankingTier?: string | null;
+  tierRankPosition?: number | string | null;
+  rankingScore?: number | string | null;
+  overallScore?: number | string | null;
   textScore?: number | string | null;
   skillScore?: number | string | null;
   scoringStrategy?: string | null;
@@ -91,6 +103,7 @@ export function mapRankingRun(run: CandidateRankingRunResponse | null | undefine
 }
 
 export function mapRankingResult(result: CandidateRankingResultResponse): CandidateRankingResult {
+  const scoreFields = mapRankingScoreFields(result);
   return {
     id: toId(result.id ?? result.applicationId),
     applicationId: toId(result.applicationId),
@@ -100,14 +113,79 @@ export function mapRankingResult(result: CandidateRankingResultResponse): Candid
     cvFileId: result.cvFileId == null ? null : toId(result.cvFileId),
     cvFileName: result.cvFileName || null,
     rankPosition: toNullableNumber(result.rankPosition),
-    score: toNullableNumber(result.score),
-    textScore: toNullableNumber(result.textScore),
-    skillScore: toNullableNumber(result.skillScore),
-    scoringStrategy: result.scoringStrategy || null,
+    ...scoreFields,
     matchedSkills: normalizeStringArray(result.matchedSkills),
     missingSkills: normalizeStringArray(result.missingSkills),
     reason: result.reason || null,
     applicationStatus: mapApplicationStatus(result.applicationStatus),
+  };
+}
+
+function mapRankingScoreFields(result: CandidateRankingResultResponse): RankingScoreFields {
+  const tier = normalizeRankingTier(result.rankingTier);
+  const strategy = normalizeScoringStrategy(result.scoringStrategy);
+  const tierRankPosition = toInteger(result.tierRankPosition);
+
+  if (tier && strategy && tierRankPosition) {
+    const rankingScore = toNormalizedScore(result.rankingScore);
+    const overallScore = toNormalizedScore(result.overallScore);
+    const textScore = toNormalizedScore(result.textScore);
+    const skillScore = toNormalizedScore(result.skillScore);
+    const validPrimary = tier === "PRIMARY" && strategy === "SAME_LANGUAGE_HYBRID" && rankingScore != null && overallScore != null && textScore != null && skillScore != null;
+    const validFallback = tier === "FALLBACK" && strategy === "CROSS_LANGUAGE_SKILL_BASED" && rankingScore != null && result.overallScore == null && result.textScore == null && skillScore != null;
+
+    if (validPrimary || validFallback) {
+      return {
+        rankingTier: tier,
+        tierRankPosition,
+        rankingScore,
+        overallScore: tier === "PRIMARY" ? overallScore : null,
+        textScore: tier === "PRIMARY" ? textScore : null,
+        skillScore,
+        scoringStrategy: strategy,
+        legacyResult: false,
+      };
+    }
+
+    console.warn("Invalid candidate ranking V3 score contract", result);
+    return {
+      rankingTier: tier,
+      tierRankPosition,
+      rankingScore: rankingScore ?? 0,
+      overallScore: tier === "PRIMARY" ? overallScore : null,
+      textScore: tier === "PRIMARY" ? textScore : null,
+      skillScore: skillScore ?? 0,
+      scoringStrategy: strategy,
+      legacyResult: false,
+      invalidScoreContract: true,
+    };
+  }
+
+  const legacyStrategy = strategy ?? (result.textScore == null ? "CROSS_LANGUAGE_SKILL_BASED" : "SAME_LANGUAGE_HYBRID");
+  const legacySkillScore = toLegacyNormalizedScore(result.skillScore) ?? toLegacyNormalizedScore(result.score) ?? 0;
+  if (legacyStrategy === "CROSS_LANGUAGE_SKILL_BASED") {
+    return {
+      rankingTier: "FALLBACK",
+      tierRankPosition: toInteger(result.rankPosition) ?? 1,
+      rankingScore: legacySkillScore,
+      overallScore: null,
+      textScore: null,
+      skillScore: legacySkillScore,
+      scoringStrategy: "CROSS_LANGUAGE_SKILL_BASED",
+      legacyResult: true,
+    };
+  }
+
+  const legacyOverallScore = toLegacyNormalizedScore(result.score) ?? 0;
+  return {
+    rankingTier: "PRIMARY",
+    tierRankPosition: toInteger(result.rankPosition) ?? 1,
+    rankingScore: legacyOverallScore,
+    overallScore: legacyOverallScore,
+    textScore: toLegacyNormalizedScore(result.textScore),
+    skillScore: legacySkillScore,
+    scoringStrategy: "SAME_LANGUAGE_HYBRID",
+    legacyResult: true,
   };
 }
 
@@ -130,9 +208,7 @@ export function mapRankingJob(job: JobDetailResponse): CandidateRankingJob {
 }
 
 export function formatScore(value: number | null) {
-  if (value == null || !Number.isFinite(value)) return "Chưa có điểm";
-  const percent = value <= 1 ? value * 100 : value;
-  return `${Math.round(percent)}%`;
+  return formatNormalizedScore(value);
 }
 
 export function sanitizeErrorMessage(value?: string | null) {
@@ -168,6 +244,13 @@ function toNullableNumber(value?: number | string | null) {
   if (value == null || value === "") return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function toInteger(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue < 1) return null;
+  return numberValue;
 }
 
 function formatDateTime(value?: string | null) {

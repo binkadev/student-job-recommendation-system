@@ -21,7 +21,7 @@ export function PublicJobListCard({
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <Link to={`/jobs/${job.id}`} className="flex min-w-0 gap-3">
+        <Link to={`/jobs/${job.id}`} target="_blank" rel="noreferrer" className="flex min-w-0 gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">{job.logo}</div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -62,7 +62,7 @@ export function PublicJobListCard({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/jobs/${job.id}`}>
+          <Link to={`/jobs/${job.id}`} target="_blank" rel="noreferrer">
             <Button variant="secondary" size="sm">Xem chi tiết</Button>
           </Link>
           <Button size="sm" icon={<Send size={16} />} onClick={() => onApply(job.id)} disabled={applied}>

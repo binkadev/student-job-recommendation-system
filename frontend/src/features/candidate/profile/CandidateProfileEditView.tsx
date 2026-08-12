@@ -90,6 +90,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
   const [listError, setListError] = useState("");
   const [savedProfile, setSavedProfile] = useState(profile);
   const { showToast } = useToast();
+  const activeTabIndex = tabs.findIndex((tab) => tab.value === activeTab);
 
   const defaultValues = useMemo<EditFormValues>(() => toEditFormValues(profile), [profile]);
 
@@ -235,6 +236,10 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
             </div>
             {isDirty ? <p className="mt-3 text-sm text-amber-700">Bạn có thay đổi chưa lưu.</p> : null}
             {listError ? <p className="mt-3 text-sm text-red-600">{listError}</p> : null}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button type="button" variant="secondary" disabled={activeTabIndex <= 0} onClick={() => setActiveTab(tabs[Math.max(0, activeTabIndex - 1)].value)}>Trước</Button>
+              <Button type="button" variant="secondary" disabled={activeTabIndex >= tabs.length - 1} onClick={() => setActiveTab(tabs[Math.min(tabs.length - 1, activeTabIndex + 1)].value)}>Sau</Button>
+            </div>
           </Card>
         </aside>
 
@@ -343,9 +348,11 @@ function groupSkills(items: Array<CandidateSkill & { group: string }>): Candidat
 function stripGroup(skill: CandidateSkill & { group: string }) {
   return {
     id: skill.id,
+    skillId: skill.skillId,
     name: skill.name,
     level: skill.level,
     years: skill.years,
+    source: skill.source,
   };
 }
 
@@ -434,12 +441,12 @@ function EducationEditor({ items, setItems, onDelete }: { items: EditableEducati
 function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkill & { group: string }>; setItems: (items: Array<CandidateSkill & { group: string }>) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
-      <SectionHeader title="Kỹ năng" description="Không cho phép lưu kỹ năng trùng tên." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0 }])} />} />
+      <SectionHeader title="Kỹ năng" description="Có thể nhập kỹ năng tự do. Kỹ năng có trong danh mục sẽ lưu qua API, kỹ năng mới sẽ được giữ lại trên giao diện." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0, source: "MANUAL" }])} />} />
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((item) => (
           <div key={item.id} className="rounded-lg border border-slate-200 p-4">
             <div className="grid gap-3">
-              <Input label="Tên kỹ năng" value={item.name} onChange={(event) => updateItem(items, setItems, item.id, { name: event.target.value })} />
+              <Input label="Tên kỹ năng" value={item.name} onChange={(event) => updateItem(items, setItems, item.id, { name: event.target.value, skillId: undefined })} />
               <Select label="Nhóm" value={item.group} onChange={(event) => updateItem(items, setItems, item.id, { group: event.target.value })} options={[{ label: "Frontend", value: "frontend" }, { label: "Backend", value: "backend" }, { label: "Công cụ", value: "tools" }, { label: "Kỹ năng mềm", value: "soft" }]} />
               <Input label="Mức độ" value={item.level} onChange={(event) => updateItem(items, setItems, item.id, { level: event.target.value })} />
               <Input label="Số năm kinh nghiệm" type="number" value={item.years} onChange={(event) => updateItem(items, setItems, item.id, { years: Number(event.target.value) })} />

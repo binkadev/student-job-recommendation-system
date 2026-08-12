@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import {
   formatScore,
   mapRankingResult,
@@ -21,7 +21,9 @@ describe("candidate ranking mappers", () => {
     expect(result.id).toBe("9");
     expect(result.applicationId).toBe("101");
     expect(result.studentId).toBe("7");
-    expect(result.score).toBe(0.75);
+    expect(result.rankingTier).toBe("PRIMARY");
+    expect(result.overallScore).toBe(0.75);
+    expect(result.rankingScore).toBe(0.75);
     expect(result.textScore).toBe(0.5);
     expect(result.skillScore).toBe(1);
   });
@@ -60,12 +62,12 @@ describe("candidate ranking mappers", () => {
   });
 
   it("formats public scores without changing their meaning", () => {
-    expect(formatScore(null)).toBe("Chưa có điểm");
+    expect(formatScore(null)).toBe("Không áp dụng");
     expect(formatScore(0)).toBe("0%");
     expect(formatScore(0.425)).toBe("43%");
     expect(formatScore(1)).toBe("100%");
-    expect(formatScore(Number.NaN)).toBe("Chưa có điểm");
-    expect(formatScore(Number.POSITIVE_INFINITY)).toBe("Chưa có điểm");
+    expect(formatScore(Number.NaN)).toBe("Không áp dụng");
+    expect(formatScore(Number.POSITIVE_INFINITY)).toBe("Không áp dụng");
   });
 
   it("sanitizes bearer tokens and enforces the existing maximum length", () => {

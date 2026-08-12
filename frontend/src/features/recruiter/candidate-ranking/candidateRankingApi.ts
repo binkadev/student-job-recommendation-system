@@ -20,6 +20,8 @@ interface ApiResponse<T> {
 interface CreateRankingRunPayload {
   threshold: number;
   limit: number;
+  primaryLimit?: number;
+  fallbackLimit?: number;
 }
 
 export async function getCandidateRankingJob(jobId: string): Promise<CandidateRankingJob> {
@@ -28,7 +30,10 @@ export async function getCandidateRankingJob(jobId: string): Promise<CandidateRa
 }
 
 export async function createCandidateRankingRun(jobId: string, payload: CreateRankingRunPayload): Promise<CandidateRankingRunDetail> {
-  const response = await httpClient.post<ApiResponse<CandidateRankingRunDetailResponse>>(`/companies/me/jobs/${jobId}/candidate-ranking-runs`, payload);
+  const response = await httpClient.post<ApiResponse<CandidateRankingRunDetailResponse>>(`/companies/me/jobs/${jobId}/candidate-ranking-runs`, {
+    threshold: payload.threshold,
+    limit: payload.limit,
+  });
   return mapRankingRunDetail(response.data.data);
 }
 
