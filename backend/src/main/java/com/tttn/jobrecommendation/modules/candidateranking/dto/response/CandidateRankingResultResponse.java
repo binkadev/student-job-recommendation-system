@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.modules.candidateranking.dto.response;
 
 import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,6 +18,11 @@ public record CandidateRankingResultResponse(
         String cvFileName,
         ApplicationStatus applicationStatus,
         LocalDateTime appliedAt,
+        RecommendationRankingTier rankingTier,
+        BigDecimal rankingScore,
+        BigDecimal overallScore,
+        Integer tierRankPosition,
+        /** @deprecated Use rankingScore; retained as the persisted score compatibility alias. */
         BigDecimal score,
         BigDecimal textScore,
         BigDecimal skillScore,

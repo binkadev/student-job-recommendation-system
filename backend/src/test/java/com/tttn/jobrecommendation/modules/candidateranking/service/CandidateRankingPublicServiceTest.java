@@ -127,7 +127,7 @@ class CandidateRankingPublicServiceTest {
 
     private CandidateRankingRunDetailResponse detail(Long id) {
         return new CandidateRankingRunDetailResponse(
-                id, 11L, "Job", null, null, null, new BigDecimal("0.10000"), 20,
+                id, 11L, "Job", null, null, null, new BigDecimal("0.10000"), null, 20, 20,
                 0, 0, 0, 0, 0, 0, null, null, null, null, List.of()
         );
     }

@@ -15,6 +15,8 @@ public record CandidateRankingRunDetailResponse(
         String algorithmVersion,
         BigDecimal threshold,
         Integer requestedLimit,
+        Integer requestedPrimaryLimit,
+        Integer requestedFallbackLimit,
         Integer totalApplicationsScanned,
         Integer eligibleCandidates,
         Integer skippedNoCv,

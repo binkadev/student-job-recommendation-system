@@ -54,13 +54,13 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
 
     private static final Set<String> RUN_FIELDS = Set.of(
             "id", "jobId", "jobTitle", "status", "algorithm", "algorithmVersion",
-            "threshold", "requestedLimit", "totalApplicationsScanned", "eligibleCandidates",
+            "threshold", "requestedLimit", "requestedPrimaryLimit", "requestedFallbackLimit", "totalApplicationsScanned", "eligibleCandidates",
             "skippedNoCv", "skippedNotReady", "skippedTerminalStatus", "totalRanked",
             "errorMessage", "startedAt", "finishedAt", "createdAt"
     );
     private static final Set<String> RESULT_FIELDS = Set.of(
             "id", "applicationId", "studentId", "studentName", "studentEmail",
-            "cvFileId", "cvFileName", "applicationStatus", "appliedAt", "score",
+            "cvFileId", "cvFileName", "applicationStatus", "appliedAt", "rankingTier", "rankingScore", "overallScore", "tierRankPosition", "score",
             "textScore", "skillScore", "scoringStrategy", "matchedSkills", "missingSkills",
             "reason", "rankPosition", "createdAt"
     );
