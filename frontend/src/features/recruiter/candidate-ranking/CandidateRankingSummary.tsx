@@ -15,8 +15,8 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
       <Card>
-        <p className="text-sm font-medium text-slate-500">Trạng thái run</p>
-        <div className="mt-2"><StatusBadge label={run.status} tone={statusTone(run.status)} /></div>
+        <p className="text-sm font-medium text-slate-500">Trạng thái lần chạy</p>
+        <div className="mt-2"><StatusBadge label={runStatusLabel(run.status)} tone={statusTone(run.status)} /></div>
       </Card>
       {items.map((item) => {
         const Icon = item.icon;
@@ -32,6 +32,14 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
       })}
     </div>
   );
+}
+
+function runStatusLabel(status: CandidateRankingRun["status"]) {
+  if (status === "SUCCESS") return "Thành công";
+  if (status === "FAILED") return "Thất bại";
+  if (status === "PROCESSING") return "Đang xử lý";
+  if (status === "PENDING") return "Đang chờ";
+  return "Chưa cập nhật";
 }
 
 function statusTone(status: CandidateRankingRun["status"]) {

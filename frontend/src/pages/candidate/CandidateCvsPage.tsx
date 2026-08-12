@@ -13,11 +13,10 @@ import { FileUploader } from "../../components/ui/FileUploader";
 import { Modal } from "../../components/ui/Modal";
 import { Switch } from "../../components/ui/Switch";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
 import { getApiErrorMessage } from "../../utils/apiErrors";
-import { getCurrentUserStorageScope } from "../../utils/authStorageScope";
+import { cvInUseMessage, isCvDeleteAvailable, isCvInUseError } from "./cvDeletion";
 
 interface CandidateCvsPageProps {
   mode?: "list" | "upload" | "detail" | "analysis" | "edit-extracted" | "review";
@@ -38,8 +37,12 @@ interface CvFileResponse {
   fileSize?: number | null;
   extractedText?: string | null;
   processedText?: string | null;
+  analysisStatus?: string | null;
+  status?: string | null;
   active?: boolean;
   isActive?: boolean;
+  deletable: boolean;
+  deleteBlockedReason?: string | null;
   uploadedAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -65,11 +68,9 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [active, setActive] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const hiddenCvStorageKey = useMemo(() => `candidate-hidden-cv-ids:${getCurrentUserStorageScope()}`, []);
-  const [hiddenCvIds, setHiddenCvIds] = useLocalStorageState<string[]>(hiddenCvStorageKey, []);
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
-  const cvs = (cvsQuery.data ?? []).filter((cv) => !hiddenCvIds.includes(String(cv.id)));
+  const cvs = useMemo(() => cvsQuery.data ?? [], [cvsQuery.data]);
   const selectedCv = useMemo(() => {
     if (cvId) return cvs.find((cv) => String(cv.id) === cvId) ?? null;
     return cvs[0] ?? null;
@@ -114,12 +115,14 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   async function deleteCv(cv: CvFileResponse) {
     try {
       await deleteCandidateCv(cv.id);
-      setHiddenCvIds((current) => current.filter((id) => id !== String(cv.id)));
       setDeleteTarget(null);
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã xóa CV", message: cv.originalFileName });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể xóa CV", message: getApiErrorMessage(error) });
+      const blocked = isCvInUseError(error);
+      setDeleteTarget(null);
+      setReloadKey((current) => current + 1);
+      showToast({ type: "error", title: "Không thể xóa CV", message: blocked ? cvInUseMessage : getApiErrorMessage(error) });
     }
   }
 
@@ -245,7 +248,16 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               </div>
               <div className="flex items-start gap-2">
                 {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
-                <button type="button" className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => setDeleteTarget(cv)} aria-label="Xóa CV">
+                <button
+                  type="button"
+                  className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                  disabled={!isCvDeleteAvailable(cv)}
+                  title={cv.deletable ? "Xóa CV" : cvInUseMessage}
+                  onClick={() => {
+                    if (isCvDeleteAvailable(cv)) setDeleteTarget(cv);
+                  }}
+                  aria-label="Xóa CV"
+                >
                   <X size={16} />
                 </button>
               </div>
@@ -259,7 +271,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
-              <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">Phân tích</Button></Link>
+              <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">{hasCvAnalysis(cv) ? "Phân tích lại" : "Phân tích"}</Button></Link>
               {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
@@ -330,9 +342,10 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
     <Modal open={Boolean(cv)} title="Xóa CV" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-slate-700">
-          Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> khỏi danh sách hiển thị không?
+          Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> không?
         </p>
-        <p className="text-sm text-slate-500">CV này sẽ được xóa bằng API xóa CV của ứng viên.</p>
+        {cv && isActiveCv(cv) ? <p className="text-sm text-amber-700">Đây là CV đang dùng. Bạn có chắc muốn xóa?</p> : null}
+        <p className="text-sm text-slate-500">Chỉ CV chưa từng dùng trong ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên mới có thể xóa.</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="danger" onClick={() => cv && onConfirm(cv)}>Có, xóa CV</Button>
@@ -341,6 +354,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
     </Modal>
   );
 }
+
 
 async function getCandidateCvs() {
   const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
@@ -435,6 +449,7 @@ function CvAnalysisView({
   const analysis = analysisQuery.data;
   const analysisReady = analysis?.status === "READY";
   const analysisFailed = analysis?.status === "FAILED";
+  const analyzeButtonLabel = analysis?.status ? "Phân tích lại" : "Phân tích";
 
   return (
     <PageContainer>
@@ -461,7 +476,7 @@ function CvAnalysisView({
               <SectionHeader title="Phân tích thất bại" />
               <EmptyState message={analysis?.analysisError ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
               <div className="mt-4">
-                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
+                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
               </div>
             </Card>
           ) : null}
@@ -519,7 +534,7 @@ function CvAnalysisView({
           <Card>
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
-              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>Phân tích lại</Button>
+              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
@@ -573,6 +588,11 @@ async function openCandidateCvFile(cvId: number) {
 
 function isActiveCv(cv: CvFileResponse) {
   return Boolean(cv.active ?? cv.isActive);
+}
+
+function hasCvAnalysis(cv: CvFileResponse) {
+  const status = String(cv.analysisStatus ?? cv.status ?? "").toUpperCase();
+  return Boolean(cv.extractedText?.trim() || cv.processedText?.trim() || ["READY", "FAILED", "PROCESSING"].includes(status));
 }
 
 function validateFile(file: File) {

@@ -1,9 +1,8 @@
-import { BarChart3, Bookmark, BookmarkCheck, BriefcaseBusiness, EyeOff, MapPin, RefreshCw, RotateCcw, Send, Wallet } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { BarChart3, Bookmark, BookmarkCheck, BriefcaseBusiness, EyeOff, MapPin, RefreshCw, RotateCcw, Send, Wallet } from "lucide-react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
-import { Pagination } from "../../../components/common/Pagination";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { LoadingState } from "../../../components/feedback/LoadingState";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
@@ -15,7 +14,9 @@ import { Select } from "../../../components/ui/Select";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useSavedJobs } from "../../../hooks/useSavedJobs";
 import { useToast } from "../../../hooks/useToast";
+import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
 import { getApiErrorMessage } from "../../../utils/apiErrors";
+import { formatNormalizedScore } from "../../shared/ranking/rankingScoreTypes";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 import { formatExperience } from "../../public/jobs/experienceDisplay";
 import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
@@ -31,10 +32,8 @@ import {
 } from "./recommendedJobsService";
 import type { CandidateRecommendedJob, RecommendedJobFilters } from "./recommendedJobsTypes";
 
-const pageSize = 6;
-
 const defaultFilters: RecommendedJobFilters = {
-  minMatch: 0,
+  minDisplayScore: 0,
   location: "",
   industry: "",
   salary: "",
@@ -52,7 +51,6 @@ const salaryOptions = [
 export function CandidateRecommendedJobsPage() {
   const initialState = useMemo(() => getRecommendedJobState(), []);
   const [filters, setFilters] = useState(defaultFilters);
-  const [page, setPage] = useState(1);
   const [showHidden, setShowHidden] = useState(false);
   const [hiddenIds, setHiddenIds] = useState<string[]>(initialState.hiddenIds);
   const [analysisJob, setAnalysisJob] = useState<CandidateRecommendedJob | null>(null);
@@ -66,7 +64,7 @@ export function CandidateRecommendedJobsPage() {
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { hasApplied } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel } = useAppliedJobs();
   const { showToast } = useToast();
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
@@ -105,12 +103,11 @@ export function CandidateRecommendedJobsPage() {
     return displayJobs;
   }, [displayJobs]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
-  const pagedJobs = filteredJobs.slice((page - 1) * pageSize, page * pageSize);
-
+  const primaryJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier === "PRIMARY").sort(compareTierRank), [filteredJobs]);
+  const fallbackJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier === "FALLBACK").sort(compareTierRank), [filteredJobs]);
+  const legacyJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier == null), [filteredJobs]);
   function updateFilter<K extends keyof RecommendedJobFilters>(key: K, value: RecommendedJobFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
-    setPage(1);
   }
 
   function persistHiddenJobs(nextHiddenIds: string[]) {
@@ -174,8 +171,8 @@ export function CandidateRecommendedJobsPage() {
   }
 
   function openApply(job: CandidateRecommendedJob) {
-    if (hasApplied(job.id)) {
-      showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
+    if (!canApply(job.id)) {
+      showToast({ type: "error", title: "Chưa thể ứng tuyển", message: "Đơn ứng tuyển gần nhất cho việc làm này vẫn đang được xử lý." });
       return;
     }
     setApplyJob({
@@ -193,7 +190,7 @@ export function CandidateRecommendedJobsPage() {
       <PageHeader title="Việc làm gợi ý" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_160px_160px_190px_160px]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_150px_170px_190px_150px]">
           <Select
             label="CV dùng để gợi ý"
             value={selectedCvId}
@@ -203,8 +200,8 @@ export function CandidateRecommendedJobsPage() {
               ...readyCvs.map((cv) => ({ label: `${cv.name}${cv.active ? " (active)" : ""} - ${cv.analysisStatus}`, value: cv.id })),
             ]}
           />
-          <Input label="Threshold" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
-          <Input label="Limit" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
+          <Input label="Ngưỡng xếp hạng" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
+          <Input label="Số kết quả tối đa" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
           <Button className="mt-6 w-full" loading={generating} disabled={generateDisabled} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
             Cập nhật gợi ý
           </Button>
@@ -248,7 +245,7 @@ export function CandidateRecommendedJobsPage() {
         ) : null}
         {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
           <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            <p>Chưa có CV nào sẵn sàng để tạo gợi ý. CV cần ở trạng thái READY và có đủ extracted text, processed text.</p>
+            <p>Chưa có CV nào sẵn sàng để tạo gợi ý. CV cần ở trạng thái READY và có đủ dữ liệu xử lý, metadata ngôn ngữ hợp lệ.</p>
             {notReadyCvs.length ? (
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {notReadyCvs.slice(0, 3).map((cv) => <li key={cv.id}>{cv.name}: {cv.readinessReason ?? cv.analysisStatus}</li>)}
@@ -261,15 +258,15 @@ export function CandidateRecommendedJobsPage() {
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Select
-            label="Match score tối thiểu"
-            value={String(filters.minMatch)}
-            onChange={(event) => updateFilter("minMatch", Number(event.target.value))}
+            label="Điểm hiển thị tối thiểu"
+            value={String(filters.minDisplayScore)}
+            onChange={(event) => updateFilter("minDisplayScore", Number(event.target.value))}
             options={[
               { label: "Tất cả", value: "0" },
-              { label: "Tu 50%", value: "50" },
-              { label: "Tu 65%", value: "65" },
-              { label: "Tu 75%", value: "75" },
-              { label: "Tu 85%", value: "85" },
+              { label: "Từ 50%", value: "50" },
+              { label: "Từ 65%", value: "65" },
+              { label: "Từ 75%", value: "75" },
+              { label: "Từ 85%", value: "85" },
             ]}
           />
           <Select
@@ -296,7 +293,7 @@ export function CandidateRecommendedJobsPage() {
           <p className="text-sm text-slate-600">
             {showHidden ? `${filteredJobs.length} việc làm đang bị ẩn` : `${filteredJobs.length} việc làm phù hợp`}
           </p>
-          <Button variant="secondary" size="sm" onClick={() => { setShowHidden((current) => !current); setPage(1); }} icon={showHidden ? <BriefcaseBusiness size={16} /> : <EyeOff size={16} />}>
+          <Button variant="secondary" size="sm" onClick={() => setShowHidden((current) => !current)} icon={showHidden ? <BriefcaseBusiness size={16} /> : <EyeOff size={16} />}>
             {showHidden ? "Quay lại gợi ý" : `Xem việc đã ẩn (${hiddenIds.length})`}
           </Button>
         </div>
@@ -306,30 +303,56 @@ export function CandidateRecommendedJobsPage() {
         <LoadingState />
       ) : jobsQuery.error && !selectedRunId ? (
         <EmptyState message={jobsQuery.error} />
-      ) : pagedJobs.length === 0 ? (
+      ) : filteredJobs.length === 0 ? (
         <EmptyState message={showHidden ? "Chưa có việc làm nào bị ẩn." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
       ) : (
-        <div className="grid gap-4">
-          {pagedJobs.map((job) => (
-            <RecommendedJobCard
-              key={job.id}
-              job={job}
-              saved={isSaved(job.id)}
-              applied={hasApplied(job.id)}
-              hidden={hiddenIds.includes(job.id)}
-              onToggleSave={() => void toggleSave(job)}
-              onHide={() => setHideTarget(job)}
-              onRestore={() => restoreJob(job)}
-              onOpenAnalysis={() => setAnalysisJob(job)}
-              onApply={() => openApply(job)}
+        <div className="space-y-6">
+          <RecommendedJobSection
+            title="Phù hợp tổng thể"
+            description="Các việc làm có đủ bằng chứng nội dung và kỹ năng để tính Match Score."
+            jobs={primaryJobs}
+            savedIds={isSaved}
+            canApply={canApply}
+            getApplyButtonLabel={getApplyButtonLabel}
+            hiddenIds={hiddenIds}
+            onToggleSave={(job) => void toggleSave(job)}
+            onHide={setHideTarget}
+            onRestore={restoreJob}
+            onOpenAnalysis={setAnalysisJob}
+            onApply={openApply}
+          />
+          <RecommendedJobSection
+            title="Đối sánh kỹ năng"
+            description="Các việc làm được xếp theo mức đáp ứng kỹ năng, không phải điểm phù hợp tổng thể."
+            jobs={fallbackJobs}
+            savedIds={isSaved}
+            canApply={canApply}
+            getApplyButtonLabel={getApplyButtonLabel}
+            hiddenIds={hiddenIds}
+            onToggleSave={(job) => void toggleSave(job)}
+            onHide={setHideTarget}
+            onRestore={restoreJob}
+            onOpenAnalysis={setAnalysisJob}
+            onApply={openApply}
+          />
+          {legacyJobs.length ? (
+            <RecommendedJobSection
+              title="Kết quả lịch sử"
+              description="Các kết quả cũ chưa có ngữ nghĩa xếp hạng V3 đầy đủ. Điểm chỉ dùng để tham khảo lịch sử."
+              jobs={legacyJobs}
+              savedIds={isSaved}
+              canApply={canApply}
+              getApplyButtonLabel={getApplyButtonLabel}
+              hiddenIds={hiddenIds}
+              onToggleSave={(job) => void toggleSave(job)}
+              onHide={setHideTarget}
+              onRestore={restoreJob}
+              onOpenAnalysis={setAnalysisJob}
+              onApply={openApply}
             />
-          ))}
+          ) : null}
         </div>
       )}
-
-      <div className="mt-5">
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
 
       <MatchAnalysisModal job={analysisJob} onClose={() => setAnalysisJob(null)} />
       <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} />
@@ -338,10 +361,78 @@ export function CandidateRecommendedJobsPage() {
   );
 }
 
+function RecommendedJobSection({
+  title,
+  description,
+  jobs,
+  savedIds,
+  canApply,
+  getApplyButtonLabel,
+  hiddenIds,
+  onToggleSave,
+  onHide,
+  onRestore,
+  onOpenAnalysis,
+  onApply,
+}: {
+  title: string;
+  description: string;
+  jobs: CandidateRecommendedJob[];
+  savedIds: (id: string) => boolean;
+  canApply: (id: string) => boolean;
+  getApplyButtonLabel: (id: string) => string;
+  hiddenIds: string[];
+  onToggleSave: (job: CandidateRecommendedJob) => void;
+  onHide: (job: CandidateRecommendedJob) => void;
+  onRestore: (job: CandidateRecommendedJob) => void;
+  onOpenAnalysis: (job: CandidateRecommendedJob) => void;
+  onApply: (job: CandidateRecommendedJob) => void;
+}) {
+  if (!jobs.length) {
+    return (
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">{title} · 0</h2>
+            <p className="mt-1 text-sm text-slate-600">{description}</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-950">{title} · {jobs.length}</h2>
+        <p className="mt-1 text-sm text-slate-600">{description}</p>
+      </div>
+      <div className="grid gap-4">
+        {jobs.map((job) => (
+          <RecommendedJobCard
+            key={`${job.rankingTier}-${job.id}`}
+            job={job}
+            saved={savedIds(job.id)}
+            canApply={canApply(job.id)}
+            applyLabel={getApplyButtonLabel(job.id)}
+            hidden={hiddenIds.includes(job.id)}
+            onToggleSave={() => onToggleSave(job)}
+            onHide={() => onHide(job)}
+            onRestore={() => onRestore(job)}
+            onOpenAnalysis={() => onOpenAnalysis(job)}
+            onApply={() => onApply(job)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RecommendedJobCard({
   job,
   saved,
-  applied,
+  canApply,
+  applyLabel,
   hidden,
   onToggleSave,
   onHide,
@@ -351,7 +442,8 @@ function RecommendedJobCard({
 }: {
   job: CandidateRecommendedJob;
   saved: boolean;
-  applied: boolean;
+  canApply: boolean;
+  applyLabel: string;
   hidden: boolean;
   onToggleSave: () => void;
   onHide: () => void;
@@ -360,20 +452,21 @@ function RecommendedJobCard({
   onApply: () => void;
 }) {
   const unavailable = job.status === "unavailable";
+  const detailPath = `/candidate/jobs/${job.id}`;
 
   return (
     <Card>
       <div className="grid gap-4 lg:grid-cols-[116px_1fr]">
         <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center">
-          <p className="text-xs font-semibold uppercase text-emerald-700">Match score</p>
-          <p className="mt-2 text-4xl font-bold text-emerald-700">{job.matchScore}%</p>
-          <p className="mt-1 text-xs text-emerald-700">{job.rankPosition ? `Hạng #${job.rankPosition}` : "Điểm phù hợp"}</p>
+          <p className="text-xs font-semibold uppercase text-emerald-700">{job.displayScoreLabel}</p>
+          <p className="mt-2 text-4xl font-bold text-emerald-700">{formatNormalizedScore(job.displayScore)}</p>
+          <p className="mt-1 text-xs text-emerald-700">{job.tierRankPosition ? `Hạng #${job.tierRankPosition}` : job.displayTierLabel}</p>
         </div>
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <Link to={`/candidate/jobs/${job.id}`} className="text-lg font-semibold text-slate-950 hover:text-brand-700">
+              <Link to={detailPath} onClick={(event) => openAuthenticatedTab(event, detailPath)} className="text-lg font-semibold text-slate-950 hover:text-brand-700">
                 {job.title}
               </Link>
               <p className="mt-1 text-sm font-medium text-slate-700">{job.companyName}</p>
@@ -384,6 +477,7 @@ function RecommendedJobCard({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <StatusBadge label={job.displayTierLabel} tone={job.rankingTier === "PRIMARY" ? "success" : "warning"} />
               {hidden ? <StatusBadge label="Đã ẩn" tone="warning" /> : null}
               {unavailable ? <StatusBadge label="Không còn khả dụng" tone="danger" /> : null}
               <StatusBadge label={job.industry} />
@@ -409,8 +503,8 @@ function RecommendedJobCard({
             <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
               {saved ? "Bỏ lưu" : "Lưu"}
             </Button>
-            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied || unavailable}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
-            <Link to={`/candidate/jobs/${job.id}`}>
+            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={!canApply || unavailable}>{applyLabel}</Button>
+            <Link to={detailPath} onClick={(event) => openAuthenticatedTab(event, detailPath)}>
               <Button variant="secondary" size="sm">Xem chi tiết</Button>
             </Link>
             {hidden ? (
@@ -423,6 +517,11 @@ function RecommendedJobCard({
       </div>
     </Card>
   );
+}
+
+function openAuthenticatedTab(event: MouseEvent<HTMLAnchorElement>, path: string) {
+  event.preventDefault();
+  window.open(createAuthenticatedTabUrl(path), "_blank", "noopener,noreferrer");
 }
 
 function SkillGroup({ title, skills, tone, emptyLabel }: { title: string; skills: string[]; tone: "success" | "warning"; emptyLabel: string }) {
@@ -454,7 +553,7 @@ function HideJobModal({ job, onClose, onConfirm }: { job: CandidateRecommendedJo
 
 function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | null; onClose: () => void }) {
   return (
-    <Modal open={Boolean(job)} title={`Phân tích độ phù hợp ${job?.matchScore ?? 0}%`} onClose={onClose}>
+    <Modal open={Boolean(job)} title={`Phân tích ${job?.displayScoreLabel ?? "kết quả"} ${formatNormalizedScore(job?.displayScore)}`} onClose={onClose}>
       <div className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-slate-950">{job?.title}</p>
@@ -462,9 +561,10 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
         </div>
         <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <InfoPill label="Hạng gợi ý" value={job?.rankPosition ? `#${job.rankPosition}` : "Chưa cập nhật"} />
-          <InfoPill label="Điểm phù hợp" value={`${job?.matchScore ?? 0}%`} />
-          <InfoPill label="Điểm nội dung" value={job?.textScore == null ? "Không áp dụng" : `${job.textScore}%`} />
-          <InfoPill label="Điểm kỹ năng" value={job?.skillScore == null ? "Chưa cập nhật" : `${job.skillScore}%`} />
+          <InfoPill label={job?.displayScoreLabel ?? "Điểm hiển thị"} value={formatNormalizedScore(job?.displayScore)} />
+          <InfoPill label={job?.rankingTier === "PRIMARY" ? "Match Score" : "Overall Score"} value={formatNormalizedScore(job?.overallScore)} />
+          <InfoPill label="Text Score" value={formatNormalizedScore(job?.textScore)} />
+          <InfoPill label="Skill Score" value={formatNormalizedScore(job?.skillScore)} />
           <InfoPill label="Chiến lược" value={job?.scoringStrategyLabel ?? "Chưa cập nhật"} />
           <InfoPill label="Ngày tạo kết quả" value={job?.postedAt ?? "Chưa cập nhật"} />
           <InfoPill label="Số keyword khớp" value={String(job?.matchedSkills.length ?? 0)} />
@@ -498,13 +598,18 @@ function InfoPill({ label, value }: { label: string; value: string }) {
 function filterRecommendedJobs(jobs: CandidateRecommendedJob[], filters: RecommendedJobFilters, hiddenIds: string[], showHidden: boolean) {
   return jobs.filter((job) => {
     const matchHidden = showHidden ? hiddenIds.includes(job.id) : !hiddenIds.includes(job.id);
-    const matchScore = job.matchScore >= filters.minMatch;
+    const displayScorePercent = job.displayScore == null ? -1 : job.displayScore * 100;
+    const matchScore = displayScorePercent >= filters.minDisplayScore;
     const matchLocation = !filters.location || normalizeText(job.location).includes(normalizeText(filters.location));
     const matchIndustry = !filters.industry || job.industry === filters.industry;
     const matchWorkMode = !filters.workMode || job.workMode === filters.workMode;
     const matchSalary = !filters.salary || job.salaryMax >= Number(filters.salary) * 1_000_000;
     return matchHidden && matchScore && matchLocation && matchIndustry && matchWorkMode && matchSalary;
   });
+}
+
+function compareTierRank(left: CandidateRecommendedJob, right: CandidateRecommendedJob) {
+  return (left.tierRankPosition ?? Number.MAX_SAFE_INTEGER) - (right.tierRankPosition ?? Number.MAX_SAFE_INTEGER);
 }
 
 function normalizeText(value: string) {

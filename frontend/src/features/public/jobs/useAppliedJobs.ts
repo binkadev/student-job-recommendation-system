@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocalStorageState } from "../../../hooks/useLocalStorageState";
 import { useAuth } from "../../../hooks/useAuth";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../../services/api/httpClient";
-import { readStorage } from "../../../utils/localStorage";
+
+export type JobApplicationState = "NEVER_APPLIED" | "ACTIVE" | "REJECTED_CAN_REAPPLY" | "WITHDRAWN_BLOCKED";
+
+export interface StudentApplication {
+  id: number;
+  jobId: number;
+  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN" | string;
+  appliedAt?: string | null;
+  updatedAt?: string | null;
+  reviewedAt?: string | null;
+  cvFileId?: number | null;
+  cvFileName?: string | null;
+  coverLetter?: string | null;
+}
 
 interface ApiResponse<T> {
   success: boolean;
@@ -10,60 +22,93 @@ interface ApiResponse<T> {
   data: T;
 }
 
-interface ApplicationResponse {
-  jobId: number;
+const appliedJobsChangedEvent = "candidate-applied-jobs-changed";
+
+export function getLatestApplication(applications: StudentApplication[], jobId: string): StudentApplication | null {
+  return applications
+    .filter((application) => String(application.jobId) === jobId)
+    .sort((left, right) => {
+      const dateDifference = new Date(right.appliedAt ?? 0).getTime() - new Date(left.appliedAt ?? 0).getTime();
+      return dateDifference || right.id - left.id;
+    })[0] ?? null;
 }
 
-const appliedJobsChangedEvent = "candidate-applied-jobs-changed";
+export function getApplicationStateForJob(applications: StudentApplication[], jobId: string): JobApplicationState {
+  const latest = getLatestApplication(applications, jobId);
+  if (!latest) return "NEVER_APPLIED";
+  if (latest.status === "REJECTED") return "REJECTED_CAN_REAPPLY";
+  if (latest.status === "WITHDRAWN") return "WITHDRAWN_BLOCKED";
+  return "ACTIVE";
+}
+
+export function canApplyForJob(state: JobApplicationState) {
+  return state === "NEVER_APPLIED" || state === "REJECTED_CAN_REAPPLY";
+}
+
+export function getApplyButtonLabelForState(state: JobApplicationState) {
+  if (state === "REJECTED_CAN_REAPPLY") return "Ứng tuyển lại";
+  if (state === "ACTIVE") return "Đã ứng tuyển";
+  if (state === "WITHDRAWN_BLOCKED") return "Không thể ứng tuyển";
+  return "Ứng tuyển";
+}
 
 export function useAppliedJobs() {
   const { currentUser } = useAuth();
-  const storageKey = useMemo(() => `applied-job-ids:${currentUser?.id ?? "anonymous"}`, [currentUser?.id]);
-  const [appliedJobIds, setAppliedJobIds] = useLocalStorageState<string[]>(storageKey, []);
+  const [applications, setApplications] = useState<StudentApplication[]>([]);
   const [syncing, setSyncing] = useState(false);
-  const appliedSet = useMemo(() => new Set(appliedJobIds), [appliedJobIds]);
 
   const refreshAppliedJobs = useCallback(async () => {
     if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) {
-      setAppliedJobIds([]);
+      setApplications([]);
       return;
     }
     setSyncing(true);
     try {
-      const response = await httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications");
-      setAppliedJobIds(response.data.data.map((application) => String(application.jobId)));
+      const response = await httpClient.get<ApiResponse<StudentApplication[]>>("/students/me/applications");
+      setApplications(response.data.data ?? []);
     } catch {
-      setAppliedJobIds([]);
+      setApplications([]);
     } finally {
       setSyncing(false);
     }
-  }, [setAppliedJobIds]);
+  }, []);
 
   useEffect(() => {
-    setAppliedJobIds(readStorage(storageKey, []));
     void refreshAppliedJobs();
-  }, [refreshAppliedJobs, setAppliedJobIds, storageKey]);
+  }, [currentUser?.id, refreshAppliedJobs]);
 
   useEffect(() => {
-    function syncAppliedJobs(event: Event) {
-      const detail = (event as CustomEvent<{ jobId?: string }>).detail;
-      if (!detail?.jobId) return;
-      setAppliedJobIds((current) => (current.includes(detail.jobId!) ? current : [...current, detail.jobId!]));
+    function syncApplications(event: Event) {
+      const detail = (event as CustomEvent<{ application?: StudentApplication }>).detail;
+      if (!detail?.application) return;
+      setApplications((current) => [detail.application!, ...current.filter((item) => item.id !== detail.application!.id)]);
     }
 
-    window.addEventListener(appliedJobsChangedEvent, syncAppliedJobs);
-    return () => window.removeEventListener(appliedJobsChangedEvent, syncAppliedJobs);
-  }, [setAppliedJobIds]);
+    window.addEventListener(appliedJobsChangedEvent, syncApplications);
+    return () => window.removeEventListener(appliedJobsChangedEvent, syncApplications);
+  }, []);
 
-  function applyToJob(jobId: string) {
-    setAppliedJobIds((current) => (current.includes(jobId) ? current : [...current, jobId]));
-    window.dispatchEvent(new CustomEvent(appliedJobsChangedEvent, { detail: { jobId } }));
+  const statesByJob = useMemo(() => {
+    const jobIds = new Set(applications.map((application) => String(application.jobId)));
+    return new Map(Array.from(jobIds, (jobId) => [jobId, getApplicationStateForJob(applications, jobId)]));
+  }, [applications]);
+
+  function applyToJob(application: StudentApplication) {
+    setApplications((current) => [application, ...current.filter((item) => item.id !== application.id)]);
+    window.dispatchEvent(new CustomEvent(appliedJobsChangedEvent, { detail: { application } }));
+  }
+
+  function getApplicationState(jobId: string) {
+    return statesByJob.get(jobId) ?? "NEVER_APPLIED";
   }
 
   return {
-    appliedJobIds,
+    applications,
     syncing,
-    hasApplied: (jobId: string) => appliedSet.has(jobId),
+    getApplicationState,
+    canApply: (jobId: string) => canApplyForJob(getApplicationState(jobId)),
+    getApplyButtonLabel: (jobId: string) => getApplyButtonLabelForState(getApplicationState(jobId)),
+    hasApplied: (jobId: string) => !canApplyForJob(getApplicationState(jobId)),
     applyToJob,
     refreshAppliedJobs,
   };

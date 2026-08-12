@@ -24,13 +24,13 @@ function renderTable(result = makeResult(), overrides: Partial<React.ComponentPr
 
 describe("CandidateRankingTable", () => {
   it("displays Backend rankPosition and all score components without recalculating them", () => {
-    renderTable(makeResult({ rankPosition: 7, score: 0.61, textScore: null, skillScore: 0 }));
+    renderTable(makeResult({ tierRankPosition: 7, rankingScore: 0.61, overallScore: 0.61, textScore: null, skillScore: 0 }));
 
     expect(screen.getByText("#7")).toBeInTheDocument();
     expect(screen.getByText("61%")).toBeInTheDocument();
-    expect(screen.getByText(/Nội dung:/)).toBeInTheDocument();
-    expect(screen.getByText(/Chưa có điểm/)).toBeInTheDocument();
-    expect(screen.getByText(/Kỹ năng:/)).toBeInTheDocument();
+    expect(screen.getByText(/Text Score:/)).toBeInTheDocument();
+    expect(screen.getByText(/Không áp dụng/)).toBeInTheDocument();
+    expect(screen.getByText(/Skill Score:/)).toBeInTheDocument();
     expect(screen.getByText(/0%/)).toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe("candidate ranking summary, history, and analysis", () => {
   it("shows the real run status and counters", () => {
     render(<CandidateRankingSummary run={makeRun({ status: "PROCESSING", totalApplications: 8, eligibleCandidates: 5, resultCount: 3 })} />);
 
-    expect(screen.getByText("PROCESSING")).toBeInTheDocument();
+    expect(screen.getByText("Đang xử lý")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("candidate ranking summary, history, and analysis", () => {
   });
 
   it("shows complete skills, Backend reason, and the Backend rank in analysis", () => {
-    const result = makeResult({ rankPosition: 9, matchedSkills: ["React", "TypeScript"], missingSkills: ["Docker", "Kubernetes"] });
+    const result = makeResult({ tierRankPosition: 9, matchedSkills: ["React", "TypeScript"], missingSkills: ["Docker", "Kubernetes"] });
     render(
       <MemoryRouter>
         <CandidateRankingAnalysisModal result={result} run={makeRun()} onClose={vi.fn()} onOpenCv={vi.fn()} />
@@ -104,6 +104,6 @@ describe("candidate ranking summary, history, and analysis", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent("#9");
     expect(screen.getByRole("dialog")).toHaveTextContent("React");
     expect(screen.getByRole("dialog")).toHaveTextContent("Kubernetes");
-    expect(screen.getByRole("dialog")).toHaveTextContent("Kỹ năng phù hợp với yêu cầu công việc.");
+    expect(screen.getByRole("dialog")).toHaveTextContent("Ứng viên phù hợp 2/4 kỹ năng");
   });
 });

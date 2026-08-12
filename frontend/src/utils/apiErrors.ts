@@ -1,6 +1,7 @@
 const apiErrorMessages: Record<string, string> = {
   ACCESS_DENIED: "Bạn không có quyền thực hiện thao tác này.",
   ALREADY_APPLIED: "Bạn đã ứng tuyển công việc này trước đó.",
+  APPLICATION_ALREADY_ACTIVE: "Bạn đã có đơn ứng tuyển đang được xử lý cho việc làm này.",
   AI_SERVICE_INVALID_RESPONSE: "Dịch vụ AI trả về dữ liệu chưa hợp lệ. Vui lòng thử lại sau.",
   AI_SERVICE_TIMEOUT: "Dịch vụ AI phản hồi quá lâu. Vui lòng thử lại sau.",
   AI_SERVICE_UNAVAILABLE: "Dịch vụ AI hiện chưa sẵn sàng. Vui lòng thử lại sau.",
@@ -10,7 +11,7 @@ const apiErrorMessages: Record<string, string> = {
   CANDIDATE_RANKING_GENERATION_FAILED: "Không thể tạo lượt xếp hạng ứng viên. Nếu tin đã có ứng viên thật, vui lòng kiểm tra AI Service Candidate Ranking.",
   CANDIDATE_RANKING_RUN_NOT_FOUND: "Không tìm thấy lượt xếp hạng ứng viên phù hợp.",
   CV_ANALYSIS_NOT_READY: "CV chưa sẵn sàng để dùng cho tính năng này.",
-  CV_IN_USE: "CV đang được sử dụng nên chưa thể xóa.",
+  CV_IN_USE: "CV đã được dùng trong đơn ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên nên chưa thể xóa.",
   DUPLICATE_RESOURCE: "Dữ liệu đã tồn tại trong hệ thống.",
   INVALID_CREDENTIALS: "Email hoặc mật khẩu không đúng.",
   JOB_NOT_ACTIVE: "Tin tuyển dụng không còn ở trạng thái đang tuyển.",

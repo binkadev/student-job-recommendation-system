@@ -1,5 +1,5 @@
 import { BookmarkCheck, BriefcaseBusiness, MapPin, Search, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
@@ -13,6 +13,7 @@ import { Card } from "../../../components/ui/Card";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useToast } from "../../../hooks/useToast";
 import { httpClient } from "../../../services/api/httpClient";
+import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -109,6 +110,12 @@ export function CandidateSavedJobsPage() {
 }
 
 function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveSaved: () => void }) {
+  const detailPath = `/candidate/jobs/${job.jobId}`;
+  const openDetail = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.open(createAuthenticatedTabUrl(detailPath), "_blank", "noopener,noreferrer");
+  };
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -118,7 +125,7 @@ function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveS
             <StatusBadge label="Đang tuyển" tone="success" />
           </div>
 
-          <Link to={`/candidate/jobs/${job.jobId}`} className="mt-3 block text-lg font-semibold text-slate-950 hover:text-brand-700">
+          <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail} className="mt-3 block text-lg font-semibold text-slate-950 hover:text-brand-700">
             {job.title}
           </Link>
           <p className="mt-1 text-sm font-medium text-slate-700">{job.companyName}</p>
@@ -132,7 +139,7 @@ function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveS
 
         <div className="flex w-full flex-wrap justify-end gap-2 lg:w-auto">
           <Button variant="secondary" size="sm" icon={<BookmarkCheck size={16} />} onClick={onRemoveSaved}>Bỏ lưu</Button>
-          <Link to={`/candidate/jobs/${job.jobId}`}>
+          <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail}>
             <Button variant="secondary" size="sm">Xem chi tiết</Button>
           </Link>
         </div>

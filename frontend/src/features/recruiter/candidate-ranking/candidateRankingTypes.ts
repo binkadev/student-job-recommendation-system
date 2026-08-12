@@ -1,3 +1,5 @@
+import type { RankingScoreFields } from "../../shared/ranking/rankingScoreTypes";
+
 export type CandidateRankingRunStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED" | "UNKNOWN";
 export type CandidateRankingApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
@@ -17,9 +19,12 @@ export interface CandidateRankingRun {
   skippedNotReady: number;
   skippedTerminalStatus: number;
   resultCount: number;
+  requestedLimit: number | null;
+  requestedPrimaryLimit: number | null;
+  requestedFallbackLimit: number | null;
 }
 
-export interface CandidateRankingResult {
+export interface CandidateRankingResult extends RankingScoreFields {
   id: string;
   applicationId: string;
   studentId: string;
@@ -27,11 +32,7 @@ export interface CandidateRankingResult {
   studentEmail: string;
   cvFileId: string | null;
   cvFileName: string | null;
-  rankPosition: number | null;
-  score: number | null;
-  textScore: number | null;
-  skillScore: number | null;
-  scoringStrategy: string | null;
+  rankPosition?: number | null;
   matchedSkills: string[];
   missingSkills: string[];
   reason: string | null;

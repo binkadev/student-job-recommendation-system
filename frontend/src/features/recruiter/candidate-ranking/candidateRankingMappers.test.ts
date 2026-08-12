@@ -13,7 +13,11 @@ describe("candidate ranking mappers", () => {
       id: 9,
       applicationId: "101",
       studentId: 7,
-      score: "0.75",
+      rankingTier: "PRIMARY",
+      tierRankPosition: 1,
+      rankingScore: "0.75",
+      overallScore: "0.75",
+      scoringStrategy: "SAME_LANGUAGE_HYBRID",
       textScore: "0.5",
       skillScore: 1,
     });
@@ -21,7 +25,8 @@ describe("candidate ranking mappers", () => {
     expect(result.id).toBe("9");
     expect(result.applicationId).toBe("101");
     expect(result.studentId).toBe("7");
-    expect(result.score).toBe(0.75);
+    expect(result.rankingScore).toBe(0.75);
+    expect(result.overallScore).toBe(0.75);
     expect(result.textScore).toBe(0.5);
     expect(result.skillScore).toBe(1);
   });
@@ -60,12 +65,12 @@ describe("candidate ranking mappers", () => {
   });
 
   it("formats public scores without changing their meaning", () => {
-    expect(formatScore(null)).toBe("Chưa có điểm");
+    expect(formatScore(null)).toBe("Không áp dụng");
     expect(formatScore(0)).toBe("0%");
     expect(formatScore(0.425)).toBe("43%");
     expect(formatScore(1)).toBe("100%");
-    expect(formatScore(Number.NaN)).toBe("Chưa có điểm");
-    expect(formatScore(Number.POSITIVE_INFINITY)).toBe("Chưa có điểm");
+    expect(formatScore(Number.NaN)).toBe("Không áp dụng");
+    expect(formatScore(Number.POSITIVE_INFINITY)).toBe("Không áp dụng");
   });
 
   it("sanitizes bearer tokens and enforces the existing maximum length", () => {
@@ -89,5 +94,15 @@ describe("candidate ranking mappers", () => {
 
   it("maps a missing history result list to an empty list", () => {
     expect(mapRankingRunDetail({ results: null }).results).toEqual([]);
+  });
+
+  it("preserves a null-tier historical result without inventing V3 semantics", () => {
+    const result = mapRankingResult({ score: 85, rankingTier: null, tierRankPosition: null });
+    expect(result).toMatchObject({ rankingTier: null, tierRankPosition: null, rankingScore: 0.85, legacyResult: true });
+  });
+
+  it("maps V3 requested tier limits and leaves V2 limits distinct", () => {
+    expect(mapRankingRun({ requestedLimit: null, requestedPrimaryLimit: 50, requestedFallbackLimit: 0 })).toMatchObject({ requestedLimit: null, requestedPrimaryLimit: 50, requestedFallbackLimit: 0 });
+    expect(mapRankingRun({ requestedLimit: 20, requestedPrimaryLimit: null, requestedFallbackLimit: null })).toMatchObject({ requestedLimit: 20, requestedPrimaryLimit: null, requestedFallbackLimit: null });
   });
 });

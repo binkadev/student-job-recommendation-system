@@ -68,6 +68,13 @@ interface SkillResponse {
   description: string | null;
 }
 
+export interface CandidateSkillCatalogItem {
+  id: number;
+  name: string;
+  normalizedName: string;
+  category: string | null;
+}
+
 type BackendJobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type BackendSkillLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 type BackendSkillSource = "MANUAL" | "CV_EXTRACTED" | "ADMIN_SEEDED";
@@ -137,6 +144,18 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
   return getCandidateProfileData();
 }
 
+async function getCandidateSkillCatalog(): Promise<CandidateSkillCatalogItem[]> {
+  const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
+    params: { page: 1, size: 200 },
+  });
+  return response.data.data.items.map((skill) => ({
+    id: skill.id,
+    name: skill.name,
+    normalizedName: skill.normalizedName,
+    category: skill.category,
+  }));
+}
+
 function mapCandidateProfile(
   student: StudentResponse,
   profile: StudentProfileResponse,
@@ -204,30 +223,34 @@ function mapCandidateProfile(
 }
 
 async function updateStudentSkills(profile: CandidateProfileData) {
-  const skills = flattenSkills(profile);
+  const skills = flattenSkillGroups(profile);
   if (!skills.length) {
     await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: [] });
     return;
   }
 
-  const catalogResponse = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
-    params: { page: 1, size: 100 },
-  });
-  const catalog = catalogResponse.data.data.items;
-  const payloadSkills = skills
+  const catalog = await getCandidateSkillCatalog();
+  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
+
+  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
+}
+
+export function buildStudentSkillsPayload(profile: Pick<CandidateProfileData, "skills">, catalog: CandidateSkillCatalogItem[]) {
+  return flattenSkillGroups(profile)
     .map((skill) => {
       const skillId = skill.skillId ?? findSkillId(skill, catalog);
-      if (!skillId) return null;
-      return {
-        skillId,
+      const common = {
         proficiencyLevel: mapSkillLevel(skill.level),
         yearsOfExperience: Number.isFinite(skill.years) ? skill.years : 0,
         source: (skill.source as BackendSkillSource | undefined) ?? "MANUAL",
       };
+      if (skillId) return { skillId, ...common };
+      const skillName = skill.name.trim();
+      if (!skillName) return null;
+      return { skillName, category: categoryForSkillGroup(skill.group), ...common, source: "MANUAL" as const };
     })
     .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill));
 
-  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
 }
 
 function groupStudentSkills(skills: StudentSkillResponse[]): CandidateProfileData["skills"] {
@@ -252,16 +275,18 @@ function getSkillGroup(category: string | null): SkillGroup {
   return "tools";
 }
 
-function flattenSkills(profile: CandidateProfileData): CandidateSkill[] {
-  return [
-    ...profile.skills.frontend,
-    ...profile.skills.backend,
-    ...profile.skills.tools,
-    ...profile.skills.soft,
-  ];
+function flattenSkillGroups(profile: Pick<CandidateProfileData, "skills">) {
+  return (Object.entries(profile.skills) as Array<[SkillGroup, CandidateSkill[]]>).flatMap(([group, skills]) => skills.map((skill) => ({ ...skill, group })));
 }
 
-function findSkillId(skill: CandidateSkill, catalog: SkillResponse[]) {
+function categoryForSkillGroup(group: SkillGroup) {
+  if (group === "frontend") return "Frontend";
+  if (group === "backend") return "Backend";
+  if (group === "soft") return "Soft Skills";
+  return "Tools";
+}
+
+function findSkillId(skill: CandidateSkill, catalog: Array<Pick<SkillResponse, "id" | "name" | "normalizedName">>) {
   const normalizedName = normalize(skill.name);
   const match = catalog.find((item) => normalize(item.name) === normalizedName || normalize(item.normalizedName) === normalizedName);
   return match?.id;

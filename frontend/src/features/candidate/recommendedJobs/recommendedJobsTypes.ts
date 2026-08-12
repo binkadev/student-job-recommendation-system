@@ -1,4 +1,5 @@
 import type { PublicJobListItem } from "../../public/jobs/jobsListTypes";
+import type { RankingScoreFields } from "../../shared/ranking/rankingScoreTypes";
 
 export interface MatchCriterion {
   label: string;
@@ -6,12 +7,12 @@ export interface MatchCriterion {
   explanation: string;
 }
 
-export interface CandidateRecommendedJob extends PublicJobListItem {
+export interface CandidateRecommendedJob extends Omit<PublicJobListItem, "matchScore">, RankingScoreFields {
   rankPosition?: number | null;
-  textScore?: number | null;
-  skillScore?: number | null;
-  scoringStrategy?: string | null;
   scoringStrategyLabel?: string | null;
+  displayScoreLabel: "Match Score" | "Skill Match" | "Điểm lịch sử";
+  displayTierLabel: "Phù hợp tổng thể" | "Đối sánh kỹ năng" | "Kết quả lịch sử";
+  displayScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
   recommendationReasons: string[];
@@ -55,7 +56,7 @@ export interface GenerateRecommendationPayload {
 }
 
 export interface RecommendedJobFilters {
-  minMatch: number;
+  minDisplayScore: number;
   location: string;
   industry: string;
   salary: string;

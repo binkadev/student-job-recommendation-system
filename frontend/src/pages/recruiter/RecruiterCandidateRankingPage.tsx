@@ -28,13 +28,15 @@ import type { CandidateRankingResult } from "../../features/recruiter/candidate-
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { isValidCandidateRankingLimits } from "./candidateRankingLimits";
 
 export function RecruiterCandidateRankingPage() {
   const { jobId = "" } = useParams();
   const { showToast } = useToast();
   const [reloadKey, setReloadKey] = useState(0);
   const [threshold, setThreshold] = useState("0.3");
-  const [limit, setLimit] = useState("50");
+  const [primaryLimit, setPrimaryLimit] = useState("30");
+  const [fallbackLimit, setFallbackLimit] = useState("30");
   const [creating, setCreating] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState("");
@@ -52,7 +54,10 @@ export function RecruiterCandidateRankingPage() {
 
   const runDetail = runDetailQuery.data;
   const run = runDetail?.run ?? null;
-  const results = runDetail?.results ?? [];
+  const results = useMemo(() => runDetail?.results ?? [], [runDetail?.results]);
+  const primaryResults = useMemo(() => results.filter((result) => result.rankingTier === "PRIMARY").sort(compareTierRank), [results]);
+  const fallbackResults = useMemo(() => results.filter((result) => result.rankingTier === "FALLBACK").sort(compareTierRank), [results]);
+  const legacyResults = useMemo(() => results.filter((result) => result.rankingTier == null), [results]);
   const isProcessing = run?.status === "PROCESSING" || run?.status === "PENDING";
   const canCreateRun = !creating && !isProcessing && Boolean(jobId);
   useEffect(() => {
@@ -65,19 +70,20 @@ export function RecruiterCandidateRankingPage() {
 
   async function createRun() {
     const thresholdValue = Number(threshold);
-    const limitValue = Number(limit);
+    const primaryLimitValue = Number(primaryLimit);
+    const fallbackLimitValue = Number(fallbackLimit);
     if (!Number.isFinite(thresholdValue) || thresholdValue < 0 || thresholdValue > 1) {
       showToast({ type: "error", title: "Ngưỡng điểm không hợp lệ", message: "Ngưỡng điểm phải nằm trong khoảng 0 đến 1." });
       return;
     }
-    if (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 100) {
-      showToast({ type: "error", title: "Giới hạn kết quả không hợp lệ", message: "Giới hạn kết quả phải nằm trong khoảng 1 đến 100." });
+    if (!isValidCandidateRankingLimits(primaryLimitValue, fallbackLimitValue)) {
+      showToast({ type: "error", title: "Giới hạn kết quả không hợp lệ", message: "Tổng số kết quả của hai nhóm phải từ 1 đến 100." });
       return;
     }
 
     setCreating(true);
     try {
-      const detail = await createCandidateRankingRun(jobId, { threshold: thresholdValue, limit: limitValue });
+      const detail = await createCandidateRankingRun(jobId, { threshold: thresholdValue, primaryLimit: primaryLimitValue, fallbackLimit: fallbackLimitValue });
       setSelectedRunId(detail.run.id);
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Lần chạy #${detail.run.id}` });
@@ -134,7 +140,7 @@ export function RecruiterCandidateRankingPage() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold text-slate-950">{jobQuery.data.title}</h2>
-              <StatusBadge label={jobQuery.data.status} tone={jobStatusTone(jobQuery.data.status)} />
+              <StatusBadge label={jobStatusLabel(jobQuery.data.status)} tone={jobStatusTone(jobQuery.data.status)} />
             </div>
             <p className="mt-2 text-sm text-slate-600">{jobQuery.data.location} · {jobQuery.data.jobType} · {jobQuery.data.workingModel}</p>
           </div>
@@ -145,9 +151,10 @@ export function RecruiterCandidateRankingPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[160px_160px_auto]">
+        <div className="mt-5 grid gap-3 lg:grid-cols-[160px_190px_190px_auto]">
           <Input label="Ngưỡng điểm" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
-          <Input label="Giới hạn kết quả" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
+          <Input label="Top phù hợp tổng thể" type="number" min="0" max="100" step="1" value={primaryLimit} onChange={(event) => setPrimaryLimit(event.target.value)} />
+          <Input label="Top đối sánh kỹ năng" type="number" min="0" max="100" step="1" value={fallbackLimit} onChange={(event) => setFallbackLimit(event.target.value)} />
           <div className="flex items-end">
             <Button className="w-full lg:w-auto" loading={creating} disabled={!canCreateRun} icon={run ? <RotateCcw size={16} /> : <RefreshCw size={16} />} onClick={() => void createRun()}>
               {run ? "Chạy lại" : "Chạy xếp hạng"}
@@ -190,15 +197,34 @@ export function RecruiterCandidateRankingPage() {
             <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng." /></Card>
           ) : null}
           {results.length ? (
-            <Card>
-              <SectionHeader title="Top ứng viên" />
-              <CandidateRankingTable
-                results={results}
+            <>
+              <RankingTierSection
+                title="Phù hợp tổng thể"
+                description="Ứng viên có đủ bằng chứng nội dung và kỹ năng để tính Match Score."
+                results={primaryResults}
                 savedApplicationIds={savedApplicationIds}
                 onAnalyze={setAnalysisResult}
                 onSave={(result) => void saveCandidate(result)}
               />
-            </Card>
+              <RankingTierSection
+                title="Đối sánh kỹ năng"
+                description="Ứng viên được xếp theo mức đáp ứng kỹ năng, không so sánh chéo với nhóm phù hợp tổng thể."
+                results={fallbackResults}
+                savedApplicationIds={savedApplicationIds}
+                onAnalyze={setAnalysisResult}
+                onSave={(result) => void saveCandidate(result)}
+              />
+              {legacyResults.length ? (
+                <RankingTierSection
+                  title="Kết quả lịch sử"
+                  description="Kết quả cũ chưa có ngữ nghĩa xếp hạng V3 đầy đủ; điểm chỉ dùng để tham khảo lịch sử."
+                  results={legacyResults}
+                  savedApplicationIds={savedApplicationIds}
+                  onAnalyze={setAnalysisResult}
+                  onSave={(result) => void saveCandidate(result)}
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}
@@ -206,6 +232,47 @@ export function RecruiterCandidateRankingPage() {
       <CandidateRankingAnalysisModal result={analysisResult} run={run} onClose={() => setAnalysisResult(null)} onOpenCv={(result) => void openCv(result)} />
     </PageContainer>
   );
+}
+
+function RankingTierSection({
+  title,
+  description,
+  results,
+  savedApplicationIds,
+  onAnalyze,
+  onSave,
+}: {
+  title: string;
+  description: string;
+  results: CandidateRankingResult[];
+  savedApplicationIds: Set<string>;
+  onAnalyze: (result: CandidateRankingResult) => void;
+  onSave: (result: CandidateRankingResult) => void;
+}) {
+  if (!results.length) {
+    return (
+      <Card>
+        <SectionHeader title={`${title} · 0`} description={description} />
+        <EmptyState message={title === "Phù hợp tổng thể" ? "Chưa có ứng viên đủ điều kiện để tính độ phù hợp tổng thể." : "Chưa có ứng viên trong nhóm đối sánh kỹ năng."} />
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <SectionHeader title={`${title} · ${results.length}`} description={description} />
+      <CandidateRankingTable
+        results={results}
+        savedApplicationIds={savedApplicationIds}
+        onAnalyze={onAnalyze}
+        onSave={onSave}
+      />
+    </Card>
+  );
+}
+
+function compareTierRank(left: CandidateRankingResult, right: CandidateRankingResult) {
+  return (left.tierRankPosition ?? Number.MAX_SAFE_INTEGER) - (right.tierRankPosition ?? Number.MAX_SAFE_INTEGER);
 }
 
 function getRankingErrorMessage(error?: string | null) {
@@ -232,4 +299,14 @@ function jobStatusTone(status: string) {
   if (status === "PENDING_APPROVAL" || status === "DRAFT") return "warning" as const;
   if (status === "REJECTED" || status === "EXPIRED") return "danger" as const;
   return "neutral" as const;
+}
+
+function jobStatusLabel(status: string) {
+  if (status === "ACTIVE") return "Đang tuyển";
+  if (status === "PENDING_APPROVAL") return "Chờ duyệt";
+  if (status === "DRAFT") return "Bản nháp";
+  if (status === "REJECTED") return "Bị từ chối";
+  if (status === "EXPIRED") return "Hết hạn";
+  if (status === "CLOSED") return "Đã đóng";
+  return "Chưa cập nhật";
 }

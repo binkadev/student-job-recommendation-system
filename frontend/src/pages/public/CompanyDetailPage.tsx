@@ -43,7 +43,7 @@ export function CompanyDetailPage() {
   const { currentRole, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { hasApplied } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel } = useAppliedJobs();
   const [reloadKey, setReloadKey] = useState(0);
   const [activeTab, setActiveTab] = useState<CompanyTab>(readTabFromHash(location.hash));
   const [jobQuery, setJobQuery] = useState("");
@@ -252,7 +252,8 @@ export function CompanyDetailPage() {
                         key={job.id}
                         job={job}
                         saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)}
-                        applied={isAuthenticated && currentRole === "candidate" && hasApplied(job.id)}
+                        applied={isAuthenticated && currentRole === "candidate" && !canApply(job.id)}
+                        applyLabel={isAuthenticated && currentRole === "candidate" ? getApplyButtonLabel(job.id) : "Ứng tuyển"}
                         onToggleSave={(jobId) => void requireCandidate("save", jobId)}
                         onApply={(jobId) => void requireCandidate("apply", jobId)}
                       />

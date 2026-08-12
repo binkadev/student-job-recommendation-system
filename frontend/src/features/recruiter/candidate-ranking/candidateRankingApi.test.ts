@@ -34,14 +34,14 @@ describe("candidate ranking API", () => {
     expect(mockedHttpClient.get).toHaveBeenCalledWith("/jobs/42");
   });
 
-  it("creates a run with the exact threshold and limit body", async () => {
+  it("creates a run with the exact V3 tier-limit body", async () => {
     mockedHttpClient.post.mockResolvedValueOnce({ data: { data: { id: 4, results: [] } } });
 
-    await createCandidateRankingRun("42", { threshold: 0.3, limit: 50 });
+    await createCandidateRankingRun("42", { threshold: 0.3, primaryLimit: 50, fallbackLimit: 0 });
 
     expect(mockedHttpClient.post).toHaveBeenCalledWith(
       "/companies/me/jobs/42/candidate-ranking-runs",
-      { threshold: 0.3, limit: 50 },
+      { threshold: 0.3, primaryLimit: 50, fallbackLimit: 0 },
     );
   });
 

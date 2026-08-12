@@ -58,7 +58,7 @@ interface SavedJobResponse {
 interface ApplicationResponse {
   id: number;
   jobId: number;
-  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+  status: ApplicationStatus;
 }
 
 interface SavedSearchResponse {
@@ -101,6 +101,7 @@ interface BackendJobDetailResponse extends BackendJobResponse {
 type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type WorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
 type JobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
+type ApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 type CandidateJobsContentMode = "list" | "saved-searches" | "detail";
 
 const pageSize = 6;

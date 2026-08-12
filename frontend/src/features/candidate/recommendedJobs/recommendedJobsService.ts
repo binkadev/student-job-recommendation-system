@@ -1,6 +1,14 @@
 import { httpClient } from "../../../services/api/httpClient";
 import { getCurrentUserStorageScope } from "../../../utils/authStorageScope";
 import { getPublicJobDetail } from "../../public/jobs/jobDetailService";
+import {
+  getScorePresentation,
+  normalizeRankingTier,
+  normalizeScoringStrategy,
+  toLegacyNormalizedScore,
+  toNormalizedScore,
+  type RankingScoreFields,
+} from "../../shared/ranking/rankingScoreTypes";
 import type { CandidateCvOption, CandidateRecommendedJob, GenerateRecommendationPayload, RecommendationRun } from "./recommendedJobsTypes";
 
 interface ApiResponse<T> {
@@ -17,6 +25,10 @@ interface RecommendationResultResponse {
   companyName: string;
   rankPosition?: number | null;
   score?: number | string | null;
+  rankingTier?: string | null;
+  tierRankPosition?: number | string | null;
+  rankingScore?: number | string | null;
+  overallScore?: number | string | null;
   textScore?: number | string | null;
   skillScore?: number | string | null;
   scoringStrategy?: string | null;
@@ -54,12 +66,17 @@ interface CvFileResponse {
   uploadedAt?: string | null;
 }
 
-interface CvAnalysisResponse {
+export interface CvAnalysisResponse {
   status?: string | null;
   extractedText?: string | null;
   processedText?: string | null;
+  languageCode?: string | null;
+  languageConfidence?: number | string | null;
+  processingVersion?: string | null;
   analysisError?: string | null;
 }
+
+const CURRENT_PROCESSING_VERSION = "bilingual-nlp-v2-skills-v1";
 
 const recommendedJobStateStoragePrefix = "candidate-recommended-job-state";
 
@@ -150,19 +167,19 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
   const matchedSkills = normalizeStringArray(result.matchedSkills ?? result.matchedKeywords);
   const missingSkills = normalizeStringArray(result.missingSkills ?? result.missingKeywords);
   const reason = result.reason || result.explanation || "";
-  const score = toPercent(result.score);
-  const textScore = result.textScore == null ? null : toPercent(result.textScore);
-  const skillScore = result.skillScore == null ? null : toPercent(result.skillScore);
+  const scoreFields = mapRecommendationScoreFields(result);
+  const presentation = getScorePresentation(scoreFields);
   const jobTitle = result.jobTitle || `Công việc #${result.jobId}`;
   const detail = await getCachedPublicJobDetail(String(result.jobId)).catch(() => null);
   const job = detail?.job;
-  const scoringStrategyLabel = getScoringStrategyLabel(result.scoringStrategy, reason, textScore);
+  const scoringStrategyLabel = getScoringStrategyLabel(scoreFields.scoringStrategy);
   const recommendationReasons = buildRecommendationReasons({
+    rankingTier: scoreFields.rankingTier,
     matchedSkills,
     missingSkills,
     jobSkills: job?.skills ?? [],
-    textScore,
-    skillScore,
+    textScore: scoreFields.textScore,
+    skillScore: scoreFields.skillScore,
     rawReason: reason,
   });
 
@@ -186,11 +203,11 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
     deadline: job?.deadline ?? "Chưa cập nhật",
     applicants: job?.applicants ?? 0,
     status: job?.status ?? "unavailable",
-    matchScore: score,
-    rankPosition: result.rankPosition ?? null,
-    textScore,
-    skillScore,
-    scoringStrategy: result.scoringStrategy ?? null,
+    rankPosition: toInteger(result.rankPosition) ?? scoreFields.tierRankPosition,
+    ...scoreFields,
+    displayScoreLabel: presentation.label,
+    displayTierLabel: presentation.tierLabel,
+    displayScore: presentation.value,
     scoringStrategyLabel,
     matchedSkills,
     missingSkills,
@@ -198,15 +215,62 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
   };
 }
 
-function getScoringStrategyLabel(strategy?: string | null, reason = "", textScore?: number | null) {
-  const normalizedStrategy = String(strategy ?? "").toUpperCase();
-  const normalizedReason = reason.toLowerCase();
-  if (
-    normalizedStrategy === "CROSS_LANGUAGE_SKILL_BASED" ||
-    normalizedReason.includes("skill-only matching") ||
-    normalizedReason.includes("text similarity was not used") ||
-    textScore == null
-  ) {
+export function mapRecommendationScoreFields(result: RecommendationResultResponse): RankingScoreFields {
+  const tier = normalizeRankingTier(result.rankingTier);
+  const strategy = normalizeScoringStrategy(result.scoringStrategy);
+  const tierRankPosition = toInteger(result.tierRankPosition);
+
+  if (tier && strategy && tierRankPosition) {
+    const rankingScore = toNormalizedScore(result.rankingScore);
+    const overallScore = toNormalizedScore(result.overallScore);
+    const textScore = toNormalizedScore(result.textScore);
+    const skillScore = toNormalizedScore(result.skillScore);
+    const validPrimary = tier === "PRIMARY" && strategy === "SAME_LANGUAGE_HYBRID" && rankingScore != null && overallScore != null && textScore != null && skillScore != null;
+    const validFallback = tier === "FALLBACK" && strategy === "CROSS_LANGUAGE_SKILL_BASED" && rankingScore != null && result.overallScore == null && result.textScore == null && skillScore != null;
+
+    if (validPrimary || validFallback) {
+      return {
+        rankingTier: tier,
+        tierRankPosition,
+        rankingScore,
+        overallScore: tier === "PRIMARY" ? overallScore : null,
+        textScore: tier === "PRIMARY" ? textScore : null,
+        skillScore,
+        scoringStrategy: strategy,
+        legacyResult: false,
+      };
+    }
+
+    console.warn("Invalid recommendation V3 score contract", result);
+    return {
+      rankingTier: tier,
+      tierRankPosition,
+      rankingScore: rankingScore ?? 0,
+      overallScore: tier === "PRIMARY" ? overallScore : null,
+      textScore: tier === "PRIMARY" ? textScore : null,
+      skillScore: skillScore ?? 0,
+      scoringStrategy: strategy,
+      legacyResult: false,
+      invalidScoreContract: true,
+    };
+  }
+
+  const legacyScore = toLegacyNormalizedScore(result.score) ?? toLegacyNormalizedScore(result.rankingScore) ?? toLegacyNormalizedScore(result.skillScore) ?? 0;
+  return {
+    rankingTier: null,
+    tierRankPosition: null,
+    rankingScore: legacyScore,
+    overallScore: null,
+    textScore: null,
+    skillScore: toLegacyNormalizedScore(result.skillScore) ?? 0,
+    scoringStrategy: strategy,
+    legacyResult: true,
+  };
+}
+
+function getScoringStrategyLabel(strategy: RankingScoreFields["scoringStrategy"]) {
+  const normalizedStrategy = strategy;
+  if (normalizedStrategy === "CROSS_LANGUAGE_SKILL_BASED") {
     return "Đối sánh kỹ năng khác ngôn ngữ";
   }
   if (normalizedStrategy === "SAME_LANGUAGE_HYBRID") return "Hybrid cùng ngôn ngữ";
@@ -214,6 +278,7 @@ function getScoringStrategyLabel(strategy?: string | null, reason = "", textScor
 }
 
 function buildRecommendationReasons({
+  rankingTier,
   matchedSkills,
   missingSkills,
   jobSkills,
@@ -221,6 +286,7 @@ function buildRecommendationReasons({
   skillScore,
   rawReason,
 }: {
+  rankingTier: RankingScoreFields["rankingTier"];
   matchedSkills: string[];
   missingSkills: string[];
   jobSkills: string[];
@@ -228,52 +294,63 @@ function buildRecommendationReasons({
   skillScore: number | null;
   rawReason: string;
 }) {
-  const uniqueJobSkills = Array.from(new Set([...jobSkills, ...matchedSkills, ...missingSkills].map((skill) => skill.trim()).filter(Boolean)));
-  const totalSkills = uniqueJobSkills.length || matchedSkills.length + missingSkills.length;
+  const normalizedJobSkills = Array.from(new Set(jobSkills.map((skill) => skill.trim()).filter(Boolean)));
+  const normalizedMatchedSkills = Array.from(new Set(matchedSkills.map((skill) => skill.trim()).filter(Boolean)));
+  const normalizedMissingSkills = Array.from(new Set(missingSkills.map((skill) => skill.trim()).filter(Boolean)));
+  const totalSkills = normalizedJobSkills.length || normalizedMatchedSkills.length + normalizedMissingSkills.length;
+  const matchedCount = Math.min(normalizedMatchedSkills.length, totalSkills);
   const reasons: string[] = [];
 
   if (totalSkills > 0) {
-    reasons.push(`Phù hợp ${matchedSkills.length}/${totalSkills} kỹ năng${matchedSkills.length ? `: ${matchedSkills.join(", ")}.` : "."}`);
+    reasons.push(`Phù hợp ${matchedCount}/${totalSkills} kỹ năng${normalizedMatchedSkills.length ? `: ${normalizedMatchedSkills.join(", ")}.` : "."}`);
   }
 
-  if (missingSkills.length) {
-    reasons.push(`Còn thiếu ${missingSkills.length} kỹ năng: ${missingSkills.join(", ")}.`);
+  if (normalizedMissingSkills.length) {
+    reasons.push(`Còn thiếu ${normalizedMissingSkills.length} kỹ năng: ${normalizedMissingSkills.join(", ")}.`);
   } else {
     reasons.push("Không thiếu kỹ năng bắt buộc.");
   }
 
   const reasonLower = rawReason.toLowerCase();
-  if (textScore == null || reasonLower.includes("text similarity was not used")) {
+  if (rankingTier === "FALLBACK" || textScore == null || reasonLower.includes("text similarity was not used")) {
     reasons.push("Không dùng điểm văn bản vì CV và việc làm khác ngôn ngữ hoặc không đủ an toàn để so sánh cùng ngôn ngữ.");
   } else {
-    reasons.push(`Độ tương đồng nội dung: ${textScore}%.`);
+    reasons.push(`Độ tương đồng nội dung: ${Math.round(textScore * 100)}%.`);
+  }
+
+  if (rankingTier === "FALLBACK") {
+    reasons.push("Skill Match 100% chỉ thể hiện mức độ đáp ứng các kỹ năng đã khai báo của vị trí, không phải độ phù hợp tổng thể của CV với công việc.");
   }
 
   if (skillScore != null) {
-    reasons.push(`Mức phủ kỹ năng: ${skillScore}%.`);
+    reasons.push(`Mức phủ kỹ năng: ${Math.round(skillScore * 100)}%.`);
   }
 
   return reasons;
 }
 
-async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {
+export function getCvReadiness(analysis: CvAnalysisResponse | null | undefined): { status: string; ready: boolean; reason: string | null } {
+  const status = analysis?.status ?? "NOT_READY";
+  if (status !== "READY") return { status, ready: false, reason: analysis?.analysisError || getCvReadinessReason(status) };
+  if (!analysis?.processedText?.trim()) return { status, ready: false, reason: "CV chưa có dữ liệu xử lý." };
+  if (!analysis.languageCode?.trim() || !isValidLanguageConfidence(analysis.languageConfidence)) return { status, ready: false, reason: "CV chưa có metadata ngôn ngữ hợp lệ." };
+  if (analysis.processingVersion !== CURRENT_PROCESSING_VERSION) return { status, ready: false, reason: "CV cần được phân tích lại bằng phiên bản xử lý hiện tại." };
+  return { status, ready: true, reason: null };
+}
+
+export async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {
   try {
     const response = await httpClient.get<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
     const analysis = response.data.data;
-    const status = analysis?.status ?? "NOT_READY";
-    if (status !== "READY") {
-      return { status, ready: false, reason: analysis?.analysisError || getCvReadinessReason(status) };
-    }
-    if (!analysis?.extractedText?.trim()) {
-      return { status, ready: false, reason: "Thiếu extracted text." };
-    }
-    if (!analysis?.processedText?.trim()) {
-      return { status, ready: false, reason: "Thiếu processed text." };
-    }
-    return { status, ready: true, reason: null };
+    return getCvReadiness(analysis);
   } catch (error) {
     return { status: "ERROR", ready: false, reason: getCvAnalysisErrorReason(error) };
   }
+}
+
+function isValidLanguageConfidence(value: number | string | null | undefined) {
+  const confidence = Number(value);
+  return Number.isFinite(confidence) && confidence >= 0 && confidence <= 1;
 }
 
 function normalizeStringArray(value?: string[] | null) {
@@ -281,11 +358,11 @@ function normalizeStringArray(value?: string[] | null) {
   return value.map((item) => String(item).trim()).filter(Boolean);
 }
 
-function toPercent(value?: number | string | null) {
-  const numberValue = Number(value ?? 0);
-  if (!Number.isFinite(numberValue)) return 0;
-  const percent = numberValue <= 1 ? numberValue * 100 : numberValue;
-  return Math.max(0, Math.min(100, Math.round(percent)));
+function toInteger(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue < 1) return null;
+  return numberValue;
 }
 
 function formatDate(value?: string | null) {

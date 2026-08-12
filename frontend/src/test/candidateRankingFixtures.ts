@@ -17,6 +17,9 @@ export function makeRun(overrides: Partial<CandidateRankingRun> = {}): Candidate
     skippedNotReady: 0,
     skippedTerminalStatus: 0,
     resultCount: 2,
+    requestedLimit: null,
+    requestedPrimaryLimit: 30,
+    requestedFallbackLimit: 30,
     ...overrides,
   };
 }
@@ -31,7 +34,10 @@ export function makeResult(overrides: Partial<CandidateRankingResult> = {}): Can
     cvFileId: "cv-1",
     cvFileName: "nguyen-an.pdf",
     rankPosition: 1,
-    score: 0.875,
+    rankingTier: "PRIMARY",
+    tierRankPosition: 1,
+    rankingScore: 0.875,
+    overallScore: 0.875,
     textScore: 0.8,
     skillScore: 1,
     scoringStrategy: "SAME_LANGUAGE_HYBRID",
@@ -39,6 +45,7 @@ export function makeResult(overrides: Partial<CandidateRankingResult> = {}): Can
     missingSkills: ["Docker", "PostgreSQL"],
     reason: "Kỹ năng phù hợp với yêu cầu công việc.",
     applicationStatus: "PENDING",
+    legacyResult: false,
     ...overrides,
   };
 }

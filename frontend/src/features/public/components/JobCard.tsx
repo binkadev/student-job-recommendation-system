@@ -1,7 +1,9 @@
 import { Bookmark, BookmarkCheck, BriefcaseBusiness, MapPin, Wallet } from "lucide-react";
+import { type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
+import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
 import type { Job } from "../../../types/domain";
 
 interface JobCardProps {
@@ -12,6 +14,12 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/${job.id}` }: JobCardProps) {
+  const openDetail = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!detailPath.startsWith("/candidate/")) return;
+    event.preventDefault();
+    window.open(createAuthenticatedTabUrl(detailPath), "_blank", "noopener,noreferrer");
+  };
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -24,7 +32,7 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
               .slice(0, 2)}
           </div>
           <div>
-            <Link to={detailPath} className="text-base font-semibold text-slate-950 hover:text-brand-700">
+            <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail} className="text-base font-semibold text-slate-950 hover:text-brand-700">
               {job.title}
             </Link>
             <p className="mt-1 text-sm text-slate-600">{job.companyName}</p>
@@ -66,7 +74,7 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
-        <Link to={detailPath}>
+        <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail}>
           <Button variant="secondary" size="sm">
             Xem chi tiết
           </Button>
