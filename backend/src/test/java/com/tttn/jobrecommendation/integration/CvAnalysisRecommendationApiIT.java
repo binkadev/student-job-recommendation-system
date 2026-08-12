@@ -105,7 +105,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                   "skills": [" Java ", "Spring   Boot", "PostgreSQL", "java"],
                   "languageCode": "EN",
                   "languageConfidence": 0.98,
-                  "processingVersion": "bilingual-nlp-v2",
+                  "processingVersion": "bilingual-nlp-v2-skills-v1",
                   "warnings": [" Layout fallback used "]
                 }
                 """));
@@ -204,7 +204,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("READY"))
                 .andExpect(jsonPath("$.data.languageCode").value("en"))
                 .andExpect(jsonPath("$.data.languageConfidence").value(0.98))
-                .andExpect(jsonPath("$.data.processingVersion").value("bilingual-nlp-v2"))
+                .andExpect(jsonPath("$.data.processingVersion").value("bilingual-nlp-v2-skills-v1"))
                 .andExpect(jsonPath("$.data.warnings[0]").value("Layout fallback used"))
                 .andExpect(jsonPath("$.data.analyzedAt").isNotEmpty());
         CvFile analyzed = cvFileRepository.findById(cvFile.getId()).orElseThrow();
@@ -214,7 +214,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(analyzed.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.READY);
         assertThat(analyzed.getLanguageCode()).isEqualTo("en");
         assertThat(analyzed.getLanguageConfidence()).isEqualByComparingTo("0.9800");
-        assertThat(analyzed.getProcessingVersion()).isEqualTo("bilingual-nlp-v2");
+        assertThat(analyzed.getProcessingVersion()).isEqualTo("bilingual-nlp-v2-skills-v1");
         assertThat(analyzed.getAnalysisWarnings()).containsExactly("Layout fallback used");
         assertThat(analyzed.getAnalyzedAt()).isNotNull();
         assertThat(studentSkillRepository.findByStudentIdOrderByIdAsc(student.getId()))
@@ -297,7 +297,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                       "skills": ["Java", "Spring Boot"],
                       "languageCode": "en",
                       "languageConfidence": 0.97,
-                      "processingVersion": "bilingual-nlp-v2",
+                      "processingVersion": "bilingual-nlp-v2-skills-v1",
                       "warnings": []
                     }
                     """ : """
@@ -307,7 +307,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                       "skills": ["Python", "FastAPI"],
                       "languageCode": "en",
                       "languageConfidence": 0.96,
-                      "processingVersion": "bilingual-nlp-v2",
+                      "processingVersion": "bilingual-nlp-v2-skills-v1",
                       "warnings": []
                     }
                     """);
@@ -338,7 +338,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
 
         JsonNode cvInput = LAST_RECOMMENDATION_REQUEST.get().get("cv");
         assertThat(cvInput.get("id").asLong()).isEqualTo(pythonCv.getId());
-        assertThat(cvInput.get("text").asText()).isEqualTo("Python CV raw");
+        assertThat(cvInput.get("processedText").asText()).isEqualTo("python fastapi");
         assertThat(idsOfText(cvInput.get("skills"))).containsExactly("fastapi", "python");
         assertThat(LAST_RECOMMENDATION_REQUEST.get().toString())
                 .doesNotContain("Student Profile Only", "java", "spring boot");
@@ -462,13 +462,17 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
-                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v2"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v3"))
                 .andExpect(jsonPath("$.data.totalJobsScanned").value(3))
                 .andExpect(jsonPath("$.data.totalRecommended").value(3))
                 .andExpect(jsonPath("$.data.results[0].jobId").value(nullDeadline.getId()))
-                .andExpect(jsonPath("$.data.results[0].score").value(0.5))
-                .andExpect(jsonPath("$.data.results[0].textScore").value(0.4))
-                .andExpect(jsonPath("$.data.results[0].skillScore").value(0.6))
+                .andExpect(jsonPath("$.data.results[0].score").value(0.675))
+                .andExpect(jsonPath("$.data.results[0].rankingScore").value(0.675))
+                .andExpect(jsonPath("$.data.results[0].overallScore").value(0.675))
+                .andExpect(jsonPath("$.data.results[0].textScore").value(0.5))
+                .andExpect(jsonPath("$.data.results[0].skillScore").value(1.0))
+                .andExpect(jsonPath("$.data.results[0].rankingTier").value("PRIMARY"))
+                .andExpect(jsonPath("$.data.results[0].tierRankPosition").value(1))
                 .andExpect(jsonPath("$.data.results[0].scoringStrategy").value("SAME_LANGUAGE_HYBRID"))
                 .andExpect(jsonPath("$.data.results[0].rankPosition").value(1));
 
@@ -478,8 +482,12 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(ids(request.get("jobs")))
                 .containsExactly(nullDeadline.getId(), todayDeadline.getId(), futureDeadline.getId())
                 .doesNotContain(expired.getId(), draft.getId(), closed.getId(), pendingCompany.getId());
-        assertThat(request.get("cv").get("text").asText()).isEqualTo("existing raw");
-        assertThat(request.get("cv").has("processedText")).isFalse();
+        assertThat(request.get("cv").get("processedText").asText()).isEqualTo("java spring boot");
+        assertThat(request.get("cv").has("text")).isFalse();
+        assertThat(request.get("cv").get("languageCode").asText()).isEqualTo("en");
+        assertThat(request.get("cv").get("languageConfidence").decimalValue()).isEqualByComparingTo("0.99");
+        assertThat(request.get("cv").get("processingVersion").asText())
+                .isEqualTo("bilingual-nlp-v2-skills-v1");
         assertThat(idsOfText(request.get("cv").get("skills")))
                 .containsExactly("java", "spring boot");
         JsonNode firstJobInput = request.get("jobs").get(0);
@@ -511,20 +519,22 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         RecommendationRun run = recommendationRunRepository.findAll().getFirst();
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(run.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
-        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v2");
+        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v3");
         assertThat(run.getTotalJobsScanned()).isEqualTo(3);
         assertThat(run.getFinishedAt()).isNotNull();
-        assertThat(recommendationResultRepository.findByRunIdOrderByRankPositionAsc(run.getId()))
-                .hasSize(3)
-                .allSatisfy(result -> {
-                    assertThat(result.getScore()).isEqualByComparingTo("0.50000");
-                    assertThat(result.getTextScore()).isEqualByComparingTo("0.40000");
-                    assertThat(result.getSkillScore()).isEqualByComparingTo("0.60000");
-                    assertThat(result.getScoringStrategy().name()).isEqualTo("SAME_LANGUAGE_HYBRID");
-                    assertThat(result.getMatchedKeywords()).containsExactly("java");
-                    assertThat(result.getMissingSkills()).containsExactly("docker");
-                    assertThat(result.getReason()).isEqualTo("Matched Java");
-                });
+        List<RecommendationResult> persistedResults = recommendationResultRepository
+                .findByRunIdOrderByRankPositionAsc(run.getId());
+        assertThat(persistedResults).hasSize(3);
+        assertThat(persistedResults.getFirst().getScore()).isEqualByComparingTo("0.67500");
+        assertThat(persistedResults.getFirst().getOverallScore()).isEqualByComparingTo("0.67500");
+        assertThat(persistedResults.getFirst().getTextScore()).isEqualByComparingTo("0.50000");
+        assertThat(persistedResults.getFirst().getSkillScore()).isEqualByComparingTo("1.00000");
+        assertThat(persistedResults.getFirst().getMatchedKeywords()).containsExactly("java");
+        assertThat(persistedResults.getFirst().getMissingSkills()).isEmpty();
+        assertThat(persistedResults).allSatisfy(result -> {
+            assertThat(result.getScoringStrategy().name()).isEqualTo("SAME_LANGUAGE_HYBRID");
+            assertThat(result.getReason()).isEqualTo("Matched Java");
+        });
 
         mockMvc.perform(get("/api/students/me/recommendation-runs")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
@@ -598,25 +608,29 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "algorithmVersion": "bilingual-recommendation-v3",
                       "results": [
                         {
                           "jobId": %d,
-                          "score": 0.8,
-                          "textScore": 0.7,
-                          "skillScore": 0.9,
+                          "rankingTier": "PRIMARY",
+                          "rankingScore": 0.8,
+                          "overallScore": 0.8,
+                          "textScore": 0.8,
+                          "skillScore": 0.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "first"
                         },
                         {
                           "jobId": %d,
-                          "score": 0.7,
-                          "textScore": 0.6,
-                          "skillScore": 0.8,
+                          "rankingTier": "PRIMARY",
+                          "rankingScore": 0.7,
+                          "overallScore": 0.7,
+                          "textScore": 0.7,
+                          "skillScore": 0.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "duplicate"
                         }
@@ -659,25 +673,29 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "algorithmVersion": "bilingual-recommendation-v3",
                       "results": [
                         {
                           "jobId": %d,
-                          "score": 0.9,
-                          "textScore": 0.8,
-                          "skillScore": 0.9,
+                          "rankingTier": "PRIMARY",
+                          "rankingScore": 0.9,
+                          "overallScore": 0.9,
+                          "textScore": 0.9,
+                          "skillScore": 0.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "above"
                         },
                         {
                           "jobId": %d,
-                          "score": 0.599999,
-                          "textScore": 0.5,
-                          "skillScore": 0.7,
+                          "rankingTier": "PRIMARY",
+                          "rankingScore": 0.599999,
+                          "overallScore": 0.599999,
+                          "textScore": 0.599999,
+                          "skillScore": 0.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "below"
                         }
@@ -718,25 +736,29 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v2",
+                      "algorithmVersion": "bilingual-recommendation-v3",
                       "results": [
                         {
                           "jobId": %d,
-                          "score": 0.0,
+                          "rankingTier": "FALLBACK",
+                          "rankingScore": 0.0,
+                          "overallScore": null,
                           "textScore": null,
                           "skillScore": 0.0,
                           "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "zero"
                         },
                         {
                           "jobId": %d,
-                          "score": 1.0,
+                          "rankingTier": "PRIMARY",
+                          "rankingScore": 1.0,
+                          "overallScore": 1.0,
                           "textScore": 1.0,
-                          "skillScore": 1.0,
+                          "skillScore": 0.0,
                           "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                          "matchedSkills": ["Java"],
+                          "matchedSkills": [],
                           "missingSkills": [],
                           "reason": "one"
                         }
@@ -775,7 +797,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
-                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v2"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v3"))
                 .andExpect(jsonPath("$.data.totalJobsScanned").value(0))
                 .andExpect(jsonPath("$.data.totalRecommended").value(0))
                 .andExpect(jsonPath("$.data.results.length()").value(0));
@@ -783,7 +805,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         RecommendationRun emptyRun = recommendationRunRepository.findAll().getFirst();
         assertThat(emptyRun.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(emptyRun.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
-        assertThat(emptyRun.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v2");
+        assertThat(emptyRun.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v3");
         assertThat(emptyRun.getTotalJobsScanned()).isZero();
         assertThat(emptyRun.getFinishedAt()).isNotNull();
         assertThat(emptyRun.getErrorMessage()).isNull();
@@ -983,6 +1005,9 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         cvFile.setProcessedText("java spring boot");
         cvFile.setExtractedSkills(List.of("java", "spring boot"));
         cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
+        cvFile.setLanguageCode("en");
+        cvFile.setLanguageConfidence(new BigDecimal("0.99"));
+        cvFile.setProcessingVersion("bilingual-nlp-v2-skills-v1");
         return cvFileRepository.saveAndFlush(cvFile);
     }
 
@@ -1015,27 +1040,50 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     private void respondWithDeterministicRecommendations(HttpExchange exchange) throws Exception {
         JsonNode request = readRequest(exchange);
         LAST_RECOMMENDATION_REQUEST.set(request);
-        List<Long> jobIds = ids(request.get("jobs"));
+        List<String> cvSkills = idsOfText(request.get("cv").get("skills"));
         List<String> results = new ArrayList<>();
-        for (int index = 0; index < jobIds.size(); index++) {
+        for (JsonNode job : request.get("jobs")) {
+            List<String> jobSkills = idsOfText(job.get("skills"));
+            List<String> matchedSkills = jobSkills.stream().filter(cvSkills::contains).sorted().toList();
+            List<String> missingSkills = jobSkills.stream().filter(skill -> !cvSkills.contains(skill)).sorted().toList();
+            BigDecimal skillScore = jobSkills.isEmpty()
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(matchedSkills.size())
+                            .divide(BigDecimal.valueOf(jobSkills.size()), 8, java.math.RoundingMode.HALF_UP);
+            BigDecimal textScore = new BigDecimal("0.50000000");
+            BigDecimal overallScore = jobSkills.isEmpty()
+                    ? textScore
+                    : textScore.multiply(new BigDecimal("0.65"))
+                            .add(skillScore.multiply(new BigDecimal("0.35")))
+                            .setScale(8, java.math.RoundingMode.HALF_UP);
             results.add("""
                     {
                       "jobId": %d,
-                      "score": 0.5,
-                      "textScore": 0.4,
-                      "skillScore": 0.6,
+                      "rankingTier": "PRIMARY",
+                      "rankingScore": %s,
+                      "overallScore": %s,
+                      "textScore": %s,
+                      "skillScore": %s,
                       "scoringStrategy": "SAME_LANGUAGE_HYBRID",
-                      "matchedSkills": ["Java"],
-                      "missingSkills": ["Docker"],
+                      "matchedSkills": %s,
+                      "missingSkills": %s,
                       "reason": " Matched Java "
                     }
-                    """.formatted(jobIds.get(index)));
+                    """.formatted(
+                    job.get("id").asLong(),
+                    overallScore.toPlainString(),
+                    overallScore.toPlainString(),
+                    textScore.toPlainString(),
+                    skillScore.toPlainString(),
+                    STUB_MAPPER.writeValueAsString(matchedSkills),
+                    STUB_MAPPER.writeValueAsString(missingSkills)
+            ));
         }
         respond(exchange, 200, """
                 {
                   "requestId": "%s",
                   "algorithm": "tfidf-cosine-hybrid",
-                  "algorithmVersion": "bilingual-recommendation-v2",
+                  "algorithmVersion": "bilingual-recommendation-v3",
                   "results": [%s]
                 }
                 """.formatted(request.get("requestId").asText(), String.join(",", results)));
@@ -1061,7 +1109,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/internal/v2/cv/parse", exchange -> dispatch(PARSE_HANDLER, exchange));
-            server.createContext("/internal/v2/recommendations", exchange -> {
+            server.createContext("/internal/v3/recommendations", exchange -> {
                 RECOMMENDATION_CALLS.incrementAndGet();
                 dispatch(RECOMMEND_HANDLER, exchange);
             });

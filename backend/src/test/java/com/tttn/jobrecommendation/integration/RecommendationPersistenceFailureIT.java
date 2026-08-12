@@ -4,12 +4,13 @@ import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.infrastructure.ai.client.AiServiceClient;
-import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
-import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationResponse;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Response;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
@@ -60,6 +61,9 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
         cvFile.setProcessedText("java backend engineer");
         cvFile.setExtractedSkills(List.of("java"));
         cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
+        cvFile.setLanguageCode("en");
+        cvFile.setLanguageConfidence(new java.math.BigDecimal("0.99"));
+        cvFile.setProcessingVersion("bilingual-nlp-v2-skills-v1");
         cvFileRepository.saveAndFlush(cvFile);
 
         Company company = createCompany(
@@ -70,18 +74,19 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
         Job firstJob = createJob(company, "First eligible job", JobStatus.ACTIVE);
         Job secondJob = createJob(company, "Second eligible job", JobStatus.ACTIVE);
 
-        when(aiServiceClient.recommend(any(AiRecommendationRequest.class)))
+        when(aiServiceClient.recommendV3(any(AiRecommendationV3Request.class)))
                 .thenAnswer(invocation -> {
-                    AiRecommendationRequest request = invocation.getArgument(0);
-                    return new AiRecommendationResponse(
+                    AiRecommendationV3Request request = invocation.getArgument(0);
+                    AiRecommendationV3Response response = new AiRecommendationV3Response(
                             request.requestId(),
                             "tfidf-cosine-hybrid",
-                            "bilingual-recommendation-v2",
+                            "bilingual-recommendation-v3",
                             List.of(
-                                    result(firstJob.getId()),
-                                    result(secondJob.getId())
+                                    result(firstJob.getId(), request.jobs().get(0).skills()),
+                                    result(secondJob.getId(), request.jobs().get(1).skills())
                             )
                     );
+                    return response;
                 });
 
         doAnswer(invocation -> {
@@ -111,15 +116,28 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
                 .doesNotContain("jdbc", "secret", "internal", "raw AI response");
     }
 
-    private AiRecommendationResponse.Result result(Long jobId) {
-        return new AiRecommendationResponse.Result(
+    private AiRecommendationV3Response.Result result(Long jobId, List<String> jobSkills) {
+        List<String> cvSkills = List.of("java");
+        List<String> matched = jobSkills.stream().filter(cvSkills::contains).toList();
+        List<String> missing = jobSkills.stream().filter(skill -> !cvSkills.contains(skill)).toList();
+        java.math.BigDecimal skillScore = jobSkills.isEmpty() ? java.math.BigDecimal.ZERO.setScale(8)
+                : java.math.BigDecimal.valueOf(matched.size())
+                        .divide(java.math.BigDecimal.valueOf(jobSkills.size()), 8, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal textScore = new java.math.BigDecimal("0.33333333");
+        java.math.BigDecimal overallScore = jobSkills.isEmpty() ? textScore
+                : textScore.multiply(new java.math.BigDecimal("0.65"))
+                        .add(skillScore.multiply(new java.math.BigDecimal("0.35")))
+                        .setScale(8, java.math.RoundingMode.HALF_UP);
+        return new AiRecommendationV3Response.Result(
                 jobId,
-                0.75,
-                0.70,
-                0.85,
+                RecommendationRankingTier.PRIMARY,
+                overallScore,
+                overallScore,
+                textScore,
+                skillScore,
                 RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID,
-                List.of("java"),
-                List.of("docker"),
+                matched,
+                missing,
                 "Strong Java overlap"
         );
     }

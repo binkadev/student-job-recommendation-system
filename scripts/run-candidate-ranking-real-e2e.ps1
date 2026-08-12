@@ -194,7 +194,7 @@ FROM (
          '["docker", "java", "postgresql", "spring boot"]', 'en', 0.99),
         ('candidate-ranking-e2e-student-two@example.test', 'candidate-two.pdf',
          'Lap trinh vien Java Spring Boot xay dung REST API va co so du lieu PostgreSQL.',
-         '["java", "postgresql", "spring boot"]', 'vi', 0.99),
+         '["docker", "java", "postgresql", "spring boot"]', 'vi', 0.99),
         ('candidate-ranking-e2e-student-three@example.test', 'candidate-three.pdf',
          'Junior Java developer familiar with Docker, Git, and backend development.',
          '["docker", "java"]', 'en', 0.99)
@@ -222,15 +222,16 @@ WHERE u.email LIKE 'candidate-ranking-e2e-student-%@example.test';
 
     $headers = @{ Authorization = "Bearer $token" }
     $create = Invoke-JsonApi -Method POST -Path "/api/companies/me/jobs/$jobId/candidate-ranking-runs" `
-        -Headers $headers -Body @{ threshold = 0; limit = 10 }
+        -Headers $headers -Body @{ threshold = 0; primaryLimit = 2; fallbackLimit = 1 }
     Assert-Condition $create.Body.success 'Candidate Ranking POST must succeed.'
     $run = $create.Body.data
     $runId = [string]$run.id
     Assert-Condition ($run.status -eq 'SUCCESS') 'Run must finish synchronously as SUCCESS.'
     Assert-Condition ($run.algorithm -eq 'tfidf-cosine-hybrid') 'Run algorithm must match the locked contract.'
-    Assert-Condition ($run.algorithmVersion -eq 'bilingual-candidate-ranking-v2') 'Run algorithm version must match the locked contract.'
+    Assert-Condition ($run.algorithmVersion -eq 'bilingual-candidate-ranking-v3') 'Run algorithm version must match the locked contract.'
     Assert-Condition ([decimal]$run.threshold -eq [decimal]0) 'Run threshold must be preserved.'
-    Assert-Condition ($run.requestedLimit -eq 10) 'Run limit must be preserved.'
+    Assert-Condition ($null -eq $run.requestedLimit) 'V3 run requestedLimit must be null.'
+    Assert-Condition ($run.requestedPrimaryLimit -eq 2 -and $run.requestedFallbackLimit -eq 1) 'V3 tier limits must be preserved.'
     Assert-Condition ($null -ne $run.startedAt -and $null -ne $run.finishedAt) 'Run timestamps must be populated.'
     Assert-Condition ([datetime]$run.finishedAt -ge [datetime]$run.startedAt) 'Run timestamps must be ordered.'
     Assert-Condition ([string]::IsNullOrWhiteSpace([string]$run.errorMessage)) 'Successful run must have no failure message.'
@@ -250,20 +251,15 @@ WHERE u.email LIKE 'candidate-ranking-e2e-student-%@example.test';
     $results = @($detail.Body.data.results)
     $actualApplicationIds = @($results | ForEach-Object { [string]$_.applicationId } | Sort-Object)
     Assert-Condition (($actualApplicationIds -join '|') -eq (($expectedApplicationIds | Sort-Object) -join '|')) 'All result applications must be eligible corpus applications.'
-    $sawSameLanguage = $false
-    $sawCrossLanguage = $false
-    $previousScore = [double]::PositiveInfinity
-    $previousApplicationId = [long]0
+    $primaryCount = 0; $fallbackCount = 0; $seenFallback = $false
+    $primaryTierRank = 0; $fallbackTierRank = 0
     for ($index = 0; $index -lt $results.Count; $index++) {
         $result = $results[$index]
         Assert-Condition ($result.rankPosition -eq ($index + 1)) 'Backend rank positions must be contiguous from one.'
-        Assert-Score $result.score "result[$index].score"
+        Assert-Score $result.rankingScore "result[$index].rankingScore"
+        Assert-Condition ([decimal]$result.score -eq [decimal]$result.rankingScore) 'Legacy score must alias rankingScore.'
         Assert-Score $result.skillScore "result[$index].skillScore"
-        $score = [double]$result.score
         $applicationId = [long]$result.applicationId
-        Assert-Condition ($score -le $previousScore -and ($score -ne $previousScore -or $applicationId -gt $previousApplicationId)) 'Results must be ordered by score DESC then applicationId ASC.'
-        $previousScore = $score
-        $previousApplicationId = $applicationId
 
         $storedCvId = Invoke-DatabaseScalar "SELECT cv_file_id FROM applications WHERE id = $applicationId;"
         Assert-Condition ([string]$result.cvFileId -eq $storedCvId) 'Each result must preserve its submitted CV id.'
@@ -279,20 +275,30 @@ WHERE u.email LIKE 'candidate-ranking-e2e-student-%@example.test';
         Assert-Condition (($actualMissing -join '|') -eq ($expectedMissing -join '|')) 'Missing skills must be complete.'
         Assert-Condition (-not [string]::IsNullOrWhiteSpace([string]$result.reason)) 'Backend-generated reason must be nonblank.'
 
-        if ($result.scoringStrategy -eq 'SAME_LANGUAGE_HYBRID') {
-            $sawSameLanguage = $true
+        if ($result.rankingTier -eq 'PRIMARY') {
+            Assert-Condition (-not $seenFallback) 'All PRIMARY results must precede FALLBACK results.'
+            Assert-Condition ($result.scoringStrategy -eq 'SAME_LANGUAGE_HYBRID') 'PRIMARY must use SAME_LANGUAGE_HYBRID.'
             Assert-Score $result.textScore "result[$index].textScore"
-            Assert-Condition ([string]$result.reason -match '^Matched ') 'Same-language reason must be backend-generated.'
-        } elseif ($result.scoringStrategy -eq 'CROSS_LANGUAGE_SKILL_BASED') {
-            $sawCrossLanguage = $true
+            Assert-Score $result.overallScore "result[$index].overallScore"
+            Assert-Condition ([decimal]$result.rankingScore -eq [decimal]$result.overallScore) 'PRIMARY rankingScore must equal overallScore.'
+            $primaryTierRank++; Assert-Condition ($result.tierRankPosition -eq $primaryTierRank) 'PRIMARY tier ranks must be contiguous.'
+            $primaryCount++
+        } elseif ($result.rankingTier -eq 'FALLBACK') {
+            $seenFallback = $true
+            Assert-Condition ($result.scoringStrategy -eq 'CROSS_LANGUAGE_SKILL_BASED') 'FALLBACK must use CROSS_LANGUAGE_SKILL_BASED.'
             Assert-Condition ($null -eq $result.textScore) 'Cross-language textScore must be null.'
-            Assert-Condition ([string]$result.reason -match '^Cross-language ') 'Cross-language reason must be backend-generated.'
+            Assert-Condition ($null -eq $result.overallScore) 'FALLBACK overallScore must be null.'
+            Assert-Condition ([decimal]$result.rankingScore -eq [decimal]$result.skillScore) 'FALLBACK rankingScore must equal skillScore.'
+            $fallbackTierRank++; Assert-Condition ($result.tierRankPosition -eq $fallbackTierRank) 'FALLBACK tier ranks must reset and be contiguous.'
+            $fallbackCount++
         } else {
-            throw "Unexpected scoring strategy: $($result.scoringStrategy)"
+            throw "Unexpected ranking tier: $($result.rankingTier)"
         }
     }
-    Assert-Condition $sawSameLanguage 'Fixture must exercise same-language hybrid scoring.'
-    Assert-Condition $sawCrossLanguage 'Fixture must exercise cross-language skill scoring.'
+    Assert-Condition ($primaryCount -eq 2 -and $fallbackCount -eq 1) 'Fixture must prove independent primary/fallback limits.'
+    $fallback = @($results | Where-Object { $_.rankingTier -eq 'FALLBACK' })[0]
+    Assert-Condition ([decimal]$fallback.rankingScore -eq 1 -and [decimal]$fallback.skillScore -eq 1) 'Cross-language fixture must be a 100% skill match.'
+    Assert-Condition ([int]$fallback.rankPosition -gt $primaryCount) 'FALLBACK 1.0 must persist after all PRIMARY results.'
 
     $persisted = Invoke-DatabaseScalar @"
 SELECT r.status || '|' || r.algorithm || '|' || r.algorithm_version || '|' ||
@@ -307,16 +313,22 @@ GROUP BY r.id, r.status, r.algorithm, r.algorithm_version;
     Assert-Condition ($persistedParts.Count -eq 6) 'Persisted run summary must contain exactly six fields.'
     Assert-Condition ($persistedParts[0] -eq 'SUCCESS') 'Persisted run status must be SUCCESS.'
     Assert-Condition ($persistedParts[1] -eq 'tfidf-cosine-hybrid') 'Persisted run algorithm must match the locked contract.'
-    Assert-Condition ($persistedParts[2] -eq 'bilingual-candidate-ranking-v2') 'Persisted run algorithm version must match the locked contract.'
+    Assert-Condition ($persistedParts[2] -eq 'bilingual-candidate-ranking-v3') 'Persisted run algorithm version must match the locked contract.'
     Assert-Condition ($persistedParts[3] -eq '3' -and $persistedParts[4] -eq '3' -and $persistedParts[5] -eq '3') 'Persisted result set must have no partial duplicates.'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM candidate_ranking_runs WHERE job_id = $jobId AND status = 'PROCESSING';") -eq '0') 'No PROCESSING run may remain.'
+    $runLimits = Invoke-DatabaseScalar "SELECT COALESCE(requested_limit::text, 'NULL') || '|' || requested_primary_limit || '|' || requested_fallback_limit FROM candidate_ranking_runs WHERE id = $runId;"
+    Assert-Condition ($runLimits -eq 'NULL|2|1') 'Persisted V3 run must retain null legacy and independent tier limits.'
+    $fallbackDb = Invoke-DatabaseScalar "SELECT ranking_tier || '|' || score || '|' || skill_score || '|' || COALESCE(overall_score::text, 'NULL') || '|' || COALESCE(text_score::text, 'NULL') || '|' || rank_position || '|' || tier_rank_position || '|' || COALESCE(cv_processing_version, 'NULL') || '|' || (cv_analyzed_at_snapshot IS NOT NULL) FROM candidate_ranking_results WHERE run_id = $runId AND ranking_tier = 'FALLBACK';"
+    Assert-Condition ($fallbackDb -match '^FALLBACK\|1\.00000\|1\.00000\|NULL\|NULL\|3\|1\|bilingual-nlp-v2-skills-v1\|true$') 'Persisted FALLBACK row must retain V3 nullable score semantics and CV audit fields.'
 
-    $aiLogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/v2/candidate-rankings HTTP/1.1" 200'))
-    Assert-Condition ($aiLogMatches.Count -eq 1) 'Exactly one real AI bulk HTTP request must be logged.'
+    $aiV3LogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/v3/candidate-rankings HTTP/1.1" 200'))
+    $aiV2LogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/v2/candidate-rankings HTTP/1.1"'))
+    Assert-Condition ($aiV3LogMatches.Count -eq 1) 'Exactly one real V3 AI bulk HTTP request must be logged.'
+    Assert-Condition ($aiV2LogMatches.Count -eq 0) 'V3 public flow must not call the V2 candidate-ranking endpoint.'
 
     Write-Host 'Real Candidate Ranking E2E passed.'
     Write-Host "Public API status: register=201 login=200 create=200 list=200 detail=200; runId=$runId"
-    Write-Host 'Counters: scanned=3 eligible=3 skipped=0 returned=3; persistedResults=3; AI HTTP POST /internal/v2/candidate-rankings=200 (once).'
+    Write-Host 'Counters: scanned=3 eligible=3 primary=2 fallback=1; V3 tier limits=2/1; AI HTTP POST /internal/v3/candidate-rankings=200 (once), V2=0.'
 } catch {
     Write-Error $_
     if ($started) {
