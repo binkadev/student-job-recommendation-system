@@ -69,7 +69,7 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
     }
 
     @Test
-    void rejectsDuplicateApplicationForSameStudentAndJob() {
+    void permitsRejectedHistoryButRejectsMultipleActiveApplicationsForSameStudentAndJob() {
         Student student = createStudent("application-student@example.com");
         Company company = createCompany(
                 "application-company@example.com",
@@ -78,6 +78,12 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
         );
         Job job = createJob(company, "Application Constraint Job", JobStatus.ACTIVE);
 
+        JobApplication firstRejected = application(student, job);
+        firstRejected.setStatus(ApplicationStatus.REJECTED);
+        JobApplication secondRejected = application(student, job);
+        secondRejected.setStatus(ApplicationStatus.REJECTED);
+        jobApplicationRepository.saveAndFlush(firstRejected);
+        jobApplicationRepository.saveAndFlush(secondRejected);
         jobApplicationRepository.saveAndFlush(application(student, job));
 
         assertThatThrownBy(() -> jobApplicationRepository.saveAndFlush(application(student, job)))
@@ -89,7 +95,33 @@ class DatabaseConstraintIT extends AbstractPostgresIntegrationTest {
                 student.getId(),
                 job.getId()
         );
-        assertThat(survivingApplications).isEqualTo(1);
+        assertThat(survivingApplications).isEqualTo(3);
+    }
+
+    @Test
+    void permitsNewActiveApplicationAfterPreviousActiveApplicationBecomesRejected() {
+        Student student = createStudent("reapply-student@example.com");
+        Company company = createCompany(
+                "reapply-company@example.com",
+                "Reapply Constraint Company",
+                CompanyStatus.VERIFIED
+        );
+        Job job = createJob(company, "Reapply Constraint Job", JobStatus.ACTIVE);
+
+        JobApplication firstApplication = jobApplicationRepository.saveAndFlush(application(student, job));
+        firstApplication.setStatus(ApplicationStatus.REJECTED);
+        jobApplicationRepository.saveAndFlush(firstApplication);
+        JobApplication reapplication = jobApplicationRepository.saveAndFlush(application(student, job));
+
+        assertThat(reapplication.getId()).isNotEqualTo(firstApplication.getId());
+        Integer activeApplications = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM applications WHERE student_id = ? AND job_id = ? "
+                        + "AND status IN ('PENDING', 'REVIEWED', 'ACCEPTED')",
+                Integer.class,
+                student.getId(),
+                job.getId()
+        );
+        assertThat(activeApplications).isEqualTo(1);
     }
 
     @Test

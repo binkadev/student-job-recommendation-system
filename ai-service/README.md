@@ -255,6 +255,13 @@ manual adjudication, and final Precision@5, Recall@5, and NDCG@5. Generated
 output, private CV data, and in-progress annotation work are ignored and must
 not be committed.
 
+Recruiter Candidate Ranking uses the separate internal endpoint
+POST /internal/v2/candidate-rankings. It fits one shared TF-IDF representation
+on the complete same-language Candidate CV corpus, transforms the Job once, and
+returns component scores and skills without rank or human-facing reason. The
+Backend owns official ordering, rank assignment, reason generation, and
+persistence. See the [Candidate Ranking contract](../docs/candidate-ranking-contract.md).
+
 ## Important Files
 
 - `main.py`: FastAPI application, V1 compatibility routes, and V2 router registration

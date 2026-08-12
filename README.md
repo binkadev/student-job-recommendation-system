@@ -2,758 +2,344 @@
 
 # Student Job Recommendation System
 
-### Explainable bilingual CV–Job matching with clear service ownership
+### Hệ thống hỗ trợ tuyển dụng cho sinh viên CNTT với xử lý CV song ngữ và xếp hạng có thể giải thích
 
-**A full-stack recruitment platform for IT students, companies, and administrators, featuring bilingual CV parsing and deterministic content-based job recommendation using TF-IDF, Cosine Similarity, and canonical skill matching.**
+**React + TypeScript · Spring Boot · FastAPI · PostgreSQL · TF-IDF · Cosine Similarity · Canonical Skills**
 
 [![Backend CI](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/backend-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/backend-ci.yml)
 [![AI Service CI](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/ai-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/ai-ci.yml)
 [![Frontend CI](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/frontend-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/frontend-ci.yml)
-[![Core Smoke](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/core-smoke-ci.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/core-smoke-ci.yml)
-[![Container Images](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/container-images.yml/badge.svg?branch=master)](https://github.com/binkadev/student-job-recommendation-system/actions/workflows/container-images.yml)
 
-![Java](https://img.shields.io/badge/Java-21-E76F00?logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-6DB33F?logo=springboot&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11.9-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.139.2-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react&logoColor=111827)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-
-**Core stack implemented and smoke-verified · Human-labeled ranking evaluation pending · Not production-ready**
-
-<br />
-
-<a href="#overview">Overview</a> ·
-<a href="#system-architecture">Architecture</a> ·
-<a href="#recommendation-contract-v2">Contract V2</a> ·
-<a href="#quick-start">Quick Start</a> ·
-<a href="#testing-and-verified-evidence">Verification</a> ·
-<a href="#documentation">Documentation</a>
+<img src="docs/images/readme/trang-chu.webp" alt="Trang chủ hệ thống" width="100%" />
 
 </div>
 
----
+## Tổng quan
 
-## Overview
+Student Job Recommendation System là đồ án full-stack hỗ trợ hành trình tuyển dụng của sinh viên CNTT, doanh nghiệp và quản trị viên. Hệ thống nhận CV PDF/DOCX, phân tích tiếng Việt hoặc tiếng Anh, chuẩn hóa kỹ năng, gợi ý công việc cho sinh viên và xếp hạng các ứng viên đã nộp vào một tin tuyển dụng.
 
-The **Student Job Recommendation System** supports the recruitment journey for three platform roles:
+Spring Boot Backend là nguồn quyết định nghiệp vụ và dữ liệu chính: xác thực, phân quyền, kiểm tra ownership/eligibility, điều phối AI, kiểm tra phản hồi, thứ tự chính thức, thứ hạng và persistence. FastAPI AI Service là dịch vụ tính toán stateless: không truy cập PostgreSQL, không nhận JWT người dùng và không tự quyết định thứ hạng chính thức.
 
-- **Students** manage CVs, discover jobs, generate recommendations, save jobs, apply, and track applications.
-- **Companies** manage company information, owned job postings, applicants, application states, and saved candidates.
-- **Administrators** manage users, companies, jobs, applications, categories, skills, and platform-level status changes.
+Kết quả xếp hạng chỉ hỗ trợ sàng lọc; không thay thế đánh giá của con người trong tuyển dụng.
 
-Its recommendation pipeline is deterministic and contract-driven. The FastAPI AI Service parses CVs and computes recommendation components; the Spring Boot Backend remains the system of record and owns eligibility filtering, validation, ranking, transactions, and persistence.
+## Bài toán và điểm nổi bật
+
+Đồ án áp dụng Content-Based Filtering cho bài toán ghép nối Student ↔ Job. Thay vì dùng embeddings, transformer hay LLM ranking, hệ thống dùng biểu diễn văn bản đã tiền xử lý, TF-IDF, Cosine Similarity và đối sánh canonical skills để tạo kết quả có thể diễn giải.
+
+- Phân tích CV PDF/DOCX song ngữ Việt/Anh và lưu snapshot phân tích.
+- Chuẩn hóa kỹ năng theo catalog/alias để giảm khác biệt cách viết.
+- Recommendation V3 phân biệt rõ kết quả phù hợp tổng thể và kết quả chỉ đối sánh kỹ năng.
+- Candidate Ranking V3 chỉ xếp hạng corpus Application của một Job, theo CV đã nộp cùng Application.
+- Backend kiểm tra nghiêm ngặt contract AI trước khi lưu kết quả, giữ thứ tự deterministic và lịch sử các lần chạy.
+- Có automated tests, CI và các runner Real API/stack E2E cho hai luồng ranking V3.
+
+## Giao diện
+
+<p align="center">
+  <img src="docs/images/readme/tong-quan-sinh-vien.webp" alt="Dashboard sinh viên" width="100%" />
+  <br /><strong>Dashboard sinh viên và trạng thái hồ sơ</strong>
+</p>
 
 <table>
 <tr>
-<td width="33%" valign="top">
-
-### Explainable matching
-
-Results can expose text similarity, skill coverage, matched skills, missing skills, scoring strategy, and a deterministic explanation.
-
+<td width="50%" valign="top">
+  <img src="docs/images/readme/quan-ly-cv.webp" alt="Quản lý CV" width="100%" />
+  <p align="center"><strong>Quản lý CV và trạng thái phân tích</strong></p>
 </td>
-<td width="33%" valign="top">
-
-### Vietnamese and English
-
-Language is detected independently for each CV and Job. The pipeline selects same-language hybrid scoring or cross-language canonical-skill matching.
-
+<td width="50%" valign="top">
+  <img src="docs/images/readme/goi-y-viec-lam.webp" alt="Gợi ý việc làm" width="100%" />
+  <p align="center"><strong>Gợi ý việc làm từ CV được chọn</strong></p>
 </td>
-<td width="33%" valign="top">
-
-### Backend-owned truth
-
-Authentication, authorization, ownership, business rules, sorting, `rankPosition`, and persistence remain in Spring Boot.
-
+</tr>
+<tr>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/tong-quan-doanh-nghiep.webp" alt="Dashboard doanh nghiệp" width="100%" />
+  <p align="center"><strong>Dashboard tuyển dụng</strong></p>
+</td>
+<td width="50%" valign="top">
+  <img src="docs/images/readme/quan-ly-ung-vien.webp" alt="Quản lý ứng viên" width="100%" />
+  <p align="center"><strong>Ứng viên và CV đã nộp</strong></p>
 </td>
 </tr>
 </table>
 
-### Why this project
+## Kiến trúc hệ thống
 
-Many student recruitment demos stop at CRUD screens or profile-based keyword filters. This repository demonstrates a fuller engineering boundary:
+```mermaid
+flowchart TD
+    FE[React Frontend] -->|REST API + Bearer JWT| BE[Spring Boot Backend]
+    BE --> DB[(PostgreSQL)]
+    BE -->|Internal API key| AI[FastAPI AI Service]
+    BE --- B1[Auth · business rules · validation<br/>ranking orchestration · persistence]
+    AI --- A1[PDF/DOCX parsing · NLP VI/EN<br/>TF-IDF · Cosine Similarity · skill matching]
+```
 
-- real PDF and DOCX ingestion;
-- bilingual deterministic NLP rather than a trained recommendation model;
-- canonical technical-skill aliases across Vietnamese and English;
-- explicit service-to-service contracts and failure handling;
-- persisted recommendation runs with Backend-owned ranking;
-- role and ownership rules for Student, Company, and Admin workflows;
-- reproducible Docker acceptance smoke, CI, container publishing automation, and evaluation tooling;
-- honest separation between **software correctness evidence** and **human-judged ranking quality**.
+- Frontend chỉ gọi Backend. Backend áp dụng JWT, authorization theo role, ownership và các quy tắc nghiệp vụ.
+- Backend gọi AI bằng internal API key và request ID. Lời gọi AI không chạy trong database transaction đang mở.
+- AI xử lý parsing/preprocessing, phát hiện ngôn ngữ cho Job, tính điểm thành phần và trả dữ liệu kỹ thuật. Backend xác thực dữ liệu đó trước khi persistence.
+- AI không có quyền truy cập database và không trả `rankPosition` hoặc `tierRankPosition` chính thức.
 
----
+## Công nghệ
 
-## Key Capabilities
-
-| Area | Current capability |
+| Lớp | Công nghệ |
 |---|---|
-| CV processing | PDF/DOCX upload, bilingual parsing, language detection, deterministic preprocessing, canonical skill extraction |
-| Recommendation | Same-language TF-IDF/Cosine hybrid scoring and cross-language skill-based scoring |
-| Explainability | Component scores, scoring strategy, matched skills, missing skills, and reason |
-| Student workflow | CV management, recommendation generation/history, job discovery, saved jobs, applications, notifications |
-| Company workflow | Owned company profile, jobs, applicants, application status, saved candidates, reports |
-| Admin workflow | Users, companies, jobs, applications, categories, skills, statistics, status administration |
-| Platform engineering | PostgreSQL/Flyway, JWT, internal API-key authentication, request tracing, Docker Compose, CI, GHCR workflow |
-| Evaluation | Toy dataset, offline runner, Precision@5, Recall@5, NDCG@5, independent annotation and adjudication workflow |
+| Frontend | React 18, TypeScript, Vite, React Router, Axios, React Hook Form, Zod, Tailwind CSS, Vitest |
+| Backend | Java 21, Spring Boot 3.5, Spring Security/JWT, Spring Data JPA, Hibernate, Flyway, Springdoc OpenAPI, Testcontainers |
+| AI/NLP | Python 3.11, FastAPI, Pydantic, scikit-learn, underthesea, pdfplumber, python-docx, pytest |
+| Dữ liệu và hạ tầng | PostgreSQL 17, Docker Compose, GitHub Actions |
 
----
+## Chức năng theo vai trò
 
-## System Architecture
+| Vai trò | Chức năng đã có |
+|---|---|
+| Sinh viên | Quản lý profile, kỹ năng và custom skill; upload/phân tích CV; chọn CV để tạo recommendation; xem kết quả theo tier; tìm/lưu Job; ứng tuyển, xem lịch sử và ứng tuyển lại sau khi bị từ chối; quản lý CV theo trạng thái có thể xóa. |
+| Doanh nghiệp | Quản lý hồ sơ công ty và Job thuộc sở hữu; xem Application, thay đổi trạng thái theo flow hiện có; tạo Candidate Ranking V3, cấu hình giới hạn từng tier, xem lịch sử và hạng trong tier. |
+| Quản trị viên | Quản lý người dùng, công ty, Job, Application, danh mục/kỹ năng và các thống kê theo các endpoint quản trị hiện có. |
+| Khách | Xem Job/công ty công khai, đăng ký và đăng nhập. |
 
-```mermaid
-flowchart TB
-    U[Student / Company / Admin]
-    FE[React + TypeScript Frontend]
-    BE[Spring Boot Backend]
-    DB[(PostgreSQL 17)]
-    AI[FastAPI AI Service]
-    NLP[PDF/DOCX Parsing<br/>VI/EN Language Detection<br/>TF-IDF + Cosine Similarity<br/>Canonical Skill Matching]
+## Student Recommendation V3
 
-    U --> FE
-    FE -->|REST API<br/>Authorization: Bearer JWT| BE
-    BE -->|Spring Data JPA<br/>Flyway migrations| DB
-    BE -->|Contract V2<br/>X-Internal-Api-Key<br/>X-Request-Id| AI
-    AI --> NLP
+Endpoint công khai dành cho sinh viên:
+
+```http
+POST /api/students/me/recommendations/generate
 ```
 
-```text
-Frontend
-    |
-    v
-Spring Boot Backend
-    |               |
-    v               v
-PostgreSQL      FastAPI AI Service
+```json
+{
+  "cvId": 10,
+  "threshold": 0.3,
+  "limit": 20
+}
 ```
 
-### Ownership boundaries
+Sinh viên chọn `cvId` cho từng lần chạy; recommendation không buộc phải dùng CV đang được đánh dấu hoạt động. `limit` là một giới hạn toàn cục từ 1 đến 100; request này không có giới hạn tách riêng theo tier.
 
-| Component | Owns | Does not own |
+### CV sẵn sàng cho V3
+
+CV được chấm điểm khi snapshot phân tích đã lưu thỏa tất cả điều kiện:
+
+- `status = READY`;
+- `processedText` không rỗng;
+- có `languageCode` và `languageConfidence` hợp lệ trong khoảng 0–1;
+- `processingVersion = bilingual-nlp-v2-skills-v1`.
+
+`extractedText` không phải đầu vào hay điều kiện readiness của scoring V3. V3 dùng `processedText`, canonical/extracted skills và metadata ngôn ngữ đã persist; không phát hiện ngôn ngữ hay tiền xử lý lại nội dung CV.
+
+### Hai tier và ý nghĩa điểm
+
+| Tier | Strategy | Điểm và nhãn hiển thị |
 |---|---|---|
-| **Frontend** | Role-based user experience, form state, Backend API consumption, runtime presentation | AI calls, scoring, production ranking, authorization truth |
-| **Spring Boot Backend** | JWT authentication, authorization, ownership, business rules, PostgreSQL, Flyway, eligible-job filtering, AI orchestration, full-response validation, sorting, `rankPosition`, transactions, recommendation persistence | Bilingual semantic alias mapping or direct document NLP |
-| **FastAPI AI Service** | Stateless PDF/DOCX parsing, VI/EN NLP, canonical skill extraction, component scores, scoring strategy, explanations | PostgreSQL access, user JWTs, public authorization, rank creation, `rankPosition`, recommendation persistence |
-| **PostgreSQL** | Durable recruitment, CV-analysis, and recommendation data | Private evaluation files or runtime secrets committed to Git |
+| PRIMARY | `SAME_LANGUAGE_HYBRID` | `rankingScore = overallScore`; UI hiển thị **Phù hợp tổng thể** và **Match Score**. |
+| FALLBACK | `CROSS_LANGUAGE_SKILL_BASED` | `overallScore = null`, `textScore = null`, `rankingScore = skillScore`; UI hiển thị **Đối sánh kỹ năng** và **Skill Match**. |
 
-The Frontend calls only the Spring Boot Backend. It never calls the AI Service directly and never receives or sends the internal AI API key.
-
-### Recommendation sequence
-
-```mermaid
-sequenceDiagram
-    actor Student
-    participant Frontend
-    participant Backend as Spring Boot Backend
-    participant Database as PostgreSQL
-    participant AI as FastAPI AI Service
-
-    Student->>Frontend: Select a CV with analysis status READY
-    Frontend->>Backend: POST /api/students/me/recommendations/generate
-    Backend->>Database: Load selected CV analysis and eligible Jobs
-    Backend->>Database: Persist PROCESSING recommendation run
-    Note over Backend,AI: No database transaction remains open during the external call
-    Backend->>AI: POST /internal/v2/recommendations
-    AI-->>Backend: Component scores, strategy, skills, reason
-    Backend->>Backend: Validate the entire AI response
-    Backend->>Backend: Sort score DESC, then jobId ASC
-    Backend->>Backend: Assign continuous rankPosition
-    Backend->>Database: Persist results and mark run SUCCESS atomically
-    Backend-->>Frontend: Persisted recommendation run and results
-    Frontend-->>Student: Current result or explicitly selected historical SUCCESS run
-```
-
----
-
-## Recommendation Pipeline
+Với PRIMARY có canonical skills của Job:
 
 ```text
-Original PDF/DOCX
-        |
-        v
-Backend-owned CV storage
-        |
-        v
+overallScore = 0.65 × textScore + 0.35 × skillScore
+rankingScore = overallScore
+```
+
+Nếu Job không có canonical skills, `skillScore = 0` và `overallScore = rankingScore = textScore`. Với FALLBACK, `skillScore` là mức phủ các kỹ năng canonical được Job khai báo. **Skill Match 100% không đồng nghĩa hồ sơ phù hợp tổng thể 100%.**
+
+Backend sắp xếp mỗi tier theo `rankingScore` giảm dần, sau đó `jobId` tăng dần; PRIMARY luôn đứng trước FALLBACK, rồi mới áp dụng một `limit` toàn cục. `rankPosition` là thứ hạng trong toàn bộ danh sách; `tierRankPosition` bắt đầu lại trong từng tier. Do hai tier mang hai ngữ nghĩa khác nhau, không diễn giải hoặc so sánh trực tiếp điểm của PRIMARY và FALLBACK như một thang điểm tổng thể duy nhất.
+
+### Kết quả lịch sử
+
+Một số record cũ có thể có `rankingTier = null` và `tierRankPosition = null`. Frontend hiển thị chúng là **Kết quả lịch sử** với **Điểm lịch sử**. Backend không tự gán các record này thành PRIMARY hoặc FALLBACK.
+
+## Company Candidate Ranking V3
+
+Candidate Ranking chỉ xét các Application của Job thuộc doanh nghiệp đang đăng nhập.
+
+```http
+POST /api/companies/me/jobs/{jobId}/candidate-ranking-runs
+```
+
+```json
+{
+  "threshold": 0.3,
+  "primaryLimit": 20,
+  "fallbackLimit": 20
+}
+```
+
+`threshold` nằm trong 0–1. Mỗi tier limit nằm trong 0–100 và tổng hai limit phải nằm trong 1–100. Ví dụ hợp lệ: `50 / 0`, `0 / 50`, `20 / 20`; không hợp lệ: `0 / 0`, `60 / 60`. Trường `limit` đơn lẻ không thuộc public create request V3.
+
+Candidate đủ điều kiện là Application `PENDING` hoặc `REVIEWED`, với đúng CV đã submit cùng Application. Các Application `ACCEPTED`, `REJECTED`, `WITHDRAWN`, CV thiếu hoặc snapshot CV chưa sẵn sàng bị loại. Candidate V3 dùng `processedText`, skills canonical, metadata ngôn ngữ và processing version đã persist của CV nộp kèm; không thay bằng CV đang hoạt động hiện tại, không dùng profile text, không reparse CV và không phụ thuộc vào `extractedText`.
+
+AI phát hiện/preprocess Job một lần. Với PRIMARY, AI fit một shared TF-IDF vectorizer trên corpus `processedText` của các candidate cùng ngôn ngữ, transform Job một lần rồi tính cosine similarity. Với FALLBACK, AI dùng đối sánh kỹ năng. Backend kiểm tra toàn bộ phản hồi, áp dụng top-K độc lập:
+
+```text
+PRIMARY: lọc theo threshold → rankingScore DESC, applicationId ASC → primaryLimit
+FALLBACK: lọc theo threshold → rankingScore DESC, applicationId ASC → fallbackLimit
+```
+
+`tierRankPosition` được đánh độc lập cho từng tier. `rankPosition` vẫn được lưu theo thứ tự deterministic phục vụ audit: toàn bộ PRIMARY trước, sau đó FALLBACK. Lịch sử V3 lưu `requestedLimit = null`, `requestedPrimaryLimit` và `requestedFallbackLimit`; các run V2 lịch sử giữ `requestedLimit` theo semantics cũ.
+
+## Quy tắc nghiệp vụ quan trọng
+
+### Ứng tuyển lại
+
+Lịch sử Application luôn được giữ. Quy tắc dựa trên Application mới nhất của sinh viên với Job:
+
+| Trạng thái | Kết quả |
+|---|---|
+| Chưa có lịch sử | Được ứng tuyển. |
+| `REJECTED` | Được ứng tuyển lại; tạo Application `PENDING` mới, không cập nhật record bị từ chối cũ. |
+| `PENDING`, `REVIEWED`, `ACCEPTED`, `WITHDRAWN` | Bị chặn. |
+
+Database cũng bảo vệ uniqueness của Application đang xử lý; trường hợp tranh chấp trả `APPLICATION_ALREADY_ACTIVE`.
+
+### Kỹ năng tùy chỉnh
+
+`PUT /api/students/me/skills` persist kỹ năng ở Backend. Mỗi item dùng đúng một trong hai hình thức:
+
+- Kỹ năng có sẵn trong catalog: `skillId` cùng `proficiencyLevel`, `yearsOfExperience`, `source`.
+- Kỹ năng tùy chỉnh: `skillName`, `category` cùng `proficiencyLevel`, `yearsOfExperience`, `source`.
+
+Backend chuẩn hóa tên, tránh trùng lặp và tạo hoặc dùng lại catalog skill một cách an toàn; custom skill không chỉ nằm trong localStorage của Frontend.
+
+### Vòng đời và xóa CV
+
+API CV trả `deletable` và `deleteBlockedReason`. CV bị chặn xóa khi đang được Application, Recommendation run hoặc Candidate Ranking result tham chiếu, bảo toàn tính truy vết của nghiệp vụ. Trạng thái đang hoạt động không tự nó quyết định CV có được xóa hay không. Backend kiểm tra lại khi xóa và trả `CV_IN_USE` nếu phát sinh race condition.
+
+## Database và migrations
+
+Flyway migrations tiếp tục phát triển schema thay vì sửa migration đã phát hành:
+
+- `V17__add_v3_ranking_semantics.sql` bổ sung semantic fields V3 cho kết quả recommendation/candidate ranking: `overall_score` nullable, `ranking_tier`, `tier_rank_position`, ràng buộc tier/score và giới hạn tier cho Candidate Ranking run.
+- `V18__allow_reapplication_after_rejection.sql` bỏ unique constraint cũ không phù hợp, cho phép giữ lịch sử bị từ chối và enforce uniqueness có điều kiện cho các Application đang xử lý (`PENDING`, `REVIEWED`, `ACCEPTED`).
+
+Migration V17 chỉ backfill các record lịch sử có semantics đủ điều kiện; record không đầy đủ vẫn có thể không có tier semantics.
+
+## API overview
+
+Mọi JSON API công khai dùng `ApiResponse<T>`; endpoint tải CV là ngoại lệ trả raw file stream. Một số route chính:
+
+| Mục đích | Route |
+|---|---|
+| Tạo recommendation sinh viên | `POST /api/students/me/recommendations/generate` |
+| Xem recommendation mới nhất/lịch sử | `GET /api/students/me/recommendation-results/latest`, `GET /api/students/me/recommendation-runs` |
+| Tạo Candidate Ranking run | `POST /api/companies/me/jobs/{jobId}/candidate-ranking-runs` |
+| Xem lịch sử Candidate Ranking run | `GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs` |
+| Xem chi tiết Candidate Ranking run | `GET /api/companies/me/jobs/{jobId}/candidate-ranking-runs/{runId}` |
+| Quản lý CV sinh viên | `/api/students/me/cv` |
+| Cập nhật kỹ năng sinh viên | `PUT /api/students/me/skills` |
+| Ứng tuyển Job | `POST /api/jobs/{jobId}/apply` |
+
+Internal AI API không công khai cho browser:
+
+```text
 POST /internal/v2/cv/parse
-        |
-        v
-rawText + processedText + language + canonical skills
-        |
-        v
-Persisted CV analysis status READY
-        |
-        v
-Backend filters eligible Jobs
-        |
-        v
-POST /internal/v2/recommendations
-        |
-        v
-AI component scores and explanation
-        |
-        v
-Backend validation -> sorting -> rankPosition -> persistence
+POST /internal/v3/recommendations
+POST /internal/v3/candidate-rankings
 ```
 
-The system is content-based and deterministic. It is **not** an embedding platform, semantic vector-search system, trained recommender model, or online machine-learning service.
+CV parsing vẫn dùng endpoint V2; hai luồng ranking đang dùng V3. Identifiers hiện hành là `algorithm = tfidf-cosine-hybrid`, `processingVersion = bilingual-nlp-v2-skills-v1`, Student `algorithmVersion = bilingual-recommendation-v3` và Company `algorithmVersion = bilingual-candidate-ranking-v3`.
 
----
+## Kiểm thử và xác minh
 
-## Recommendation Contract V2
+Baseline chức năng được kiểm chứng trước thay đổi tài liệu tại commit `dec684d7a36fdb447291f3aeed24afae31bb9400`:
 
-### Frozen internal endpoints
-
-| Purpose | Endpoint | Request shape |
-|---|---|---|
-| CV parsing | `POST /internal/v2/cv/parse` | Multipart form data with field `file` |
-| Recommendation | `POST /internal/v2/recommendations` | Strict JSON containing one CV and the Backend-filtered eligible Job corpus |
-
-### Frozen metadata
-
-```text
-algorithm         = tfidf-cosine-hybrid
-algorithmVersion  = bilingual-recommendation-v2
-processingVersion = bilingual-nlp-v2-skills-v1
-```
-
-Unknown Contract V2 fields are rejected at the AI boundary. Every `/internal/v2/**` request must include `X-Internal-Api-Key`.
-
-### Language and scoring strategies
-
-| CV ↔ Job pair | Strategy | `textScore` | Final `score` |
-|---|---|---:|---:|
-| English ↔ English, Job has canonical skills | `SAME_LANGUAGE_HYBRID` | TF-IDF Cosine Similarity | `0.65 × textScore + 0.35 × skillScore` |
-| Vietnamese ↔ Vietnamese, Job has canonical skills | `SAME_LANGUAGE_HYBRID` | TF-IDF Cosine Similarity | `0.65 × textScore + 0.35 × skillScore` |
-| Same language, Job has no canonical skills | `SAME_LANGUAGE_HYBRID` | TF-IDF Cosine Similarity | `textScore` |
-| Cross-language, mixed, unknown, or insufficient confidence | `CROSS_LANGUAGE_SKILL_BASED` | `null` | `skillScore` |
-
-For a same-language Job without skills:
-
-```text
-skillScore = 0
-score      = textScore
-```
-
-Canonical skill coverage is calculated as:
-
-```text
-skillScore = canonical Job skills found in the CV
-             ------------------------------------
-             total canonical skills of the Job
-```
-
-### Backend ranking guarantees
-
-The AI Service does not return `rank` or `rankPosition`. The Backend:
-
-1. validates the response request ID, metadata, result count, Job IDs, duplicate IDs, score ranges, threshold, strategy semantics, skills, and explanation limits;
-2. rejects the **entire response** when any result is malformed or semantically invalid;
-3. persists no partial recommendation result set from an invalid response;
-4. sorts accepted results by `score DESC`, then `jobId ASC`;
-5. assigns continuous `rankPosition` values starting at `1`;
-6. persists recommendation results and the final successful run state transactionally.
-
-The current master implementation persists component scores as PostgreSQL `DECIMAL(8,5)` values and applies `HALF_UP` rounding to scale `5` before persistence.
-
----
-
-## Roles and Business Workflow
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-### Student
-
-- Manage personal profile and skills.
-- Upload, activate, open, reanalyze, and delete eligible CVs.
-- Generate recommendations from a selected `READY` CV.
-- View the current run state and explicit successful-run history.
-- Discover, save, and apply to public Jobs.
-- Track applications and notifications.
-
-</td>
-<td width="33%" valign="top">
-
-### Company
-
-- Manage the authenticated company's profile.
-- Create and edit Jobs owned by that Company.
-- View owned applicants and authorized CV files.
-- Update supported application states.
-- Save a Student once per Company.
-- Access supported recruitment reports and settings.
-
-</td>
-<td width="33%" valign="top">
-
-### Administrator
-
-- Manage users and account statuses.
-- Verify, block, or return Companies to pending status.
-- Manage Jobs, applications, categories, and skills.
-- Access platform statistics and protected administration screens.
-
-</td>
-</tr>
-</table>
-
-> **Current Job-status behavior:** on `master`, both `COMPANY` and `ADMIN` may call the Job status endpoint; a Company is ownership-scoped but can currently set an owned Job to `ACTIVE`. A separate admin-only Job approval gate is not enforced by the current Backend implementation and must not be claimed as complete.
-
-### Core business invariants
-
-- Each Student may have at most one active CV; activating one deactivates the previous active CV transactionally.
-- Recommendation generation requires the selected CV analysis to be `READY`, with non-blank extracted and processed text.
-- Recommendations use the selected CV's persisted analysis data and extracted canonical skills; they do not fall back to `student_skills`.
-- Entering `PROCESSING` clears previous derived analysis fields before file or HTTP work begins.
-- A `FAILED` CV analysis clears stale processed text, derived skills, language/version metadata, warnings, and analysis timestamp; only a sanitized error remains.
-- A Student cannot apply to the same Job twice.
-- A public Job must be `ACTIVE`, belong to a `VERIFIED` Company, and have a null, current, or future deadline.
-- Companies may manage only their own Jobs, applications, saved candidates, and authorized application CV files.
-- Saved Candidate uniqueness is `company_id + student_id`; an application identifies the source and does not redefine the bookmark domain.
-- A CV referenced by an Application or another protected business record cannot be deleted.
-- External AI calls execute without an open database transaction.
-- Any invalid recommendation result causes the Backend to reject the complete AI response.
-- An invalid response never produces partial recommendation-result persistence.
-- Released Flyway migrations are immutable; schema changes require a new migration.
-- The current Frontend does not present an older successful run as the current result when the newest run is `FAILED` or `PROCESSING`.
-- A historical successful run is shown only after explicit user selection and is labeled as historical context.
-
----
-
-## Technology Stack
-
-### Frontend
-
-| Technology | Version / role |
+| Hạng mục | Evidence |
 |---|---|
-| React / React DOM | `18.3.1` |
-| TypeScript | `~5.6.3` |
-| Vite | `^6.0.5` |
-| React Router DOM | `^6.28.0` |
-| Axios | `^1.7.9` |
-| React Hook Form | `^7.81.0` |
-| Zod | `^4.4.3` |
-| Tailwind CSS | `^3.4.17` |
-| Recharts | `^3.9.2` |
-| Supporting UI | dnd-kit, date-fns, Lucide React |
+| Backend unit | 246/246 pass, 0 failure/error theo Surefire XML hiện có. |
+| Backend integration | 210/210 pass, 0 failure/error theo Failsafe XML hiện có. |
+| AI Service | 827/827 pass khi chạy `python -m pytest` (1 warning deprecation của Starlette). |
+| Frontend | 70/70 pass trong 10 test files khi chạy `npm.cmd run test:run`. |
 
-### Backend
+Repository có hai runner **Real API/stack E2E** dùng PostgreSQL + AI Service + Backend cô lập. Đây là API/stack E2E, không phải bằng chứng browser UI E2E hoàn chỉnh.
 
-| Technology | Version / role |
-|---|---|
-| Java | `21` |
-| Spring Boot | `3.5.16` |
-| Spring Security | JWT authentication and role authorization |
-| Spring Data JPA / Hibernate | Persistence and entity mapping |
-| PostgreSQL | `17` |
-| Flyway | Versioned schema migrations through the current `V15` baseline |
-| JJWT | `0.13.0` |
-| Springdoc OpenAPI | `2.8.17` |
-| Testcontainers | PostgreSQL integration lifecycle |
-| Maven Wrapper | Build, unit tests, integration tests |
+- `scripts/run-recommendation-real-e2e.ps1` assert một PRIMARY tiếng Anh và một FALLBACK tiếng Việt qua `/internal/v3/recommendations`; global rank lần lượt `1/2`, tier rank lần lượt `1/1`; FALLBACK có `overallScore = null`, `textScore = null`, `skillScore = 1.0`, `rankingScore = 1.0`.
+- `scripts/run-candidate-ranking-real-e2e.ps1` tạo run với `threshold = 0`, `primaryLimit = 2`, `fallbackLimit = 1` và assert 2 PRIMARY, 1 FALLBACK cùng các tier limit độc lập qua `/internal/v3/candidate-rankings`.
 
-### AI Service
+Có thể chạy lại các kiểm tra chính:
 
-| Technology | Version / role |
-|---|---|
-| Python | `3.11.9` in CI |
-| FastAPI | `0.139.2` |
-| Uvicorn | `0.51.0` |
-| Pydantic | `2.13.4` |
-| scikit-learn | `1.9.0` |
-| underthesea | `9.5.0` |
-| pdfplumber | `0.11.10` |
-| python-docx | `1.2.0` |
-| NumPy | `2.4.6` |
-| pytest | `9.1.1` |
+```powershell
+# Backend: unit + PostgreSQL integration lifecycle
+cd backend
+.\mvnw.cmd -B -ntp clean verify
 
-### Infrastructure and Delivery
+# AI Service
+cd ..\ai-service
+python -m pip install --require-hashes -r requirements.lock
+python -m pip check
+python -m pytest
 
-- Docker and Docker Compose
-- GitHub Actions for Backend, AI, Frontend, core smoke, and container images
-- GitHub Container Registry workflow for Backend and AI images
-- PostgreSQL named volume and Backend-owned CV upload volume
-- `X-Request-Id` correlation across Backend and AI
+# Frontend
+cd ..\frontend
+npm.cmd ci
+npm.cmd run test:run
+npm.cmd run lint
+npm.cmd run build
 
----
+# Real API/stack E2E
+cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-recommendation-real-e2e.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-candidate-ranking-real-e2e.ps1
+```
 
-## Quick Start
+## Chạy dự án
 
-### Prerequisites
-
-- Git
-- Docker Desktop or Docker Engine with Docker Compose V2
-- Windows PowerShell 5.1+ or PowerShell 7 for the repository smoke script
-- Node.js 24 and npm only when running the Frontend separately
-
-### 1. Clone and configure
+### Core stack
 
 ```powershell
 git clone https://github.com/binkadev/student-job-recommendation-system.git
 cd student-job-recommendation-system
-Copy-Item .env.example .env -Force
-```
-
-`.env.example` contains local-development placeholders only. Never reuse them in staging or production, and never commit `.env`.
-
-### 2. Start the core Docker stack
-
-```powershell
+Copy-Item .env.example .env
 docker compose up --build -d
 docker compose ps
 ```
 
-The core Compose stack starts **PostgreSQL, the FastAPI AI Service, and the Spring Boot Backend**. It does not start the Frontend.
+Core Compose chạy PostgreSQL, AI Service và Backend.
 
-| Core service | Local URL |
+| Dịch vụ | URL mặc định |
 |---|---|
-| Backend API base | `http://localhost:8080/api` |
-| Backend Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| Backend API | `http://localhost:8080/api` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
 | AI health | `http://localhost:8000/health` |
-| AI OpenAPI | `http://localhost:8000/docs` |
-
-### 3. Run the acceptance smoke
-
-From the repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-core.ps1
-```
-
-A successful run ends with:
-
-```text
-SMOKE RESULT: PASS
-```
-
-### 4. Run the Frontend separately
-
-```powershell
-cd frontend
-npm ci
-Copy-Item .env.example .env -Force
-npm run dev
-```
-
-The Vite development server normally starts at `http://localhost:5173` and proxies `/api` to the Backend at `http://127.0.0.1:8080`.
-
-<details>
-<summary><strong>Local demo accounts</strong></summary>
-
-The Backend `dev` profile seeds these accounts when missing. All use password `123456`.
-
-| Role | Email |
-|---|---|
-| Admin | `admin@example.com` |
-| Student | `student@example.com` |
-| Company | `company@example.com` |
-
-These credentials are for **local development and demonstration only**. Never reuse the demo password or demo secrets in production.
-
-</details>
-
----
-
-## Local Development
-
-### Backend
-
-```powershell
-cd backend
-.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
-```
-
-### AI Service
-
-```powershell
-cd ai-service
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
+| AI docs | `http://localhost:8000/docs` |
 
 ### Frontend
 
 ```powershell
 cd frontend
-npm ci
-npm run dev
+npm.cmd ci
+Copy-Item .env.example .env.local
+npm.cmd run dev
 ```
 
----
+Vite thường chạy tại `http://localhost:5173` và proxy `/api` đến Backend. Không commit `.env`, JWT secret, password hoặc internal API key thật.
 
-## Configuration
-
-Important local configuration keys are documented in [`.env.example`](.env.example).
-
-| Area | Variables |
-|---|---|
-| PostgreSQL | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` |
-| Backend | `BACKEND_PORT`, `APP_JWT_SECRET`, `APP_JWT_EXPIRATION_MS`, `APP_CV_MAX_FILE_SIZE_BYTES` |
-| AI Service | `AI_PORT`, `AI_CV_MAX_FILE_SIZE_BYTES`, `AI_INTERNAL_API_KEY` |
-| Backend → AI | `APP_AI_SERVICE_CONNECT_TIMEOUT`, `APP_AI_SERVICE_READ_TIMEOUT` |
-| Multipart | `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE`, `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` |
-
-The Backend uses `APP_AI_SERVICE_INTERNAL_API_KEY` at runtime and must send the same secret configured as `AI_INTERNAL_API_KEY` in the AI Service. Docker Compose wires this value from the single local `AI_INTERNAL_API_KEY` entry.
-
----
-
-## Security and Observability
-
-### Authentication boundaries
-
-```text
-Client -> Backend
-Authorization: Bearer <JWT>
-
-Backend -> AI Service
-X-Internal-Api-Key: <shared internal secret>
-
-Client -> Backend -> AI Service
-X-Request-Id: <safe tracing identifier>
-```
-
-- `Authorization: Bearer <JWT>` authenticates protected public Backend requests.
-- The user JWT is never forwarded to the AI Service.
-- `X-Internal-Api-Key` authenticates Backend-to-AI Contract V2 calls.
-- `X-Request-Id` is tracing metadata, **not authentication** and never grants access.
-- The Backend validates an incoming request ID or creates a UUID, returns it to the client, and propagates it to AI calls.
-- Transport header `X-Request-Id` is distinct from the Contract V2 JSON field `requestId`, which identifies a recommendation business request.
-
-### Logging policy
-
-Completion logs are limited to safe metadata such as request ID, HTTP method, URI path, response status, and duration. Logs must not contain:
-
-- passwords or password hashes;
-- JWTs or `Authorization` headers;
-- cookies;
-- `X-Internal-Api-Key` or environment secrets;
-- request or response bodies;
-- multipart bytes or uploaded file contents;
-- raw CV data;
-- extracted or processed CV text;
-- full Job text;
-- recommendation payload fields;
-- filenames, stored filenames, configured storage directories, private storage paths, or absolute paths.
-
-See [Request Tracing](docs/operations/request-tracing.md) for validation rules and operational guidance.
-
----
-
-## Testing and Verified Evidence
-
-### Backend
-
-```powershell
-cd backend
-.\mvnw.cmd -B -ntp test
-.\mvnw.cmd -B -ntp clean verify
-```
-
-The full lifecycle includes PostgreSQL 17 through Testcontainers, Flyway migrations, Hibernate validation, API integration tests, and controlled AI HTTP stubs.
-
-### AI Service
-
-```powershell
-cd ai-service
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
-python -m pytest
-```
-
-### Frontend
-
-```powershell
-cd frontend
-npm ci
-npm run lint
-npm run build
-```
-
-### Verified integration evidence
-
-The latest recorded core smoke on `master` reports:
-
-```text
-SMOKE RESULT: PASS
-CV language: vi
-Eligible Jobs scanned: 11
-Persisted results: 11
-Rank sequence: 1..11
-Strategies: SAME_LANGUAGE_HYBRID, CROSS_LANGUAGE_SKILL_BASED
-Backend -> AI requestId propagation: confirmed
-```
-
-The recorded output did not print passwords, JWTs, raw CV text, or storage paths.
-
-This evidence verifies the core Backend–AI contract, orchestration, eligible-corpus flow, deterministic sorting, rank creation, and persistence. It does **not** replace full manual Student/Company/Admin browser E2E evidence or prove ranking quality according to human judgment.
-
-### CI workflows
-
-| Workflow | Scope |
-|---|---|
-| [Backend CI](.github/workflows/backend-ci.yml) | Java 21, Maven `clean verify` |
-| [AI Service CI](.github/workflows/ai-ci.yml) | Python 3.11.9, locked install, `pip check`, pytest |
-| [Frontend CI](.github/workflows/frontend-ci.yml) | Node 24, locked install, ESLint, production build |
-| [Core Smoke CI](.github/workflows/core-smoke-ci.yml) | Clean Docker Compose acceptance flow |
-| [Container Images](.github/workflows/container-images.yml) | Backend and AI image build; publish on eligible pushes/tags |
-
-No fixed test-count claim is included here because counts can change as the suites evolve.
-
----
-
-## Offline Ranking Evaluation
-
-The repository includes an offline evaluation framework and a separate independent human-annotation workflow.
-
-### Implemented
-
-- a synthetic toy dataset for framework verification only;
-- strict dataset validation for `cvs.json`, `jobs.json`, and complete `judgments.csv`;
-- `Precision@5`, `Recall@5`, and `NDCG@5`;
-- comparison modes:
-  - `production_hybrid`;
-  - `text_only`;
-  - `skill_only`;
-- independent annotation packet generation;
-- agreement review and disagreement export;
-- manual adjudication and finalization tooling;
-- privacy rules for private CVs and work-in-progress annotations.
-
-### Still required before ranking-quality conclusions
-
-- review and freeze a representative real `jobs.json` corpus;
-- use only authorized and anonymized CV inputs;
-- collect independent judgments from two or three human annotators;
-- manually adjudicate every disagreement;
-- freeze the complete human-labeled ground truth;
-- calculate and report final human-labeled metrics;
-- document dataset limitations, reviewer subjectivity, and possible bias.
-
-The algorithm must never generate its own ground truth. Toy labels and toy metrics must never be presented as evidence of product quality.
-
-See [Offline Recommendation Evaluation](ai-service/evaluation/README.md).
-
----
-
-## Project Status
-
-| Area | Status | Evidence boundary |
-|---|---|---|
-| Spring Boot Backend core and public API | Implemented | Source, tests, Backend CI |
-| PostgreSQL and Flyway through current V15 baseline | Implemented | Migrations and integration lifecycle |
-| FastAPI Contract V2 | Implemented | Strict V2 models, service tests, integration smoke |
-| PDF/DOCX parsing | Implemented | AI parser and tests |
-| Bilingual VI/EN recommendation | Implemented | Same-language and cross-language strategies |
-| Backend-owned validation, sorting, rank, persistence | Implemented | Validator, transaction services, smoke evidence |
-| Docker Compose core stack | Implemented | PostgreSQL + AI + Backend |
-| Backend CI | Implemented | GitHub Actions workflow |
-| AI Service CI | Implemented | GitHub Actions workflow |
-| Frontend CI | Implemented | Node 24 lint/build workflow |
-| Automated core smoke | Implemented and recorded PASS | Functional integration evidence only |
-| GHCR workflow and container runbook | Implemented | Package access, pull, release, and rollback verification still pending |
-| Production profile hardening | Implemented in configuration scope | Does not constitute a deployed production environment |
-| Backend–AI internal API-key authentication | Implemented | `/internal/v2/**` protection |
-| Backend → AI request tracing | Implemented | `X-Request-Id` propagation and safe completion logs |
-| Offline evaluation framework | Implemented | Framework availability is not quality evidence |
-| Human annotation workflow | Implemented | Real annotations and adjudication pending |
-| Frontend API integration and latest candidate runtime-state fixes | Merged | Full manual browser E2E remains pending |
-| Full Student/Company/Admin manual E2E | Pending | No complete PASS declaration yet |
-| Human-labeled ranking-quality metrics | Pending | No final P@5, R@5, or NDCG@5 claim |
-| Production monitoring and alerting | Pending | Request tracing alone is not full observability |
-| Backup/restore and rollback drills | Pending | Runbook exists; execution evidence incomplete |
-| Production-ready declaration | Not approved | Required gates remain open |
-
----
-
-## Current Limitations
-
-- No OCR for scanned or image-only CVs.
-- No embeddings, semantic vector model, or vector database.
-- No trained recommendation model or online model training.
-- CV analysis and recommendation generation are synchronous; no queue is used.
-- Historical CV text, Job documents, and eligible corpora are not immutable snapshots.
-- Job-skill importance and minimum proficiency are not included in Contract V2 scoring.
-- The current Backend does not enforce an admin-only Job approval gate for Company-owned Job activation.
-- Full manual browser E2E evidence is incomplete.
-- Production monitoring, alerting, log-retention review, backup/restore drills, and rollback drills are incomplete.
-- GHCR workflow existence does not prove target-environment package access or successful image pull.
-- Human-labeled ranking-quality results are not yet available.
-
----
-
-## Repository Structure
+## Cấu trúc repository
 
 ```text
 student-job-recommendation-system/
-├── .github/workflows/       # Backend, AI, Frontend, smoke, and image workflows
-├── ai-service/              # Stateless FastAPI AI Service
-│   └── evaluation/          # Offline metrics and human-annotation tooling
+├── .github/workflows/       # CI workflows
 ├── backend/                 # Spring Boot system of record
-├── frontend/                # React + TypeScript application
-├── docs/                    # Contracts, operations, testing, and runbooks
-├── performance/             # Benchmark tooling and evidence
-├── scripts/smoke-core.ps1   # Reproducible Backend-to-AI acceptance flow
-├── docker-compose.yml       # PostgreSQL + AI Service + Backend core stack
-├── .env.example             # Local configuration template
-├── AGENTS.md                # Repository source-of-truth and contribution rules
-└── README.md
+├── ai-service/              # FastAPI AI Service stateless
+│   └── evaluation/          # Công cụ đánh giá offline
+├── frontend/                # React + TypeScript
+├── docs/                    # Contract, runbook và evidence
+├── scripts/                 # Smoke và Real API/stack E2E runners
+├── performance/             # Tooling/evidence hiệu năng
+├── docker-compose.yml       # Core stack
+├── docker-compose.e2e.yml   # Override cho E2E cô lập
+└── .env.example             # Mẫu cấu hình local
 ```
 
----
+## Giới hạn và phạm vi
 
-## Documentation
+- Đây là Content-Based Filtering; chưa có Collaborative Filtering.
+- Chưa dùng embeddings, vector database, deep learning hay LLM ranking.
+- Chưa có tập dữ liệu relevance gán nhãn đủ lớn để kết luận Precision@K/NDCG trên dữ liệu tuyển dụng thực tế.
+- CV scan/image-only chưa được hỗ trợ OCR.
+- Chất lượng phụ thuộc vào parsing, language detection, canonical skill catalog và dữ liệu CV/Job đầu vào.
+- Recommendation/ranking hiện synchronous, chưa có queue hoặc worker phân tán.
+- Repository chưa cung cấp đầy đủ evidence để tuyên bố production-ready, vận hành ở quy mô phân tán hoặc browser E2E hoàn chỉnh cho mọi vai trò.
 
-| Topic | Document |
-|---|---|
-| Documentation index | [`docs/README.md`](docs/README.md) |
-| Repository rules and architecture | [`AGENTS.md`](AGENTS.md) |
-| Backend | [`backend/README.md`](backend/README.md) |
-| AI Service | [`ai-service/README.md`](ai-service/README.md) |
-| Frontend | [`frontend/README.md`](frontend/README.md) |
-| Public and internal API contract | [`docs/api-contract.md`](docs/api-contract.md) |
-| Docker core stack | [`docs/docker-core.md`](docs/docker-core.md) |
-| Request tracing | [`docs/operations/request-tracing.md`](docs/operations/request-tracing.md) |
-| Container images and rollback | [`docs/container-images.md`](docs/container-images.md) |
-| Production-readiness plan | [`docs/production-readiness-plan.md`](docs/production-readiness-plan.md) |
-| Production checklist | [`docs/production-readiness-checklist.md`](docs/production-readiness-checklist.md) |
-| Postman regression | [`docs/postman-regression.md`](docs/postman-regression.md) |
-| Manual E2E checklist | [`docs/testing/e2e-demo-checklist.md`](docs/testing/e2e-demo-checklist.md) |
-| Performance tooling | [`performance/README.md`](performance/README.md) |
-| Ranking evaluation | [`ai-service/evaluation/README.md`](ai-service/evaluation/README.md) |
+## Tài liệu liên quan
 
----
-
-## Contribution Workflow
-
-1. Update local `master` before creating a focused branch.
-2. Use a clear prefix such as `feat/`, `fix/`, `docs/`, `test/`, `perf/`, or `chore/`.
-3. Keep one concern per pull request and avoid unrelated file changes.
-4. Never modify a released Flyway migration; add a new migration.
-5. Do not change Contract V2, scoring, or service ownership outside an explicitly reviewed scope.
-6. Never commit secrets, `.env`, uploaded CVs, private evaluation data, generated annotation work, build output, or IDE caches.
-7. Run the relevant test suites and `git diff --check` before opening a pull request.
-8. Merge only after review and the required checks pass.
-
----
-
-## Vietnamese Summary
-
-Đây là hệ thống tuyển dụng full-stack dành cho sinh viên CNTT, doanh nghiệp và quản trị viên. Hệ thống đọc CV PDF/DOCX tiếng Việt hoặc tiếng Anh, chuẩn hóa kỹ năng, tính điểm gợi ý bằng TF-IDF, Cosine Similarity và đối sánh kỹ năng canonical. Backend Spring Boot là nguồn dữ liệu chính thức, chịu trách nhiệm xác thực, nghiệp vụ, kiểm tra kết quả AI, xếp hạng và lưu dữ liệu; AI Service chỉ xử lý parsing/NLP/scoring và không truy cập database.
-
----
-
-## Academic Notice
-
-This repository is developed as a graduation/capstone project. Automated tests and smoke evidence demonstrate software behavior, contract compliance, and reproducibility; they do not by themselves prove that recommendation rankings match human judgment. That conclusion requires the pending independent, human-labeled offline evaluation.
-
-<div align="center">
-
-**Deterministic contracts · Explainable scoring · Clear service ownership**
-
-</div>
+- [Contract Recommendation & Ranking V3](docs/recommendation-ranking-v3-contract.md)
+- [Các giới hạn đã biết](docs/known-limitations.md)

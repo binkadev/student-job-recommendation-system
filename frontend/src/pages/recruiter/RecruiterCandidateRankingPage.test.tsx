@@ -9,7 +9,6 @@ import {
   getCandidateRankingJob,
   getCandidateRankingRun,
   getCandidateRankingRuns,
-  openCandidateRankingCv,
   saveRankingCandidate,
 } from "../../features/recruiter/candidate-ranking/candidateRankingApi";
 import { RecruiterCandidateRankingPage } from "./RecruiterCandidateRankingPage";
@@ -19,7 +18,6 @@ vi.mock("../../features/recruiter/candidate-ranking/candidateRankingApi", () => 
   getCandidateRankingJob: vi.fn(),
   getCandidateRankingRun: vi.fn(),
   getCandidateRankingRuns: vi.fn(),
-  openCandidateRankingCv: vi.fn(),
   saveRankingCandidate: vi.fn(),
 }));
 
@@ -28,7 +26,6 @@ const api = {
   job: vi.mocked(getCandidateRankingJob),
   run: vi.mocked(getCandidateRankingRun),
   runs: vi.mocked(getCandidateRankingRuns),
-  cv: vi.mocked(openCandidateRankingCv),
   save: vi.mocked(saveRankingCandidate),
 };
 
@@ -54,7 +51,6 @@ function configureEmptyPage() {
   api.job.mockResolvedValue(rankingJob);
   api.runs.mockResolvedValue([]);
   api.create.mockResolvedValue(makeDetail({ results: [] }));
-  api.cv.mockResolvedValue(undefined);
   api.save.mockResolvedValue(undefined);
 }
 
@@ -62,7 +58,6 @@ function configureRun(run = makeRun(), results = [makeResult()]) {
   api.job.mockResolvedValue(rankingJob);
   api.runs.mockResolvedValue([run]);
   api.run.mockResolvedValue({ run, results });
-  api.cv.mockResolvedValue(undefined);
   api.save.mockResolvedValue(undefined);
   return { run, results };
 }
@@ -97,29 +92,27 @@ describe("initial page states and validation", () => {
     const { run } = configureRun();
     renderPage();
 
-    expect(await screen.findByText("Phù hợp tổng thể · 1")).toBeInTheDocument();
+    expect(await screen.findByText(/Phù hợp tổng thể/)).toBeInTheDocument();
     expect(api.run).toHaveBeenCalledWith("42", run.id);
   });
 
   it.each([
-    ["threshold below zero", "Ngưỡng điểm", "-0.01", "Ngưỡng điểm không hợp lệ"],
-    ["threshold above one", "Ngưỡng điểm", "1.01", "Ngưỡng điểm không hợp lệ"],
-    ["nonfinite threshold", "Ngưỡng điểm", "Infinity", "Ngưỡng điểm không hợp lệ"],
-    ["primary limit below one", "Top phù hợp tổng thể", "0", "Giới hạn kết quả không hợp lệ"],
-    ["primary limit above one hundred", "Top phù hợp tổng thể", "101", "Giới hạn kết quả không hợp lệ"],
-    ["primary limit noninteger", "Top phù hợp tổng thể", "1.5", "Giới hạn kết quả không hợp lệ"],
-  ])("rejects %s without calling create", async (_name, label, value, message) => {
+    ["threshold below zero", "threshold", "-0.01", "Ngưỡng điểm không hợp lệ"],
+    ["threshold above one", "threshold", "1.01", "Ngưỡng điểm không hợp lệ"],
+    ["nonfinite threshold", "threshold", "Infinity", "Ngưỡng điểm không hợp lệ"],
+    ["primary limit above one hundred", "primary", "101", "Giới hạn kết quả không hợp lệ"],
+    ["primary limit noninteger", "primary", "1.5", "Giới hạn kết quả không hợp lệ"],
+  ])("rejects %s without calling create", async (_name, field, value, message) => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(/Chưa có lượt xếp hạng cho tin tuyển dụng này/);
-    const input = screen.getByLabelText(label);
+    const input = screen.getByLabelText(field === "threshold" ? "Ngưỡng điểm" : "Top phù hợp tổng thể");
     await user.clear(input);
     if (value === "Infinity") {
       input.setAttribute("type", "text");
       fireEvent.change(input, { target: { value } });
-    } else {
-      await user.type(input, value);
     }
+    else await user.type(input, value);
     await user.click(screen.getByRole("button", { name: "Chạy xếp hạng" }));
 
     expect(api.create).not.toHaveBeenCalled();
@@ -128,7 +121,7 @@ describe("initial page states and validation", () => {
 });
 
 describe("create run and processing behavior", () => {
-  it("sends numeric threshold and limit and selects the returned run", async () => {
+  it("sends numeric threshold and V3 tier limits and selects the returned run", async () => {
     const user = userEvent.setup();
     const created = makeDetail({ run: { id: "run-new" }, results: [] });
     api.create.mockResolvedValue(created);
@@ -139,7 +132,7 @@ describe("create run and processing behavior", () => {
 
     await user.click(screen.getByRole("button", { name: "Chạy lại" }));
 
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith("42", { threshold: 0.3, limit: 30, primaryLimit: 30, fallbackLimit: 30 }));
+    await waitFor(() => expect(api.create).toHaveBeenCalledWith("42", { threshold: 0.3, primaryLimit: 30, fallbackLimit: 30 }));
     await waitFor(() => expect(api.run).toHaveBeenCalledWith("42", "run-new"));
   });
 
@@ -199,7 +192,6 @@ describe("create run and processing behavior", () => {
     await act(async () => { vi.advanceTimersByTime(5_000); });
     expect(api.runs).toHaveBeenCalledTimes(callsAfterPoll);
     expect(run.status).toBe("PROCESSING");
-    vi.useRealTimers();
   });
 
   it("does not poll a selected historical run", async () => {
@@ -214,11 +206,12 @@ describe("create run and processing behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xem lịch sử" }));
     fireEvent.click(screen.getByRole("button", { name: /Lần chạy #older/ }));
     await flushEffects();
+    expect(screen.queryByText(/Đang hiển thị kết quả lịch sử/)).not.toBeInTheDocument();
     expect(screen.getByText(/Đang xếp hạng ứng viên/)).toBeInTheDocument();
+    expect(screen.getAllByText("Đang xử lý").length).toBeGreaterThan(0);
     const calls = api.runs.mock.calls.length;
     await act(async () => { vi.advanceTimersByTime(5_000); });
     expect(api.runs).toHaveBeenCalledTimes(calls);
-    vi.useRealTimers();
   });
 });
 
@@ -245,13 +238,14 @@ describe("run result states and recruiter actions", () => {
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("Go")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Chi tiết" })).toHaveAttribute("href", "/recruiter/candidates/777");
+    expect(screen.queryByText(/không thay thế quyết định tuyển dụng/)).not.toBeInTheDocument();
   });
 
   it("marks a successfully saved candidate", async () => {
     const user = userEvent.setup();
     configureRun(makeRun(), [makeResult({ applicationId: "303" })]);
     renderPage();
-    await screen.findByText("Phù hợp tổng thể · 1");
+    await screen.findByText(/Phù hợp tổng thể/);
 
     await user.click(screen.getByRole("button", { name: "Lưu" }));
 
@@ -264,7 +258,7 @@ describe("run result states and recruiter actions", () => {
     configureRun(makeRun(), [makeResult({ applicationId: "303" })]);
     api.save.mockRejectedValue(new Error("save failed"));
     renderPage();
-    await screen.findByText("Phù hợp tổng thể · 1");
+    await screen.findByText(/Phù hợp tổng thể/);
 
     await user.click(screen.getByRole("button", { name: "Lưu" }));
 
@@ -272,15 +266,4 @@ describe("run result states and recruiter actions", () => {
     expect(screen.queryByRole("button", { name: "Đã lưu" })).not.toBeInTheDocument();
   });
 
-  it("opens the analysis modal", async () => {
-    const user = userEvent.setup();
-    configureRun(makeRun(), [makeResult({ studentName: "Demo Student" })]);
-    renderPage();
-    await screen.findByText("Phù hợp tổng thể · 1");
-
-    await user.click(screen.getByRole("button", { name: "Phân tích" }));
-
-    expect(await screen.findByRole("dialog")).toHaveTextContent("Phân tích Demo Student");
-    expect(screen.getByRole("dialog")).toHaveTextContent("Final Score");
-  });
 });

@@ -30,7 +30,7 @@ export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze,
       rows={results}
       getRowKey={(result) => `${result.applicationId}-${result.rankingTier}-${result.tierRankPosition}-${result.id}`}
       columns={[
-        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">#{result.tierRankPosition}</strong> },
+        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">{result.tierRankPosition ? `#${result.tierRankPosition}` : "—"}</strong> },
         { key: "candidate", header: "Ứng viên", render: (result) => <CandidateCell result={result} /> },
         { key: "score", header: "Kết quả đối sánh", render: (result) => <ScoreCell result={result} /> },
         { key: "matched", header: "Kỹ năng phù hợp", render: (result) => <SkillChips skills={result.matchedSkills} /> },

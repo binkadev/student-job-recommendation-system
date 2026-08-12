@@ -72,3 +72,18 @@ Recall@5 hoặc NDCG@5 chính thức.
   trình còn lại.
 - [Production-readiness checklist](production-readiness-checklist.md) — các gate
   tách biệt giữa implementation và runtime verification.
+
+## Final Candidate Ranking package
+
+- [Candidate Ranking contract](candidate-ranking-contract.md) — locked
+  eligibility, scoring, persistence, and API behavior.
+- [Project status](project-status.md) — evidence classifications and current
+  limitations.
+- [Windows runbook](runbook.md) — local startup, health checks, and isolated
+  E2E command.
+- [Demo runbook](demo-runbook.md) — deterministic recruiter demonstration.
+- [Defense guide](defense-guide.md) — giải thích kỹ thuật bằng tiếng Việt.
+- [Known limitations](known-limitations.md) — accepted limitations and
+  production prerequisites.
+- [Final verification](final-verification.md) — sanitized command evidence and
+  regression conclusion.

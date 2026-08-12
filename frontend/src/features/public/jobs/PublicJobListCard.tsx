@@ -9,12 +9,14 @@ export function PublicJobListCard({
   job,
   saved,
   applied = false,
+  applyLabel = "Ứng tuyển",
   onToggleSave,
   onApply,
 }: {
   job: PublicJobListItem;
   saved: boolean;
   applied?: boolean;
+  applyLabel?: string;
   onToggleSave: (jobId: string) => void;
   onApply: (jobId: string) => void;
 }) {
@@ -66,7 +68,7 @@ export function PublicJobListCard({
             <Button variant="secondary" size="sm">Xem chi tiết</Button>
           </Link>
           <Button size="sm" icon={<Send size={16} />} onClick={() => onApply(job.id)} disabled={applied}>
-            {applied ? "Đã ứng tuyển" : "Ứng tuyển"}
+            {applied ? "Đã ứng tuyển" : applyLabel}
           </Button>
         </div>
       </div>

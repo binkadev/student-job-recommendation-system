@@ -1,6 +1,4 @@
 import { httpClient } from "../../../services/api/httpClient";
-import { getCurrentUserStorageScope } from "../../../utils/authStorageScope";
-import { getStorageItem, setStorageItem } from "../../../utils/localStorage";
 import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
 
 interface ApiResponse<T> {
@@ -70,7 +68,7 @@ interface SkillResponse {
   description: string | null;
 }
 
-interface CandidateSkillCatalogItem {
+export interface CandidateSkillCatalogItem {
   id: number;
   name: string;
   normalizedName: string;
@@ -111,11 +109,11 @@ export async function getCandidateProfileData(): Promise<CandidateProfileData> {
     httpClient.get<ApiResponse<StudentSkillResponse[]>>("/students/me/skills"),
   ]);
 
-  return mergeCustomStudentSkills(mapCandidateProfile(
+  return mapCandidateProfile(
     studentResponse.data.data,
     profileResponse.data.data,
     skillsResponse.data.data,
-  ));
+  );
 }
 
 export async function updateCandidateProfileData(profile: CandidateProfileData): Promise<CandidateProfileData> {
@@ -142,7 +140,6 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
   await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
   await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", profilePayload);
   await updateStudentSkills(profile);
-  await saveCustomStudentSkills(profile);
 
   return getCandidateProfileData();
 }
@@ -226,27 +223,34 @@ function mapCandidateProfile(
 }
 
 async function updateStudentSkills(profile: CandidateProfileData) {
-  const skills = flattenSkills(profile);
+  const skills = flattenSkillGroups(profile);
   if (!skills.length) {
     await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: [] });
     return;
   }
 
   const catalog = await getCandidateSkillCatalog();
-  const payloadSkills = skills
+  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
+
+  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
+}
+
+export function buildStudentSkillsPayload(profile: Pick<CandidateProfileData, "skills">, catalog: CandidateSkillCatalogItem[]) {
+  return flattenSkillGroups(profile)
     .map((skill) => {
       const skillId = skill.skillId ?? findSkillId(skill, catalog);
-      if (!skillId) return null;
-      return {
-        skillId,
+      const common = {
         proficiencyLevel: mapSkillLevel(skill.level),
         yearsOfExperience: Number.isFinite(skill.years) ? skill.years : 0,
         source: (skill.source as BackendSkillSource | undefined) ?? "MANUAL",
       };
+      if (skillId) return { skillId, ...common };
+      const skillName = skill.name.trim();
+      if (!skillName) return null;
+      return { skillName, category: categoryForSkillGroup(skill.group), ...common, source: "MANUAL" as const };
     })
     .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill));
 
-  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
 }
 
 function groupStudentSkills(skills: StudentSkillResponse[]): CandidateProfileData["skills"] {
@@ -263,50 +267,6 @@ function groupStudentSkills(skills: StudentSkillResponse[]): CandidateProfileDat
   }, { frontend: [], backend: [], tools: [], soft: [] });
 }
 
-async function saveCustomStudentSkills(profile: CandidateProfileData) {
-  const catalog = await getCandidateSkillCatalog();
-  const customSkills: CandidateProfileData["skills"] = {
-    frontend: filterCustomSkillGroup(profile.skills.frontend, catalog),
-    backend: filterCustomSkillGroup(profile.skills.backend, catalog),
-    tools: filterCustomSkillGroup(profile.skills.tools, catalog),
-    soft: filterCustomSkillGroup(profile.skills.soft, catalog),
-  };
-  setStorageItem(getCustomSkillStorageKey(), customSkills);
-}
-
-function filterCustomSkillGroup(skills: CandidateSkill[], catalog: CandidateSkillCatalogItem[]) {
-  return skills
-    .filter((skill) => skill.name.trim())
-    .filter((skill) => !skill.skillId && !findSkillId(skill, catalog));
-}
-
-function mergeCustomStudentSkills(profile: CandidateProfileData): CandidateProfileData {
-  const customSkills = getStorageItem<CandidateProfileData["skills"]>(getCustomSkillStorageKey(), emptySkillGroups());
-  const mergedSkills: CandidateProfileData["skills"] = {
-    frontend: mergeSkillGroup(profile.skills.frontend, customSkills.frontend),
-    backend: mergeSkillGroup(profile.skills.backend, customSkills.backend),
-    tools: mergeSkillGroup(profile.skills.tools, customSkills.tools),
-    soft: mergeSkillGroup(profile.skills.soft, customSkills.soft),
-  };
-  return { ...profile, skills: mergedSkills };
-}
-
-function mergeSkillGroup(apiSkills: CandidateSkill[], customSkills: CandidateSkill[]) {
-  const existingNames = new Set(apiSkills.map((skill) => normalize(skill.name)));
-  return [
-    ...apiSkills,
-    ...customSkills.filter((skill) => !existingNames.has(normalize(skill.name))),
-  ];
-}
-
-function emptySkillGroups(): CandidateProfileData["skills"] {
-  return { frontend: [], backend: [], tools: [], soft: [] };
-}
-
-function getCustomSkillStorageKey() {
-  return `candidate-profile-custom-skills:${getCurrentUserStorageScope()}`;
-}
-
 function getSkillGroup(category: string | null): SkillGroup {
   const value = normalize(category ?? "");
   if (value.includes("front")) return "frontend";
@@ -315,13 +275,15 @@ function getSkillGroup(category: string | null): SkillGroup {
   return "tools";
 }
 
-function flattenSkills(profile: CandidateProfileData): CandidateSkill[] {
-  return [
-    ...profile.skills.frontend,
-    ...profile.skills.backend,
-    ...profile.skills.tools,
-    ...profile.skills.soft,
-  ];
+function flattenSkillGroups(profile: Pick<CandidateProfileData, "skills">) {
+  return (Object.entries(profile.skills) as Array<[SkillGroup, CandidateSkill[]]>).flatMap(([group, skills]) => skills.map((skill) => ({ ...skill, group })));
+}
+
+function categoryForSkillGroup(group: SkillGroup) {
+  if (group === "frontend") return "Frontend";
+  if (group === "backend") return "Backend";
+  if (group === "soft") return "Soft Skills";
+  return "Tools";
 }
 
 function findSkillId(skill: CandidateSkill, catalog: Array<Pick<SkillResponse, "id" | "name" | "normalizedName">>) {

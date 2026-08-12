@@ -70,8 +70,14 @@ public class CandidateRankingRun {
     @Column(name = "threshold", nullable = false, precision = 8, scale = 5)
     private BigDecimal threshold;
 
-    @Column(name = "requested_limit", nullable = false)
+    @Column(name = "requested_limit")
     private Integer requestedLimit;
+
+    @Column(name = "requested_primary_limit")
+    private Integer requestedPrimaryLimit;
+
+    @Column(name = "requested_fallback_limit")
+    private Integer requestedFallbackLimit;
 
     @Builder.Default
     @Column(name = "total_applications_scanned", nullable = false)

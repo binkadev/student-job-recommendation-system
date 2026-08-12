@@ -63,7 +63,7 @@ export function JobsPage() {
   const navigate = useNavigate();
   const { currentRole, isAuthenticated } = useAuth();
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { hasApplied } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel } = useAppliedJobs();
   const { showToast } = useToast();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -229,7 +229,8 @@ export function JobsPage() {
                   key={job.id}
                   job={job}
                   saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)}
-                  applied={isAuthenticated && currentRole === "candidate" && hasApplied(job.id)}
+                  applied={isAuthenticated && currentRole === "candidate" && !canApply(job.id)}
+                  applyLabel={isAuthenticated && currentRole === "candidate" ? getApplyButtonLabel(job.id) : "Ứng tuyển"}
                   onToggleSave={(jobId) => void requireCandidate("save", jobId)}
                   onApply={(jobId) => void requireCandidate("apply", jobId)}
                 />

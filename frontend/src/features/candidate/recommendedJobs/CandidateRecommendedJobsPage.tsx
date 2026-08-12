@@ -58,14 +58,13 @@ export function CandidateRecommendedJobsPage() {
   const [hideTarget, setHideTarget] = useState<CandidateRecommendedJob | null>(null);
   const [selectedCvId, setSelectedCvId] = useState("");
   const [threshold, setThreshold] = useState("0.1");
-  const [primaryLimit, setPrimaryLimit] = useState("20");
-  const [fallbackLimit, setFallbackLimit] = useState("20");
+  const [limit, setLimit] = useState("20");
   const [selectedRunId, setSelectedRunId] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { hasApplied } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel } = useAppliedJobs();
   const { showToast } = useToast();
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
@@ -106,6 +105,7 @@ export function CandidateRecommendedJobsPage() {
 
   const primaryJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier === "PRIMARY").sort(compareTierRank), [filteredJobs]);
   const fallbackJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier === "FALLBACK").sort(compareTierRank), [filteredJobs]);
+  const legacyJobs = useMemo(() => filteredJobs.filter((job) => job.rankingTier == null), [filteredJobs]);
   function updateFilter<K extends keyof RecommendedJobFilters>(key: K, value: RecommendedJobFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
@@ -146,20 +146,19 @@ export function CandidateRecommendedJobsPage() {
       return;
     }
     const thresholdValue = Number(threshold);
-    const primaryLimitValue = Number(primaryLimit);
-    const fallbackLimitValue = Number(fallbackLimit);
+    const limitValue = Number(limit);
     if (!Number.isFinite(thresholdValue) || thresholdValue < 0 || thresholdValue > 1) {
       showToast({ type: "error", title: "Threshold không hợp lệ", message: "Threshold phải nằm trong khoảng 0 đến 1." });
       return;
     }
-    if (!Number.isInteger(primaryLimitValue) || primaryLimitValue < 1 || primaryLimitValue > 100 || !Number.isInteger(fallbackLimitValue) || fallbackLimitValue < 1 || fallbackLimitValue > 100) {
+    if (!Number.isInteger(limitValue) || limitValue < 1 || limitValue > 100) {
       showToast({ type: "error", title: "Limit không hợp lệ", message: "Limit phải nằm trong khoảng 1 đến 100." });
       return;
     }
     generatingRef.current = true;
     setGenerating(true);
     try {
-      await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: Math.min(primaryLimitValue, fallbackLimitValue), primaryLimit: primaryLimitValue, fallbackLimit: fallbackLimitValue });
+      await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
       setSelectedRunId("");
       showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại khi có kết quả mới." });
       setReloadKey((current) => current + 1);
@@ -172,8 +171,8 @@ export function CandidateRecommendedJobsPage() {
   }
 
   function openApply(job: CandidateRecommendedJob) {
-    if (hasApplied(job.id)) {
-      showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
+    if (!canApply(job.id)) {
+      showToast({ type: "error", title: "Chưa thể ứng tuyển", message: "Đơn ứng tuyển gần nhất cho việc làm này vẫn đang được xử lý." });
       return;
     }
     setApplyJob({
@@ -191,7 +190,7 @@ export function CandidateRecommendedJobsPage() {
       <PageHeader title="Việc làm gợi ý" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
 
       <Card className="mb-5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_150px_170px_170px_190px_150px]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_150px_170px_190px_150px]">
           <Select
             label="CV dùng để gợi ý"
             value={selectedCvId}
@@ -202,8 +201,7 @@ export function CandidateRecommendedJobsPage() {
             ]}
           />
           <Input label="Ngưỡng xếp hạng" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
-          <Input label="Top phù hợp tổng thể" type="number" min="1" max="100" step="1" value={primaryLimit} onChange={(event) => setPrimaryLimit(event.target.value)} />
-          <Input label="Top đối sánh kỹ năng" type="number" min="1" max="100" step="1" value={fallbackLimit} onChange={(event) => setFallbackLimit(event.target.value)} />
+          <Input label="Số kết quả tối đa" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
           <Button className="mt-6 w-full" loading={generating} disabled={generateDisabled} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
             Cập nhật gợi ý
           </Button>
@@ -247,7 +245,7 @@ export function CandidateRecommendedJobsPage() {
         ) : null}
         {!cvsQuery.loading && (cvsQuery.data?.length ?? 0) > 0 && readyCvs.length === 0 ? (
           <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            <p>Chưa có CV nào sẵn sàng để tạo gợi ý. CV cần ở trạng thái READY và có đủ extracted text, processed text.</p>
+            <p>Chưa có CV nào sẵn sàng để tạo gợi ý. CV cần ở trạng thái READY và có đủ dữ liệu xử lý, metadata ngôn ngữ hợp lệ.</p>
             {notReadyCvs.length ? (
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {notReadyCvs.slice(0, 3).map((cv) => <li key={cv.id}>{cv.name}: {cv.readinessReason ?? cv.analysisStatus}</li>)}
@@ -314,7 +312,8 @@ export function CandidateRecommendedJobsPage() {
             description="Các việc làm có đủ bằng chứng nội dung và kỹ năng để tính Match Score."
             jobs={primaryJobs}
             savedIds={isSaved}
-            appliedIds={hasApplied}
+            canApply={canApply}
+            getApplyButtonLabel={getApplyButtonLabel}
             hiddenIds={hiddenIds}
             onToggleSave={(job) => void toggleSave(job)}
             onHide={setHideTarget}
@@ -327,7 +326,8 @@ export function CandidateRecommendedJobsPage() {
             description="Các việc làm được xếp theo mức đáp ứng kỹ năng, không phải điểm phù hợp tổng thể."
             jobs={fallbackJobs}
             savedIds={isSaved}
-            appliedIds={hasApplied}
+            canApply={canApply}
+            getApplyButtonLabel={getApplyButtonLabel}
             hiddenIds={hiddenIds}
             onToggleSave={(job) => void toggleSave(job)}
             onHide={setHideTarget}
@@ -335,6 +335,22 @@ export function CandidateRecommendedJobsPage() {
             onOpenAnalysis={setAnalysisJob}
             onApply={openApply}
           />
+          {legacyJobs.length ? (
+            <RecommendedJobSection
+              title="Kết quả lịch sử"
+              description="Các kết quả cũ chưa có ngữ nghĩa xếp hạng V3 đầy đủ. Điểm chỉ dùng để tham khảo lịch sử."
+              jobs={legacyJobs}
+              savedIds={isSaved}
+              canApply={canApply}
+              getApplyButtonLabel={getApplyButtonLabel}
+              hiddenIds={hiddenIds}
+              onToggleSave={(job) => void toggleSave(job)}
+              onHide={setHideTarget}
+              onRestore={restoreJob}
+              onOpenAnalysis={setAnalysisJob}
+              onApply={openApply}
+            />
+          ) : null}
         </div>
       )}
 
@@ -350,7 +366,8 @@ function RecommendedJobSection({
   description,
   jobs,
   savedIds,
-  appliedIds,
+  canApply,
+  getApplyButtonLabel,
   hiddenIds,
   onToggleSave,
   onHide,
@@ -362,7 +379,8 @@ function RecommendedJobSection({
   description: string;
   jobs: CandidateRecommendedJob[];
   savedIds: (id: string) => boolean;
-  appliedIds: (id: string) => boolean;
+  canApply: (id: string) => boolean;
+  getApplyButtonLabel: (id: string) => string;
   hiddenIds: string[];
   onToggleSave: (job: CandidateRecommendedJob) => void;
   onHide: (job: CandidateRecommendedJob) => void;
@@ -395,7 +413,8 @@ function RecommendedJobSection({
             key={`${job.rankingTier}-${job.id}`}
             job={job}
             saved={savedIds(job.id)}
-            applied={appliedIds(job.id)}
+            canApply={canApply(job.id)}
+            applyLabel={getApplyButtonLabel(job.id)}
             hidden={hiddenIds.includes(job.id)}
             onToggleSave={() => onToggleSave(job)}
             onHide={() => onHide(job)}
@@ -412,7 +431,8 @@ function RecommendedJobSection({
 function RecommendedJobCard({
   job,
   saved,
-  applied,
+  canApply,
+  applyLabel,
   hidden,
   onToggleSave,
   onHide,
@@ -422,7 +442,8 @@ function RecommendedJobCard({
 }: {
   job: CandidateRecommendedJob;
   saved: boolean;
-  applied: boolean;
+  canApply: boolean;
+  applyLabel: string;
   hidden: boolean;
   onToggleSave: () => void;
   onHide: () => void;
@@ -482,7 +503,7 @@ function RecommendedJobCard({
             <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
               {saved ? "Bỏ lưu" : "Lưu"}
             </Button>
-            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={applied || unavailable}>{applied ? "Đã ứng tuyển" : "Ứng tuyển"}</Button>
+            <Button size="sm" icon={<Send size={16} />} onClick={onApply} disabled={!canApply || unavailable}>{applyLabel}</Button>
             <Link to={detailPath} onClick={(event) => openAuthenticatedTab(event, detailPath)}>
               <Button variant="secondary" size="sm">Xem chi tiết</Button>
             </Link>
@@ -588,7 +609,7 @@ function filterRecommendedJobs(jobs: CandidateRecommendedJob[], filters: Recomme
 }
 
 function compareTierRank(left: CandidateRecommendedJob, right: CandidateRecommendedJob) {
-  return left.tierRankPosition - right.tierRankPosition;
+  return (left.tierRankPosition ?? Number.MAX_SAFE_INTEGER) - (right.tierRankPosition ?? Number.MAX_SAFE_INTEGER);
 }
 
 function normalizeText(value: string) {

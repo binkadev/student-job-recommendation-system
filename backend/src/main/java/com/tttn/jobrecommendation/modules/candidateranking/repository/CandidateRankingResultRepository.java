@@ -14,6 +14,11 @@ public interface CandidateRankingResultRepository extends JpaRepository<Candidat
     @EntityGraph(attributePaths = {"application.student.user", "cvFile"})
     List<CandidateRankingResult> findByRunIdOrderByRankPositionAsc(Long runId);
 
+    boolean existsByCvFileId(Long cvFileId);
+
+    @Query("select distinct result.cvFile.id from CandidateRankingResult result where result.cvFile.id in :cvFileIds")
+    List<Long> findReferencedCvFileIds(@Param("cvFileIds") Collection<Long> cvFileIds);
+
     @Query("""
             select result.run.id as runId, count(result.id) as totalRanked
             from CandidateRankingResult result

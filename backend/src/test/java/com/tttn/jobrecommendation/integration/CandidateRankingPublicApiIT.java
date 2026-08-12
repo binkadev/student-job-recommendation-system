@@ -54,13 +54,13 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
 
     private static final Set<String> RUN_FIELDS = Set.of(
             "id", "jobId", "jobTitle", "status", "algorithm", "algorithmVersion",
-            "threshold", "requestedLimit", "totalApplicationsScanned", "eligibleCandidates",
+            "threshold", "requestedLimit", "requestedPrimaryLimit", "requestedFallbackLimit", "totalApplicationsScanned", "eligibleCandidates",
             "skippedNoCv", "skippedNotReady", "skippedTerminalStatus", "totalRanked",
             "errorMessage", "startedAt", "finishedAt", "createdAt"
     );
     private static final Set<String> RESULT_FIELDS = Set.of(
             "id", "applicationId", "studentId", "studentName", "studentEmail",
-            "cvFileId", "cvFileName", "applicationStatus", "appliedAt", "score",
+            "cvFileId", "cvFileName", "applicationStatus", "appliedAt", "rankingTier", "rankingScore", "overallScore", "tierRankPosition", "score",
             "textScore", "skillScore", "scoringStrategy", "matchedSkills", "missingSkills",
             "reason", "rankPosition", "createdAt"
     );
@@ -242,7 +242,9 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.threshold").value(0.1))
-                .andExpect(jsonPath("$.data.requestedLimit").value(20))
+                .andExpect(jsonPath("$.data.requestedLimit").isEmpty())
+                .andExpect(jsonPath("$.data.requestedPrimaryLimit").value(20))
+                .andExpect(jsonPath("$.data.requestedFallbackLimit").value(20))
                 .andExpect(jsonPath("$.data.totalApplicationsScanned").value(0))
                 .andExpect(jsonPath("$.data.eligibleCandidates").value(0))
                 .andExpect(jsonPath("$.data.totalRanked").value(0))
@@ -250,8 +252,10 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
 
         CandidateRankingRun run = runRepository.findAll().getFirst();
         assertThat(run.getThreshold()).isEqualByComparingTo("0.10000");
-        assertThat(run.getRequestedLimit()).isEqualTo(20);
-        verify(aiServiceClient, never()).rankCandidates(
+        assertThat(run.getRequestedLimit()).isNull();
+        assertThat(run.getRequestedPrimaryLimit()).isEqualTo(20);
+        assertThat(run.getRequestedFallbackLimit()).isEqualTo(20);
+        verify(aiServiceClient, never()).rankCandidatesV3(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()
         );
     }
@@ -260,14 +264,18 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
     void explicitControlsReachRealOrchestrationAfterExactCanonicalization() throws Exception {
         mockMvc.perform(post(basePath(ownedJob)).header(HttpHeaders.AUTHORIZATION, ownerToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"threshold\":0.12345,\"limit\":37}"))
+                        .content("{\"threshold\":0.12345,\"primaryLimit\":37,\"fallbackLimit\":12}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.threshold").value(0.12345))
-                .andExpect(jsonPath("$.data.requestedLimit").value(37));
+                .andExpect(jsonPath("$.data.requestedLimit").isEmpty())
+                .andExpect(jsonPath("$.data.requestedPrimaryLimit").value(37))
+                .andExpect(jsonPath("$.data.requestedFallbackLimit").value(12));
 
         CandidateRankingRun run = runRepository.findAll().getFirst();
         assertThat(run.getThreshold()).isEqualByComparingTo("0.12345");
-        assertThat(run.getRequestedLimit()).isEqualTo(37);
+        assertThat(run.getRequestedLimit()).isNull();
+        assertThat(run.getRequestedPrimaryLimit()).isEqualTo(37);
+        assertThat(run.getRequestedFallbackLimit()).isEqualTo(12);
     }
 
     @ParameterizedTest
@@ -278,10 +286,14 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
             "{\"cvIds\":[1]}",
             "{\"threshold\":-0.1}",
             "{\"threshold\":1.1}",
-            "{\"limit\":0}",
-            "{\"limit\":101}",
+            "{\"limit\":20}",
+            "{\"primaryLimit\":-1}",
+            "{\"primaryLimit\":101}",
+            "{\"fallbackLimit\":-1}",
+            "{\"fallbackLimit\":101}",
+            "{\"primaryLimit\":0,\"fallbackLimit\":0}",
             "{\"threshold\":null}",
-            "{\"limit\":null}"
+            "{\"primaryLimit\":null}"
     })
     void invalidCreateBodyReturnsBadRequestBeforeGeneration(String body) throws Exception {
         mockMvc.perform(post(basePath(ownedJob)).header(HttpHeaders.AUTHORIZATION, ownerToken())
@@ -294,7 +306,7 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
     void nonRepresentableThresholdReturnsBadRequestWithoutCreatingRun() throws Exception {
         mockMvc.perform(post(basePath(ownedJob)).header(HttpHeaders.AUTHORIZATION, ownerToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"threshold\":0.123456,\"limit\":20}"))
+                        .content("{\"threshold\":0.123456,\"primaryLimit\":20,\"fallbackLimit\":20}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
         assertThat(runRepository.count()).isZero();
@@ -324,11 +336,13 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
         cv.setProcessedText("private java cv contents");
         cv.setExtractedSkills(List.of("java"));
         cv.setAnalysisStatus(CvAnalysisStatus.READY);
+        cv.setLanguageCode("en");
+        cv.setLanguageConfidence(new BigDecimal("0.99"));
         cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
         cv.setAnalyzedAt(LocalDateTime.of(2026, 8, 1, 10, 0));
         cvFileRepository.saveAndFlush(cv);
         createApplication(candidate, ownedJob, cv, ApplicationStatus.PENDING);
-        when(aiServiceClient.rankCandidates(
+        when(aiServiceClient.rankCandidatesV3(
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyString()
         )).thenThrow(failure);

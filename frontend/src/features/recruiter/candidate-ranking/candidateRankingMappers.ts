@@ -41,6 +41,8 @@ export interface CandidateRankingRunResponse {
   algorithmVersion?: string | null;
   threshold?: number | string | null;
   requestedLimit?: number | string | null;
+  requestedPrimaryLimit?: number | string | null;
+  requestedFallbackLimit?: number | string | null;
   totalApplicationsScanned?: number | string | null;
   eligibleCandidates?: number | string | null;
   skippedNoCv?: number | string | null;
@@ -99,6 +101,9 @@ export function mapRankingRun(run: CandidateRankingRunResponse | null | undefine
     skippedNotReady: toNumber(run?.skippedNotReady),
     skippedTerminalStatus: toNumber(run?.skippedTerminalStatus),
     resultCount: toNumber(run?.totalRanked),
+    requestedLimit: toNullableNumber(run?.requestedLimit),
+    requestedPrimaryLimit: toNullableNumber(run?.requestedPrimaryLimit),
+    requestedFallbackLimit: toNullableNumber(run?.requestedFallbackLimit),
   };
 }
 
@@ -161,30 +166,15 @@ function mapRankingScoreFields(result: CandidateRankingResultResponse): RankingS
     };
   }
 
-  const legacyStrategy = strategy ?? (result.textScore == null ? "CROSS_LANGUAGE_SKILL_BASED" : "SAME_LANGUAGE_HYBRID");
-  const legacySkillScore = toLegacyNormalizedScore(result.skillScore) ?? toLegacyNormalizedScore(result.score) ?? 0;
-  if (legacyStrategy === "CROSS_LANGUAGE_SKILL_BASED") {
-    return {
-      rankingTier: "FALLBACK",
-      tierRankPosition: toInteger(result.rankPosition) ?? 1,
-      rankingScore: legacySkillScore,
-      overallScore: null,
-      textScore: null,
-      skillScore: legacySkillScore,
-      scoringStrategy: "CROSS_LANGUAGE_SKILL_BASED",
-      legacyResult: true,
-    };
-  }
-
-  const legacyOverallScore = toLegacyNormalizedScore(result.score) ?? 0;
+  const legacyScore = toLegacyNormalizedScore(result.score) ?? toLegacyNormalizedScore(result.rankingScore) ?? toLegacyNormalizedScore(result.skillScore) ?? 0;
   return {
-    rankingTier: "PRIMARY",
-    tierRankPosition: toInteger(result.rankPosition) ?? 1,
-    rankingScore: legacyOverallScore,
-    overallScore: legacyOverallScore,
-    textScore: toLegacyNormalizedScore(result.textScore),
-    skillScore: legacySkillScore,
-    scoringStrategy: "SAME_LANGUAGE_HYBRID",
+    rankingTier: null,
+    tierRankPosition: null,
+    rankingScore: legacyScore,
+    overallScore: null,
+    textScore: null,
+    skillScore: toLegacyNormalizedScore(result.skillScore) ?? 0,
+    scoringStrategy: strategy,
     legacyResult: true,
   };
 }

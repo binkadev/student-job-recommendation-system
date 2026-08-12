@@ -4,6 +4,7 @@ import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
@@ -171,6 +172,43 @@ class CandidateRankingPersistenceIT extends AbstractPostgresIntegrationTest {
                 1,
                 RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID
         ))).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void v3RankingFieldsAndV3RunLimitsPersistThroughJpa() {
+        PersistenceFixture fixture = fixture("v3-fields");
+        CandidateRankingRun run = run(fixture.job(), RecommendationRunStatus.SUCCESS, UUID.randomUUID());
+        run.setRequestedLimit(null);
+        run.setRequestedPrimaryLimit(20);
+        run.setRequestedFallbackLimit(20);
+        run = runRepository.saveAndFlush(run);
+
+        CandidateRankingResult primary = result(
+                run,
+                fixture.application(),
+                fixture.cvFile(),
+                1,
+                RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID
+        );
+        primary.setRankingScore(new BigDecimal("0.72000"));
+        primary.setOverallScore(new BigDecimal("0.72000"));
+        primary.setRankingTier(RecommendationRankingTier.PRIMARY);
+        primary.setTierRankPosition(1);
+        resultRepository.saveAndFlush(primary);
+
+        entityManager.clear();
+
+        CandidateRankingRun reloadedRun = runRepository.findById(run.getId()).orElseThrow();
+        CandidateRankingResult reloadedResult = resultRepository.findByRunIdOrderByRankPositionAsc(run.getId())
+                .getFirst();
+        assertThat(reloadedRun.getRequestedLimit()).isNull();
+        assertThat(reloadedRun.getRequestedPrimaryLimit()).isEqualTo(20);
+        assertThat(reloadedRun.getRequestedFallbackLimit()).isEqualTo(20);
+        assertThat(reloadedResult.getRankingScore()).isEqualByComparingTo("0.72000");
+        assertThat(reloadedResult.getOverallScore()).isEqualByComparingTo("0.72000");
+        assertThat(reloadedResult.getRankingTier()).isEqualTo(RecommendationRankingTier.PRIMARY);
+        assertThat(reloadedResult.getTierRankPosition()).isEqualTo(1);
+        assertThat(reloadedResult.getScore()).isEqualByComparingTo("0.72000");
     }
 
     @ParameterizedTest

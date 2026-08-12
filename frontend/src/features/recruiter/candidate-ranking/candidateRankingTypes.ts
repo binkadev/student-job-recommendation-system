@@ -19,6 +19,9 @@ export interface CandidateRankingRun {
   skippedNotReady: number;
   skippedTerminalStatus: number;
   resultCount: number;
+  requestedLimit: number | null;
+  requestedPrimaryLimit: number | null;
+  requestedFallbackLimit: number | null;
 }
 
 export interface CandidateRankingResult extends RankingScoreFields {

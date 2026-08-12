@@ -32,7 +32,7 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
           <div className="grid gap-3 text-sm md:grid-cols-2">
             <Info label="Chiến lược chấm điểm" value={scoringStrategyLabel(result.scoringStrategy)} />
             <Info label="Phiên bản thuật toán" value={run?.algorithmVersion || "Chưa cập nhật"} />
-            <Info label="Hạng trong nhóm" value={`#${result.tierRankPosition}`} />
+            <Info label="Hạng trong nhóm" value={result.tierRankPosition ? `#${result.tierRankPosition}` : "Không áp dụng"} />
             <Info label="Nhóm xếp hạng" value={presentation.tierLabel} />
             <Info label="Mã ứng tuyển" value={`#${result.applicationId}`} />
           </div>

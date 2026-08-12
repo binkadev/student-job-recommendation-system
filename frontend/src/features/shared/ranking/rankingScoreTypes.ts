@@ -5,13 +5,13 @@ export type RecommendationScoringStrategy =
   | "CROSS_LANGUAGE_SKILL_BASED";
 
 export interface RankingScoreFields {
-  rankingTier: RankingTier;
-  tierRankPosition: number;
+  rankingTier: RankingTier | null;
+  tierRankPosition: number | null;
   rankingScore: number;
   overallScore: number | null;
   textScore: number | null;
   skillScore: number;
-  scoringStrategy: RecommendationScoringStrategy;
+  scoringStrategy: RecommendationScoringStrategy | null;
   legacyResult: boolean;
   invalidScoreContract?: boolean;
 }
@@ -22,7 +22,7 @@ export function formatNormalizedScore(value: number | null | undefined) {
   return `${Math.round(value * 100)}%`;
 }
 
-export function getScorePresentation(result: Pick<RankingScoreFields, "rankingTier" | "overallScore" | "skillScore">) {
+export function getScorePresentation(result: Pick<RankingScoreFields, "rankingTier" | "overallScore" | "skillScore" | "rankingScore">) {
   if (result.rankingTier === "PRIMARY") {
     return {
       label: "Match Score",
@@ -32,11 +32,20 @@ export function getScorePresentation(result: Pick<RankingScoreFields, "rankingTi
     } as const;
   }
 
+  if (result.rankingTier === "FALLBACK") {
+    return {
+      label: "Skill Score",
+      value: result.skillScore,
+      tierLabel: "Đối sánh kỹ năng",
+      methodLabel: "Đối sánh dựa trên kỹ năng",
+    } as const;
+  }
+
   return {
-    label: "Skill Score",
-    value: result.skillScore,
-    tierLabel: "Đối sánh kỹ năng",
-    methodLabel: "Đối sánh dựa trên kỹ năng",
+    label: "Điểm lịch sử",
+    value: result.rankingScore,
+    tierLabel: "Kết quả lịch sử",
+    methodLabel: "Kết quả lịch sử chưa có ngữ nghĩa V3",
   } as const;
 }
 

@@ -13,6 +13,11 @@ cross-job ranking feature.
 The existing Student-to-Job recommendation behavior and its V1/V2 contracts
 must remain unchanged.
 
+Implementation and verification status are summarized in
+[project-status.md](project-status.md); sanitized execution evidence is in
+[final-verification.md](final-verification.md). These links describe evidence
+only and do not change this locked contract.
+
 ## 2. System boundary
 
 - Frontend calls Backend only.

@@ -17,6 +17,8 @@ import type { JobDetailStatus } from "../../features/public/jobs/jobDetailTypes"
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
+import { httpClient } from "../../services/api/httpClient";
+import { getApplyButtonLabelForState, getApplicationStateForJob, type StudentApplication, useAppliedJobs } from "../../features/public/jobs/useAppliedJobs";
 
 const statusLabels: Record<JobDetailStatus, { label: string; tone: "success" | "warning" | "danger" }> = {
   open: { label: "Đang tuyển", tone: "success" },
@@ -33,6 +35,11 @@ export function JobDetailPage() {
   const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const detailQuery = useAsyncData(() => getPublicJobDetail(jobId), [jobId, reloadKey]);
+  const { getApplicationState } = useAppliedJobs();
+  const applicationHistoryQuery = useAsyncData(
+    () => isAuthenticated && currentRole === "candidate" && jobId ? getJobApplicationHistory(jobId) : Promise.resolve([]),
+    [currentRole, isAuthenticated, jobId, reloadKey],
+  );
 
   if (detailQuery.loading) {
     return (
@@ -66,6 +73,8 @@ export function JobDetailPage() {
 
   const { job } = detailQuery.data;
   const cannotApply = job.detailStatus !== "open";
+  const applicationState = getApplicationStateForJob(applicationHistoryQuery.data ?? [], jobId) || getApplicationState(jobId);
+  const canApply = applicationState === "NEVER_APPLIED" || applicationState === "REJECTED_CAN_REAPPLY";
 
   async function handleShare() {
     const url = window.location.href;
@@ -106,8 +115,8 @@ export function JobDetailPage() {
 
   const actionButtons = (
     <>
-      <Button className="flex-1 md:flex-none" disabled={cannotApply} onClick={() => void handleCandidateAction("apply")}>
-        {job.detailStatus === "open" ? "Ứng tuyển" : "Không thể ứng tuyển"}
+      <Button className="flex-1 md:flex-none" disabled={cannotApply || (isAuthenticated && currentRole === "candidate" && !canApply)} onClick={() => void handleCandidateAction("apply")}>
+        {job.detailStatus === "open" ? getApplyButtonLabelForState(applicationState) : "Không thể ứng tuyển"}
       </Button>
       <Button className="flex-1 md:flex-none" variant="secondary" onClick={() => void handleCandidateAction("save")}>
         Lưu việc
@@ -182,6 +191,8 @@ export function JobDetailPage() {
           <ListCard title="Quyền lợi" items={job.benefits} emptyMessage="Tin tuyển dụng chưa có quyền lợi." />
 
           <ListCard title="Quy trình tuyển dụng" items={job.recruitmentProcess} emptyMessage="Tin tuyển dụng chưa có quy trình tuyển dụng." />
+
+          {isAuthenticated && currentRole === "candidate" ? <ApplicationHistory applications={applicationHistoryQuery.data ?? []} /> : null}
         </main>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
@@ -238,9 +249,62 @@ export function JobDetailPage() {
           <Link to="/register/candidate"><Button variant="secondary" onClick={() => setLoginModalOpen(false)}>Đăng ký ứng viên</Button></Link>
         </div>
       </Modal>
-      <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} />
+      <CandidateApplyFlowModal job={applyJob} onClose={() => setApplyJob(null)} onApplied={() => setReloadKey((value) => value + 1)} />
     </PageContainer>
   );
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+async function getJobApplicationHistory(jobId: string): Promise<StudentApplication[]> {
+  const response = await httpClient.get<ApiResponse<StudentApplication[]>>("/students/me/applications", { params: { jobId } });
+  return [...(response.data.data ?? [])].sort((left, right) => {
+    const dateDifference = new Date(right.appliedAt ?? 0).getTime() - new Date(left.appliedAt ?? 0).getTime();
+    return dateDifference || right.id - left.id;
+  });
+}
+
+function ApplicationHistory({ applications }: { applications: StudentApplication[] }) {
+  return (
+    <Card>
+      <SectionHeader title="Lịch sử ứng tuyển" />
+      {applications.length ? (
+        <div className="space-y-3">
+          {applications.map((application) => (
+            <div key={application.id} className="rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <strong>#{application.id}</strong>
+                <StatusBadge label={applicationStatusLabel(application.status)} tone={application.status === "REJECTED" ? "danger" : application.status === "PENDING" || application.status === "REVIEWED" ? "warning" : "success"} />
+              </div>
+              <p className="mt-2">CV: {application.cvFileName || "Không đính kèm"}</p>
+              <p>Gửi lúc: {formatApplicationDate(application.appliedAt)}</p>
+              <p>Cập nhật: {formatApplicationDate(application.reviewedAt ?? application.updatedAt)}</p>
+              <p className="mt-2 whitespace-pre-line">{application.coverLetter?.trim() || "Không có thư giới thiệu."}</p>
+            </div>
+          ))}
+        </div>
+      ) : <EmptyState message="Bạn chưa có lịch sử ứng tuyển cho việc làm này." />}
+    </Card>
+  );
+}
+
+function applicationStatusLabel(status: string) {
+  if (status === "PENDING") return "Chờ xử lý";
+  if (status === "REVIEWED") return "Đã xem";
+  if (status === "ACCEPTED") return "Đã nhận";
+  if (status === "REJECTED") return "Từ chối";
+  if (status === "WITHDRAWN") return "Đã rút";
+  return "Chưa cập nhật";
+}
+
+function formatApplicationDate(value?: string | null) {
+  if (!value) return "Chưa cập nhật";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Chưa cập nhật" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
 function InfoItem({ icon, label }: { icon: React.ReactNode; label: string }) {

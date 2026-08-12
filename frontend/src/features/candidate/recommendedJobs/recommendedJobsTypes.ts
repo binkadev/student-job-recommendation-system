@@ -10,8 +10,8 @@ export interface MatchCriterion {
 export interface CandidateRecommendedJob extends Omit<PublicJobListItem, "matchScore">, RankingScoreFields {
   rankPosition?: number | null;
   scoringStrategyLabel?: string | null;
-  displayScoreLabel: "Match Score" | "Skill Score";
-  displayTierLabel: "Phù hợp tổng thể" | "Đối sánh kỹ năng";
+  displayScoreLabel: "Match Score" | "Skill Score" | "Điểm lịch sử";
+  displayTierLabel: "Phù hợp tổng thể" | "Đối sánh kỹ năng" | "Kết quả lịch sử";
   displayScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
@@ -53,8 +53,6 @@ export interface GenerateRecommendationPayload {
   cvId: string;
   threshold: number;
   limit: number;
-  primaryLimit?: number;
-  fallbackLimit?: number;
 }
 
 export interface RecommendedJobFilters {

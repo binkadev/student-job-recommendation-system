@@ -62,12 +62,20 @@ interface BackendCvAnalysisResponse {
 
 interface BackendApplicationResponse {
   id: number;
+  jobId?: number;
+  status?: string;
+  appliedAt?: string | null;
+  updatedAt?: string | null;
+  reviewedAt?: string | null;
+  cvFileId?: number | null;
+  cvFileName?: string | null;
+  coverLetter?: string | null;
 }
 
-export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | null; onClose: () => void }) {
+export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: ApplyFlowJob | null; onClose: () => void; onApplied?: () => void }) {
   const open = Boolean(job);
   const cvsQuery = useAsyncData(() => getSelectableCvs(open), [open]);
-  const { hasApplied, applyToJob } = useAppliedJobs();
+  const { canApply, applyToJob, refreshAppliedJobs } = useAppliedJobs();
   const { showToast } = useToast();
   const [step, setStep] = useState(0);
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
@@ -118,8 +126,8 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
 
   async function submitApplication() {
     if (!job || !validateStep(2)) return;
-    if (hasApplied(job.id)) {
-      showToast({ type: "error", title: "Không thể ứng tuyển trùng", message: "Bạn đã ứng tuyển việc làm này trước đó." });
+    if (!canApply(job.id)) {
+      showToast({ type: "error", title: "Chưa thể ứng tuyển", message: "Đơn ứng tuyển gần nhất cho việc làm này vẫn đang được xử lý hoặc đã rút." });
       return;
     }
     setSubmitting(true);
@@ -130,12 +138,29 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
         coverLetter: coverLetter.trim() || null,
       });
       const code = `APP-${response.data.data.id}`;
-      applyToJob(job.id);
+      applyToJob({
+        id: response.data.data.id,
+        jobId: response.data.data.jobId ?? Number(job.id),
+        status: response.data.data.status ?? "PENDING",
+        appliedAt: response.data.data.appliedAt ?? new Date().toISOString(),
+        updatedAt: response.data.data.updatedAt ?? new Date().toISOString(),
+        reviewedAt: response.data.data.reviewedAt,
+        cvFileId: response.data.data.cvFileId ?? validCvId,
+        cvFileName: response.data.data.cvFileName ?? selectedCv?.fileName ?? null,
+        coverLetter: response.data.data.coverLetter ?? (coverLetter.trim() || null),
+      });
       setApplicationCode(code);
       setStep(3);
+      onApplied?.();
       showToast({ type: "success", title: "Ứng tuyển thành công", message: `Mã ứng tuyển của bạn là ${code}.` });
     } catch (error) {
-      showToast({ type: "error", title: "Không thể gửi ứng tuyển", message: getApiErrorMessage(error, "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau.") });
+      const message = getApiErrorMessage(error, "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau.");
+      if (isApplicationAlreadyActiveError(error)) {
+        await refreshAppliedJobs();
+        showToast({ type: "error", title: "Đơn ứng tuyển đang được xử lý", message: "Bạn đã có đơn ứng tuyển đang hoạt động cho việc làm này." });
+        return;
+      }
+      showToast({ type: "error", title: "Không thể gửi ứng tuyển", message });
     } finally {
       setSubmitting(false);
     }
@@ -168,6 +193,11 @@ export function CandidateApplyFlowModal({ job, onClose }: { job: ApplyFlowJob | 
       ) : null}
     </Modal>
   );
+}
+
+function isApplicationAlreadyActiveError(error: unknown) {
+  return typeof error === "object" && error !== null && "response" in error
+    && (error as { response?: { data?: { errorCode?: string } } }).response?.data?.errorCode === "APPLICATION_ALREADY_ACTIVE";
 }
 
 function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvId: string; error?: string; onSelect: (id: string) => void }) {

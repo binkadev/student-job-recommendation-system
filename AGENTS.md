@@ -11,6 +11,34 @@ Student Job Recommendation System for IT students using Content-Based Filtering,
 - Do not use legacy branches such as `THI`, `Bao_RECOMMENDATION_Error`, `Bao_RECOMMENDATION_v2`, or similarly named personal branches as the source of domain behavior.
 - A legacy branch may only be consulted for historical context, and every reused change must be reviewed against the current `master` contracts, migrations, and tests.
 
+## Active V3 Migration Guardrails
+
+When working on branch `fix/recommendation-ranking-v3`, read and obey:
+
+```text
+docs/recommendation-ranking-v3-contract.md
+```
+
+That document is the temporary source of truth for the Recommendation/Ranking V3 migration and supersedes the V2 scoring semantics in this file only for code intentionally being migrated to V3.
+
+Mandatory V3 invariants:
+
+- Student Recommendation and Company Candidate Ranking consume persisted CV `processedText`, canonical/extracted skills, `languageCode`, `languageConfidence`, and `processingVersion`.
+- V3 scoring must not language-detect or preprocess CV text again.
+- CV parsing/preprocessing remains on the existing V2 processing pipeline unless a separate reviewed migration changes it.
+- `PRIMARY` maps only to `SAME_LANGUAGE_HYBRID`.
+- `FALLBACK` maps only to `CROSS_LANGUAGE_SKILL_BASED`.
+- PRIMARY: `rankingScore = overallScore`; `textScore` and `overallScore` are non-null.
+- FALLBACK: `rankingScore = skillScore`; `textScore = null`; `overallScore = null`.
+- Same-language weights remain 0.65 text and 0.35 skill when Job skills exist.
+- Do not compare PRIMARY and FALLBACK as one calibrated overall-score scale.
+- Student V3 keeps one global result limit but orders PRIMARY before FALLBACK.
+- Company V3 ranks PRIMARY and FALLBACK independently and uses separate requested limits.
+- Backend remains the source of truth for validation, official ordering, rank assignment, persistence, and public response semantics.
+- AI never returns official `rankPosition` or `tierRankPosition`.
+- Existing V2 endpoints/tests must remain intact during migration.
+- Do not edit Frontend as part of Backend/AI V3 implementation unless explicitly requested.
+
 ## Current Repository Scope
 
 The repository currently contains:

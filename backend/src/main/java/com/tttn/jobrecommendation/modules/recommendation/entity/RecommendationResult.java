@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.recommendation.entity;
 
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,13 +54,20 @@ public class RecommendationResult {
     private Job job;
 
     @Column(name = "score", nullable = false, precision = 8, scale = 5)
-    private BigDecimal score;
+    private BigDecimal rankingScore;
+
+    @Column(name = "overall_score", precision = 8, scale = 5)
+    private BigDecimal overallScore;
 
     @Column(name = "text_score", precision = 8, scale = 5)
     private BigDecimal textScore;
 
     @Column(name = "skill_score", precision = 8, scale = 5)
     private BigDecimal skillScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ranking_tier", length = 20)
+    private RecommendationRankingTier rankingTier;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "scoring_strategy", length = 50)
@@ -79,6 +87,36 @@ public class RecommendationResult {
 
     @Column(name = "rank_position", nullable = false)
     private Integer rankPosition;
+
+    @Column(name = "tier_rank_position")
+    private Integer tierRankPosition;
+
+    /**
+     * Transitional V2 source compatibility. V3 code must use rankingScore.
+     */
+    @Deprecated(forRemoval = false)
+    public BigDecimal getScore() {
+        return rankingScore;
+    }
+
+    /**
+     * Transitional V2 source compatibility. V3 code must use rankingScore.
+     */
+    @Deprecated(forRemoval = false)
+    public void setScore(BigDecimal score) {
+        this.rankingScore = score;
+    }
+
+    public static class RecommendationResultBuilder {
+
+        /**
+         * Transitional V2 builder compatibility. V3 code must use rankingScore.
+         */
+        @Deprecated(forRemoval = false)
+        public RecommendationResultBuilder score(BigDecimal score) {
+            return rankingScore(score);
+        }
+    }
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

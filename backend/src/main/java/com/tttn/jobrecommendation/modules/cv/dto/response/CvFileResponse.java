@@ -22,6 +22,9 @@ public class CvFileResponse {
     @JsonProperty("isActive")
     private boolean active;
 
+    private boolean deletable;
+    private String deleteBlockedReason;
+
     private LocalDateTime uploadedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

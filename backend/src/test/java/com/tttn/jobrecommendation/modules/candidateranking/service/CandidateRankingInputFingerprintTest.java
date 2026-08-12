@@ -7,6 +7,7 @@ import com.tttn.jobrecommendation.modules.candidateranking.service.model.Candida
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -133,12 +134,69 @@ class CandidateRankingInputFingerprintTest {
                 .isNotEqualTo(CandidateRankingInputFingerprint.compute(second, List.of()));
     }
 
+    @Test
+    void v3FingerprintIsDeterministicVersionedAndExcludesExtractedText() {
+        CandidateRankingJobSnapshot job = job(List.of("java", "spring boot"), "Requirements");
+        CandidateRankingCandidateSnapshot first = v3Candidate(10L, 110L, "processed", "ignored extracted", List.of("java", "spring boot"));
+        CandidateRankingCandidateSnapshot second = v3Candidate(20L, 120L, "processed two", "ignored second", List.of("docker", "java"));
+        String v3 = CandidateRankingInputFingerprint.computeV3(job, List.of(first, second));
+        String reordered = CandidateRankingInputFingerprint.computeV3(
+                job(List.of("spring boot", "java"), "Requirements"),
+                List.of(v3Candidate(20L, 120L, "processed two", "changed", List.of("java", "docker")),
+                        v3Candidate(10L, 110L, "processed", "different extracted", List.of("spring boot", "java")))
+        );
+
+        assertThat(v3).matches("[0-9a-f]{64}").isEqualTo(reordered);
+        assertThat(v3).isNotEqualTo(CandidateRankingInputFingerprint.compute(job, List.of(first, second)));
+        assertThat(CandidateRankingInputFingerprint.computeV3(job, List.of(
+                v3Candidate(10L, 110L, "processed", "only extracted changed", List.of("java", "spring boot")), second
+        ))).isEqualTo(v3);
+    }
+
+    @Test
+    void v3FingerprintChangesForEveryScoringSnapshotField() {
+        CandidateRankingJobSnapshot job = job(List.of("java", "spring boot"), "Requirements");
+        CandidateRankingCandidateSnapshot candidate = v3Candidate(10L, 110L, "processed", "ignored", List.of("java"));
+        String baseline = CandidateRankingInputFingerprint.computeV3(job, List.of(candidate));
+
+        assertDifferentV3(baseline, new CandidateRankingJobSnapshot(22L, "changed", job.description(), job.requirements(), job.canonicalSkills(), job.updatedAt()), List.of(candidate));
+        assertDifferentV3(baseline, job(List.of("docker", "java"), "Requirements"), List.of(candidate));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(11L, 110L, "processed", "ignored", List.of("java"))));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 111L, "processed", "ignored", List.of("java"))));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "changed", "ignored", List.of("java"))));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("docker"))));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "vi", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.8"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.PROCESSING, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "v3", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT.plusNanos(1), ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.REVIEWED)));
+    }
+
     private void assertDifferent(
             String baseline,
             CandidateRankingJobSnapshot job,
             List<CandidateRankingCandidateSnapshot> candidates
     ) {
         assertThat(CandidateRankingInputFingerprint.compute(job, candidates)).isNotEqualTo(baseline);
+    }
+
+    private void assertDifferentV3(String baseline, CandidateRankingJobSnapshot job, List<CandidateRankingCandidateSnapshot> candidates) {
+        assertThat(CandidateRankingInputFingerprint.computeV3(job, candidates)).isNotEqualTo(baseline);
+    }
+
+    private CandidateRankingCandidateSnapshot v3Candidate(Long applicationId, Long cvId, String processedText,
+                                                           String extractedText, List<String> skills) {
+        return v3Candidate(applicationId, cvId, processedText, extractedText, skills, "en", new BigDecimal("0.9"),
+                CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING);
+    }
+
+    private CandidateRankingCandidateSnapshot v3Candidate(Long applicationId, Long cvId, String processedText,
+                                                           String extractedText, List<String> skills, String language,
+                                                           BigDecimal confidence, CvAnalysisStatus status, String version,
+                                                           LocalDateTime analyzedAt, ApplicationStatus applicationStatus) {
+        return new CandidateRankingCandidateSnapshot(applicationId, applicationStatus, cvId, extractedText, processedText,
+                new ArrayList<>(skills), status, language, confidence, version, analyzedAt);
     }
 
     private CandidateRankingJobSnapshot job(List<String> skills, String requirements) {

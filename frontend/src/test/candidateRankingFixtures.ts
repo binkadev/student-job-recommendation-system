@@ -17,6 +17,9 @@ export function makeRun(overrides: Partial<CandidateRankingRun> = {}): Candidate
     skippedNotReady: 0,
     skippedTerminalStatus: 0,
     resultCount: 2,
+    requestedLimit: null,
+    requestedPrimaryLimit: 30,
+    requestedFallbackLimit: 30,
     ...overrides,
   };
 }

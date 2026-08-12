@@ -66,12 +66,17 @@ interface CvFileResponse {
   uploadedAt?: string | null;
 }
 
-interface CvAnalysisResponse {
+export interface CvAnalysisResponse {
   status?: string | null;
   extractedText?: string | null;
   processedText?: string | null;
+  languageCode?: string | null;
+  languageConfidence?: number | string | null;
+  processingVersion?: string | null;
   analysisError?: string | null;
 }
+
+const CURRENT_PROCESSING_VERSION = "bilingual-nlp-v2-skills-v1";
 
 const recommendedJobStateStoragePrefix = "candidate-recommended-job-state";
 
@@ -210,7 +215,7 @@ async function mapRecommendationResult(result: RecommendationResultResponse): Pr
   };
 }
 
-function mapRecommendationScoreFields(result: RecommendationResultResponse): RankingScoreFields {
+export function mapRecommendationScoreFields(result: RecommendationResultResponse): RankingScoreFields {
   const tier = normalizeRankingTier(result.rankingTier);
   const strategy = normalizeScoringStrategy(result.scoringStrategy);
   const tierRankPosition = toInteger(result.tierRankPosition);
@@ -250,30 +255,15 @@ function mapRecommendationScoreFields(result: RecommendationResultResponse): Ran
     };
   }
 
-  const legacyStrategy = strategy ?? (result.textScore == null ? "CROSS_LANGUAGE_SKILL_BASED" : "SAME_LANGUAGE_HYBRID");
-  const legacySkillScore = toLegacyNormalizedScore(result.skillScore) ?? toLegacyNormalizedScore(result.score) ?? 0;
-  if (legacyStrategy === "CROSS_LANGUAGE_SKILL_BASED") {
-    return {
-      rankingTier: "FALLBACK",
-      tierRankPosition: toInteger(result.rankPosition) ?? 1,
-      rankingScore: legacySkillScore,
-      overallScore: null,
-      textScore: null,
-      skillScore: legacySkillScore,
-      scoringStrategy: "CROSS_LANGUAGE_SKILL_BASED",
-      legacyResult: true,
-    };
-  }
-
-  const legacyOverallScore = toLegacyNormalizedScore(result.score) ?? 0;
+  const legacyScore = toLegacyNormalizedScore(result.score) ?? toLegacyNormalizedScore(result.rankingScore) ?? toLegacyNormalizedScore(result.skillScore) ?? 0;
   return {
-    rankingTier: "PRIMARY",
-    tierRankPosition: toInteger(result.rankPosition) ?? 1,
-    rankingScore: legacyOverallScore,
-    overallScore: legacyOverallScore,
-    textScore: toLegacyNormalizedScore(result.textScore),
-    skillScore: legacySkillScore,
-    scoringStrategy: "SAME_LANGUAGE_HYBRID",
+    rankingTier: null,
+    tierRankPosition: null,
+    rankingScore: legacyScore,
+    overallScore: null,
+    textScore: null,
+    skillScore: toLegacyNormalizedScore(result.skillScore) ?? 0,
+    scoringStrategy: strategy,
     legacyResult: true,
   };
 }
@@ -329,7 +319,7 @@ function buildRecommendationReasons({
   }
 
   if (rankingTier === "FALLBACK") {
-    reasons.push("Skill Score 100% thể hiện mức độ đáp ứng các kỹ năng đã khai báo của vị trí, không phải độ phù hợp tổng thể của CV với công việc.");
+    reasons.push("Skill Score chỉ thể hiện mức độ đáp ứng các kỹ năng đã khai báo của vị trí, không phải độ phù hợp tổng thể của CV với công việc.");
   }
 
   if (skillScore != null) {
@@ -339,24 +329,28 @@ function buildRecommendationReasons({
   return reasons;
 }
 
-async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {
+export function getCvReadiness(analysis: CvAnalysisResponse | null | undefined): { status: string; ready: boolean; reason: string | null } {
+  const status = analysis?.status ?? "NOT_READY";
+  if (status !== "READY") return { status, ready: false, reason: analysis?.analysisError || getCvReadinessReason(status) };
+  if (!analysis?.processedText?.trim()) return { status, ready: false, reason: "CV chưa có dữ liệu xử lý." };
+  if (!analysis.languageCode?.trim() || !isValidLanguageConfidence(analysis.languageConfidence)) return { status, ready: false, reason: "CV chưa có metadata ngôn ngữ hợp lệ." };
+  if (analysis.processingVersion !== CURRENT_PROCESSING_VERSION) return { status, ready: false, reason: "CV cần được phân tích lại bằng phiên bản xử lý hiện tại." };
+  return { status, ready: true, reason: null };
+}
+
+export async function getCvAnalysisSummary(cvId: number): Promise<{ status: string; ready: boolean; reason: string | null }> {
   try {
     const response = await httpClient.get<ApiResponse<CvAnalysisResponse>>(`/students/me/cv/${cvId}/analysis`);
     const analysis = response.data.data;
-    const status = analysis?.status ?? "NOT_READY";
-    if (status !== "READY") {
-      return { status, ready: false, reason: analysis?.analysisError || getCvReadinessReason(status) };
-    }
-    if (!analysis?.extractedText?.trim()) {
-      return { status, ready: false, reason: "Thiếu extracted text." };
-    }
-    if (!analysis?.processedText?.trim()) {
-      return { status, ready: false, reason: "Thiếu processed text." };
-    }
-    return { status, ready: true, reason: null };
+    return getCvReadiness(analysis);
   } catch (error) {
     return { status: "ERROR", ready: false, reason: getCvAnalysisErrorReason(error) };
   }
+}
+
+function isValidLanguageConfidence(value: number | string | null | undefined) {
+  const confidence = Number(value);
+  return Number.isFinite(confidence) && confidence >= 0 && confidence <= 1;
 }
 
 function normalizeStringArray(value?: string[] | null) {

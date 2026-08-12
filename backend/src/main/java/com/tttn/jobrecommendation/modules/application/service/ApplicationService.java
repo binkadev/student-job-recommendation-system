@@ -15,7 +15,7 @@ public interface ApplicationService {
 
     ApplicationResponse apply(Long jobId, ApplyJobRequest request, Long userId);
 
-    List<ApplicationResponse> getMyApplications(Long userId);
+    List<ApplicationResponse> getMyApplications(Long userId, Long jobId);
 
     List<ApplicationResponse> getCompanyJobApplications(Long jobId, Long userId);
 

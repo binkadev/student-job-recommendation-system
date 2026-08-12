@@ -50,8 +50,10 @@ public class ApplicationController {
     @Operation(summary = "List current student's applications")
     @GetMapping("/api/students/me/applications")
     @PreAuthorize("hasRole('STUDENT')")
-    public ApiResponse<List<ApplicationResponse>> getMyApplications() {
-        return ApiResponse.success(applicationService.getMyApplications(securityUtils.getCurrentUserId()));
+    public ApiResponse<List<ApplicationResponse>> getMyApplications(
+            @RequestParam(required = false) Long jobId
+    ) {
+        return ApiResponse.success(applicationService.getMyApplications(securityUtils.getCurrentUserId(), jobId));
     }
 
     @Operation(summary = "Get current student's application detail")

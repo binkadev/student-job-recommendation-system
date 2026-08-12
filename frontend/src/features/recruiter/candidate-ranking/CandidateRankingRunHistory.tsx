@@ -35,12 +35,20 @@ export function CandidateRankingRunHistory({ runs, selectedRunId, onSelect }: Ca
             </div>
             <p className="mt-1 text-slate-600">{run.startedAt}</p>
             <p className="mt-1 text-xs text-slate-500">{run.resultCount} kết quả · {run.algorithmVersion}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatRequestedLimits(run)}</p>
           </button>
         ))}
         {selectedRunId ? <Button variant="secondary" onClick={() => onSelect("")}>Dùng lần chạy mới nhất</Button> : null}
       </div>
     </Card>
   );
+}
+
+function formatRequestedLimits(run: CandidateRankingRun) {
+  if (run.requestedPrimaryLimit != null || run.requestedFallbackLimit != null) {
+    return `Phù hợp tổng thể: ${run.requestedPrimaryLimit ?? 0} · Đối sánh kỹ năng: ${run.requestedFallbackLimit ?? 0}`;
+  }
+  return run.requestedLimit != null ? `Giới hạn lịch sử: ${run.requestedLimit}` : "Giới hạn: Chưa cập nhật";
 }
 
 function runStatusTone(status: CandidateRankingRun["status"]) {

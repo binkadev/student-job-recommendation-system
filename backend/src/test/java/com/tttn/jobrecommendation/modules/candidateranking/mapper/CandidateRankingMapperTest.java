@@ -2,10 +2,13 @@ package com.tttn.jobrecommendation.modules.candidateranking.mapper;
 
 import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
+import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRankingRun;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.candidateranking.dto.response.CandidateRankingResultResponse;
 import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRankingResult;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
+import com.tttn.jobrecommendation.modules.job.entity.Job;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.user.entity.User;
 import org.junit.jupiter.api.Test;
@@ -40,7 +43,10 @@ class CandidateRankingMapperTest {
                 .id(9L)
                 .application(application)
                 .cvFile(cvFile)
-                .score(new BigDecimal("0.54321"))
+                .rankingScore(new BigDecimal("0.54321"))
+                .rankingTier(RecommendationRankingTier.FALLBACK)
+                .overallScore(null)
+                .tierRankPosition(2)
                 .textScore(null)
                 .skillScore(new BigDecimal("0.54321"))
                 .scoringStrategy(RecommendationScoringStrategy.CROSS_LANGUAGE_SKILL_BASED)
@@ -56,6 +62,10 @@ class CandidateRankingMapperTest {
         missing.clear();
 
         assertThat(response.score()).isEqualByComparingTo("0.54321");
+        assertThat(response.rankingScore()).isEqualByComparingTo("0.54321");
+        assertThat(response.rankingTier()).isEqualTo(RecommendationRankingTier.FALLBACK);
+        assertThat(response.overallScore()).isNull();
+        assertThat(response.tierRankPosition()).isEqualTo(2);
         assertThat(response.textScore()).isNull();
         assertThat(response.rankPosition()).isEqualTo(17);
         assertThat(response.reason()).isEqualTo("Persisted reason");
@@ -64,5 +74,24 @@ class CandidateRankingMapperTest {
         assertThat(response.cvFileName()).isEqualTo("public-cv.pdf");
         assertThatThrownBy(() -> response.matchedSkills().add("nope"))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void resultAndRunMappingsPreservePrimaryAndHistoricalNullableV3Fields() {
+        User user = User.builder().id(5L).fullName("Candidate").email("candidate@example.test").build();
+        JobApplication application = JobApplication.builder().id(7L).student(Student.builder().id(6L).user(user).build()).status(ApplicationStatus.PENDING).build();
+        CandidateRankingResult primary = CandidateRankingResult.builder().id(9L).application(application).cvFile(CvFile.builder().id(8L).fileName("cv.pdf").build())
+                .rankingScore(new BigDecimal("0.70000")).overallScore(new BigDecimal("0.70000")).textScore(new BigDecimal("0.80000")).skillScore(new BigDecimal("0.50000"))
+                .rankingTier(RecommendationRankingTier.PRIMARY).tierRankPosition(1).scoringStrategy(RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID).rankPosition(1).build();
+        assertThat(mapper.toResultResponse(primary).rankingScore()).isEqualByComparingTo("0.70000");
+        assertThat(mapper.toResultResponse(primary).overallScore()).isEqualByComparingTo("0.70000");
+        Job job = Job.builder().id(20L).title("Backend").build();
+        CandidateRankingRun v2 = CandidateRankingRun.builder().job(job).requestedLimit(20).build();
+        CandidateRankingRun v3 = CandidateRankingRun.builder().job(job).requestedLimit(null).requestedPrimaryLimit(10).requestedFallbackLimit(15).build();
+        assertThat(mapper.toRunResponse(v2, 0).requestedLimit()).isEqualTo(20);
+        assertThat(mapper.toRunResponse(v2, 0).requestedPrimaryLimit()).isNull();
+        assertThat(mapper.toRunResponse(v3, 0).requestedLimit()).isNull();
+        assertThat(mapper.toRunResponse(v3, 0).requestedPrimaryLimit()).isEqualTo(10);
+        assertThat(mapper.toRunResponse(v3, 0).requestedFallbackLimit()).isEqualTo(15);
     }
 }

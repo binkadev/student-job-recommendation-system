@@ -441,7 +441,7 @@ function EducationEditor({ items, setItems, onDelete }: { items: EditableEducati
 function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkill & { group: string }>; setItems: (items: Array<CandidateSkill & { group: string }>) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
-      <SectionHeader title="Kỹ năng" description="Có thể nhập kỹ năng tự do. Kỹ năng có trong danh mục sẽ lưu qua API, kỹ năng mới sẽ được giữ lại trên giao diện." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0, source: "MANUAL" }])} />} />
+      <SectionHeader title="Kỹ năng" description="Có thể nhập kỹ năng tự do. Kỹ năng mới sẽ được lưu vào hồ sơ qua API." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0, source: "MANUAL" }])} />} />
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((item) => (
           <div key={item.id} className="rounded-lg border border-slate-200 p-4">

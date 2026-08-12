@@ -16,6 +16,11 @@ public enum ErrorCode {
             HttpStatus.NOT_IMPLEMENTED
     ),
     CV_IN_USE("CV_IN_USE", "CV file is in use", HttpStatus.CONFLICT),
+    APPLICATION_ALREADY_ACTIVE(
+            "APPLICATION_ALREADY_ACTIVE",
+            "An active application already exists for this job",
+            HttpStatus.CONFLICT
+    ),
     CV_ANALYSIS_NOT_READY(
             "CV_ANALYSIS_NOT_READY",
             "CV analysis is not ready",

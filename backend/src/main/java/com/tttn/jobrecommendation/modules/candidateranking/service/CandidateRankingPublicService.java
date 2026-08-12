@@ -36,7 +36,8 @@ public class CandidateRankingPublicService {
                 company.getId(),
                 jobId,
                 threshold,
-                request.getLimit()
+                request.getPrimaryLimit(),
+                request.getFallbackLimit()
         );
         return queryService.getRunDetail(company.getId(), jobId, runId);
     }

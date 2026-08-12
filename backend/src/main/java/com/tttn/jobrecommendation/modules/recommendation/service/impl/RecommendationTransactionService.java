@@ -7,6 +7,8 @@ import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationRequest;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.skill.SkillCatalogCanonicalizer;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
@@ -44,6 +46,9 @@ public class RecommendationTransactionService {
     private final RecommendationResultRepository recommendationResultRepository;
     private final EligibleJobCorpusBuilder eligibleJobCorpusBuilder;
     private final AiRecommendationRequestMapper requestMapper;
+    private final EligibleJobCorpusV3Builder eligibleJobCorpusV3Builder;
+    private final AiRecommendationV3RequestMapper v3RequestMapper;
+    private final SkillCatalogCanonicalizer skillCatalogCanonicalizer;
     private final RecommendationFailureMessageSanitizer failureMessageSanitizer;
 
     @Transactional
@@ -90,6 +95,43 @@ public class RecommendationTransactionService {
     }
 
     @Transactional
+    public RecommendationGenerationV3Context createProcessingRunV3(
+            Long userId,
+            GenerateRecommendationRequest generationRequest
+    ) {
+        Student student = studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
+        CvFile cvFile = cvFileRepository.findByIdAndStudentId(generationRequest.getCvId(), student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("CV file not found"));
+        if (cvFile.getAnalysisStatus() != CvAnalysisStatus.READY
+                || !StringUtils.hasText(cvFile.getProcessedText())
+                || !StringUtils.hasText(cvFile.getLanguageCode())
+                || cvFile.getLanguageConfidence() == null
+                || cvFile.getLanguageConfidence().compareTo(java.math.BigDecimal.ZERO) < 0
+                || cvFile.getLanguageConfidence().compareTo(java.math.BigDecimal.ONE) > 0
+                || !RecommendationV3Contract.PROCESSING_VERSION.equals(cvFile.getProcessingVersion())) {
+            throw new AppException(ErrorCode.CV_ANALYSIS_NOT_READY);
+        }
+        List<String> cvSkills = skillCatalogCanonicalizer.canonicalizeAllSorted(
+                cvFile.getExtractedSkills() == null ? List.of() : cvFile.getExtractedSkills()
+        );
+        List<AiRecommendationV3Request.JobInput> jobs = eligibleJobCorpusV3Builder.build(LocalDate.now());
+        UUID requestId = UUID.randomUUID();
+        AiRecommendationV3Request request = v3RequestMapper.toRequest(
+                requestId, cvFile.getId(), cvFile.getProcessedText(), cvSkills, cvFile.getLanguageCode(),
+                cvFile.getLanguageConfidence(), cvFile.getProcessingVersion(), jobs,
+                generationRequest.getThreshold(), generationRequest.getLimit()
+        );
+        RecommendationRun run = recommendationRunRepository.saveAndFlush(RecommendationRun.builder()
+                .student(student).cvFile(cvFile).sourceType(RecommendationSourceType.CV)
+                .status(RecommendationRunStatus.PROCESSING).totalJobsScanned(jobs.size()).build());
+        Map<Long, List<String>> jobSkillsById = jobs.stream().collect(Collectors.toUnmodifiableMap(
+                AiRecommendationV3Request.JobInput::id, AiRecommendationV3Request.JobInput::skills
+        ));
+        return new RecommendationGenerationV3Context(run.getId(), request, jobSkillsById, cvSkills);
+    }
+
+    @Transactional
     public void completeSuccess(Long runId, ValidatedRecommendationResponse validatedResponse) {
         RecommendationRun run = getProcessingRun(runId);
         Set<Long> jobIds = validatedResponse.results().stream()
@@ -117,6 +159,33 @@ public class RecommendationTransactionService {
                 .toList();
         recommendationResultRepository.saveAllAndFlush(results);
 
+        run.setAlgorithm(validatedResponse.algorithm());
+        run.setAlgorithmVersion(validatedResponse.algorithmVersion());
+        run.setStatus(RecommendationRunStatus.SUCCESS);
+        run.setFinishedAt(LocalDateTime.now());
+        run.setErrorMessage(null);
+        recommendationRunRepository.save(run);
+    }
+
+    @Transactional
+    public void completeSuccessV3(Long runId, ValidatedRecommendationV3Response validatedResponse) {
+        RecommendationRun run = getProcessingRun(runId);
+        Set<Long> jobIds = validatedResponse.results().stream()
+                .map(ValidatedRecommendationV3Response.Result::jobId).collect(Collectors.toSet());
+        Map<Long, Job> jobsById = new HashMap<>();
+        jobRepository.findAllById(jobIds).forEach(job -> jobsById.put(job.getId(), job));
+        if (jobsById.size() != jobIds.size()) {
+            throw new AppException(ErrorCode.RECOMMENDATION_GENERATION_FAILED);
+        }
+        List<RecommendationResult> results = validatedResponse.results().stream().map(result ->
+                RecommendationResult.builder().run(run).job(jobsById.get(result.jobId()))
+                        .rankingScore(result.rankingScore()).overallScore(result.overallScore())
+                        .textScore(result.textScore()).skillScore(result.skillScore())
+                        .rankingTier(result.rankingTier()).scoringStrategy(result.scoringStrategy())
+                        .matchedKeywords(result.matchedSkills()).missingSkills(result.missingSkills())
+                        .reason(result.reason()).rankPosition(result.rankPosition())
+                        .tierRankPosition(result.tierRankPosition()).build()).toList();
+        recommendationResultRepository.saveAllAndFlush(results);
         run.setAlgorithm(validatedResponse.algorithm());
         run.setAlgorithmVersion(validatedResponse.algorithmVersion());
         run.setStatus(RecommendationRunStatus.SUCCESS);

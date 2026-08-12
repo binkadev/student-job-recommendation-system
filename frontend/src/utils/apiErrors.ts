@@ -1,6 +1,7 @@
 const apiErrorMessages: Record<string, string> = {
   ACCESS_DENIED: "Bạn không có quyền thực hiện thao tác này.",
   ALREADY_APPLIED: "Bạn đã ứng tuyển công việc này trước đó.",
+  APPLICATION_ALREADY_ACTIVE: "Bạn đã có đơn ứng tuyển đang được xử lý cho việc làm này.",
   AI_SERVICE_INVALID_RESPONSE: "Dịch vụ AI trả về dữ liệu chưa hợp lệ. Vui lòng thử lại sau.",
   AI_SERVICE_TIMEOUT: "Dịch vụ AI phản hồi quá lâu. Vui lòng thử lại sau.",
   AI_SERVICE_UNAVAILABLE: "Dịch vụ AI hiện chưa sẵn sàng. Vui lòng thử lại sau.",

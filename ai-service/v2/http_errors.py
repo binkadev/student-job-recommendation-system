@@ -1,4 +1,4 @@
-"""Sanitized HTTP error handling for the internal V2 contract only."""
+"""Sanitized HTTP error handling for additive internal V2/V3 contracts."""
 
 from __future__ import annotations
 
@@ -13,7 +13,11 @@ from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHttpException
 
 
-_V2_PATH_PREFIX = "/internal/v2/"
+_SANITIZED_PATH_PREFIXES = ("/internal/v2/", "/internal/v3/")
+
+
+def _uses_sanitized_internal_errors(path: str) -> bool:
+    return path.startswith(_SANITIZED_PATH_PREFIXES)
 
 
 class V2ErrorResponse(BaseModel):
@@ -127,7 +131,7 @@ def error_response(error: V2ApiError) -> JSONResponse:
 
 
 def install_v2_error_handlers(app: FastAPI) -> None:
-    """Install V2 sanitizers while delegating every V1 case unchanged."""
+    """Install V2/V3 sanitizers while delegating every V1 case unchanged."""
 
     @app.exception_handler(V2ApiError)
     async def handle_v2_api_error(
@@ -141,7 +145,7 @@ def install_v2_error_handlers(app: FastAPI) -> None:
         request: Request,
         error: RequestValidationError,
     ):
-        if request.url.path.startswith(_V2_PATH_PREFIX):
+        if _uses_sanitized_internal_errors(request.url.path):
             return error_response(validation_error())
         return await request_validation_exception_handler(request, error)
 
@@ -151,7 +155,7 @@ def install_v2_error_handlers(app: FastAPI) -> None:
         error: StarletteHttpException,
     ):
         if (
-            request.url.path.startswith(_V2_PATH_PREFIX)
+            _uses_sanitized_internal_errors(request.url.path)
             and error.status_code in {400, 422}
         ):
             return error_response(validation_error())
