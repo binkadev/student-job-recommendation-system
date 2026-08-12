@@ -22,7 +22,6 @@ public record CandidateRankingResultResponse(
         BigDecimal rankingScore,
         BigDecimal overallScore,
         Integer tierRankPosition,
-        /** @deprecated Use rankingScore; retained as the persisted score compatibility alias. */
         BigDecimal score,
         BigDecimal textScore,
         BigDecimal skillScore,
