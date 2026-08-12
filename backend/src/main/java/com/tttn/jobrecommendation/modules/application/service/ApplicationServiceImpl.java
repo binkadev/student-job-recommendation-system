@@ -49,6 +49,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
 
+    private static final String ACTIVE_APPLICATION_CONSTRAINT = "uk_applications_student_job_active";
+
     private static final Map<String, String> APPLICATION_ALLOWED_SORTS = Map.of(
             "id", "id",
             "status", "status",
@@ -112,7 +114,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         try {
             return applicationMapper.toApplicationResponse(applicationRepository.saveAndFlush(application));
         } catch (DataIntegrityViolationException exception) {
-            throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
+            if (isActiveApplicationConstraintViolation(exception)) {
+                throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
+            }
+            throw exception;
         }
     }
 
@@ -429,5 +434,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private String likeValue(String value) {
         return "%" + value.trim().toLowerCase(Locale.ROOT) + "%";
+    }
+
+    private boolean isActiveApplicationConstraintViolation(DataIntegrityViolationException exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof org.hibernate.exception.ConstraintViolationException constraintViolation
+                    && ACTIVE_APPLICATION_CONSTRAINT.equals(constraintViolation.getConstraintName())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

@@ -4,12 +4,23 @@ import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
+import com.tttn.jobrecommendation.common.enums.RecommendationSourceType;
 import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
+import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRankingResult;
+import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRankingRun;
+import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingResultRepository;
+import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingRunRepository;
+import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
+import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
+import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationRunRepository;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MvcResult;
@@ -17,6 +28,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +49,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CvApiIT extends AbstractPostgresWebIntegrationTest {
 
     private static final byte[] CV_CONTENTS = "%PDF-student-cv".getBytes(StandardCharsets.UTF_8);
+
+    @Autowired
+    private RecommendationRunRepository recommendationRunRepository;
+
+    @Autowired
+    private CandidateRankingRunRepository candidateRankingRunRepository;
+
+    @Autowired
+    private CandidateRankingResultRepository candidateRankingResultRepository;
 
     @Test
     void uploadInitializesCvAnalysisStateAsNotReady() throws Exception {
@@ -280,6 +303,66 @@ class CvApiIT extends AbstractPostgresWebIntegrationTest {
     }
 
     @Test
+    void recommendationRunOnlyReferenceBlocksCvDeletion() throws Exception {
+        Student owner = createStudent("recommendation-run-cv-owner@example.test");
+        CvFile cvFile = createStoredCv(owner, "recommendation-run-only.pdf", "recommendation-run-only.pdf", false);
+        recommendationRunRepository.saveAndFlush(RecommendationRun.builder()
+                .student(owner)
+                .cvFile(cvFile)
+                .sourceType(RecommendationSourceType.CV)
+                .status(RecommendationRunStatus.SUCCESS)
+                .totalJobsScanned(0)
+                .finishedAt(LocalDateTime.now())
+                .build());
+
+        assertCvIsReportedAndRejectedAsInUse(owner, cvFile);
+        assertThat(cvFileRepository.existsById(cvFile.getId())).isTrue();
+    }
+
+    @Test
+    void candidateRankingResultOnlyReferenceBlocksCvDeletion() throws Exception {
+        Student owner = createStudent("candidate-result-cv-owner@example.test");
+        CvFile resultCv = createStoredCv(owner, "candidate-result-only.pdf", "candidate-result-only.pdf", false);
+        Company company = createCompany("candidate-result-company@example.test", "Candidate Result Company", CompanyStatus.VERIFIED);
+        Job job = createJob(company, "Candidate Result Job", JobStatus.ACTIVE);
+        CvFile submittedCv = createStoredCv(owner, "candidate-submitted.pdf", "candidate-submitted.pdf", false);
+        JobApplication application = createApplication(owner, job, submittedCv, ApplicationStatus.PENDING);
+        CandidateRankingRun run = candidateRankingRunRepository.saveAndFlush(CandidateRankingRun.builder()
+                .job(job)
+                .requestId(UUID.randomUUID())
+                .status(RecommendationRunStatus.SUCCESS)
+                .algorithm("tfidf-cosine-hybrid")
+                .algorithmVersion("bilingual-candidate-ranking-v2")
+                .threshold(new BigDecimal("0.10000"))
+                .requestedLimit(1)
+                .totalApplicationsScanned(1)
+                .eligibleCandidates(1)
+                .skippedNoCv(0)
+                .skippedNotReady(0)
+                .skippedTerminalStatus(0)
+                .inputFingerprint("a".repeat(64))
+                .jobUpdatedAtSnapshot(job.getUpdatedAt())
+                .build());
+        candidateRankingResultRepository.saveAndFlush(CandidateRankingResult.builder()
+                .run(run)
+                .application(application)
+                .cvFile(resultCv)
+                .score(new BigDecimal("0.72000"))
+                .textScore(new BigDecimal("0.65000"))
+                .skillScore(new BigDecimal("0.85000"))
+                .scoringStrategy(RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID)
+                .matchedSkills(List.of())
+                .missingSkills(List.of())
+                .rankPosition(1)
+                .build());
+
+        assertCvIsReportedAndRejectedAsInUse(owner, resultCv);
+        assertThat(cvFileRepository.existsById(resultCv.getId())).isTrue();
+        assertThat(jobApplicationRepository.findById(application.getId()).orElseThrow().getCvFile().getId())
+                .isEqualTo(submittedCv.getId());
+    }
+
+    @Test
     void deletingActiveUnusedCvDoesNotActivateAnotherCv() throws Exception {
         Student owner = createStudent("active-delete-owner@example.test");
         CvFile inactiveCv = createStoredCv(owner, "inactive-stored.pdf", "inactive-resume.pdf", false);
@@ -307,5 +390,17 @@ class CvApiIT extends AbstractPostgresWebIntegrationTest {
         cvFile = cvFileRepository.saveAndFlush(cvFile);
         writeCvFile(cvFile, CV_CONTENTS);
         return cvFile;
+    }
+
+    private void assertCvIsReportedAndRejectedAsInUse(Student owner, CvFile cvFile) throws Exception {
+        mockMvc.perform(get("/api/students/me/cv/{cvId}", cvFile.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.deletable").value(false))
+                .andExpect(jsonPath("$.data.deleteBlockedReason").value("IN_USE"));
+        mockMvc.perform(delete("/api/students/me/cv/{cvId}", cvFile.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("CV_IN_USE"));
     }
 }

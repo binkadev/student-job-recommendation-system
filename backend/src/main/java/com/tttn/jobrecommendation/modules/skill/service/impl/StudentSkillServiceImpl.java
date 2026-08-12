@@ -97,7 +97,7 @@ public class StudentSkillServiceImpl implements StudentSkillService {
             Map<Long, StudentSkill> existingBySkillId
     ) {
         StudentSkill studentSkill = existingBySkillId.getOrDefault(
-                item.getSkillId(),
+                skill.getId(),
                 StudentSkill.builder()
                         .student(student)
                         .skill(skill)
