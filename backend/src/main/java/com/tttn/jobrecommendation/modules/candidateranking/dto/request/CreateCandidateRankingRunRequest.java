@@ -21,12 +21,24 @@ public class CreateCandidateRankingRunRequest {
     private BigDecimal threshold = new BigDecimal("0.1");
 
     @NotNull
-    @Min(1)
+    @Min(0)
     @Max(100)
-    private Integer limit = 20;
+    private Integer primaryLimit = 20;
+
+    @NotNull
+    @Min(0)
+    @Max(100)
+    private Integer fallbackLimit = 20;
 
     @JsonAnySetter
     public void rejectUnknownField(String fieldName, Object value) {
         throw new IllegalArgumentException("Unsupported field: " + fieldName);
+    }
+
+    @jakarta.validation.constraints.AssertTrue(message = "primaryLimit and fallbackLimit must total between 1 and 100")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isTierLimitTotalValid() {
+        return primaryLimit != null && fallbackLimit != null
+                && primaryLimit + fallbackLimit >= 1 && primaryLimit + fallbackLimit <= 100;
     }
 }

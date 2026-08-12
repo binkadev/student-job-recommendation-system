@@ -38,6 +38,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
                 cv.processedText,
                 cv.extractedSkills,
                 cv.analysisStatus,
+                cv.languageCode,
+                cv.languageConfidence,
                 cv.processingVersion,
                 cv.analyzedAt
             )

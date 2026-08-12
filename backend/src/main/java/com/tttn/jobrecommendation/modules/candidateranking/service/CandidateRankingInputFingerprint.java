@@ -29,6 +29,7 @@ import java.util.List;
 public final class CandidateRankingInputFingerprint {
 
     private static final String ENCODING_VERSION = "candidate-ranking-input-v1";
+    private static final String V3_ENCODING_VERSION = "candidate-ranking-input-v2";
 
     private CandidateRankingInputFingerprint() {
     }
@@ -61,6 +62,28 @@ public final class CandidateRankingInputFingerprint {
         }
     }
 
+    public static String computeV3(
+            CandidateRankingJobSnapshot job,
+            List<CandidateRankingCandidateSnapshot> candidates
+    ) {
+        MessageDigest digest = newSha256Digest();
+        try (DataOutputStream output = new DataOutputStream(new DigestOutputStream(
+                OutputStream.nullOutputStream(), digest))) {
+            writeString(output, "encodingVersion", V3_ENCODING_VERSION);
+            writeJob(output, job);
+            List<CandidateRankingCandidateSnapshot> sorted = candidates.stream()
+                    .sorted(Comparator.comparing(CandidateRankingCandidateSnapshot::applicationId)).toList();
+            writeFieldName(output, "applications");
+            output.writeInt(sorted.size());
+            for (CandidateRankingCandidateSnapshot candidate : sorted) {
+                writeCandidateV3(output, candidate);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (IOException exception) {
+            throw new IllegalStateException("Unable to encode candidate ranking V3 fingerprint", exception);
+        }
+    }
+
     private static void writeJob(DataOutputStream output, CandidateRankingJobSnapshot job) throws IOException {
         writeLong(output, "job.id", job.id());
         writeString(output, "job.title", job.title());
@@ -81,6 +104,22 @@ public final class CandidateRankingInputFingerprint {
         writeStrings(output, "cv.skills", candidate.canonicalExtractedSkills());
         writeString(output, "cv.analysisStatus",
                 candidate.analysisStatus() == null ? null : candidate.analysisStatus().name());
+        writeString(output, "cv.processingVersion", candidate.processingVersion());
+        writeDateTime(output, "cv.analyzedAt", candidate.analyzedAt());
+    }
+
+    private static void writeCandidateV3(
+            DataOutputStream output,
+            CandidateRankingCandidateSnapshot candidate
+    ) throws IOException {
+        writeLong(output, "application.id", candidate.applicationId());
+        writeString(output, "application.status", candidate.applicationStatus() == null ? null : candidate.applicationStatus().name());
+        writeLong(output, "application.cvId", candidate.cvId());
+        writeString(output, "cv.processedText", candidate.processedText());
+        writeStrings(output, "cv.skills", candidate.canonicalExtractedSkills());
+        writeString(output, "cv.languageCode", candidate.languageCode());
+        writeString(output, "cv.languageConfidence", candidate.languageConfidence() == null ? null : candidate.languageConfidence().toPlainString());
+        writeString(output, "cv.analysisStatus", candidate.analysisStatus() == null ? null : candidate.analysisStatus().name());
         writeString(output, "cv.processingVersion", candidate.processingVersion());
         writeDateTime(output, "cv.analyzedAt", candidate.analyzedAt());
     }

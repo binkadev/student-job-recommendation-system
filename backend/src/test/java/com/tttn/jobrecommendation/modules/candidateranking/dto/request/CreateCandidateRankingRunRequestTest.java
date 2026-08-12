@@ -28,16 +28,18 @@ class CreateCandidateRankingRunRequestTest {
         CreateCandidateRankingRunRequest request = read("{}");
 
         assertThat(request.getThreshold()).isEqualByComparingTo("0.1");
-        assertThat(request.getLimit()).isEqualTo(20);
+        assertThat(request.getPrimaryLimit()).isEqualTo(20);
+        assertThat(request.getFallbackLimit()).isEqualTo(20);
         assertThat(validator.validate(request)).isEmpty();
     }
 
     @Test
     void explicitValidControlsAreBound() throws Exception {
-        CreateCandidateRankingRunRequest request = read("{\"threshold\":0.25,\"limit\":42}");
+        CreateCandidateRankingRunRequest request = read("{\"threshold\":0.25,\"primaryLimit\":42,\"fallbackLimit\":10}");
 
         assertThat(request.getThreshold()).isEqualByComparingTo("0.25");
-        assertThat(request.getLimit()).isEqualTo(42);
+        assertThat(request.getPrimaryLimit()).isEqualTo(42);
+        assertThat(request.getFallbackLimit()).isEqualTo(10);
         assertThat(validator.validate(request)).isEmpty();
     }
 
@@ -51,9 +53,10 @@ class CreateCandidateRankingRunRequestTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {1, 100})
-    void limitBoundariesAreAccepted(int limit) throws Exception {
-        CreateCandidateRankingRunRequest request = read("{\"limit\":" + limit + "}");
+    @ValueSource(ints = {0, 100})
+    void tierLimitBoundariesAreAccepted(int limit) throws Exception {
+        CreateCandidateRankingRunRequest request = read("{\"primaryLimit\":" + limit
+                + ",\"fallbackLimit\":" + (limit == 100 ? 0 : 1) + "}");
 
         assertThat(validator.validate(request)).isEmpty();
     }
@@ -61,11 +64,11 @@ class CreateCandidateRankingRunRequestTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "{\"threshold\":null}",
-            "{\"limit\":null}",
+            "{\"primaryLimit\":null}",
             "{\"threshold\":-0.00001}",
             "{\"threshold\":1.00001}",
-            "{\"limit\":0}",
-            "{\"limit\":101}"
+            "{\"primaryLimit\":101}",
+            "{\"primaryLimit\":0,\"fallbackLimit\":0}"
     })
     void nullAndOutOfRangeControlsAreRejectedByValidation(String json) throws Exception {
         assertThat(validator.validate(read(json))).isNotEmpty();
@@ -76,7 +79,8 @@ class CreateCandidateRankingRunRequestTest {
             "unknown",
             "companyId",
             "applicationIds",
-            "cvIds"
+            "cvIds",
+            "limit"
     })
     void everyUnknownOrForbiddenFieldIsRejected(String field) {
         assertThatThrownBy(() -> read("{\"" + field + "\":1}"))
