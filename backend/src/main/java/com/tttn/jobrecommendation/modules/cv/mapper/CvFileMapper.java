@@ -8,6 +8,10 @@ import org.springframework.stereotype.Component;
 public class CvFileMapper {
 
     public CvFileResponse toCvFileResponse(CvFile cvFile) {
+        return toCvFileResponse(cvFile, true);
+    }
+
+    public CvFileResponse toCvFileResponse(CvFile cvFile, boolean deletable) {
         return CvFileResponse.builder()
                 .id(cvFile.getId())
                 .studentId(cvFile.getStudent().getId())
@@ -18,6 +22,8 @@ public class CvFileMapper {
                 .extractedText(cvFile.getExtractedText())
                 .processedText(cvFile.getProcessedText())
                 .active(cvFile.isActive())
+                .deletable(deletable)
+                .deleteBlockedReason(deletable ? null : "IN_USE")
                 .uploadedAt(cvFile.getUploadedAt())
                 .createdAt(cvFile.getCreatedAt())
                 .updatedAt(cvFile.getUpdatedAt())

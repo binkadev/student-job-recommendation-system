@@ -40,6 +40,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,8 +81,23 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Job application deadline has passed");
         }
 
-        if (applicationRepository.existsByStudentIdAndJobId(student.getId(), job.getId())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Student already applied to this job");
+        if (applicationRepository.existsByStudentIdAndJobIdAndStatusIn(
+                student.getId(),
+                job.getId(),
+                EnumSet.of(ApplicationStatus.PENDING, ApplicationStatus.REVIEWED, ApplicationStatus.ACCEPTED)
+        )) {
+            throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
+        }
+
+        var latestApplication = applicationRepository.findFirstByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(
+                student.getId(),
+                job.getId()
+        );
+        if (latestApplication.isPresent() && latestApplication.get().getStatus() != ApplicationStatus.REJECTED) {
+            throw new AppException(
+                    ErrorCode.BAD_REQUEST,
+                    "Reapplication is only allowed after the latest application was rejected"
+            );
         }
 
         CvFile cvFile = resolveCvFile(request.getCvFileId(), student);
@@ -94,17 +110,20 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .build();
 
         try {
-            return applicationMapper.toApplicationResponse(applicationRepository.save(application));
+            return applicationMapper.toApplicationResponse(applicationRepository.saveAndFlush(application));
         } catch (DataIntegrityViolationException exception) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Student already applied to this job");
+            throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> getMyApplications(Long userId) {
+    public List<ApplicationResponse> getMyApplications(Long userId, Long jobId) {
         Student student = getStudentByUserId(userId);
-        return applicationRepository.findByStudentIdOrderByAppliedAtDesc(student.getId())
+        List<JobApplication> applications = jobId == null
+                ? applicationRepository.findByStudentIdOrderByAppliedAtDescIdDesc(student.getId())
+                : applicationRepository.findByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(student.getId(), jobId);
+        return applications
                 .stream()
                 .map(applicationMapper::toApplicationResponse)
                 .toList();

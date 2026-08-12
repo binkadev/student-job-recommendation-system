@@ -24,7 +24,7 @@ class DatabaseRecommendationRankingV3MigrationIT extends AbstractPostgresIntegra
 
             Flyway flyway = migrate(schema, null);
 
-            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("17");
+            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("18");
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 
             assertStudentBackfill(schema, fixture);

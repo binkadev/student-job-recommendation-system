@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -253,6 +254,29 @@ class CvApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(cvFileRepository.existsById(cvFile.getId())).isTrue();
         assertThat(jobApplicationRepository.existsById(application.getId())).isTrue();
         assertThat(Files.exists(physicalFile)).isTrue();
+    }
+
+    @Test
+    void cvResponsesExposeActualDeletabilityRatherThanInferringItFromActiveState() throws Exception {
+        Student owner = createStudent("cv-deletability-owner@example.test");
+        CvFile activeUnusedCv = createStoredCv(owner, "active-unused.pdf", "active-unused.pdf", true);
+        CvFile inactiveReferencedCv = createStoredCv(owner, "inactive-referenced.pdf", "inactive-referenced.pdf", false);
+        Job job = createJob(
+                createCompany("cv-deletability-company@example.test", "CV Deletability", CompanyStatus.VERIFIED),
+                "CV Deletability Job",
+                JobStatus.ACTIVE
+        );
+        createApplication(owner, job, inactiveReferencedCv, ApplicationStatus.REJECTED);
+
+        mockMvc.perform(get("/api/students/me/cv")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(owner.getUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.id == %s)].isActive", activeUnusedCv.getId()).value(contains(true)))
+                .andExpect(jsonPath("$.data[?(@.id == %s)].deletable", activeUnusedCv.getId()).value(contains(true)))
+                .andExpect(jsonPath("$.data[?(@.id == %s)].deleteBlockedReason", activeUnusedCv.getId()).value(contains(nullValue())))
+                .andExpect(jsonPath("$.data[?(@.id == %s)].isActive", inactiveReferencedCv.getId()).value(contains(false)))
+                .andExpect(jsonPath("$.data[?(@.id == %s)].deletable", inactiveReferencedCv.getId()).value(contains(false)))
+                .andExpect(jsonPath("$.data[?(@.id == %s)].deleteBlockedReason", inactiveReferencedCv.getId()).value(contains("IN_USE")));
     }
 
     @Test

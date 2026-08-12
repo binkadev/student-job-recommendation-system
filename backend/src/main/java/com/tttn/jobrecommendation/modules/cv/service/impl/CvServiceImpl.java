@@ -5,6 +5,7 @@ import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
+import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingResultRepository;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileDownload;
 import com.tttn.jobrecommendation.modules.cv.dto.response.CvFileResponse;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
@@ -12,6 +13,7 @@ import com.tttn.jobrecommendation.modules.cv.mapper.CvFileMapper;
 import com.tttn.jobrecommendation.modules.cv.repository.CvFileRepository;
 import com.tttn.jobrecommendation.modules.cv.service.CvService;
 import com.tttn.jobrecommendation.modules.cv.service.CvStorageService;
+import com.tttn.jobrecommendation.modules.recommendation.repository.RecommendationRunRepository;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +49,8 @@ public class CvServiceImpl implements CvService {
     private final StudentRepository studentRepository;
     private final CvFileMapper cvFileMapper;
     private final JobApplicationRepository applicationRepository;
+    private final RecommendationRunRepository recommendationRunRepository;
+    private final CandidateRankingResultRepository candidateRankingResultRepository;
     private final CvStorageService cvStorageService;
 
     @Value("${app.upload.cv.storage-dir}")
@@ -104,16 +109,18 @@ public class CvServiceImpl implements CvService {
                 .active(active)
                 .build();
 
-        return cvFileMapper.toCvFileResponse(cvFileRepository.save(cvFile));
+        return cvFileMapper.toCvFileResponse(cvFileRepository.save(cvFile), true);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CvFileResponse> getMyCvFiles(Long userId) {
         Student student = getStudentByUserId(userId);
-        return cvFileRepository.findByStudentIdOrderByUploadedAtDesc(student.getId())
+        List<CvFile> cvFiles = cvFileRepository.findByStudentIdOrderByUploadedAtDesc(student.getId());
+        Set<Long> blockedCvIds = findBlockedCvIds(cvFiles);
+        return cvFiles
                 .stream()
-                .map(cvFileMapper::toCvFileResponse)
+                .map(cvFile -> cvFileMapper.toCvFileResponse(cvFile, !blockedCvIds.contains(cvFile.getId())))
                 .toList();
     }
 
@@ -122,7 +129,7 @@ public class CvServiceImpl implements CvService {
     public CvFileResponse getActiveCv(Long userId) {
         Student student = getStudentByUserId(userId);
         return cvFileRepository.findFirstByStudentIdAndActiveTrueOrderByUploadedAtDesc(student.getId())
-                .map(cvFileMapper::toCvFileResponse)
+                .map(cvFile -> cvFileMapper.toCvFileResponse(cvFile, !isCvInUse(cvFile.getId())))
                 .orElse(null);
     }
 
@@ -131,7 +138,7 @@ public class CvServiceImpl implements CvService {
     public CvFileResponse getMyCvFile(Long userId, Long id) {
         Student student = getStudentByUserId(userId);
         CvFile cvFile = getStudentCvFile(id, student);
-        return cvFileMapper.toCvFileResponse(cvFile);
+        return cvFileMapper.toCvFileResponse(cvFile, !isCvInUse(cvFile.getId()));
     }
 
     @Override
@@ -147,7 +154,7 @@ public class CvServiceImpl implements CvService {
     public void deleteMyCvFile(Long userId, Long cvId) {
         Student student = getStudentByUserId(userId);
         CvFile cvFile = getStudentCvFile(cvId, student);
-        if (applicationRepository.existsByCvFileId(cvId)) {
+        if (isCvInUse(cvId)) {
             throw new AppException(ErrorCode.CV_IN_USE);
         }
 
@@ -173,7 +180,7 @@ public class CvServiceImpl implements CvService {
             cvFile = cvFileRepository.save(cvFile);
         }
 
-        return cvFileMapper.toCvFileResponse(cvFile);
+        return cvFileMapper.toCvFileResponse(cvFile, !isCvInUse(cvFile.getId()));
     }
 
     private Student getStudentByUserId(Long userId) {
@@ -233,5 +240,23 @@ public class CvServiceImpl implements CvService {
         return extension.equals(".pdf")
                 ? "application/pdf"
                 : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+
+    private boolean isCvInUse(Long cvFileId) {
+        return applicationRepository.existsByCvFileId(cvFileId)
+                || recommendationRunRepository.existsByCvFileId(cvFileId)
+                || candidateRankingResultRepository.existsByCvFileId(cvFileId);
+    }
+
+    private Set<Long> findBlockedCvIds(List<CvFile> cvFiles) {
+        Set<Long> cvFileIds = cvFiles.stream().map(CvFile::getId).collect(java.util.stream.Collectors.toSet());
+        if (cvFileIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> blockedCvIds = new HashSet<>();
+        blockedCvIds.addAll(applicationRepository.findReferencedCvFileIds(cvFileIds));
+        blockedCvIds.addAll(recommendationRunRepository.findReferencedCvFileIds(cvFileIds));
+        blockedCvIds.addAll(candidateRankingResultRepository.findReferencedCvFileIds(cvFileIds));
+        return blockedCvIds;
     }
 }

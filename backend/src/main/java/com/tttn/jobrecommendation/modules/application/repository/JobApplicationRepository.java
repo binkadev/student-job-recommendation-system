@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.application.repository;
 
+import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,11 +17,18 @@ import java.util.Set;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
 
-    boolean existsByStudentIdAndJobId(Long studentId, Long jobId);
+    boolean existsByStudentIdAndJobIdAndStatusIn(Long studentId, Long jobId, Set<ApplicationStatus> statuses);
 
     boolean existsByCvFileId(Long cvFileId);
 
-    List<JobApplication> findByStudentIdOrderByAppliedAtDesc(Long studentId);
+    @Query("select distinct application.cvFile.id from JobApplication application where application.cvFile.id in :cvFileIds")
+    List<Long> findReferencedCvFileIds(@Param("cvFileIds") java.util.Collection<Long> cvFileIds);
+
+    List<JobApplication> findByStudentIdOrderByAppliedAtDescIdDesc(Long studentId);
+
+    List<JobApplication> findByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(Long studentId, Long jobId);
+
+    Optional<JobApplication> findFirstByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(Long studentId, Long jobId);
 
     List<JobApplication> findByJobIdOrderByAppliedAtDesc(Long jobId);
 

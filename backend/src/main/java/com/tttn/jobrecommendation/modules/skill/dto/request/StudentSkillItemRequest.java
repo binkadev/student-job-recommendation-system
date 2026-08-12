@@ -6,6 +6,7 @@ import com.tttn.jobrecommendation.common.enums.SkillSource;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,8 +16,13 @@ import java.math.BigDecimal;
 @Setter
 public class StudentSkillItemRequest {
 
-    @NotNull
     private Long skillId;
+
+    @Size(max = 150)
+    private String skillName;
+
+    @Size(max = 100)
+    private String category;
 
     @NotNull
     @JsonAlias("level")
