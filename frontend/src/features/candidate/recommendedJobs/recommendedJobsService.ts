@@ -319,7 +319,7 @@ function buildRecommendationReasons({
   }
 
   if (rankingTier === "FALLBACK") {
-    reasons.push("Skill Match 100% chỉ thể hiện mức độ đáp ứng các kỹ năng đã khai báo của vị trí, không phải độ phù hợp tổng thể của CV với công việc.");
+    reasons.push("Skill Match chỉ thể hiện mức độ đáp ứng các kỹ năng đã khai báo của vị trí, không phải độ phù hợp tổng thể của CV với công việc.");
   }
 
   if (skillScore != null) {
