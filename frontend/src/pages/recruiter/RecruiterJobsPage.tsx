@@ -155,8 +155,8 @@ const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   BLOCKED: "Bị khóa",
 };
 
-const maxJobTitleLength = 50;
-const maxJobContentLength = 150;
+const maxJobTitleLength = 100;
+const maxJobContentLength = 10000;
 const maxSalaryAmount = 1_000_000_000;
 
 const VIETNAM_PROVINCES = [
