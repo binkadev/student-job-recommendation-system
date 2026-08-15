@@ -107,6 +107,7 @@ const JOB_STATUS_LABELS: Record<BackendJobStatus, string> = {
   REJECTED: "Từ chối",
   EXPIRED: "Hết hạn",
 };
+const ALL_JOB_STATUSES = Object.keys(JOB_STATUS_LABELS) as BackendJobStatus[];
 
 export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "detail" | "review" }) {
   const { jobId } = useParams();
@@ -141,7 +142,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
   const jobs = result?.items ?? [];
   const selectedJob = detailQuery.data ?? jobs.find((job) => String(job.id) === jobId) ?? null;
   const allPageSelected = jobs.length > 0 && jobs.every((job) => selectedIds.includes(job.id));
-  const selectedActiveIds = jobs.filter((job) => selectedIds.includes(job.id) && job.status === "ACTIVE").map((job) => job.id);
+  const selectedActiveIds = jobs.filter((job) => selectedIds.includes(job.id) && getEffectiveJobStatus(job) === "ACTIVE").map((job) => job.id);
   const filterOptions = useMemo(() => ({
     jobTypes: Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label })),
     workModes: Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label })),
@@ -228,7 +229,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
                   <h2 className="break-words text-xl font-semibold text-slate-950">{selectedJob.title}</h2>
                   <p className="mt-1 break-words text-sm text-slate-600">{selectedJob.companyName} - {selectedJob.location || "Chưa cập nhật"} - {formatSalary(selectedJob)}</p>
                 </div>
-                <StatusBadge label={JOB_STATUS_LABELS[selectedJob.status]} tone={getStatusTone(selectedJob.status)} />
+                <StatusBadge label={JOB_STATUS_LABELS[getEffectiveJobStatus(selectedJob)]} tone={getStatusTone(getEffectiveJobStatus(selectedJob))} />
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <StatusBadge label={selectedJob.jobType ? JOB_TYPE_LABELS[selectedJob.jobType] : "Chưa cập nhật loại việc"} />
@@ -275,11 +276,11 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
             <Card>
               <SectionHeader title="Thao tác trạng thái" />
               <div className="grid gap-2">
-                {selectedJob.status === "PENDING_APPROVAL" ? <Button onClick={() => openAction("approve", selectedJob)}>Duyệt tin</Button> : null}
-                {selectedJob.status === "PENDING_APPROVAL" ? <Button variant="danger" onClick={() => openAction("reject", selectedJob)}>Từ chối</Button> : null}
-                {selectedJob.status !== "PENDING_APPROVAL" ? <Button variant="secondary" onClick={() => openAction("pending", selectedJob)}>Chuyển về chờ duyệt</Button> : null}
-                {selectedJob.status === "ACTIVE" ? <Button variant="secondary" onClick={() => openAction("close", selectedJob)}>Đóng tin</Button> : null}
-                {selectedJob.status === "CLOSED" ? <Button variant="secondary" onClick={() => openAction("reopen", selectedJob)}>Mở lại</Button> : null}
+                {getEffectiveJobStatus(selectedJob) === "PENDING_APPROVAL" ? <Button onClick={() => openAction("approve", selectedJob)}>Duyệt tin</Button> : null}
+                {getEffectiveJobStatus(selectedJob) === "PENDING_APPROVAL" ? <Button variant="danger" onClick={() => openAction("reject", selectedJob)}>Từ chối</Button> : null}
+                {getEffectiveJobStatus(selectedJob) !== "PENDING_APPROVAL" ? <Button variant="secondary" onClick={() => openAction("pending", selectedJob)}>Chuyển về chờ duyệt</Button> : null}
+                {getEffectiveJobStatus(selectedJob) === "ACTIVE" ? <Button variant="secondary" onClick={() => openAction("close", selectedJob)}>Đóng tin</Button> : null}
+                {getEffectiveJobStatus(selectedJob) === "CLOSED" ? <Button variant="secondary" onClick={() => openAction("reopen", selectedJob)}>Mở lại</Button> : null}
               </div>
             </Card>
           </aside>
@@ -325,7 +326,7 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
             { key: "job", header: "Tin tuyển dụng", render: (job) => <JobSummary job={job} /> },
             { key: "type", header: "Loại/hình thức", render: (job) => <JobTypeSummary job={job} /> },
             { key: "salary", header: "Lương/hạn nộp", render: (job) => <SalarySummary job={job} /> },
-            { key: "status", header: "Trạng thái", render: (job) => <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={getStatusTone(job.status)} /> },
+            { key: "status", header: "Trạng thái", render: (job) => <StatusBadge label={JOB_STATUS_LABELS[getEffectiveJobStatus(job)]} tone={getStatusTone(getEffectiveJobStatus(job))} /> },
             { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} onOpen={openAction} /> },
           ]}
         />
@@ -375,13 +376,15 @@ function SalarySummary({ job }: { job: JobResponse }) {
 }
 
 function JobActions({ job, onOpen }: { job: JobResponse; onOpen: (action: JobAction, job: JobResponse) => void }) {
+  const status = getEffectiveJobStatus(job);
+
   return (
     <div className="grid w-[108px] gap-2">
-      <Link to={`/admin/jobs/${job.id}${job.status === "PENDING_APPROVAL" ? "/review" : ""}`}><Button className="w-full" size="sm" variant="secondary">Xem</Button></Link>
-      {job.status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" onClick={() => onOpen("approve", job)}>Duyệt</Button> : null}
-      {job.status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" variant="danger" onClick={() => onOpen("reject", job)}>Từ chối</Button> : null}
-      {job.status === "ACTIVE" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("close", job)}>Đóng</Button> : null}
-      {job.status === "CLOSED" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("reopen", job)}>Mở lại</Button> : null}
+      <Link to={`/admin/jobs/${job.id}${status === "PENDING_APPROVAL" ? "/review" : ""}`}><Button className="w-full" size="sm" variant="secondary">Xem</Button></Link>
+      {status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" onClick={() => onOpen("approve", job)}>Duyệt</Button> : null}
+      {status === "PENDING_APPROVAL" ? <Button className="w-full" size="sm" variant="danger" onClick={() => onOpen("reject", job)}>Từ chối</Button> : null}
+      {status === "ACTIVE" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("close", job)}>Đóng</Button> : null}
+      {status === "CLOSED" ? <Button className="w-full" size="sm" variant="secondary" onClick={() => onOpen("reopen", job)}>Mở lại</Button> : null}
     </div>
   );
 }
@@ -452,6 +455,27 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 async function getJobs(filters: JobFilters): Promise<PageResponse<JobResponse>> {
+  if (!filters.status) {
+    const responses = await Promise.all(ALL_JOB_STATUSES.map((status) => fetchJobsByStatus(filters, status)));
+    const items = responses
+      .flat()
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+    return paginateJobs(items, filters.page);
+  }
+
+  if (filters.status === "ACTIVE") {
+    const activeJobs = await fetchJobsByStatus(filters, "ACTIVE");
+    return paginateJobs(activeJobs.filter((job) => getEffectiveJobStatus(job) === "ACTIVE"), filters.page);
+  }
+
+  if (filters.status === "EXPIRED") {
+    const [expiredJobs, activeJobs] = await Promise.all([
+      fetchJobsByStatus(filters, "EXPIRED"),
+      fetchJobsByStatus(filters, "ACTIVE"),
+    ]);
+    return paginateJobs([...expiredJobs, ...activeJobs].filter((job) => getEffectiveJobStatus(job) === "EXPIRED"), filters.page);
+  }
+
   const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
     params: {
       page: filters.page,
@@ -471,8 +495,53 @@ async function getJobDetail(jobId: string): Promise<JobDetailResponse> {
   return response.data.data;
 }
 
+async function fetchJobsByStatus(filters: JobFilters, status: BackendJobStatus) {
+  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+    params: {
+      page: 1,
+      size: 100,
+      keyword: filters.keyword || undefined,
+      location: filters.location || undefined,
+      jobType: filters.jobType || undefined,
+      workingModel: filters.workingModel || undefined,
+      status,
+    },
+  });
+  return response.data.data.items;
+}
+
+function paginateJobs(items: JobResponse[], page: number): PageResponse<JobResponse> {
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (currentPage - 1) * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    page: currentPage,
+    size: pageSize,
+    totalItems,
+    totalPages,
+  };
+}
+
 async function updateJobStatus(jobId: number, status: BackendJobStatus) {
   await httpClient.patch<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}/status`, { status });
+}
+
+function getEffectiveJobStatus(job: Pick<JobResponse, "status" | "deadline">): BackendJobStatus {
+  if (job.status === "ACTIVE" && isExpiredDeadline(job.deadline)) return "EXPIRED";
+  return job.status;
+}
+
+function isExpiredDeadline(value?: string | null) {
+  if (!value) return false;
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  return deadline.getTime() < today.getTime();
 }
 
 function getStatusTone(status: BackendJobStatus) {

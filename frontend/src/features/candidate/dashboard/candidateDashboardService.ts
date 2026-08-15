@@ -116,7 +116,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   ] = await Promise.all([
     httpClient.get<ApiResponse<StudentResponse>>("/students/me"),
     httpClient.get<ApiResponse<StudentProfileResponse>>("/students/me/profile"),
-    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", { params: { page: 1, size: 4, status: "ACTIVE" } }),
+    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/public/jobs", { params: { page: 1, size: 4 } }),
     httpClient.get<ApiResponse<PageResponse<SavedJobResponse>>>("/students/me/saved-jobs", { params: { page: 1, size: 1 } }),
     httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications"),
     httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv"),

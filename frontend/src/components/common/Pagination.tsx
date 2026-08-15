@@ -11,6 +11,7 @@ export function Pagination({ page = 1, totalPages = 1, onPageChange }: Paginatio
   return (
     <div className="flex items-center justify-end gap-2 text-sm">
       <button
+        type="button"
         className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={!canGoPrevious}
         onClick={() => onPageChange?.(page - 1)}
@@ -21,6 +22,7 @@ export function Pagination({ page = 1, totalPages = 1, onPageChange }: Paginatio
         {page}/{totalPages}
       </span>
       <button
+        type="button"
         className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={!canGoNext}
         onClick={() => onPageChange?.(page + 1)}

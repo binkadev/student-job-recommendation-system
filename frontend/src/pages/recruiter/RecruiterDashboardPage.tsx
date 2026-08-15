@@ -59,6 +59,10 @@ interface ApplicationResponse {
   updatedAt: string;
 }
 
+interface CompanyResponse {
+  id: number;
+}
+
 interface DashboardData {
   jobs: JobResponse[];
   applications: ApplicationResponse[];
@@ -289,14 +293,18 @@ function TodoItem({ icon, label, to }: { icon: ReactNode; label: string; to: str
 }
 
 async function getRecruiterDashboardData(): Promise<DashboardData> {
-  const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: { page: 1, size: 100 },
-  });
-  const applicationsResponse = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
-    params: { page: 1, size: 100, sort: "appliedAt,desc" },
-  });
+  const [companyResponse, jobsResponse, applicationsResponse] = await Promise.all([
+    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
+    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+      params: { page: 1, size: 100 },
+    }),
+    httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
+      params: { page: 1, size: 100, sort: "appliedAt,desc" },
+    }),
+  ]);
 
-  const jobs = jobsResponse.data.data.items;
+  const companyId = companyResponse.data.data.id;
+  const jobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyId);
   const applications = applicationsResponse.data.data.items
     .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
   const totalApplications = applicationsResponse.data.data.totalItems;

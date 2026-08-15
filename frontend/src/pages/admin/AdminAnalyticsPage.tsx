@@ -40,14 +40,22 @@ interface JobResponse {
   companyId: number;
   title: string;
   status: BackendJobStatus;
+  deadline: string | null;
   createdAt: string;
 }
 
 interface AnalyticsData {
   jobs: JobResponse[];
   totalJobs: number;
+  activeJobs: number;
   totalUsers: number;
   totalCompanies: number;
+}
+
+interface PublicStatisticsResponse {
+  totalJobs?: number | null;
+  jobCount?: number | null;
+  jobs?: number | null;
 }
 
 interface AuditLogRow {
@@ -89,10 +97,11 @@ function AnalyticsPage() {
   const totalJobs = analyticsQuery.data?.totalJobs ?? 0;
   const totalUsers = analyticsQuery.data?.totalUsers ?? 0;
   const totalCompanies = analyticsQuery.data?.totalCompanies ?? 0;
-  const activeJobs = jobs.filter((job) => job.status === "ACTIVE").length;
+  const activeJobs = analyticsQuery.data?.activeJobs ?? 0;
   const pendingJobs = jobs.filter((job) => job.status === "PENDING_APPROVAL").length;
-  const inactiveJobs = jobs.filter((job) => job.status === "CLOSED" || job.status === "REJECTED" || job.status === "EXPIRED").length;
-  const statusChartData = useMemo(() => buildStatusChartData(jobs), [jobs]);
+  const effectiveStatusCounts = useMemo(() => buildEffectiveJobStatusCounts(jobs), [jobs]);
+  const inactiveJobs = effectiveStatusCounts.CLOSED + effectiveStatusCounts.REJECTED + effectiveStatusCounts.EXPIRED;
+  const statusChartData = useMemo(() => buildStatusChartData(effectiveStatusCounts, activeJobs), [activeJobs, effectiveStatusCounts]);
   const trendChartData = useMemo(() => buildTrendChartData(jobs), [jobs]);
 
   if (analyticsQuery.loading && !analyticsQuery.data) {
@@ -210,20 +219,50 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 }
 
 async function getAnalyticsData(): Promise<AnalyticsData> {
-  const [jobsResponse, students, recruiters, admins, companies] = await Promise.all([
-    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", { params: { page: 1, size: 100 } }),
+  const [jobsByStatus, publicStatistics, students, recruiters, admins, companies] = await Promise.all([
+    getJobsByStatus(),
+    getPublicStatistics(),
     getAdminUserCount("STUDENT"),
     getAdminUserCount("COMPANY"),
     getAdminUserCount("ADMIN"),
     getAdminCompanyCount(),
   ]);
+  const jobs = Object.values(jobsByStatus)
+    .flatMap((result) => result.items)
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 
   return {
-    jobs: jobsResponse.data.data.items,
-    totalJobs: jobsResponse.data.data.totalItems,
+    jobs,
+    totalJobs: jobs.length,
+    activeJobs: getTotalPublicJobs(publicStatistics, jobs.filter((job) => job.status === "ACTIVE").length),
     totalUsers: students + recruiters + admins,
     totalCompanies: companies,
   };
+}
+
+async function getJobsByStatus() {
+  const statuses = Object.keys(statusLabels) as BackendJobStatus[];
+  const responses = await Promise.all(statuses.map(async (status) => {
+    const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+      params: { page: 1, size: 100, status },
+    });
+    return [status, response.data.data] as const;
+  }));
+
+  return Object.fromEntries(responses) as Record<BackendJobStatus, PageResponse<JobResponse>>;
+}
+
+async function getPublicStatistics(): Promise<PublicStatisticsResponse | null> {
+  try {
+    const response = await httpClient.get<ApiResponse<PublicStatisticsResponse>>("/public/statistics");
+    return response.data.data;
+  } catch {
+    return null;
+  }
+}
+
+function getTotalPublicJobs(stats: PublicStatisticsResponse | null, fallback: number) {
+  return Number(stats?.totalJobs ?? stats?.jobCount ?? stats?.jobs ?? fallback);
 }
 
 async function getAdminUserCount(role: UserRole) {
@@ -240,11 +279,44 @@ async function getAdminCompanyCount() {
   return response.data.data.totalItems;
 }
 
-function buildStatusChartData(jobs: JobResponse[]) {
+function buildStatusChartData(counts: Record<BackendJobStatus, number>, publicActiveJobs: number) {
   return (Object.keys(statusLabels) as BackendJobStatus[]).map((status) => ({
     label: statusLabels[status],
-    value: jobs.filter((job) => job.status === status).length,
+    value: status === "ACTIVE" ? publicActiveJobs : counts[status],
   }));
+}
+
+function buildEffectiveJobStatusCounts(jobs: JobResponse[]) {
+  return jobs.reduce((counts, job) => {
+    counts[getEffectiveJobStatus(job)] += 1;
+    return counts;
+  }, emptyJobStatusCounts());
+}
+
+function emptyJobStatusCounts(): Record<BackendJobStatus, number> {
+  return {
+    DRAFT: 0,
+    PENDING_APPROVAL: 0,
+    ACTIVE: 0,
+    CLOSED: 0,
+    REJECTED: 0,
+    EXPIRED: 0,
+  };
+}
+
+function getEffectiveJobStatus(job: Pick<JobResponse, "status" | "deadline">): BackendJobStatus {
+  if (job.status === "ACTIVE" && isExpiredDeadline(job.deadline)) return "EXPIRED";
+  return job.status;
+}
+
+function isExpiredDeadline(value?: string | null) {
+  if (!value) return false;
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  return deadline.getTime() < today.getTime();
 }
 
 function buildTrendChartData(jobs: JobResponse[]) {

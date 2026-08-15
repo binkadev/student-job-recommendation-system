@@ -467,10 +467,27 @@ async function updateMyCompany(form: CompanyForm) {
 }
 
 async function getCompanyJobs(page: number) {
-  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-    params: { page, size: 5 },
-  });
-  return response.data.data;
+  const [companyResponse, jobsResponse] = await Promise.all([
+    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
+    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+      params: { page: 1, size: 100 },
+    }),
+  ]);
+  const companyId = companyResponse.data.data.id;
+  const pageSize = 5;
+  const ownActiveJobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyId && job.status === "ACTIVE");
+  const totalItems = ownActiveJobs.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (currentPage - 1) * pageSize;
+
+  return {
+    items: ownActiveJobs.slice(start, start + pageSize),
+    page: currentPage,
+    size: pageSize,
+    totalItems,
+    totalPages,
+  };
 }
 
 function mapCompanyToForm(company: CompanyResponse): CompanyForm {

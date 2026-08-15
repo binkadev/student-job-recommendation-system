@@ -41,11 +41,15 @@ interface JobResponse {
   companyName: string;
   title: string;
   status: BackendJobStatus;
+  deadline: string | null;
   publishedAt: string | null;
   createdAt: string;
 }
 
 interface PublicStatisticsResponse {
+  totalJobs?: number | null;
+  jobCount?: number | null;
+  jobs?: number | null;
   totalApplications?: number | null;
   applicationCount?: number | null;
   applications?: number | null;
@@ -115,7 +119,7 @@ export function AdminDashboardPage() {
     { label: "Báo cáo chưa xử lý", value: 0, icon: <AlertTriangle /> },
   ];
 
-  const statusChartData = buildStatusChartData(data.jobStatusCounts);
+  const statusChartData = buildStatusChartData(data.jobStatusCounts, data.activeJobs);
   const overviewChartData = buildOverviewChartData({ totalJobs: data.totalJobs, activeJobs: data.activeJobs, pendingJobs: data.jobStatusCounts.PENDING_APPROVAL, inactiveJobs: data.inactiveJobs, companiesCount: data.totalCompanies });
   const trendChartData = buildTrendChartData(jobs, timeRange);
 
@@ -230,16 +234,13 @@ async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const jobs = Object.values(jobsByStatus)
     .flatMap((result) => result.items)
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
-  const jobStatusCounts = (Object.keys(statusLabels) as BackendJobStatus[]).reduce((acc, status) => {
-    acc[status] = jobsByStatus[status].totalItems;
-    return acc;
-  }, emptyJobStatusCounts());
+  const jobStatusCounts = buildEffectiveJobStatusCounts(jobs);
   const inactiveJobs = jobStatusCounts.CLOSED + jobStatusCounts.REJECTED + jobStatusCounts.EXPIRED;
 
   return {
     jobs,
     totalJobs: Object.values(jobStatusCounts).reduce((sum, value) => sum + value, 0),
-    activeJobs: jobStatusCounts.ACTIVE,
+    activeJobs: getTotalPublicJobs(statisticsResponse, jobStatusCounts.ACTIVE),
     inactiveJobs,
     totalApplications: getTotalApplications(statisticsResponse),
     totalStudents: studentsResponse,
@@ -261,6 +262,10 @@ async function getPublicStatistics(): Promise<PublicStatisticsResponse | null> {
 
 function getTotalApplications(stats: PublicStatisticsResponse | null) {
   return Number(stats?.totalApplications ?? stats?.applicationCount ?? stats?.applications ?? 0);
+}
+
+function getTotalPublicJobs(stats: PublicStatisticsResponse | null, fallback: number) {
+  return Number(stats?.totalJobs ?? stats?.jobCount ?? stats?.jobs ?? fallback);
 }
 
 async function getJobsByStatus() {
@@ -289,10 +294,10 @@ async function getAdminCompanyCount(status?: CompanyStatus) {
   return response.data.data.totalItems;
 }
 
-function buildStatusChartData(counts: Record<BackendJobStatus, number>) {
+function buildStatusChartData(counts: Record<BackendJobStatus, number>, publicActiveJobs?: number) {
   return (Object.keys(statusLabels) as BackendJobStatus[]).map((status) => ({
     label: statusLabels[status],
-    value: counts[status],
+    value: status === "ACTIVE" && publicActiveJobs != null ? publicActiveJobs : counts[status],
   }));
 }
 
@@ -305,6 +310,28 @@ function emptyJobStatusCounts(): Record<BackendJobStatus, number> {
     REJECTED: 0,
     EXPIRED: 0,
   };
+}
+
+function buildEffectiveJobStatusCounts(jobs: JobResponse[]) {
+  return jobs.reduce((counts, job) => {
+    counts[getEffectiveJobStatus(job)] += 1;
+    return counts;
+  }, emptyJobStatusCounts());
+}
+
+function getEffectiveJobStatus(job: Pick<JobResponse, "status"> & { deadline?: string | null }): BackendJobStatus {
+  if (job.status === "ACTIVE" && isExpiredDeadline(job.deadline)) return "EXPIRED";
+  return job.status;
+}
+
+function isExpiredDeadline(value?: string | null) {
+  if (!value) return false;
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  return deadline.getTime() < today.getTime();
 }
 
 function buildOverviewChartData(values: { totalJobs: number; activeJobs: number; pendingJobs: number; inactiveJobs: number; companiesCount: number }) {

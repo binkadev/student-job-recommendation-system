@@ -83,7 +83,7 @@ export function JobsPage() {
   }
 
   function updateFilter<Key extends keyof JobsListFilters>(key: Key, value: JobsListFilters[Key], resetPage = true) {
-    applyFilters({ ...filters, [key]: value, page: resetPage ? 1 : filters.page });
+    applyFilters({ ...filters, [key]: value, page: key === "page" ? Number(value) : resetPage ? 1 : filters.page });
   }
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
