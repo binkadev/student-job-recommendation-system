@@ -11,5 +11,5 @@ const tones = {
 };
 
 export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps) {
-  return <span className={`rounded-full px-3 py-1 text-xs font-medium ${tones[tone]}`}>{label}</span>;
+  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${tones[tone]}`}>{label}</span>;
 }
