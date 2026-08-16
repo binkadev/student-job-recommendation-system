@@ -19,7 +19,7 @@ export function Table<T>({ columns, rows, getRowKey }: TableProps<T>) {
         <thead className="bg-slate-50">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th key={column.key} className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 ${column.key === "status" ? "whitespace-nowrap" : ""}`}>
                 {column.header}
               </th>
             ))}
@@ -29,7 +29,7 @@ export function Table<T>({ columns, rows, getRowKey }: TableProps<T>) {
           {rows.map((row) => (
             <tr key={getRowKey(row)} className="hover:bg-slate-50">
               {columns.map((column) => (
-                <td key={column.key} className="px-4 py-3 text-slate-700">
+                <td key={column.key} className={`px-4 py-3 text-slate-700 ${column.key === "status" ? "whitespace-nowrap" : ""}`}>
                   {column.render(row)}
                 </td>
               ))}
