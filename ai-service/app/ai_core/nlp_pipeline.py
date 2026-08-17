@@ -17,12 +17,19 @@ class NLPPipeline:
         self._add_entity_ruler()
         
     def _add_entity_ruler(self):
-        ruler = self.nlp.add_pipe("entity_ruler", before="ner")
+        ruler = self.nlp.add_pipe("entity_ruler", before="ner", config={"phrase_matcher_attr": "LOWER"})
         patterns = []
         
         base_dir = os.path.dirname(__file__)
         skills_path = os.path.join(base_dir, "it_skills.csv")
         custom_path = os.path.join(base_dir, "custom_terms.csv")
+        noisy_skills = {
+            "james", "sherry", "june", "may", "february", "month", "months", "year", "years", 
+            "in", "and", "for", "to", "of", "the", "a", "with", "now", "all",
+            "anytown", "calif", "troy", "india", "everytown",
+            "in design", "product launch", "training manual", "new software developers",
+            "software engineers", "software engineer"
+        }
         
         if os.path.exists(skills_path):
             with open(skills_path, "r", encoding="utf-8") as f:
@@ -31,7 +38,7 @@ class NLPPipeline:
                 for row in reader:
                     if row:
                         term = row[0].strip().lower()
-                        if term:
+                        if term and term not in noisy_skills and not term.isnumeric():
                             patterns.append({"label": "SKILL", "pattern": term})
                             
         if os.path.exists(custom_path):
@@ -41,7 +48,7 @@ class NLPPipeline:
                 for row in reader:
                     if row:
                         term = row[0].strip().lower()
-                        if term:
+                        if term and term not in noisy_skills and not term.isnumeric():
                             patterns.append({"label": "CUSTOM_PHRASE", "pattern": term})
                             
         ruler.add_patterns(patterns)
@@ -50,16 +57,15 @@ class NLPPipeline:
         text = EMAIL_REGEX.sub(" ", text)
         text = PHONE_REGEX.sub(" ", text)
         text = URL_REGEX.sub(" ", text)
+        text = text.replace('\n', '. ')
         return text
         
     def process(self, text: str):
         # PII Denoising
         denoised_text = self.denoise_pii(text)
         
-        # Lowercase before spacy
-        lower_text = denoised_text.lower()
-        
-        doc = self.nlp(lower_text)
+        # CRITICAL FIX: Pass the original cased text to spaCy to preserve POS/NER accuracy.
+        doc = self.nlp(denoised_text)
         
         # Merge entities
         with doc.retokenize() as retokenizer:
@@ -76,7 +82,15 @@ class NLPPipeline:
                 
             is_vip = token.ent_type_ in ("SKILL", "CUSTOM_PHRASE")
             
+            # Heuristic to combat noisy single-word skills in the CSV
+            is_strict_vip = False
             if is_vip:
+                if len(token.text.split()) > 1:
+                    is_strict_vip = True
+                elif token.pos_ == "PROPN":
+                    is_strict_vip = True
+            
+            if is_strict_vip:
                 token_text = token.text.lower()
                 processed_tokens.append(token_text)
                 if token.ent_type_ == "SKILL" and token_text not in skills:
