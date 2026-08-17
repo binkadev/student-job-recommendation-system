@@ -95,7 +95,7 @@ public class CandidateRankingCorpusPreparationService {
                     row.applicationId(),
                     row.applicationStatus(),
                     row.cvId(),
-                    row.cvExtractedText(),
+                    row.cvProcessedText(),
                     canonicalSkills(row.cvExtractedSkills()),
                     row.cvAnalysisStatus(),
                     row.cvProcessingVersion(),

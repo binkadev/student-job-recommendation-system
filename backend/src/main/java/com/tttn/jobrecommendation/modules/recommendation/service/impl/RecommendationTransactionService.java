@@ -69,7 +69,7 @@ public class RecommendationTransactionService {
         AiRecommendationRequest aiRequest = requestMapper.toRequest(
                 requestId,
                 cvFile.getId(),
-                cvFile.getExtractedText(),
+                cvFile.getProcessedText(),
                 extractedSkills,
                 jobs,
                 generationRequest.getThreshold(),
