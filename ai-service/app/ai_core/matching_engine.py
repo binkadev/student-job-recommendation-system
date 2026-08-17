@@ -2,11 +2,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from typing import List, Dict, Any
+from app.ai_core.nlp_pipeline import nlp_pipeline
 
 class MatchingEngine:
     def __init__(self):
         self.vectorizer = TfidfVectorizer(
-            ngram_range=(1, 2),
+            ngram_range=(1, 1),
             sublinear_tf=True,
             lowercase=True
         )
@@ -33,7 +34,8 @@ class MatchingEngine:
         if not job_texts:
             return []
             
-        corpus = [cv_text] + job_texts
+        processed_job_texts = [nlp_pipeline.process(text)["processedText"] for text in job_texts]
+        corpus = [cv_text] + processed_job_texts
         tfidf_matrix = self.vectorizer.fit_transform(corpus)
         
         cv_vec = tfidf_matrix[0:1]
@@ -65,8 +67,9 @@ class MatchingEngine:
         if not candidate_texts:
             return []
             
+        processed_job_text = nlp_pipeline.process(job_text)["processedText"]
         tfidf_matrix = self.vectorizer.fit_transform(candidate_texts)
-        job_vec = self.vectorizer.transform([job_text])
+        job_vec = self.vectorizer.transform([processed_job_text])
         
         text_scores = cosine_similarity(job_vec, tfidf_matrix).flatten()
         
