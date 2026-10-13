@@ -1,4 +1,4 @@
-"""CLI runner for deterministic offline recommendation evaluation."""
+"""Legacy V2 component experiment. Current V3 evidence uses prediction_runner."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from v2.service import recommend_bilingual
 from v2.skill_canonicalizer import load_default_catalog
 
 from .dataset import DatasetValidationError, EvaluationDataset, load_dataset
-from .metrics import ndcg_at_k, precision_at_k, recall_at_k
+from .metrics import f1_at_k, ndcg_at_k, precision_at_k, recall_at_k, validate_relevance_threshold
 
 
 _MODEL_NAMES = (
@@ -53,6 +53,7 @@ class PerCvMetric:
     model: str
     precision_at_k: float
     recall_at_k: float
+    f1_at_k: float
     ndcg_at_k: float
     relevant_job_count: int
 
@@ -62,11 +63,13 @@ def run_evaluation(
     *,
     k: int = 5,
     output_directory: str | Path,
+    relevance_threshold: int = 1,
 ) -> dict[str, object]:
     """Score one dataset, write deterministic artifacts, and return summary."""
 
     if type(k) is not int or k <= 0:
         raise ValueError("k must be a positive integer")
+    validate_relevance_threshold(relevance_threshold)
 
     dataset = load_dataset(dataset_directory)
     catalog = load_default_catalog()
@@ -117,7 +120,7 @@ def run_evaluation(
             for job in dataset.jobs
         }
         relevant_job_count = sum(
-            relevance >= 1
+            relevance >= relevance_threshold
             for relevance in relevance_by_job_id.values()
         )
 
@@ -132,11 +135,17 @@ def run_evaluation(
                         ranked_job_ids,
                         relevance_by_job_id,
                         k,
+                        relevance_threshold=relevance_threshold,
                     ),
                     recall_at_k=recall_at_k(
                         ranked_job_ids,
                         relevance_by_job_id,
                         k,
+                        relevance_threshold=relevance_threshold,
+                    ),
+                    f1_at_k=f1_at_k(
+                        ranked_job_ids, relevance_by_job_id, k,
+                        relevance_threshold=relevance_threshold,
                     ),
                     ndcg_at_k=ndcg_at_k(
                         ranked_job_ids,
@@ -167,6 +176,9 @@ def run_evaluation(
         "jobCount": len(dataset.jobs),
         "judgmentCount": dataset.judgment_count,
         "k": k,
+        "relevanceThreshold": relevance_threshold,
+        "evaluationType": "legacy_v2_component_experiment",
+        "aggregation": "macro mean of per-CV metrics; F1 is mean of per-CV F1",
         "algorithm": response_algorithm,
         "algorithmVersion": response_algorithm_version,
         "productionScoringDescription": _PRODUCTION_SCORING_DESCRIPTION,
@@ -262,6 +274,7 @@ def _macro_metrics(
             sum(metric.ndcg_at_k for metric in selected) / count,
             6,
         ),
+        "f1AtK": round(sum(metric.f1_at_k for metric in selected) / count, 6),
     }
 
 
@@ -286,6 +299,7 @@ def _write_per_cv(
                 "model",
                 "precision_at_k",
                 "recall_at_k",
+                "f1_at_k",
                 "ndcg_at_k",
                 "relevant_job_count",
             ]
@@ -297,6 +311,7 @@ def _write_per_cv(
                     metric.model,
                     _format_metric(metric.precision_at_k),
                     _format_metric(metric.recall_at_k),
+                    _format_metric(metric.f1_at_k),
                     _format_metric(metric.ndcg_at_k),
                     metric.relevant_job_count,
                 ]
@@ -332,8 +347,9 @@ def _format_metric(value: float) -> str:
 def _parse_arguments(arguments: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Evaluate production V2 ranking components against a "
-            "human-labeled offline dataset."
+            "LEGACY V2 algorithm/component experiment against external "
+            "relevance labels. Current Student V3 DATN evaluation uses "
+            "python -m evaluation.prediction_runner with saved Backend predictions."
         )
     )
     parser.add_argument(
@@ -346,7 +362,7 @@ def _parse_arguments(arguments: Sequence[str] | None) -> argparse.Namespace:
         "--k",
         default=5,
         type=int,
-        help="Ranking cutoff for Precision, Recall, and NDCG (default: 5).",
+        help="Ranking cutoff for Precision, Recall, F1, and NDCG (default: 5).",
     )
     parser.add_argument(
         "--output-dir",
@@ -354,6 +370,7 @@ def _parse_arguments(arguments: Sequence[str] | None) -> argparse.Namespace:
         type=Path,
         help="Directory for summary.json, per_cv.csv, and rankings.csv.",
     )
+    parser.add_argument("--relevance-threshold", type=int, choices=(1, 2), default=1)
     return parser.parse_args(arguments)
 
 
@@ -364,6 +381,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             args.dataset,
             k=args.k,
             output_directory=args.output_dir,
+            relevance_threshold=args.relevance_threshold,
         )
     except (DatasetValidationError, EvaluationRunnerError, ValueError) as error:
         print(f"Evaluation failed: {error}", file=sys.stderr)

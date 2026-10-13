@@ -69,13 +69,18 @@ class SourceDataset:
     jobs: tuple[JobRecord, ...]
 
 
-def load_dataset(dataset_directory: str | Path) -> EvaluationDataset:
-    """Load one complete, human-labeled evaluation dataset."""
+def load_dataset(
+    dataset_directory: str | Path,
+    *,
+    prediction_evaluation: bool = False,
+) -> EvaluationDataset:
+    """Load complete external labels; prediction mode permits all-zero CVs/large corpora."""
 
     directory = _require_dataset_directory(dataset_directory)
     source = _load_source_documents(
         directory,
         require_non_empty_skills=False,
+        max_job_count=None if prediction_evaluation else _MAX_JOB_COUNT,
     )
 
     judgments = _load_judgments(directory / "judgments.csv")
@@ -83,6 +88,7 @@ def load_dataset(dataset_directory: str | Path) -> EvaluationDataset:
         list(source.cvs),
         list(source.jobs),
         judgments,
+        require_relevant_jobs=not prediction_evaluation,
     )
     judgment_map = {
         (judgment.cv_id, judgment.job_id): judgment.relevance
@@ -119,6 +125,7 @@ def _load_source_documents(
     directory: Path,
     *,
     require_non_empty_skills: bool,
+    max_job_count: int | None = _MAX_JOB_COUNT,
 ) -> SourceDataset:
     cvs = _load_documents(
         directory / "cvs.json",
@@ -132,9 +139,9 @@ def _load_source_documents(
         label="Job",
         require_non_empty_skills=require_non_empty_skills,
     )
-    if len(jobs) > _MAX_JOB_COUNT:
+    if max_job_count is not None and len(jobs) > max_job_count:
         raise DatasetValidationError(
-            f"jobs.json: at most {_MAX_JOB_COUNT} Jobs are allowed; "
+            f"jobs.json: at most {max_job_count} Jobs are allowed; "
             f"found {len(jobs)}"
         )
     return SourceDataset(
@@ -358,6 +365,8 @@ def _validate_judgments(
     cvs: list[CvRecord],
     jobs: list[JobRecord],
     judgments: list[Judgment],
+    *,
+    require_relevant_jobs: bool = True,
 ) -> None:
     cv_ids = {cv.id for cv in cvs}
     job_ids = {job.id for job in jobs}
@@ -395,7 +404,7 @@ def _validate_judgments(
         if judgment.relevance >= 1:
             relevance_by_cv[judgment.cv_id] += 1
     for cv_id in sorted(relevance_by_cv):
-        if relevance_by_cv[cv_id] == 0:
+        if require_relevant_jobs and relevance_by_cv[cv_id] == 0:
             raise DatasetValidationError(
                 f"judgments.csv: cv_id={cv_id} must have at least "
                 "one Job with relevance greater than 0"

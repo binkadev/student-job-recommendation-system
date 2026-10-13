@@ -120,6 +120,9 @@ def test_runner_uses_real_requests_and_writes_complete_output(
     assert summary["k"] == 5
     assert summary["algorithm"] == "tfidf-cosine-hybrid"
     assert summary["algorithmVersion"] == "bilingual-recommendation-v2"
+    assert summary["evaluationType"] == "legacy_v2_component_experiment"
+    assert summary["relevanceThreshold"] == 1
+    assert all("f1AtK" in metrics for metrics in summary["metrics"].values())
     assert set(summary["metrics"]) == {
         "production_hybrid",
         "text_only",
@@ -137,6 +140,7 @@ def test_runner_uses_real_requests_and_writes_complete_output(
     ) as stream:
         ranking_rows = list(csv.DictReader(stream))
     assert len(per_cv_rows) == 2 * 3
+    assert all("f1_at_k" in row for row in per_cv_rows)
     assert len(ranking_rows) == 2 * 3 * 6
     assert {
         row["model"]
