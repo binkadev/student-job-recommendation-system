@@ -82,6 +82,8 @@ Giới hạn kiểm chứng: Backend validator xác minh tier↔strategy và sco
 
 ## 5. Database status
 
+**Task 2 update (2026-10-13):** The table below records drift at the original audit. Current [database schema](../database-schema.md) and [DBML](../database-erd.dbml) now describe all released V1–V18 tables/columns, V15 metadata, V17 nullable history/tier/limit constraints, and V18 partial uniqueness. API/AGENTS Application wording and Student Recommendation API V3 documentation are synchronized. See §13 for current closure scope; the historical findings below are preserved as evidence, not current open documentation defects.
+
 Source of truth là [migrations](../../backend/src/main/resources/db/migration/). Flyway hiện **V1–V18**; JPA core mappings và PostgreSQL/Hibernate validation PASS trên database test. Audit quick diff phát hiện documentation drift dưới đây; không kết luận production DB của mọi môi trường đã apply V18.
 
 | Entity/table | Flyway hiện tại ↔ JPA | DB schema / ERD | Evidence / action |
@@ -107,8 +109,8 @@ Xem [matrix](requirement-traceability.md) cho mỗi yêu cầu và owner. Ưu ti
 |---|---|---|---|
 | G01 | Major/experience/education có profile và đường text chung, nhưng thiếu structured CV extraction; preservation/coverage theo fixture ĐATN chưa chứng minh | P0 | SHARED: chốt diễn giải yêu cầu; HAI chứng minh persisted snapshot/contract flow; BAO chứng minh NLP giữ nội dung cần thiết. Không mặc định phải có 4 independent scores |
 | G02 | Human-labeled quality evidence MISSING; F1@K tooling MISSING; runner V2 không đại diện V3 | P0 | BAO metrics/dataset/runner; SHARED ground-truth rubric + V3 ordering; HAI chuẩn bị prediction/input evidence sau khi contract được chốt |
-| G03 | API contract vẫn raw CV V2, flat score sort/version, readiness cần extractedText; còn TODO skill validation dù V3 đã implement | P1 | HAI/SHARED sync docs ở task riêng, giữ public/internal source contracts |
-| G04 | DB schema/ERD thiếu V15/V17 và lệch V18; historical project-status còn V16 | P1 | HAI cập nhật đúng released Flyway trong task riêng; không migration |
+| G03 | **RESOLVED (Task 2 docs only)**: API now describes persisted READY snapshot V3, typed tiers/nulls, official ranks/global limit, actual skill validation, history and V1/V2 compatibility | P1 closed docs drift | HAI/SHARED: executable/API behavior unchanged; no new runtime verification |
+| G04 | **RESOLVED for current DB schema/ERD (Task 2)**: complete V1–V18 fields/constraints including V15/V17/V18; Application rule synchronized. Historical project-status V16 remains historical evidence | P1 closed current schema/ERD drift | HAI: no schema/migration change; no certification of every deployed DB |
 | G05 | Student run reproducibility PARTIAL; thiếu threshold/limit/requestId, processingVersion/analyzedAt snapshot, immutable scoring input/corpus/hash; không có official Backend prediction export riêng | P1 | HAI đề xuất minimal evidence/export contract cùng BAO; ưu tiên script dùng APIs đã có nếu đủ, không mặc định thêm API/schema |
 | G06 | Full upload→real NLP→snapshot→recommendation→history→browser school-feature journey UNPROVEN tại baseline | P0 evidence | HAI làm NEXT TASK phía API/stack trước; SHARED browser/report evidence sau. Runner hiện seed snapshot trực tiếp |
 | G07 | Dashboard có aggregates/list support; scoped totals/time-series và browser acceptance chưa chốt | P1 | HAI chốt dashboard requirement trước khi chọn thêm Backend endpoint; không làm feature cho đẹp |
@@ -263,3 +265,19 @@ New runner SHA256 at successful execution: `2733147DF3560ED59D36E765AD8B882CE946
 The English DOCX API/stack upload path is now proven. **Vietnamese CV upload, PDF upload, browser journeys, overlapping reanalysis isolation, exhaustive negative cases and production operations are not established by this runner**. Existing Backend tests continue to cover named ownership/READY/invalid-response boundaries. Full exact historical input/corpus reconstruction, V3 evaluation adapter, F1@K, authorized human ground truth and final Precision@K/Recall@K/F1@K quality results remain separate unfinished work; no evaluation metrics were generated or claimed here.
 
 **RECOMMENDED NEXT TASK:** Add real Vietnamese CV upload evidence (DOCX/PDF) to the Student-only harness, checking persisted bilingual lexical content and V3 tier semantics with the unchanged parser/scorer. This follows the remaining core bilingual evidence gap, needs fixture/contract coordination with Bảo, and must not add extractors or alter production behavior. Do not implement it in this task.
+
+## 13. Documentation consistency supplement — Task 2 (2026-10-13)
+
+Inspection baseline: branch `docs/datn-contract-sync`, HEAD/base master `131a4b869a3248dd08475c5da84989be23ce8ac9`, clean initial working tree. Task 1 is already merged; its runtime evidence in §12 is preserved and was not rerun or reimplemented here.
+
+Resolved current documentation drift (G03/G04 and Application wording):
+
+- [Schema](../database-schema.md) / [DBML](../database-erd.dbml): all 19 V1–V18 tables, exact physical columns/types/nullability/FKs, V15 analysis/run/result metadata, V16 Candidate tables, V17 tiers/overall/per-tier ranks/limit shapes/history, V18 active Application predicate. PostgreSQL partial/expression indexes and CHECK boundaries are explicit notes, not invented normal unique constraints.
+- [API contract](../api-contract.md): Student public generation uses V3 persisted READY CV input, exact algorithm/version, nullable FALLBACK semantics, score alias/evidence, Backend validation/ranks, PRIMARY-first global limit and history/latest behavior. Parsing V2 and internal scoring V1/V2 compatibility remain distinct. Implemented skill/formula validation is no longer a TODO.
+- [AGENTS](../../AGENTS.md), API/schema/ERD and [manual checklist](../testing/e2e-demo-checklist.md): no lifetime Application pair uniqueness; existing PENDING/REVIEWED/ACCEPTED blocks apply, otherwise latest REJECTED allows a new PENDING history row subject to eligibility/ownership. Latest WITHDRAWN still blocks. Checklist statuses remain NOT RUN.
+
+Evidence rechecked: released [V15–V18 migrations](../../backend/src/main/resources/db/migration/); relevant JPA mappings; Recommendation controller/DTOs/generation/transaction/validator/query/mapper; Application service/repository; existing `DatabaseAiContractV2MigrationIT`, `DatabaseRecommendationRankingV3MigrationIT`, `DatabaseConstraintIT`, `ApplicationReapplyApiIT`, `RecommendationV3PersistenceIT`, `CvAnalysisRecommendationApiIT`, snapshot and serialization test source. These are inspection references, not freshly executed tests.
+
+Closure is documentation-only. The original audit/module/feature tables and historical test/runtime counts remain historical evidence; only their documentation cleanup actions are superseded. Structured major/experience/education extraction remains MISSING/UNPROVEN; lexical evidence remains limited to Task 1's English fixture. Current V3 evaluation, F1@K tooling, human-labeled quality evidence, exact input reproducibility, Vietnamese CV/PDF/browser/production coverage and concurrency gaps stay separate. No feature status is promoted by documentation cleanup.
+
+Verification for Task 2 uses Git diff/whitespace/scope review and local documentation checks; no Maven/AI/Frontend/E2E suite is rerun. No production/test/AI/Frontend/runner/migration edits, commits, pushes or merges. The remaining next-task recommendation in §12 stays unimplemented.

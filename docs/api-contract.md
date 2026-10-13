@@ -52,11 +52,11 @@ DTO.
 | Header | Direction | Behavior |
 |---|---|---|
 | `Authorization: Bearer <jwt>` | Client → Backend | Required by protected public Backend endpoints. The user JWT is never forwarded to the AI Service. |
-| `X-Internal-Api-Key` | Backend → AI Service | Required on all `/internal/v2/**` routes. AI reads `AI_INTERNAL_API_KEY`; Backend sends the same secret from `APP_AI_SERVICE_INTERNAL_API_KEY`. Missing, blank, or incorrect values receive a sanitized `401 UNAUTHORIZED`. |
+| `X-Internal-Api-Key` | Backend → AI Service | Required on all `/internal/v2/**` and `/internal/v3/**` routes. AI reads `AI_INTERNAL_API_KEY`; Backend sends the same secret from `APP_AI_SERVICE_INTERNAL_API_KEY`. Missing, blank, or incorrect values receive a sanitized `401 UNAUTHORIZED`. |
 | `X-Request-Id` | Client → Backend → AI Service | Optional tracing metadata. A valid incoming value is propagated; otherwise each service generates a valid UUID. Backend and AI include the accepted/generated value in the response header. |
 
 `X-Request-Id` is not an authentication token and grants no access. It is
-independent of the Contract V2 JSON field `requestId`: the header correlates
+independent of the Contract V2/V3 JSON field `requestId`: the header correlates
 transport logs, while the body field identifies a recommendation business
 request. They are not required to match.
 
@@ -73,8 +73,9 @@ Common protected-endpoint errors:
 - `RESOURCE_NOT_FOUND`: requested resource does not exist or is intentionally hidden from that endpoint.
 - `VALIDATION_ERROR`: invalid request body or query parameter.
 - `BAD_REQUEST`: invalid enum transition, duplicate business action, or unsupported sort.
+- `APPLICATION_ALREADY_ACTIVE`: a PENDING/REVIEWED/ACCEPTED Application exists for this Student/Job (`409 Conflict`).
 - `CV_IN_USE`: the requested CV is referenced by an application or another protected record and cannot be deleted (`409 Conflict`).
-- `CV_ANALYSIS_NOT_READY`: recommendation generation selected a CV whose persisted analysis status is not `READY`, or whose extracted/processed text is blank (`409 Conflict`).
+- `CV_ANALYSIS_NOT_READY`: recommendation generation selected a CV whose persisted analysis status is not `READY`, or whose processed text or required language/version metadata is absent or incompatible (`409 Conflict`).
 - `CV_ANALYSIS_FAILED`: an unexpected CV-analysis integration failure occurred (`502 Bad Gateway`).
 - `FEATURE_NOT_SUPPORTED`: an authenticated owner requested a compatibility endpoint that is intentionally unavailable in the MVP (`501 Not Implemented`).
 - `AI_SERVICE_UNAVAILABLE`: the AI service connection failed or the service returned a server error (`503 Service Unavailable`).
@@ -104,6 +105,7 @@ Common protected-endpoint errors:
 - `RecommendationSourceType`: `PROFILE`, `CV`, `PROFILE_AND_CV`
 - `RecommendationRunStatus`: `PROCESSING`, `SUCCESS`, `FAILED`
 - `CvAnalysisStatus`: `NOT_READY`, `PROCESSING`, `READY`, `FAILED`
+- `RecommendationRankingTier`: `PRIMARY`, `FALLBACK`
 - `RecommendationScoringStrategy`: `SAME_LANGUAGE_HYBRID`, `CROSS_LANGUAGE_SKILL_BASED`
 - `NotificationType`: `APPLICATION_STATUS_CHANGED`, `JOB_STATUS_CHANGED`, `SYSTEM`, `RECOMMENDATION`
 - `ReferenceType`: `APPLICATION`, `JOB`, `RECOMMENDATION_RUN`
@@ -423,7 +425,7 @@ Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `
 ## Recruiter Candidate Ranking
 
 The recruiter Candidate Ranking endpoints are documented in the locked
-[Candidate Ranking contract](candidate-ranking-contract.md), including
+[active V3 contract](recommendation-ranking-v3-contract.md); the [V2 Candidate Ranking contract](candidate-ranking-contract.md) describes compatibility/history. The V3 contract covers
 eligibility, the Backend-to-AI internal request, scoring strategies, response
 validation, rank assignment, persistence, and error behavior:
 
@@ -692,13 +694,15 @@ Role: `STUDENT`.
 
 Request fields: `cvFileId`, `coverLetter`.
 
-Rules: job must be active, deadline must not be passed, and a student cannot apply to the same job twice.
+Rules: Job must be ACTIVE, deadline null/today/future; supplied CV must belong to the authenticated Student. CV is optional and apply does not require READY analysis.
+
+An existing PENDING/REVIEWED/ACCEPTED row for the pair returns `409 APPLICATION_ALREADY_ACTIVE`. If none exists, first apply is allowed; reapply requires latest history by appliedAt DESC, id DESC to be REJECTED. Latest WITHDRAWN returns `400 BAD_REQUEST` with message `Reapplication is only allowed after the latest application was rejected`. Reapply inserts a new PENDING record and preserves old rejected history. V18 enforces active-pair uniqueness with a partial index, not lifetime uniqueness; the latest-REJECTED rule is enforced by Backend. [Service](../backend/src/main/java/com/tttn/jobrecommendation/modules/application/service/ApplicationServiceImpl.java), [V18](../backend/src/main/resources/db/migration/V18__allow_reapplication_after_rejection.sql), and [API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/ApplicationReapplyApiIT.java) establish this behavior.
 
 ### GET `/api/students/me/applications`
 
 Role: `STUDENT`.
 
-Returns the current student's applications.
+Returns the current Student's full application history, optionally filtered by `jobId`, ordered by appliedAt DESC then id DESC. Multiple records for a Job can include rejected history and a new PENDING application.
 
 ### GET `/api/students/me/applications/{id}`
 
@@ -975,11 +979,13 @@ Timeout, connection, upstream HTTP, and malformed-response errors use the AI ser
 }
 ```
 
-This backend V2 branch calls only `/internal/v2/cv/parse`.
+Current Backend CV reanalysis calls only `/internal/v2/cv/parse`; Recommendation V3 does not replace parsing.
 
 ## Recommendation APIs
 
-All recommendation endpoints require role `STUDENT`. Ownership is derived exclusively from the authenticated JWT user; public requests never accept `studentId` or `userId`.
+Current public Student generation uses **Recommendation V3**; CV parsing remains **V2**. Internal V1/V2 recommendation routes remain compatibility paths, not versioned public Student generation endpoints. All public recommendation endpoints require STUDENT and return `ApiResponse<T>`; ownership comes exclusively from JWT, never client `studentId`/`userId`.
+
+Executable evidence: [controller](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/controller/RecommendationController.java), [request DTO](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/dto/request/GenerateRecommendationRequest.java), [generation](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/service/impl/RecommendationGenerationServiceImpl.java), [transaction service](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/service/impl/RecommendationTransactionService.java), [validator](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/service/impl/AiRecommendationV3ResponseValidator.java), [response DTOs](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/dto/response/), [API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/CvAnalysisRecommendationApiIT.java), and [active V3 contract](recommendation-ranking-v3-contract.md).
 
 ### POST `/api/students/me/recommendations/generate`
 
@@ -993,34 +999,37 @@ Request:
 }
 ```
 
-Validation:
+- `cvId`: required positive id of the authenticated Student's selected CV. Absent/foreign CV returns indistinguishable `404 RESOURCE_NOT_FOUND`. Selection does not require that CV to be active.
+- `threshold`: defaults to 0.1 when omitted; required non-null value in [0,1].
+- `limit`: defaults to 20 when omitted; required non-null integer in [1,100], one global result limit.
+- Unknown fields or malformed JSON return `400 BAD_REQUEST`; Jakarta validation failures return `400 VALIDATION_ERROR`.
+- Selected CV must have persisted READY status, nonblank `processedText` and `languageCode`, non-null confidence in [0,1], and processingVersion exactly `bilingual-nlp-v2-skills-v1`. Missing/incompatible analysis returns `409 CV_ANALYSIS_NOT_READY` before a run is created. Empty extracted skills are allowed.
+- Supported stored language codes are en/vi/mixed/unknown (V15 CHECK and parsing contract). Low confidence, mixed, and unknown metadata are valid snapshots routed to FALLBACK; >=0.65 is a text-scoring condition, not a blanket generation readiness requirement.
 
-- `cvId` is required and positive.
-- `threshold` defaults to `0.1` and must be from `0.0` through `1.0`.
-- `limit` defaults to `20` and must be from `1` through `100`.
-- Unknown properties, including `studentId` and `userId`, are rejected.
-- The selected CV must belong to the current student, have persisted status `READY`, and contain non-blank `extractedText` and `processedText`.
-- `NOT_READY`, `PROCESSING`, and `FAILED` are rejected with `409 CV_ANALYSIS_NOT_READY`, even if legacy text columns still contain data.
+V3 consumes only selected persisted processed text, canonicalized extracted skills, language code/confidence and processing version. It does not require `extractedText` for scoring, reload/reparse the file, preprocess CV text again, or redetect CV language. It never substitutes Student profile text, manual `student_skills`, active CV or another CV. See [snapshot readiness tests](../backend/src/test/java/com/tttn/jobrecommendation/modules/recommendation/service/impl/RecommendationTransactionServiceV3Test.java).
 
-Generation is synchronous. The backend commits a `PROCESSING` run with source type `CV`, calls the AI service outside every database transaction, then uses a new short transaction to persist results and mark `SUCCESS`, or a separate short transaction to mark `FAILED`. State transitions are only `PROCESSING -> SUCCESS` and `PROCESSING -> FAILED`. Every request creates an independent run.
+Generation is synchronous. Backend commits a PROCESSING run with source CV, performs the AI call outside database transactions, then atomically persists results and SUCCESS. An AI/validation/persistence failure independently marks FAILED with finish time and sanitized error, without partial results. Requests create independent runs after successful preparation; there is no asynchronous polling job or generation deduplication contract.
 
-The eligible corpus is built by Spring Boot and contains only jobs that are `ACTIVE`, belong to a `VERIFIED` company, and have a null, current, or future deadline. Jobs are ordered by id. Jobs/company and job skills are loaded with bounded batched queries; the AI service receives no database access or authority to reapply visibility rules.
+Backend prepares only ACTIVE Jobs from VERIFIED Companies with deadline null/today/future, ordered by id, using batched Job/skill queries. Canonical skill lists are sorted/deduplicated; a Job with >100 canonical skills fails explicitly rather than truncating. Text contains TITLE, DESCRIPTION, REQUIREMENTS, SKILLS in that order separated by blank lines. It excludes benefits, salary, location, Company name, lifecycle timestamps and other unrelated fields. AI detects/preprocesses Job text; Backend owns corpus eligibility.
 
-The backend calls `POST /internal/v2/recommendations` with:
+Internal V3 request (`POST /internal/v3/recommendations`, internal API key required):
 
 ```json
 {
   "requestId": "f8dd2777-3457-4515-8829-a63599e74775",
   "cv": {
     "id": 12,
-    "text": "Raw extracted CV text",
-    "skills": ["java", "spring boot"]
+    "processedText": "java spring_boot rest_api",
+    "skills": ["java", "spring boot"],
+    "languageCode": "en",
+    "languageConfidence": 0.98,
+    "processingVersion": "bilingual-nlp-v2-skills-v1"
   },
   "jobs": [
     {
       "id": 101,
-      "text": "TITLE:\nBackend Developer\n\nDESCRIPTION:\nBuild APIs.\n\nREQUIREMENTS:\nJava experience.\n\nSKILLS:\njava, spring boot, postgresql",
-      "skills": ["java", "spring boot", "postgresql"]
+      "text": "TITLE:\nBackend Intern\n\nDESCRIPTION:\nBuild APIs.\n\nREQUIREMENTS:\nJava experience.\n\nSKILLS:\njava, spring boot",
+      "skills": ["java", "spring boot"]
     }
   ],
   "threshold": 0.1,
@@ -1028,31 +1037,51 @@ The backend calls `POST /internal/v2/recommendations` with:
 }
 ```
 
-CV `text` comes from `selectedCv.extractedText`, not `processedText`, and CV `skills` comes from that same CV's extracted skills, never `student_skills`. Each job text uses exactly `TITLE`, `DESCRIPTION`, `REQUIREMENTS`, and `SKILLS` in that order with the shown blank lines. It does not contain salary, location, benefits, timestamps, company identifiers or name, status, deadline, working model, or application count. The user's JWT is never forwarded.
-
-Contract V2 response:
+Internal V3 response example (illustrative cosine, consistent formula/evidence):
 
 ```json
 {
   "requestId": "f8dd2777-3457-4515-8829-a63599e74775",
   "algorithm": "tfidf-cosine-hybrid",
-  "algorithmVersion": "bilingual-recommendation-v2",
+  "algorithmVersion": "bilingual-recommendation-v3",
   "results": [
     {
       "jobId": 101,
-      "score": 0.72,
-      "textScore": 0.65,
-      "skillScore": 0.85,
+      "rankingTier": "PRIMARY",
+      "rankingScore": 0.87,
+      "overallScore": 0.87,
+      "textScore": 0.8,
+      "skillScore": 1.0,
       "scoringStrategy": "SAME_LANGUAGE_HYBRID",
       "matchedSkills": ["java", "spring boot"],
-      "missingSkills": ["docker"],
-      "reason": "Strong Java and Spring Boot overlap."
+      "missingSkills": [],
+      "reason": "Same-language text and declared skill overlap."
     }
   ]
 }
 ```
 
-A successful response is a completed run detail:
+AI returns no official `rankPosition` or `tierRankPosition`. It applies threshold to `rankingScore`, orders PRIMARY before FALLBACK (score DESC, jobId ASC within each tier), then takes the global limit. Backend validates and reorders the returned subset, assigns continuous global ranks 1..N and independent tier ranks 1..n. Backend does not independently recompute cosine or verify omitted corpus members' Top-K scores.
+
+#### V3 score semantics
+
+| Field / condition | PRIMARY | FALLBACK |
+|---|---|---|
+| `scoringStrategy` | SAME_LANGUAGE_HYBRID | CROSS_LANGUAGE_SKILL_BASED |
+| Language routing | Both en/vi, same language, both confidence >=0.65 | All other pairs, including mixed/unknown/low-confidence |
+| `textScore` | Non-null cosine [0,1] | Explicit null |
+| `skillScore` | Matched canonical Job skills / all canonical Job skills; 0 with no Job skills | Same coverage formula; 0 with no Job skills |
+| `overallScore` | 0.65 * textScore + 0.35 * skillScore with Job skills; textScore alone without Job skills | Explicit null |
+| `rankingScore` | overallScore | skillScore |
+| Public `score` | Deprecated alias of rankingScore | Deprecated alias of rankingScore, not overall fit |
+
+Include iff rankingScore >= threshold; threshold=0 can retain zero-score results within the limit. PRIMARY and FALLBACK scores are not one calibrated overall-fit scale. FALLBACK 1.0 means coverage of declared canonical Job skills only.
+
+Backend rejects the whole response on requestId/version mismatch, extra/unknown wire fields, non-corpus or duplicate Job ids, excess result count, invalid scores, below-threshold results, invalid tier/strategy/nullability, bad formulas or skill evidence. Expected metadata is exactly `tfidf-cosine-hybrid` / `bilingual-recommendation-v3`. Scores must be finite [0,1] with at most eight decimal places. Threshold and official ordering use raw BigDecimal values before HALF_UP rounding to five decimals for NUMERIC(8,5) persistence. Consequently rounded public scores can tie despite distinct raw scores, and a rounded hybrid formula can differ slightly from recomputation on rounded components.
+
+Matched/missing lists must be canonical, sorted, unique, non-null, bounded (<=100 values, each <=150 characters), and equal to the CV/Job intersection and Job-minus-CV skills respectively. Backend recomputes skill coverage and the PRIMARY formula (eight-decimal formula allowance 0.00000001). V3 reason must be nonblank, <=2000 characters, and is stripped before storage. These checks are implemented, not deferred TODOs.
+
+Successful `200` response uses message `Recommendations generated successfully`. Example **data** inside the ApiResponse envelope:
 
 ```json
 {
@@ -1060,14 +1089,14 @@ A successful response is a completed run detail:
   "cvId": 12,
   "sourceType": "CV",
   "algorithm": "tfidf-cosine-hybrid",
-  "algorithmVersion": "bilingual-recommendation-v2",
-  "totalJobsScanned": 42,
+  "algorithmVersion": "bilingual-recommendation-v3",
+  "totalJobsScanned": 1,
   "status": "SUCCESS",
   "totalRecommended": 1,
   "errorMessage": null,
-  "startedAt": "2026-07-24T10:00:00",
-  "finishedAt": "2026-07-24T10:00:01",
-  "createdAt": "2026-07-24T10:00:00",
+  "startedAt": "2026-10-13T10:00:00",
+  "finishedAt": "2026-10-13T10:00:01",
+  "createdAt": "2026-10-13T10:00:00",
   "results": [
     {
       "id": 91,
@@ -1075,30 +1104,46 @@ A successful response is a completed run detail:
       "jobTitle": "Backend Intern",
       "companyName": "Example Company",
       "rankPosition": 1,
-      "score": 0.72,
-      "textScore": 0.65,
-      "skillScore": 0.85,
+      "tierRankPosition": 1,
+      "rankingTier": "PRIMARY",
+      "rankingScore": 0.87,
+      "overallScore": 0.87,
+      "score": 0.87,
+      "textScore": 0.8,
+      "skillScore": 1.0,
       "scoringStrategy": "SAME_LANGUAGE_HYBRID",
       "matchedKeywords": ["java", "spring boot"],
-      "missingSkills": ["docker"],
-      "reason": "Strong Java and Spring Boot overlap.",
-      "createdAt": "2026-07-24T10:00:01"
+      "missingSkills": [],
+      "reason": "Same-language text and declared skill overlap.",
+      "createdAt": "2026-10-13T10:00:01"
     }
   ]
 }
 ```
 
-`matchedKeywords` is retained for frontend compatibility and semantically represents `matchedSkills`; no duplicate public `matchedSkills` field is added.
+Public results contain exactly the fields shown above; `matchedKeywords` represents internal matchedSkills, with no duplicate public matchedSkills property. New V3 ranks/tier/rankingScore/skillScore/strategy/evidence/reason are populated; overallScore/textScore are null for FALLBACK. Old incomplete history may retain null algorithm metadata, components, tier, tierRankPosition and reason; it must not be relabeled as V3. Null stored evidence lists map to empty public lists. [Mapper](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/mapper/RecommendationMapper.java) and [serialization tests](../backend/src/test/java/com/tttn/jobrecommendation/modules/ranking/dto/response/RankingResponseSerializationTest.java) confirm alias/null behavior.
 
-The backend requires matching `requestId`, non-blank bounded algorithm metadata, a non-null result list within the requested limit, eligible unique job IDs, and finite required `score` and `skillScore` values within `[0,1]`. Every raw result score must be greater than or equal to the requested threshold; one result below the threshold invalidates the whole response, marks the run `FAILED`, and persists no partial results. Threshold comparison uses the raw `BigDecimal` conversion before scores are rounded to `NUMERIC(8,5)` for persistence.
+An empty eligible corpus skips AI and completes SUCCESS with V3 constants above, totalJobsScanned=0, totalRecommended=0, empty results, null error and non-null finish time. These V3 constants do not come from the legacy V2 recommendation configuration. AI transport errors use the common AI error codes; transactional/non-AI generation failure uses RECOMMENDATION_GENERATION_FAILED.
 
-`SAME_LANGUAGE_HYBRID` requires a finite `textScore` in `[0,1]`. `CROSS_LANGUAGE_SKILL_BASED` requires `textScore: null`; any non-null value is invalid. Matched and missing skills are non-null and defensively normalized. A non-null reason is trimmed and limited to 2,000 characters.
+### GET `/api/students/me/recommendation-runs/{runId}`
 
-AI V2 does not return rank. After all results pass validation, the backend sorts them by `score DESC`, then `jobId ASC` for deterministic ties, and assigns continuous `rankPosition` values from 1. The backend is the sole source of truth for ranking; persisted and public results continue to use `rankPosition`.
+Returns owned run detail (the generation data fields above) for PROCESSING, SUCCESS or FAILED, with results in persisted rankPosition order. Missing/foreign ids return indistinguishable `404 RECOMMENDATION_RUN_NOT_FOUND`. PROCESSING can have null finish/error/algorithm metadata; FAILED exposes sanitized error and no partial results from failed generation.
 
-AI timeout, unavailability, invalid response, orchestration error, or transactional persistence failure marks the run `FAILED` in an independent transaction, sets `finishedAt`, stores only a sanitized error, and leaves no partial result rows.
+### GET `/api/students/me/recommendation-runs`
 
-If the eligible job corpus is empty, the backend does not call AI. It completes the run as `SUCCESS` with `totalJobsScanned: 0`, `totalRecommended: 0`, `results: []`, null error, and a non-null finish time. Algorithm metadata comes from `app.ai.recommendation.algorithm` and `app.ai.recommendation.algorithm-version`; defaults are `tfidf-cosine-hybrid` and `bilingual-recommendation-v2`.
+Returns `ApiResponse<List<RecommendationRunResponse>>`, not pagination. Fields: id, cvId, sourceType, algorithm, algorithmVersion, totalJobsScanned, totalRecommended, status, startedAt, finishedAt, createdAt. Results/errorMessage are detail-only. List order is createdAt DESC; the list query does not specify a secondary id tie-break.
+
+### GET `/api/students/me/recommendation-results/latest`
+
+Returns `ApiResponse<List<RecommendationResultResponse>>` for latest SUCCESS by createdAt DESC then id DESC, with persisted rankPosition order; returns [] if none. Newer FAILED/PROCESSING runs do not hide earlier SUCCESS. These GETs never trigger generation or reanalysis.
+
+History preserves scores/evidence/ranks and run metadata, but not immutable full CV/Job/corpus input. Job title and Company name come from current relationships. Student runs do not persist requestId/threshold/limit or CV-version/corpus snapshots; exact historical scoring input cannot be reconstructed. V17 backfills recognized V2 rows' tier/overall/per-tier ranks without changing historical global ranks. Older incomplete rows remain readable with null typed metadata; no history read reranks them.
+
+#### Internal V2 recommendation compatibility
+
+`POST /internal/v2/recommendations` still exists, with internal authentication. V2 uses `{requestId, cv:{id,text,skills}, jobs:[{id,text,skills}], threshold,limit}` with raw/extracted CV `text`, not V3 processed snapshot metadata. Metadata is `tfidf-cosine-hybrid` / `bilingual-recommendation-v2`. Results contain jobId, score, textScore, skillScore, scoringStrategy, matchedSkills, missingSkills, reason; no official rank or V3 tier fields. Same-language declared-skill score is 0.65 text + 0.35 skill; without skills it is text; cross-language/low-confidence score is skill with textScore=null. V2 uses score DESC then jobId ASC with one global limit, unlike V3 tier ordering.
+
+V2 DTOs/client/validator and tests remain isolated compatibility code; current public Student generate calls `recommendV3`, not this V2 path. CV reanalysis still calls `/internal/v2/cv/parse`. See [V2 AI routes](../ai-service/v2/api.py), [V2 compatibility validator](../backend/src/main/java/com/tttn/jobrecommendation/modules/recommendation/service/impl/AiRecommendationResponseValidator.java), and [client routes](../backend/src/main/java/com/tttn/jobrecommendation/infrastructure/ai/client/RestAiServiceClient.java).
 
 #### Legacy internal V1 recommendation contract
 
@@ -1141,43 +1186,11 @@ If the eligible job corpus is empty, the backend does not call AI. It completes 
 }
 ```
 
-This backend V2 branch calls only `/internal/v2/recommendations`; V1 payloads must never be silently relabeled as V2.
+V1 stays a distinct compatibility contract, including its legacy rank field; it is not relabeled as V2/V3 and is not used by current public generation.
 
-### GET `/api/students/me/recommendation-runs/{runId}`
+### Deployment dependencies and known limitations
 
-Returns the owned run detail and its results for `PROCESSING`, `FAILED`, or `SUCCESS`. Foreign and absent run IDs are intentionally indistinguishable and return `404 RECOMMENDATION_RUN_NOT_FOUND`. A failed run exposes its sanitized `errorMessage` and returns an empty result list when no results exist.
-
-### GET `/api/students/me/recommendation-runs`
-
-Role: `STUDENT`.
-
-Returns current student's recommendation run history.
-
-### GET `/api/students/me/recommendation-results/latest`
-
-Role: `STUDENT`.
-
-Returns persisted results for the current student's latest `SUCCESS` run. The repository filters status in the database; a newer `FAILED` or `PROCESSING` run never hides the latest successful results. Calling this read-only endpoint never triggers generation.
-
-Historical runs retain algorithm metadata, jobs scanned, component scores, strategy, matched/missing skills, reason, and their CV identifier. They do not retain immutable snapshots of the uploaded file, CV/job text, or entire eligible corpus. Later CV/job/profile edits do not rewrite persisted results, but the exact historical input cannot be reconstructed.
-
-Deferred P1 TODOs, intentionally not implemented in this contract-locking change:
-
-- Semantically validate that matched skills are a subset of CV/job intersection, missing skills are a subset of job-minus-CV skills, and the two sets are disjoint.
-- Define concurrent-reanalysis control using a row lock, rejection while `PROCESSING`, or an `analysisAttemptId`.
-- Add job-skill `importance` and `minLevel` to a future AI contract revision.
-
-### Deployment order and known limitations
-
-The V2 backend must not be merged or deployed before AI V2 is ready:
-
-1. Add AI V2 while retaining V1.
-2. Deploy AI V2.
-3. Verify AI `/health` and V2 contract fixtures.
-4. Deploy Backend V2.
-5. Run end-to-end regression.
-
-Known MVP limitations: the backend provides no manual extracted-text editing, semantic alias mapping, Vietnamese NLP, OCR, embeddings, or message queue. Backend and AI remain isolated services and never access each other's database.
+Current Backend requires AI V2 parsing and V3 recommendation/ranking routes together, with released Flyway V1–V18. Keep internal V1/V2 compatibility for older consumers; verify matching route contracts before rollout. Backend supplies no NLP/extraction itself; English/Vietnamese processing and canonical extraction are implemented in AI. OCR, embeddings, manual extracted-data editing and queues are not implemented. Job-skill importance/minLevel are not scoring components; concurrent CV reanalysis isolation remains a separate evidence gap. Documentation synchronization adds no implementation or new runtime verification.
 
 ## Notifications
 

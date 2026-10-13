@@ -85,17 +85,19 @@ The AI Service must not receive user JWTs, access the application database, or o
 
 ## Current AI Contract
 
-Backend uses Contract V2:
+Backend uses CV parsing V2 and Recommendation/Ranking V3:
 
 - `POST /internal/v2/cv/parse`
-- `POST /internal/v2/recommendations`
+- `POST /internal/v3/recommendations`
+- `POST /internal/v3/candidate-rankings`
 
-V1 remains available only for compatibility and regression coverage.
+Internal V1/V2 recommendation paths remain available for compatibility and regression coverage; they are not the current public Student generation path.
 
 Current metadata:
 
 - Algorithm: `tfidf-cosine-hybrid`
-- Algorithm version: `bilingual-recommendation-v2`
+- Student algorithm version: `bilingual-recommendation-v3`
+- Company algorithm version: `bilingual-candidate-ranking-v3`
 - Processing version: `bilingual-nlp-v2-skills-v1`
 
 Supported recommendation strategies:
@@ -108,18 +110,19 @@ Supported recommendation strategies:
 
 For same-language jobs with declared skills:
 
-- `score = 0.65 * textScore + 0.35 * skillScore`
+- `rankingScore = overallScore = 0.65 * textScore + 0.35 * skillScore`
 
 For same-language jobs without declared skills:
 
-- `score = textScore`
+- `rankingScore = overallScore = textScore`; `skillScore = 0`
 
 For cross-language or insufficient-confidence pairs:
 
 - `textScore = null`
-- `score = skillScore`
+- `overallScore = null`
+- `rankingScore = skillScore`
 
-AI returns no `rank` or `rankPosition`. Backend validates scores, sorts by `score DESC` then `jobId ASC`, assigns continuous `rankPosition`, and persists the results.
+V3 AI returns no official ranks. Backend validates results, orders Student PRIMARY before FALLBACK with `rankingScore DESC, jobId ASC` within each tier, assigns global `rankPosition` and per-tier `tierRankPosition`, and persists results. Company ranking uses independent tier limits/ranks. Public `score` is a deprecated alias of `rankingScore`.
 
 ## Tech Stack
 
@@ -185,7 +188,7 @@ Do not rename established packages or move modules without an explicit architect
 8. All request DTOs use Jakarta validation where appropriate.
 9. Company operations must remain scoped to the authenticated company.
 10. Student operations must remain scoped to the authenticated student.
-11. A student cannot apply to the same job twice.
+11. A student may reapply only when no PENDING/REVIEWED/ACCEPTED application exists and the latest application (applied_at DESC, id DESC) is REJECTED; reapplication creates a new PENDING history row. Latest WITHDRAWN blocks reapplication. Job eligibility and CV ownership checks still apply.
 12. Saved Candidate uniqueness is `company_id + student_id`; `application_id` records the source application and does not redefine the domain as Saved Application.
 13. Only one CV may be active for a student.
 14. Recommendation generation may use only the selected CV's persisted READY analysis snapshot.
@@ -265,7 +268,7 @@ Roles:
   - `students.user_id`
   - `companies.user_id`
   - `student_profiles.student_id`
-  - `applications(student_id, job_id)`
+  - `applications(student_id, job_id)` only where status is `PENDING`, `REVIEWED`, or `ACCEPTED` (V18 partial unique index; no lifetime uniqueness)
   - `saved_jobs(student_id, job_id)`
   - `saved_candidates(company_id, student_id)`
   - `student_skills(student_id, skill_id)`
