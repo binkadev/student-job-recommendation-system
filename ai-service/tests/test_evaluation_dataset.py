@@ -237,3 +237,14 @@ def test_rejects_more_than_one_hundred_jobs(tmp_path: Path) -> None:
 
     with pytest.raises(DatasetValidationError, match="at most 100 Jobs"):
         load_dataset(directory)
+
+
+def test_prediction_mode_accepts_large_complete_all_zero_corpus(tmp_path: Path) -> None:
+    jobs = [{"id": index, "text": "Synthetic Job", "skills": []} for index in range(1, 102)]
+    directory = _write_dataset(
+        tmp_path / "predictions", jobs=jobs,
+        judgments="cv_id,job_id,relevance\n" + "".join(f"1,{job['id']},0\n" for job in jobs),
+    )
+    dataset = load_dataset(directory, prediction_evaluation=True)
+    assert len(dataset.jobs) == dataset.judgment_count == 101
+    assert set(dataset.judgments.values()) == {0}

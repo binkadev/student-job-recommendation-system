@@ -1,6 +1,8 @@
 # Offline Recommendation Evaluation
 
-This package evaluates recommendation rankings against a complete dataset of human-assigned relevance judgments. It is offline tooling only: it does not change the production algorithm, API contract, scoring weights, or Backend ranking ownership.
+Use `evaluation.prediction_runner` for **current Student Recommendation V3**: see [V3 prediction input, metrics, commands and reproducibility](v3-prediction-evaluation.md). It evaluates saved Backend predictions against independent external labels without invoking scoring, NLP, an API or the database. `evaluation.runner` below remains a **legacy V2 component experiment**, not current V3 quality evidence. Neither changes production behavior.
+
+**TOOLING COMPLETE does not mean HUMAN-LABELED EVALUATION COMPLETE.** No verified human quality dataset or final thesis quality results are supplied here.
 
 > **TOY DATASET KHÔNG PHẢI BẰNG CHỨNG CHẤT LƯỢNG VÀ KHÔNG ĐƯỢC DÙNG TRONG BÁO CÁO NHƯ KẾT QUẢ THỰC NGHIỆM.**
 
@@ -20,13 +22,13 @@ Relevance labels are:
 - `1`: relevant
 - `2`: highly relevant
 
-Every CV–Job pair must have exactly one judgment, and every CV must have at least one Job whose relevance is greater than zero. A dataset may contain at most 100 Jobs because the runner sends all Jobs in one real Contract V2 request.
+Every CV–Job pair must have exactly one judgment. The V3 prediction loader permits zero-relevant CVs and larger labeled corpora. The legacy V2 runner and existing annotation finalizer retain their earlier requirement of >=1 label>0 per CV and at most 100 Jobs. To include all-zero queries in a real study, supply externally adjudicated complete CSV labels to the V3 evaluator; never invent a relevant label to satisfy legacy restrictions.
 
 `templates/annotations.template.csv` is a worksheet for independent human annotation. It is not an input to the runner. The runner never derives ground truth from titles, skills, production scores, explanations, or any other algorithm output.
 
-Validation fails clearly for missing files, malformed JSON or CSV schemas, invalid or duplicate IDs, unknown references, duplicate or missing CV–Job judgments, invalid relevance, empty datasets, blank text or skills, CVs without a relevant Job, and corpora exceeding 100 Jobs.
+Validation fails clearly for missing files, malformed JSON/CSV schemas, invalid/duplicate IDs, unknown references, duplicate/missing CV–Job judgments, invalid relevance, empty datasets and blank text/skill entries. The additional legacy restrictions above do not apply to V3 prediction evaluation. Raw anonymized text supports annotation only; V3 evaluation never scores it.
 
-## Production scoring and ranking variants
+## Legacy V2 scoring and ranking variants
 
 For each CV, the runner:
 
@@ -48,15 +50,15 @@ For `text_only`, a null `textScore` on cross-language or insufficient-confidence
 
 The default cutoff is `k=5`.
 
-- Precision@k and Recall@k treat relevance `1` and `2` as relevant.
+- Precision@k, Recall@k and F1@k use the explicit binary threshold (default 1).
 - DCG@k and NDCG@k use graded gain `2^relevance - 1` and discount `log2(rank + 1)`.
 - Precision uses the number of available ranked Jobs when fewer than `k` Jobs exist.
-- Precision, Recall, and NDCG are bounded to `[0, 1]`.
+- Precision, Recall, F1, and NDCG are bounded to `[0, 1]`.
 - Reported summary metrics are macro averages across CVs and are rounded to six decimal places.
 
 DCG is the unnormalized intermediate and can exceed `1`; NDCG is the normalized reported metric.
 
-## Run
+## Run legacy V2 component experiment
 
 From `ai-service/`, Linux/macOS:
 
@@ -75,8 +77,8 @@ python -m evaluation.runner --dataset evaluation/examples/toy-v1 --k 5 --output-
 
 The ignored output directory contains:
 
-- `summary.json`: dataset counts, production metadata, scoring description, and macro metrics for all three variants.
-- `per_cv.csv`: per-CV metrics and relevant Job counts.
+- `summary.json`: dataset counts, legacy V2 metadata, scoring description, binary threshold and macro Precision/Recall/F1/NDCG for all three variants.
+- `per_cv.csv`: per-CV Precision/Recall/F1/NDCG and relevant Job counts.
 - `rankings.csv`: every ranked Job, component score, and human relevance label.
 
 Files are deterministic UTF-8 without BOM. They have stable score and metric formatting and contain no runtime timestamp.
@@ -89,9 +91,9 @@ Files are deterministic UTF-8 without BOM. They have stable score and metric for
 4. Assign every CV–Job pair a relevance of `0`, `1`, or `2`.
 5. Do not show reviewers any algorithm score, rank, explanation, or matched-skill output.
 6. Resolve disagreements through adjudication and create the final complete `judgments.csv`.
-7. Run the evaluation runner against that frozen dataset.
-8. Report Precision@5, Recall@5, and NDCG@5.
-9. Compare `production_hybrid`, `text_only`, and `skill_only`.
+7. Freeze the eligible corpus, labels and experiment provenance before evaluating predictions.
+8. Capture current Backend V3 run details and experiment provenance against the frozen eligible corpus; run `evaluation.prediction_runner` as documented in the linked V3 guide.
+9. Report Precision@5, Recall@5, **F1@5**, and optionally NDCG@5 only from verified real human labels. Any V2 component comparison must be identified separately as a legacy experiment.
 10. State limitations, especially sample size, Job selection, reviewer subjectivity, and annotator bias.
 
 Automated tests only establish framework behavior and scoring-pipeline correctness. Only a dataset labeled and adjudicated by humans can provide evidence about ranking quality.
@@ -151,7 +153,7 @@ python -m evaluation.annotation finalize --dataset evaluation/private/pilot-v1 -
 Finalize validates the complete Cartesian product and refuses to overwrite an existing file unless `--force` is supplied. It does not infer or repair relevance. The completed private dataset can then be evaluated:
 
 ```powershell
-python -m evaluation.runner --dataset evaluation/private/pilot-v1 --k 5 --output-dir evaluation/work/pilot-v1-result
+python -m evaluation.prediction_runner --dataset evaluation/private/pilot-v1 --predictions evaluation/private/pilot-v1/predictions.json --ground-truth-kind HUMAN_LABELED --k 5 --relevance-threshold 1 --dataset-version pilot-v1 --label-version adjudicated-v1 --output-dir evaluation/work/pilot-v1-result
 ```
 
 The files under `examples/toy-v1/annotations/` demonstrate this workflow using synthetic labels only. They are not annotations from real users and must not be used as evidence of recommendation quality.

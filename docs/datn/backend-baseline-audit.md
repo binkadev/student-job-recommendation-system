@@ -281,3 +281,57 @@ Evidence rechecked: released [V15–V18 migrations](../../backend/src/main/resou
 Closure is documentation-only. The original audit/module/feature tables and historical test/runtime counts remain historical evidence; only their documentation cleanup actions are superseded. Structured major/experience/education extraction remains MISSING/UNPROVEN; lexical evidence remains limited to Task 1's English fixture. Current V3 evaluation, F1@K tooling, human-labeled quality evidence, exact input reproducibility, Vietnamese CV/PDF/browser/production coverage and concurrency gaps stay separate. No feature status is promoted by documentation cleanup.
 
 Verification for Task 2 uses Git diff/whitespace/scope review and local documentation checks; no Maven/AI/Frontend/E2E suite is rerun. No production/test/AI/Frontend/runner/migration edits, commits, pushes or merges. The remaining next-task recommendation in §12 stays unimplemented.
+
+## 14. Student V3 prediction evaluation supplement — Task 3 (2026-10-13)
+
+**TOOLING COMPLETE; HUMAN-LABELED EVALUATION NOT COMPLETE.** This supplement supersedes the earlier missing-F1/missing-V3-adapter statements only. Task 1/2 implementations and their historical evidence are preserved; no recommendation-quality result or exact historical scoring replay is claimed.
+
+Baseline: `feat/datn-evaluation-v3`, clean initial tree, HEAD/local master/origin master/live remote master all `11b48e9444f9c6d05626b22fff7c8c76b22e2c80`. The supplied base string omitted one `4`; executable Git identity above is authoritative. No branch switch, commit, push or merge.
+
+### Source audit before changes
+
+| Inspection question | Verified baseline behavior |
+|---|---|
+| Prediction input/producer | `evaluation.runner` did not consume external predictions. It loaded raw cvs.json/jobs.json/complete judgments.csv, invoked V2 and exported derived rankings.csv (cv_id/model/rank/job_id/score/relevance). No existing current-V3 evaluation/export adapter was found |
+| V2 or V3 | Runner imported V2 schemas/service, used raw CV text, threshold=0 and limit=all Jobs; three component variants were globally score-sorted. Public Backend generation instead calls recommendV3 using persisted CV snapshot |
+| K | Default 5; metrics slice first K; Precision denominator min(K,available), Recall denominator all positive judgments. Existing runner required a full corpus prediction set |
+| Labels | Existing scale 0=not relevant, 1=relevant, 2=highly relevant; complete Cartesian labels; binary label>=1. Independent annotation packets/manual adjudication exist |
+| Metrics/F1 | Precision, Recall, DCG/NDCG implemented; F1 absent from evaluation module/runner/tests. All-zero label CVs were rejected |
+| Tier/order mismatch | V2 component rankings sorted score DESC/jobId ASC across all results, with no PRIMARY-first V3 semantics |
+| Official order/evidence | Backend V3 validator orders tiers then raw score DESC/jobId ASC; assigns global/per-tier ranks, then rounds scores to five decimals. Public GET detail uses persisted rankPosition ASC. Run DTO/entity and result DTO/entity already contain enough metadata for frozen prediction evaluation |
+| Reproducibility | Legacy artifacts contained K/counts/algorithm/version and deterministic UUID5, but no input/tooling hashes. Student persistence lacks threshold/limit/request UUID/frozen input/corpus snapshot; exact historical scoring replay remains unsupported |
+| Human labels | Tracked toy-v1 judgments and completed annotation packets explicitly synthetic. No verified real human quality dataset/experiment was found in tracked evaluation evidence; private work outside the repository cannot be inferred |
+| Baseline tests | Existing four evaluation suites executed: **54 passed** |
+
+Implementation plan was reported before editing: preserve isolated legacy V2 experiments, add an offline adapter for saved public V3 run details, implement explicit binary threshold/F1/zero cases, test official order and reproducibility, document separate tooling/quality states. No production blocker required API/schema/scoring changes.
+
+### Current tooling evidence
+
+- [V3 adapter](../../ai-service/evaluation/predictions.py) accepts arrays of complete public run details or successful ApiResponse envelopes; requires SUCCESS CV runs/current Student V3 metadata, one run per CV, valid scores/tiers/counts/IDs/ranks. It exports only sanitized prediction fields, excluding text/titles/Company names/reasons/extra fields.
+- [V3 evaluator](../../ai-service/evaluation/prediction_runner.py) evaluates official rankPosition first; keeps rounded-score ties in persisted order. Exact unranked reconstruction is explicit opt-in and identified separately; tierRankPosition never defines global order. K is applied after order; no score filtering, scoring calls or fabricated predictions.
+- [Metrics](../../ai-service/evaluation/metrics.py) now implement Precision/Recall/**F1**/graded NDCG per CV, configurable binary threshold **1 by default**, optional 2, empty/zero-relevant policy. Aggregates are unweighted macro means including all CVs; macro F1 is mean per-CV F1. Existing 0/1/2 rubric is retained.
+- [Dataset loader](../../ai-service/evaluation/dataset.py) provides prediction mode accepting complete all-zero CV labels and >100 labeled Jobs; legacy V2/annotation restrictions remain. Counts must agree with a shared frozen corpus; membership still requires experiment provenance.
+- [Legacy runner](../../ai-service/evaluation/runner.py) retains V2 component behavior and now outputs F1/threshold/explicit legacy evaluation type. It must not be presented as current Student V3 predictions.
+- [Synthetic prediction fixture](../../ai-service/evaluation/examples/toy-v1/student-v3.predictions.synthetic.json) is hand-authored adapter evidence, not captured Backend output or quality evidence. [Guide](../../ai-service/evaluation/v3-prediction-evaluation.md) documents exact commands, formats, ordering, labels, formulas, K, macro aggregation, privacy and limits; [README](../../ai-service/evaluation/README.md) directs real studies to V3.
+
+Artifacts: summary.json, per_cv.csv, rankings.csv and sanitized reusable predictions.json. Summary identifies K/label threshold/versions/configuration, source run identities/timestamps/order sources, input/tooling/requirements-lock SHA256 and Python version. Deterministic evaluationId avoids a changing timestamp. Optional experiment-manifest file is hashed, not copied. This proves repeatable **evaluation of frozen predictions**, not historical input reconstruction or verified annotation provenance. Unknown historical threshold/limit/corpus/CV metadata remains unknown; capture it separately at experiment time. Existing public prediction evidence is sufficient for this scope; no production change was proposed.
+
+### Executed tests and verification
+
+Commands from `ai-service/`, using `.\.venv\Scripts\python.exe`:
+
+| Command | Result |
+|---|---|
+| `-m pip install --require-hashes -r requirements.lock` | PASS; already installed locked requirements; no dependency changes |
+| `-m pip check` | PASS; no broken requirements |
+| `-m pytest tests/test_evaluation_metrics.py tests/test_evaluation_dataset.py tests/test_evaluation_runner.py tests/test_evaluation_annotation.py tests/test_evaluation_predictions.py -q` | **114 passed** |
+| `-m pytest -q` | **887 passed**, 0 failures; one existing Starlette/httpx TestClient deprecation warning |
+| `-m evaluation.prediction_runner --dataset evaluation/examples/toy-v1 --predictions evaluation/examples/toy-v1/student-v3.predictions.synthetic.json --ground-truth-kind SYNTHETIC --k 5 --relevance-threshold 1 --dataset-version toy-v1 --label-version synthetic-v1 --output-dir evaluation/output/toy-v3` | PASS; ignored synthetic artifacts only; no thesis quality numbers claimed |
+
+[Metric tests](../../ai-service/tests/test_evaluation_metrics.py) and [prediction tests](../../ai-service/tests/test_evaluation_predictions.py) cover perfect/no-hit/partial retrieval, K smaller/larger than lists, empty predictions, zero-relevant labels, F1 zero denominator, binary thresholds, graded NDCG, macro F1, PRIMARY-first order, same-tier ties/ranks, higher-scored FALLBACK, malformed/duplicate/unknown inputs, metadata/count mismatches, provenance identity and byte-identical repeated artifacts. [Dataset](../../ai-service/tests/test_evaluation_dataset.py)/[legacy runner](../../ai-service/tests/test_evaluation_runner.py) checks were extended; annotation tests remain intact. The old metric rejection of all-zero labels was replaced with explicit zero-result assertions to test the newly documented policy; malformed-input assertions remain strict.
+
+Backend/Frontend/E2E suites were not rerun because executable production code/contracts are untouched. Root git diff --check passes; git status --short, git diff --stat and git diff reviewed, with new files separately checked because plain diff omits untracked additions. Only offline evaluation/tools/tests and these DATN docs changed. TF-IDF/cosine, canonical skills, 0.65/0.35, confidence/threshold/global-limit semantics, official Backend rank assignment, stateless AI boundary, public APIs and released Flyway are unchanged.
+
+Dependencies: **NONE** for implementation/testing Hải completed here; **CONTRACT ONLY** for Bảo alignment on experiment corpus, rubric/threshold, ID mapping and provenance; **BLOCKING** for verified authorized real labels, final dataset/adjudication and final quality experiment. No AI scoring change is required by this task's evidence.
+
+**RECOMMENDED NEXT TASK (not implemented):** Prepare the authorized anonymized human-labeled V3 pilot dataset and frozen experiment manifest/prediction capture, then run the four metrics. Do not fabricate labels or final quality numbers; exact historical replay remains a separately reviewed concern.

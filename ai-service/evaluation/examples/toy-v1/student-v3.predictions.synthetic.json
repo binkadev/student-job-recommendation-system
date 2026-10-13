@@ -1,0 +1,34 @@
+[
+  {
+    "id": 9001,
+    "cvId": 1,
+    "sourceType": "CV",
+    "status": "SUCCESS",
+    "algorithm": "tfidf-cosine-hybrid",
+    "algorithmVersion": "bilingual-recommendation-v3",
+    "totalJobsScanned": 6,
+    "totalRecommended": 3,
+    "finishedAt": "2026-10-13T00:00:00",
+    "results": [
+      {"jobId": 102, "rankPosition": 3, "tierRankPosition": 1, "rankingTier": "FALLBACK", "rankingScore": 1.0, "overallScore": null, "textScore": null, "skillScore": 1.0, "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED"},
+      {"jobId": 103, "rankPosition": 2, "tierRankPosition": 2, "rankingTier": "PRIMARY", "rankingScore": 0.13, "overallScore": 0.13, "textScore": 0.2, "skillScore": 0.0, "scoringStrategy": "SAME_LANGUAGE_HYBRID"},
+      {"jobId": 101, "rankPosition": 1, "tierRankPosition": 1, "rankingTier": "PRIMARY", "rankingScore": 0.675, "overallScore": 0.675, "textScore": 0.5, "skillScore": 1.0, "scoringStrategy": "SAME_LANGUAGE_HYBRID"}
+    ]
+  },
+  {
+    "id": 9002,
+    "cvId": 2,
+    "sourceType": "CV",
+    "status": "SUCCESS",
+    "algorithm": "tfidf-cosine-hybrid",
+    "algorithmVersion": "bilingual-recommendation-v3",
+    "totalJobsScanned": 6,
+    "totalRecommended": 3,
+    "finishedAt": "2026-10-13T00:00:00",
+    "results": [
+      {"jobId": 105, "rankPosition": 3, "tierRankPosition": 1, "rankingTier": "FALLBACK", "rankingScore": 1.0, "overallScore": null, "textScore": null, "skillScore": 1.0, "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED"},
+      {"jobId": 106, "rankPosition": 2, "tierRankPosition": 2, "rankingTier": "PRIMARY", "rankingScore": 0.4125, "overallScore": 0.4125, "textScore": 0.5, "skillScore": 0.25, "scoringStrategy": "SAME_LANGUAGE_HYBRID"},
+      {"jobId": 104, "rankPosition": 1, "tierRankPosition": 1, "rankingTier": "PRIMARY", "rankingScore": 0.74, "overallScore": 0.74, "textScore": 0.6, "skillScore": 1.0, "scoringStrategy": "SAME_LANGUAGE_HYBRID"}
+    ]
+  }
+]
