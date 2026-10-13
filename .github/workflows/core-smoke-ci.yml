@@ -59,13 +59,16 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
-          $output = & ./scripts/smoke-core.ps1 `
-            -TimeoutSeconds 240 `
-            *>&1
+          $output = & ./scripts/smoke-core.ps1 *>&1
+          $smokeExitCode = $LASTEXITCODE
 
           $output | Tee-Object -FilePath smoke-output.log
 
-          if (-not (($output | ForEach-Object { [string]$_ }) -match "SMOKE RESULT: PASS")) {
+          if ($smokeExitCode -ne 0) {
+              throw "Smoke script failed with exit code $smokeExitCode."
+          }
+
+          if (-not (($output | ForEach-Object { [string]$_ }) -match "^Real Student Recommendation V3 E2E passed\.$")) {
               throw "Smoke script completed without the expected PASS marker."
           }
 
