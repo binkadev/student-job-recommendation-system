@@ -60,7 +60,7 @@ Common assertions:
 ## Applications
 
 31. Student Apply: student token, `POST /api/jobs/{jobId}/apply`; expect `200`.
-32. Duplicate Apply rejected: repeat same request; expect `400`.
+32. Active duplicate Apply rejected: repeat while PENDING/REVIEWED/ACCEPTED exists; expect `409 APPLICATION_ALREADY_ACTIVE`. With no active row and latest REJECTED, valid reapply returns `200` with a new PENDING id and preserves history; latest WITHDRAWN returns `400 BAD_REQUEST`. Job eligibility/CV ownership still apply.
 33. Student List Own Applications: student token, `GET /api/students/me/applications`; expect own rows.
 34. Company List Applications for Own Job: company token, `GET /api/companies/me/jobs/{jobId}/applications`; expect rows.
 35. Company Update Application Status: company token, `PATCH /api/applications/{id}/status`; expect valid transition.
@@ -249,7 +249,7 @@ Use verified and non-verified companies, jobs in multiple statuses with past/nul
 
 ## CV Analysis and Recommendation Integration
 
-Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `http://localhost:8000`). It must expose multipart `POST /internal/v2/cv/parse` and JSON `POST /internal/v2/recommendations`. Keep V1 only for older deployed backends; never return a V1 shape from a V2 path. Use two students with two CVs each, verified/pending companies, varied jobs, and physical PDF/DOCX fixtures.
+Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `http://localhost:8000`). Current Backend needs multipart `POST /internal/v2/cv/parse` and JSON `POST /internal/v3/recommendations` with internal authentication. Preserve internal V1/V2 scoring for compatibility tests, without relabeling payloads. Use two students with two CVs each, verified/pending companies, varied jobs, and physical PDF/DOCX fixtures. See [current API contract](api-contract.md#recommendation-apis). These are manual cases, not new PASS evidence from Task 2.
 
 179. New analysis state: upload a CV; expect persisted `NOT_READY`, null text/language/version/error timestamps, and empty skills/warnings.
 180. Analysis privacy/ownership: owner sees only safe analysis metadata; another student and a missing id receive indistinguishable `404 RESOURCE_NOT_FOUND` responses with no paths or stored filename.
@@ -263,16 +263,16 @@ Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `h
 188. Reanalysis failure: file load, timeout, unavailable AI, malformed/invalid response, or runtime error commits `FAILED`, clears processed text plus skills/language/version/warnings/time, and stores only a sanitized error. Any retained old extracted text is invalid while status is not `READY`.
 189. Reanalysis hidden ownership: another student and a missing id receive the same `404` response and cause no state change or AI call.
 190. Generate validation/ownership: verify default threshold `0.1`, limit `20`, strict unknown-field rejection, role enforcement, and indistinguishable foreign/missing CV responses.
-191. READY gate: reject `NOT_READY`, `PROCESSING`, and `FAILED` with `CV_ANALYSIS_NOT_READY`, even when legacy text remains; `READY` also requires non-blank extracted and processed text.
-192. Selected CV input: V2 `cv.text` is raw `extractedText` and `cv.skills` is that CV's extracted skills, never `processedText` or `student_skills`.
+191. V3 READY gate: reject NOT_READY/PROCESSING/FAILED and missing/incompatible snapshot metadata with `409 CV_ANALYSIS_NOT_READY`. READY requires nonblank processedText/languageCode, confidence [0,1], exact `bilingual-nlp-v2-skills-v1`; extractedText is not a V3 scoring dependency. Valid mixed/unknown/low-confidence snapshots are accepted for FALLBACK.
+192. Selected CV input: V3 cv contains persisted processedText, canonicalized extracted skills, languageCode, languageConfidence, processingVersion; no raw CV text, active-CV substitution, profile or manual student_skills. Do not preprocess/detect CV language again.
 193. Eligible corpus: include only `ACTIVE` jobs of `VERIFIED` companies with null/today/future deadlines, ordered by id and loaded with bounded skill queries.
 194. Exact job input: require field `text`, not `processedText`, with `TITLE`, `DESCRIPTION`, `REQUIREMENTS`, and `SKILLS` in fixed order/newlines; exclude salary, location, benefits, timestamps, company data, status, deadline, working model, and counts.
 195. No JWT forwarding: recommendation headers/body contain no access token, `studentId`, `userId`, or database authority.
-196. Full result persistence: algorithm/version, total jobs scanned, score components, strategy, backend-generated `rankPosition`, matched/missing skills, and trimmed reason survive persistence and query.
-197. Public compatibility: results expose `matchedKeywords` as matched skills plus V2 metadata, with no duplicate public `matchedSkills` field.
-198. V2 validation: cover request-id mismatch, duplicate/unknown job id, result limit, all score bounds/finite checks, requested-threshold enforcement before persistence rounding, required `skillScore`, strict strategy-specific `textScore`, skill lists, and reason length.
-199. Backend-owned ranking: reverse AI result order and verify identical results sorted by `score DESC`, then `jobId ASC`, with continuous backend-generated `rankPosition` values from 1.
-200. Empty corpus: expect configured non-null algorithm/version, `SUCCESS`, zero jobs scanned/recommended, empty results, finish time, null error, and no AI call.
+196. Full V3 persistence: algorithm/version, total jobs scanned, rankingScore/overallScore/textScore/skillScore, tier/strategy, Backend global rankPosition/per-tier tierRankPosition, matched/missing skills and reason survive persistence/query. FALLBACK textScore/overallScore remain explicit null.
+197. Public compatibility: score aliases rankingScore; matchedKeywords represents matchedSkills with no duplicate public matchedSkills field. V3 metadata is `tfidf-cosine-hybrid` / `bilingual-recommendation-v3`.
+198. V3 validation: cover request-id/algorithm/version mismatch, duplicate/unknown Job id, global limit, finite/ranged <=8-decimal scores, raw threshold, tier/strategy/nullability, exact canonical skill evidence/coverage, hybrid formula and nonblank bounded reason. Retain distinct internal V2 compatibility tests.
+199. Backend-owned ranking: reverse AI order; expect PRIMARY then FALLBACK, rankingScore DESC/jobId ASC within tiers, global ranks 1..N and independent tier ranks 1..n. AI applies one global limit after PRIMARY-first order. Threshold=0 allows zero scores within limit; use returned raw scores before five-decimal persistence rounding for ordering expectations.
+200. Empty corpus: expect V3 constants `tfidf-cosine-hybrid` / `bilingual-recommendation-v3`, SUCCESS, zero scanned/recommended, empty results, finish time, null error and no AI call; not legacy V2 configuration metadata.
 201. Failure atomicity: AI/persistence failures leave no partial results and commit `FAILED`, finish time, and a message containing no body, class, internal URL, credential/token, local path, or CV text.
 202. Latest success: newer `FAILED` and `PROCESSING` runs do not hide the latest `SUCCESS` results.
 203. Run detail status/ownership: owned `PROCESSING`, `FAILED`, and `SUCCESS` runs remain readable; foreign/missing ids return indistinguishable `404 RECOMMENDATION_RUN_NOT_FOUND`.
@@ -280,4 +280,4 @@ Run a contract-compatible local AI stub at `APP_AI_SERVICE_BASE_URL` (default `h
 
 Semantic alias equivalence is an AI-service test, not a backend test: `học máy`/`hoc may`/`machine learning`, `K8s`/`Kubernetes`, and `SpringBoot`/`spring-boot`/`Spring Boot`.
 
-Deploy AI V2 while retaining V1, verify `/health` and fixtures, deploy Backend V2, then run end-to-end regression. Do not merge or deploy Backend V2 first.
+Current Backend requires AI V2 parsing and V3 scoring plus Flyway V1–V18. Retain distinct internal V1/V2 compatibility; verify `/health` and matching contract fixtures before rollout. Documentation updates do not execute these manual cases.

@@ -1,5 +1,6 @@
 Project student_job_recommendation {
   database_type: 'PostgreSQL'
+  Note: 'Released Flyway V1-V18. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
 }
 
 Table users {
@@ -87,8 +88,8 @@ Table skills {
 
   Indexes {
     category [name: 'idx_skills_category']
-    normalized_name [unique, name: 'uk_skills_normalized_name']
   }
+  Note: 'V11 partial unique index uk_skills_normalized_name ON (normalized_name) WHERE normalized_name IS NOT NULL.'
 }
 
 Table student_skills {
@@ -176,12 +177,20 @@ Table cv_files {
   file_size bigint
   extracted_text text
   processed_text text
+  extracted_skills jsonb [not null, default: `'[]'::jsonb`]
+  analysis_status varchar(30) [not null, default: 'NOT_READY']
+  analysis_error text
+  language_code varchar(20)
+  language_confidence numeric(5,4)
+  processing_version varchar(100)
+  analysis_warnings jsonb [not null, default: `'[]'::jsonb`]
+  analyzed_at timestamp
   is_active boolean [not null, default: false]
   uploaded_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
-  Note: 'Partial unique index uk_cv_files_student_active on student_id where is_active = TRUE.'
+  Note: 'V10 partial unique index uk_cv_files_student_active ON (student_id) WHERE is_active = TRUE. V15 CHECKs: analysis_status IN (NOT_READY, PROCESSING, READY, FAILED); nullable language_code IN (en, vi, mixed, unknown); nullable language_confidence BETWEEN 0 AND 1. READY alone does not guarantee V3-compatible metadata.'
 
   Indexes {
     student_id [name: 'idx_cv_files_student_id']
@@ -201,11 +210,11 @@ Table applications {
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
   Indexes {
-    (student_id, job_id) [unique, name: 'uk_applications_student_job']
     student_id [name: 'idx_applications_student_id']
     job_id [name: 'idx_applications_job_id']
     status [name: 'idx_applications_status']
   }
+  Note: 'V18 drops uk_applications_student_job. Partial unique index uk_applications_student_job_active ON (student_id, job_id) WHERE status IN (PENDING, REVIEWED, ACCEPTED). DBML intentionally does not model this as lifetime uniqueness. Service additionally requires latest history REJECTED for reapplication; latest WITHDRAWN blocks it.'
 }
 
 Table recommendation_runs {
@@ -214,6 +223,9 @@ Table recommendation_runs {
   cv_file_id bigint
   source_type varchar(50) [not null]
   status varchar(50) [not null]
+  algorithm varchar(100)
+  algorithm_version varchar(100)
+  total_jobs_scanned integer [not null, default: 0]
   started_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   finished_at timestamp
   error_message text
@@ -224,6 +236,7 @@ Table recommendation_runs {
     student_id [name: 'idx_recommendation_runs_student_id']
     status [name: 'idx_recommendation_runs_status']
   }
+  Note: 'V15 CHECK total_jobs_scanned >= 0; index idx_recommendation_runs_student_status_created_at ON (student_id, status, created_at DESC, id DESC). No Student threshold/limit/request_id/fingerprint columns.'
 }
 
 Table recommendation_results {
@@ -231,6 +244,14 @@ Table recommendation_results {
   run_id bigint [not null]
   job_id bigint [not null]
   score numeric(8,5) [not null]
+  text_score numeric(8,5)
+  skill_score numeric(8,5)
+  scoring_strategy varchar(50)
+  missing_skills jsonb [not null, default: `'[]'::jsonb`]
+  reason text
+  overall_score numeric(8,5)
+  ranking_tier varchar(20)
+  tier_rank_position integer
   matched_keywords jsonb
   rank_position integer [not null]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
@@ -241,6 +262,7 @@ Table recommendation_results {
     job_id [name: 'idx_recommendation_results_job_id']
     score [name: 'idx_recommendation_results_score']
   }
+  Note: 'score is physical V3 rankingScore; no ranking_score column. Score CHECKs and V17 tier CHECKs are detailed in database-schema.md. Partial unique uk_recommendation_results_run_tier_rank ON (run_id, ranking_tier, tier_rank_position) WHERE ranking_tier IS NOT NULL AND tier_rank_position IS NOT NULL. idx_recommendation_results_score uses score DESC. No unique (run_id, rank_position) constraint for Student results. Historical incomplete rows may have null tier/ranks/components.'
 }
 
 Table notifications {
@@ -263,6 +285,113 @@ Table notifications {
   }
 }
 
+Table saved_candidates {
+  id bigint [pk, increment]
+  company_id bigint [not null]
+  student_id bigint [not null]
+  application_id bigint [not null]
+  note text
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (company_id, student_id) [unique, name: 'uk_saved_candidates_company_student']
+  }
+
+  Note: '''Uniqueness is company_id + student_id; application_id records the source application, not Saved Application uniqueness.'''
+}
+
+Table user_notification_settings {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  application_status_enabled boolean [not null, default: true]
+  job_status_enabled boolean [not null, default: true]
+  recommendation_enabled boolean [not null, default: true]
+  system_enabled boolean [not null, default: true]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    user_id [unique, name: 'uk_user_notification_settings_user_id']
+  }
+
+  Note: '''V13 user_id is unique. Missing settings rows mean enabled in service behavior; GET does not create a row.'''
+}
+
+Table saved_searches {
+  id bigint [pk, increment]
+  student_id bigint [not null]
+  name varchar(100) [not null]
+  keyword varchar(255)
+  location varchar(255)
+  job_type varchar(50)
+  working_model varchar(50)
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  Note: '''V14 expression unique index uk_saved_searches_student_name_ci ON (student_id, lower(name)); not an ordinary case-sensitive pair unique constraint.'''
+}
+
+Table candidate_ranking_runs {
+  id bigint [pk, increment]
+  job_id bigint [not null]
+  request_id uuid [not null]
+  status varchar(50) [not null]
+  algorithm varchar(100)
+  algorithm_version varchar(100)
+  threshold numeric(8,5) [not null]
+  requested_limit integer
+  total_applications_scanned integer [not null, default: 0]
+  eligible_candidates integer [not null, default: 0]
+  skipped_no_cv integer [not null, default: 0]
+  skipped_not_ready integer [not null, default: 0]
+  skipped_terminal_status integer [not null, default: 0]
+  input_fingerprint varchar(64) [not null]
+  job_updated_at_snapshot timestamp [not null]
+  started_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  finished_at timestamp
+  error_message text
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  requested_primary_limit integer
+  requested_fallback_limit integer
+
+  Indexes {
+    request_id [unique, name: 'uk_candidate_ranking_runs_request_id']
+  }
+
+  Note: '''V16/V17 CHECKs: status PROCESSING/SUCCESS/FAILED; threshold [0,1]; nonnegative counters sum to total_applications_scanned; fingerprint length 64. Either legacy requested_limit [1,100] with both tier limits NULL, or requested_limit NULL with both tier limits [0,100] and sum [1,100]. Partial unique uk_candidate_ranking_runs_job_processing ON (job_id) WHERE status = 'PROCESSING'. Index idx_candidate_ranking_runs_job_status_created_at ON (job_id, status, created_at DESC, id DESC).'''
+}
+
+Table candidate_ranking_results {
+  id bigint [pk, increment]
+  run_id bigint [not null]
+  application_id bigint [not null]
+  cv_file_id bigint [not null]
+  score numeric(8,5) [not null]
+  text_score numeric(8,5)
+  skill_score numeric(8,5) [not null]
+  scoring_strategy varchar(50) [not null]
+  matched_skills jsonb [not null, default: `'[]'::jsonb`]
+  missing_skills jsonb [not null, default: `'[]'::jsonb`]
+  reason text
+  rank_position integer [not null]
+  cv_processing_version varchar(100)
+  cv_analyzed_at_snapshot timestamp
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  overall_score numeric(8,5)
+  ranking_tier varchar(20)
+  tier_rank_position integer
+
+  Indexes {
+    (run_id, application_id) [unique, name: 'uk_candidate_ranking_results_run_application']
+    (run_id, rank_position) [unique, name: 'uk_candidate_ranking_results_run_rank']
+  }
+
+  Note: '''score is physical V3 rankingScore. V16/V17 score/tier/strategy CHECKs in database-schema.md; matched_skills and missing_skills must be JSON arrays; rank_position > 0. Partial unique uk_candidate_ranking_results_run_tier_rank ON (run_id, ranking_tier, tier_rank_position) WHERE ranking_tier IS NOT NULL AND tier_rank_position IS NOT NULL. Historical nullable tier metadata is preserved.'''
+}
+
 Ref: students.user_id > users.id [delete: restrict]
 Ref: student_profiles.student_id > students.id [delete: restrict]
 Ref: companies.user_id > users.id [delete: restrict]
@@ -282,3 +411,13 @@ Ref: recommendation_runs.cv_file_id > cv_files.id [delete: restrict]
 Ref: recommendation_results.run_id > recommendation_runs.id [delete: restrict]
 Ref: recommendation_results.job_id > jobs.id [delete: restrict]
 Ref: notifications.user_id > users.id [delete: restrict]
+
+Ref: saved_candidates.company_id > companies.id [delete: restrict]
+Ref: saved_candidates.student_id > students.id [delete: restrict]
+Ref: saved_candidates.application_id > applications.id [delete: restrict]
+Ref: user_notification_settings.user_id > users.id [delete: restrict]
+Ref: saved_searches.student_id > students.id [delete: restrict]
+Ref: candidate_ranking_runs.job_id > jobs.id [delete: restrict]
+Ref: candidate_ranking_results.run_id > candidate_ranking_runs.id [delete: restrict]
+Ref: candidate_ranking_results.application_id > applications.id [delete: restrict]
+Ref: candidate_ranking_results.cv_file_id > cv_files.id [delete: restrict]

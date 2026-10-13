@@ -23,13 +23,13 @@ nếu chưa thực thi đúng scenario và kiểm tra evidence.
 | STU-01 | Student | Đăng nhập, upload một PDF/DOCX hợp lệ và đặt active | CV được persist; UI không coi CV mới upload là `READY` | — | NOT RUN | — |
 | STU-02 | Student | Reanalyze CV và theo dõi trạng thái | UI xử lý `NOT_READY`/`PROCESSING`; kết quả hợp lệ đạt `READY`; failure nếu có được hiển thị an toàn | — | NOT RUN | — |
 | STU-03 | Student | Thử generate bằng CV chưa `READY` | UI chặn thao tác và Backend vẫn bảo vệ business rule | — | NOT RUN | — |
-| REC-01 | Student | Generate recommendation bằng CV `READY` | Backend lọc eligible jobs, gọi AI V2 và persist một run kết thúc hợp lệ | — | NOT RUN | — |
+| REC-01 | Student | Generate recommendation bằng selected CV `READY` có snapshot V3 hợp lệ | Backend lọc eligible jobs, gọi AI V3 với persisted processedText/language/skills/version và persist một run kết thúc hợp lệ; parsing vẫn V2 | — | NOT RUN | — |
 | REC-02 | Student | Mở latest recommendation results | Kết quả theo `rankPosition`; Backend-owned order nhất quán; component scores/strategy/reason hiển thị theo contract | — | NOT RUN | — |
 | REC-03 | Student | Kiểm tra run mới nhất failed/incomplete và một historical `SUCCESS` | UI không trình bày failed run như kết quả thành công; historical result được gắn nhãn rõ | — | NOT RUN | — |
 | REC-04 | System | Correlate một generate request qua Backend và AI logs | Cùng `requestId` xuất hiện trong safe completion logs; không có JWT, internal key, raw CV/Job text hoặc file path | — | NOT RUN | — |
 | STU-04 | Student | Apply vào Job eligible bằng CV đã chọn | Application được persist một lần và xuất hiện trong lịch sử Student | — | NOT RUN | — |
-| STU-05 | Student | Apply lần hai vào cùng Job | Backend từ chối duplicate; không tạo bản ghi thứ hai | — | NOT RUN | — |
-| FLOW-01 | Company → Admin → Student | Company tạo Job → Admin duyệt → Student upload/reanalyze CV → generate → xem recommendation → apply → Company xem Application | Toàn bộ luồng đi qua Frontend/Backend; AI chỉ nhận internal V2 calls; dữ liệu và ownership nhất quán | — | NOT RUN | — |
+| STU-05 | Student | Apply lại cùng Job khi còn PENDING/REVIEWED/ACCEPTED; thử sau latest REJECTED và latest WITHDRAWN | Active application: 409 APPLICATION_ALREADY_ACTIVE, không thêm row; không có active + latest REJECTED: thêm PENDING row, giữ history nếu Job/CV hợp lệ; latest WITHDRAWN: 400 BAD_REQUEST | — | NOT RUN | — |
+| FLOW-01 | Company → Admin → Student | Company tạo Job → Admin duyệt → Student upload/reanalyze CV → generate → xem recommendation → apply → Company xem Application | Toàn bộ luồng đi qua Frontend/Backend; AI nhận internal V2 parsing và V3 scoring calls; dữ liệu và ownership nhất quán | — | NOT RUN | — |
 
 ## Run Metadata
 
