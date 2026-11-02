@@ -1,5 +1,5 @@
 import { isAxiosError } from "axios";
-import { FileText, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { Eye, EyeOff, FileText, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -29,6 +29,8 @@ export function LoginPage() {
   const { login } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [credentials, setCredentials] = useState({ email: "", password: "" });
 
   useEffect(() => {
@@ -53,12 +55,14 @@ export function LoginPage() {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
 
+    setLoginError("");
     setLoading(true);
     try {
       const user = await login(email, password);
       navigate(dashboardByRole[user.role]);
       showToast({ type: "success", title: "Đăng nhập thành công", message: "Phiên đăng nhập đã được xác thực." });
     } catch (error) {
+      setLoginError(getErrorMessage(error));
       showToast({ type: "error", title: "Đăng nhập thất bại", message: getErrorMessage(error) });
     } finally {
       setLoading(false);
@@ -67,11 +71,11 @@ export function LoginPage() {
 
   return (
     <PageContainer>
-      <Card className="mx-auto max-w-5xl overflow-hidden p-0">
+      <Card padding="none" className="mx-auto max-w-5xl overflow-hidden">
         <div className="grid min-h-[430px] lg:grid-cols-[0.95fr_1.05fr]">
           <section className="flex items-center justify-center border-b border-slate-100 bg-slate-50 px-6 py-10 lg:border-b-0 lg:border-r">
             <div className="text-center">
-              <div className="relative mx-auto h-52 w-64">
+              <div aria-hidden="true" className="relative mx-auto hidden h-52 w-64 lg:block">
                 <div className="absolute bottom-4 left-4 right-4 h-20 rounded-lg border border-brand-200 bg-white shadow-sm" />
                 <div className="absolute bottom-9 left-8 right-8 h-24 rounded-lg border border-brand-300 bg-brand-50 shadow-sm">
                   <div className="mt-4 grid grid-cols-4 gap-2 px-4">
@@ -121,12 +125,15 @@ export function LoginPage() {
               </div>
 
               <form className="space-y-4" onSubmit={submitLogin}>
+                {loginError ? <p id="login-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-800">{loginError}</p> : null}
                 <label className="block text-sm">
                   <span className="font-medium text-slate-700">Email</span>
                   <span className="mt-1 flex h-12 items-center gap-3 rounded-md border border-slate-200 bg-white px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
                     <Mail size={18} className="text-slate-400" />
                     <input
                       name="email"
+                      autoComplete="username"
+                      aria-describedby={loginError ? "login-error" : undefined}
                       type="email"
                       placeholder="email@example.com"
                       value={credentials.email}
@@ -143,13 +150,17 @@ export function LoginPage() {
                     <LockKeyhole size={18} className="text-slate-400" />
                     <input
                       name="password"
-                      type="password"
+                      autoComplete="current-password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Nhập mật khẩu"
                       value={credentials.password}
                       onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))}
                       className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
                       required
                     />
+                    <button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} aria-pressed={showPassword} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </span>
                 </label>
 

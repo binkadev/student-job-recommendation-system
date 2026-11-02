@@ -54,6 +54,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
   const { logout } = useAuth();
   const page = copy[type];
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,9 +78,12 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
         return;
       }
       if (password !== confirmPassword) {
+        setPasswordError("Xác nhận mật khẩu không khớp.");
         showToast({ type: "error", title: "Xác nhận mật khẩu không khớp" });
         return;
       }
+
+      setPasswordError("");
 
       const payload: RegisterRequest = {
         email,
@@ -128,7 +132,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
   if (type === "register") {
     return (
       <PageContainer>
-        <Card className="mx-auto max-w-6xl overflow-hidden p-0">
+        <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid min-h-[520px] lg:grid-cols-[1fr_1.05fr]">
             <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 px-6 py-10 text-slate-950 lg:border-b-0 lg:border-r">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
@@ -218,7 +222,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
 
     return (
       <PageContainer>
-        <Card className="mx-auto max-w-6xl overflow-hidden p-0">
+        <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid lg:grid-cols-[360px_1fr]">
             <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 p-6 lg:border-b-0 lg:border-r lg:p-8">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
@@ -231,7 +235,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                 <h1 className="mt-5 text-2xl font-semibold leading-tight text-slate-950">{page.title}</h1>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{page.description}</p>
 
-                <div className="mt-8">
+                <div aria-hidden="true" className="mt-8 hidden lg:block">
                   <div className="relative mx-auto h-52 w-72 max-w-full">
                     <div className="absolute bottom-3 left-6 right-6 h-20 rounded-lg bg-white shadow-sm" />
                     <div className="absolute bottom-8 left-10 right-10 rounded-lg border border-brand-100 bg-white p-3 shadow-sm">
@@ -266,7 +270,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                     <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
                     <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
                     <div className="md:col-span-2">
-                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
+                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" autoComplete="new-password" minLength={6} error={passwordError} onChange={() => setPasswordError("")} required />
                     </div>
                   </div>
                 ) : (
@@ -281,7 +285,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                       <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Cập nhật thông tin này trong hồ sơ công ty sau khi đăng nhập." disabled />
                     </div>
                     <div className="md:col-span-2">
-                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
+                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" autoComplete="new-password" minLength={6} error={passwordError} onChange={() => setPasswordError("")} required />
                     </div>
                   </div>
                 )}

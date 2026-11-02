@@ -19,7 +19,7 @@ export function Table<T>({ columns, rows, getRowKey }: TableProps<T>) {
         <thead className="bg-slate-50">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className={`whitespace-nowrap px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 ${column.key === "status" ? "whitespace-nowrap" : ""}`}>
+              <th scope="col" key={column.key} className={`whitespace-nowrap px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 ${column.key === "status" ? "whitespace-nowrap" : ""}`}>
                 {column.header}
               </th>
             ))}

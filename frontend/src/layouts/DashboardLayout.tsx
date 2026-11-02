@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { BriefcaseBusiness, Building2, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Building2, ShieldCheck, UserRound } from "lucide-react";
 import { Outlet } from "react-router-dom";
 import { DashboardHeader } from "../components/layout/DashboardHeader";
 import { MobileSidebar } from "../components/layout/MobileSidebar";
@@ -41,35 +41,20 @@ export function DashboardLayout({ title, menu, extra, variant = "candidate" }: D
 
   return (
     <div className="min-h-screen bg-[#f7f9fc]">
+      <a href="#main-content" className="skip-link">Đến nội dung chính</a>
       <MobileSidebar open={sidebarOpen} title={title} items={menu} onClose={() => setSidebarOpen(false)} />
       <div className="hidden fixed inset-y-0 left-0 z-30 lg:block">
         <Sidebar title={title} items={menu} />
       </div>
-      <div className="lg:pl-72">
+      <div className="min-w-0 lg:pl-72">
         <DashboardHeader title={title} extra={extra} onOpenSidebar={() => setSidebarOpen(true)} />
-        <section className="border-b border-brand-100/70 bg-gradient-to-r from-brand-50 via-white to-slate-50">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-brand-700 shadow-soft">{copy.icon}</div>
+        <section className="border-b border-slate-200/80 bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{copy.icon}</div>
               <div>
-                <p className="inline-flex items-center gap-2 text-sm font-medium text-brand-700"><Sparkles size={15} />{copy.eyebrow}</p>
-                <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">{copy.title}</h2>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">{copy.description}</p>
-              </div>
-            </div>
-            <div className="hidden h-24 w-44 shrink-0 items-center justify-center lg:flex">
-              <div className="relative h-20 w-36">
-                <div className="absolute bottom-0 left-3 right-3 h-12 rounded-lg bg-white shadow-sm" />
-                <div className="absolute left-4 top-3 h-14 w-12 rotate-[-8deg] rounded-md border border-brand-100 bg-white p-2 shadow-sm">
-                  <BriefcaseBusiness size={18} className="text-brand-600" />
-                  <span className="mt-2 block h-1.5 rounded bg-brand-100" />
-                  <span className="mt-1.5 block h-1.5 rounded bg-slate-100" />
-                </div>
-                <div className="absolute right-5 top-1 h-16 w-12 rotate-[8deg] rounded-md border border-slate-200 bg-white p-2 shadow-sm">
-                  <Sparkles size={18} className="text-slate-500" />
-                  <span className="mt-2 block h-1.5 rounded bg-brand-100" />
-                  <span className="mt-1.5 block h-1.5 rounded bg-slate-100" />
-                </div>
+                <p className="text-xs font-semibold text-brand-700">{copy.eyebrow}</p>
+                <p className="mt-1 text-sm font-medium leading-6 text-slate-700">{copy.title}</p>
               </div>
             </div>
           </div>
