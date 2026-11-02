@@ -11,8 +11,8 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
         <span>{label}</span>
         <span>{safeValue}%</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-100">
-        <div className="h-2 rounded-full bg-brand-600" style={{ width: `${safeValue}%` }} />
+      <div role="progressbar" aria-label={label ?? "Tiến độ"} aria-valuenow={safeValue} aria-valuemin={0} aria-valuemax={100} className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full bg-brand-600 transition-[width] duration-300" style={{ width: `${safeValue}%` }} />
       </div>
     </div>
   );
