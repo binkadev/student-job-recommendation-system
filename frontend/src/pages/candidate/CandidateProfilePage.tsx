@@ -103,8 +103,8 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
         </Card>
       ) : null}
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-        <main className="space-y-5">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Giới thiệu" />
             <div className="grid gap-4">
@@ -208,7 +208,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
               <SmallEmptyState message="Chưa có dự án." section="projects" />
             )}
           </Card>
-        </main>
+        </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <Card>
@@ -253,9 +253,9 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
 function InfoItem({ icon, label, action }: { icon: ReactNode; label: string; action?: ReactNode }) {
   return (
-    <p className="flex items-center gap-2">
+    <p className="flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
       {icon}
-      <span>{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
       {action}
     </p>
   );

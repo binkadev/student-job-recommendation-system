@@ -129,8 +129,8 @@ export function JobDetailPage() {
 
   return (
     <PageContainer>
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <main className="space-y-5 pb-24 lg:pb-0">
+      <div className="grid gap-5 pb-24 md:pb-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card className="border-brand-100 bg-brand-50">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex gap-4">
@@ -193,9 +193,9 @@ export function JobDetailPage() {
           <ListCard title="Quy trình tuyển dụng" items={job.recruitmentProcess} emptyMessage="Tin tuyển dụng chưa có quy trình tuyển dụng." />
 
           {isAuthenticated && currentRole === "candidate" ? <ApplicationHistory applications={applicationHistoryQuery.data ?? []} /> : null}
-        </main>
+        </div>
 
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 space-y-5 xl:sticky xl:top-44 xl:self-start">
           <Card>
             <SectionHeader title="Ứng tuyển nhanh" />
             <div className="grid gap-2">{actionButtons}</div>

@@ -149,7 +149,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         </Card>
       ) : pagedApplications.length === 0 ? (
         <Card>
-          <EmptyState message="Chưa có đơn ứng tuyển." />
+          <EmptyState message={applications.length ? "Không có đơn ứng tuyển khớp với bộ lọc. Hãy thử đổi từ khóa, trạng thái hoặc khoảng ngày." : "Bạn chưa gửi đơn ứng tuyển nào. Khám phá việc làm để bắt đầu."} />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link to="/candidate/jobs"><Button>Tìm việc</Button></Link>
             <Link to="/candidate/jobs/recommended"><Button variant="secondary">Xem việc làm gợi ý</Button></Link>
@@ -226,8 +226,8 @@ function ApplicationDetail({ application }: { application: ApplicationResponse }
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin đơn ứng tuyển" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">

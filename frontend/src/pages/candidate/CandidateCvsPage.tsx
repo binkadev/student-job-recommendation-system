@@ -161,17 +161,17 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <PageHeader title="Tải CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
         <div className="max-w-5xl">
           <Card>
-            <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF/DOCX. Giao diện chỉ kiểm tra định dạng file, backend là nơi quyết định giới hạn dung lượng cuối cùng." />
-            <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
+            <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF và DOCX. Sau khi tải lên, bạn có thể phân tích CV để nhận gợi ý việc làm." />
+            <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} disabled={uploading} />
 
             {selectedFile ? (
-              <div className="mt-5 rounded-lg border border-red-200 bg-red-50/40 p-4">
+              <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="font-semibold text-slate-950">File đã chọn</h2>
                     <p className="mt-2 break-words text-sm font-medium text-slate-800" title={selectedFile.name}>{selectedFile.name}</p>
                   </div>
-                  <button type="button" className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-red-600" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
+                  <button type="button" disabled={uploading} className="rounded-xl p-2 text-slate-500 hover:bg-white hover:text-red-600 disabled:opacity-50" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
                     <X size={16} />
                   </button>
                 </div>
@@ -182,14 +182,14 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               </div>
             ) : null}
 
-            {uploadError ? <p className="mt-4 text-sm text-red-600">{uploadError}</p> : null}
+            {uploadError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{uploadError}</p> : null}
 
             <div className="mt-5">
               <Switch label="Đặt làm CV đang dùng" checked={active} onChange={setActive} disabled={uploading} />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Tải lên</Button>
+              <Button type="button" loading={uploading} disabled={uploading || !selectedFile} onClick={() => void uploadCv()}>Tải lên</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
             </div>
           </Card>

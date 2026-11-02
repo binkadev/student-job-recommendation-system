@@ -6,6 +6,7 @@ import { PageContainer } from "../../components/common/PageContainer";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -92,15 +93,15 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <section className="grid gap-8 rounded-lg border border-brand-100 bg-brand-50 px-6 py-10 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
+      <section className="grid items-center gap-8 rounded-3xl border border-brand-100 bg-brand-50/70 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-[1.4fr_0.8fr] lg:px-10">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><FileText size={16} /> Nền tảng gợi ý việc làm dựa trên CV</p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight text-slate-950 md:text-5xl">Tìm công việc phù hợp với CV của bạn</h1>
+          <h1 className="mt-5 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl xl:text-5xl">Bước tiếp theo cho sự nghiệp IT của bạn</h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-            Tìm kiếm việc làm, tải CV và nhận gợi ý theo kỹ năng, kinh nghiệm, địa điểm mong muốn và mục tiêu nghề nghiệp của bạn.
+            Khám phá việc làm, tải CV và nhận gợi ý từ nội dung CV cùng kỹ năng. Xem rõ lý do gợi ý để chủ động chọn cơ hội tiếp theo.
           </p>
 
-          <form onSubmit={handleSearch} className="mt-6 grid gap-3 rounded-lg bg-white p-3 text-slate-900">
+          <form onSubmit={handleSearch} className="mt-6 grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 text-slate-900 shadow-soft sm:p-5">
             <div className="grid gap-3 md:grid-cols-2">
               <Input label="Từ khóa" name="keyword" placeholder="Frontend, Java, Data..." />
               <Select label="Địa điểm" name="location" options={locationOptions} />
@@ -114,7 +115,7 @@ export function HomePage() {
           </form>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {statistics.map((item, index) => (
             <Card key={item.id} className="border-brand-100 bg-white">
               <div className="flex items-center gap-2 text-brand-700">
@@ -145,7 +146,7 @@ export function HomePage() {
           action={<Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-brand-700">Xem tất cả <ArrowRight size={16} /></Link>}
         />
         {homeQuery.loading ? (
-          <Card><EmptyState message="Đang tải việc làm..." /></Card>
+          <Card><LoadingState message="Đang tải việc làm..." /></Card>
         ) : jobs.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)} onToggleSave={(jobId) => void handleToggleSave(jobId)} />)}
@@ -170,9 +171,9 @@ export function HomePage() {
         <Card>
           <SectionHeader title="Hệ thống gợi ý từ CV hoạt động thế nào?" />
           <div className="grid gap-3 text-sm text-slate-700">
-            <p>Hệ thống đọc thông tin kỹ năng, học vấn và kinh nghiệm từ CV.</p>
-            <p>Dữ liệu hồ sơ cá nhân giúp điều chỉnh mức độ phù hợp theo mục tiêu nghề nghiệp.</p>
-            <p>Kết quả gợi ý giúp ứng viên ưu tiên các việc làm nên xem và ứng tuyển trước.</p>
+            <p>Tải CV PDF hoặc DOCX và hoàn tất phân tích trước khi tạo gợi ý.</p>
+            <p>Với cặp CV và việc làm đủ điều kiện cùng ngôn ngữ, hệ thống đối sánh nội dung bằng TF-IDF, Cosine Similarity và kỹ năng.</p>
+            <p>Nhóm đối sánh kỹ năng được hiển thị riêng, kèm kỹ năng khớp, kỹ năng còn thiếu và lý do gợi ý.</p>
           </div>
         </Card>
         <Card>
