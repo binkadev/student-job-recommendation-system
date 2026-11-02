@@ -4,7 +4,7 @@ import { PublicHeader } from "../components/layout/PublicHeader";
 
 export function PublicLayout() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-[#f7f9fc]">
       <PublicHeader />
       <div className="flex-1">
         <Outlet />

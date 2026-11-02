@@ -40,20 +40,20 @@ export function DashboardLayout({ title, menu, extra, variant = "candidate" }: D
   const copy = roleCopy[variant];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f7f9fc]">
       <MobileSidebar open={sidebarOpen} title={title} items={menu} onClose={() => setSidebarOpen(false)} />
       <div className="hidden fixed inset-y-0 left-0 z-30 lg:block">
         <Sidebar title={title} items={menu} />
       </div>
       <div className="lg:pl-72">
         <DashboardHeader title={title} extra={extra} onOpenSidebar={() => setSidebarOpen(true)} />
-        <section className="border-b border-brand-100 bg-brand-50">
+        <section className="border-b border-brand-100/70 bg-gradient-to-r from-brand-50 via-white to-slate-50">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">{copy.icon}</div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-brand-700 shadow-soft">{copy.icon}</div>
               <div>
                 <p className="inline-flex items-center gap-2 text-sm font-medium text-brand-700"><Sparkles size={15} />{copy.eyebrow}</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-950">{copy.title}</h2>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">{copy.title}</h2>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">{copy.description}</p>
               </div>
             </div>

@@ -1,5 +1,6 @@
-import { BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
+import { useState } from "react";
 import { SearchBar } from "../common/SearchBar";
 
 const publicLinks = [
@@ -11,8 +12,10 @@ const publicLinks = [
 ];
 
 export function PublicHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-slate-950">
@@ -27,10 +30,11 @@ export function PublicHeader() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <button type="button" className="rounded-xl border border-slate-200 p-2 text-slate-700 lg:hidden" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="public-mobile-nav" aria-label={menuOpen ? "Đóng menu" : "Mở menu"}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
             <Link to="/login" className="rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
               Đăng nhập
             </Link>
-            <Link to="/register" className="rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white">
+            <Link to="/register" className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-medium text-white">
               Đăng ký
             </Link>
             <Link to="/register/recruiter" className="hidden rounded-md border border-slate-200 px-3 py-2 text-sm sm:inline-flex">
@@ -38,6 +42,7 @@ export function PublicHeader() {
             </Link>
           </div>
         </div>
+        {menuOpen ? <nav id="public-mobile-nav" aria-label="Điều hướng điện thoại" className="grid gap-1 border-t border-slate-100 pt-3 lg:hidden">{publicLinks.map((item) => <NavLink key={item.path} to={item.path} onClick={() => setMenuOpen(false)} className={({ isActive }) => `rounded-xl px-3 py-2.5 text-sm font-medium ${isActive ? "bg-brand-50 text-brand-700" : "text-slate-700 hover:bg-slate-50"}`}>{item.label}</NavLink>)}</nav> : null}
         <SearchBar placeholder="Tìm việc làm, công ty, kỹ năng..." />
       </div>
     </header>
