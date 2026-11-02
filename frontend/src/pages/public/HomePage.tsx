@@ -19,6 +19,7 @@ import type { HomeData } from "../../features/public/home/homeTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
+import SplitText from "../../components/animations/SplitText";
 
 const locationOptions = [
   { label: "Tất cả địa điểm", value: "" },
@@ -96,7 +97,7 @@ export function HomePage() {
       <section className="grid items-center gap-8 rounded-3xl border border-brand-100 bg-brand-50/70 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-[1.4fr_0.8fr] lg:px-10">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><FileText size={16} /> Nền tảng gợi ý việc làm dựa trên CV</p>
-          <h1 className="mt-5 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl xl:text-5xl">Bước tiếp theo cho sự nghiệp IT của bạn</h1>
+          <SplitText className="mt-5 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl xl:text-5xl" text="Bước tiếp theo cho sự nghiệp IT của bạn" />
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
             Khám phá việc làm, tải CV và nhận gợi ý từ nội dung CV cùng kỹ năng. Xem rõ lý do gợi ý để chủ động chọn cơ hội tiếp theo.
           </p>
