@@ -136,8 +136,8 @@ export function RecruiterCandidateRankingPage() {
     <PageContainer>
       <PageHeader title="Ứng viên phù hợp" description="Xếp hạng ứng viên đã ứng tuyển theo từng tin tuyển dụng." />
       <Card>
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div>
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
+          <div className="min-w-0 break-words">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold text-slate-950">{jobQuery.data.title}</h2>
               <StatusBadge label={jobStatusLabel(jobQuery.data.status)} tone={jobStatusTone(jobQuery.data.status)} />
@@ -146,12 +146,12 @@ export function RecruiterCandidateRankingPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to={`/recruiter/jobs/${jobId}`}><Button variant="secondary" icon={<ArrowLeft size={16} />}>Quay lại việc làm</Button></Link>
-            <Button variant="secondary" icon={<History size={16} />} onClick={() => setHistoryOpen((current) => !current)}>Xem lịch sử</Button>
+            <Button variant="secondary" icon={<History size={16} />} aria-expanded={historyOpen} aria-controls="ranking-run-history" onClick={() => setHistoryOpen((current) => !current)}>Xem lịch sử</Button>
             <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[160px_190px_190px_auto]">
+        <div className="mt-5 grid items-end gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 2xl:grid-cols-4">
           <Input label="Ngưỡng điểm" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
           <Input label="Top phù hợp tổng thể" type="number" min="0" max="100" step="1" value={primaryLimit} onChange={(event) => setPrimaryLimit(event.target.value)} />
           <Input label="Top đối sánh kỹ năng" type="number" min="0" max="100" step="1" value={fallbackLimit} onChange={(event) => setFallbackLimit(event.target.value)} />
@@ -161,11 +161,12 @@ export function RecruiterCandidateRankingPage() {
             </Button>
           </div>
         </div>
+        <p className="mt-4 text-xs leading-5 text-slate-500">Mỗi nhóm có giới hạn và thứ hạng riêng. Tổng số kết quả của hai nhóm từ 1 đến 100; điểm giữa hai nhóm không cùng thang đo.</p>
       </Card>
 
       {historyOpen ? (
-        <div className="mt-5">
-          {runsQuery.loading ? <LoadingState /> : <CandidateRankingRunHistory runs={filteredRuns} selectedRunId={selectedRunId} onSelect={setSelectedRunId} />}
+        <div id="ranking-run-history" className="mt-5">
+          {runsQuery.loading ? <LoadingState /> : !runsQuery.error ? <CandidateRankingRunHistory runs={filteredRuns} selectedRunId={selectedRunId} onSelect={setSelectedRunId} /> : null}
           {runsQuery.error ? <ErrorState message={getRankingErrorMessage(runsQuery.error)} /> : null}
         </div>
       ) : null}
@@ -193,6 +194,7 @@ export function RecruiterCandidateRankingPage() {
             </Card>
           ) : null}
           <CandidateRankingSummary run={run} />
+          {run.status === "SUCCESS" && selectedRunId && selectedRunId !== latestRunId ? <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">Đang xem kết quả lịch sử của lần chạy #{selectedRunId}. Chọn “Dùng lần chạy mới nhất” trong lịch sử để quay lại kết quả hiện tại.</p> : null}
           {run.status === "SUCCESS" && results.length === 0 ? (
             <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng." /></Card>
           ) : null}

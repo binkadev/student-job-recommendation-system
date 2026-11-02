@@ -1,10 +1,11 @@
 import { BriefcaseBusiness, Eye, Pencil, Plus, RefreshCcw, Users, XCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
@@ -13,7 +14,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
-import { Table } from "../../components/ui/Table";
+import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
 import { Textarea } from "../../components/ui/Textarea";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
@@ -286,20 +287,21 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
 
   return (
     <PageContainer>
-      <PageHeader title="Quản lý tin tuyển dụng" description="Danh sách tin tuyển dụng của công ty." />
+      <PageHeader title="Quản lý tin tuyển dụng" description="Theo dõi trạng thái tin, cập nhật nội dung và tìm ứng viên cho từng vị trí." />
       {company && !isCompanyVerified(company) ? (
         <Card className="mb-5 border-amber-200 bg-amber-50">
           <SectionHeader title="Công ty đang chờ xác thực" description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Bạn chưa thể tạo tin hoặc gửi duyệt cho đến khi admin xác thực công ty.`} />
         </Card>
       ) : null}
       <Card>
-        <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px_180px_auto]">
+        <div className="grid items-end gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
           <Input label="Từ khóa" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Tên tin, địa điểm..." />
           <Select label="Trạng thái" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
           <Select label="Loại việc" value={jobType} onChange={(event) => { setJobType(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label }))]} />
           <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label }))]} />
-          <div className="flex items-end gap-2">
-            <Button variant="secondary" icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2 2xl:col-span-4">
+            <Button variant="secondary" disabled={jobsQuery.loading} icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
+            {keyword || status || jobType || workingModel ? <Button variant="ghost" onClick={() => { setKeyword(""); setStatus(""); setJobType(""); setWorkingModel(""); setPage(1); }}>Xóa bộ lọc</Button> : null}
             {company && isCompanyVerified(company) ? (
               <Link to="/recruiter/jobs/create"><Button icon={<Plus size={16} />}>Tạo tin</Button></Link>
             ) : (
@@ -310,13 +312,13 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
       </Card>
 
       <Card className="mt-5">
-        <SectionHeader title="Tin tuyển dụng" description={`${jobsQuery.data?.totalItems ?? 0} tin tuyển dụng`} />
+        <SectionHeader title="Tin tuyển dụng" description={jobsQuery.loading ? "Đang tải danh sách..." : jobsQuery.error ? "Danh sách chưa sẵn sàng." : `${jobsQuery.data?.totalItems ?? 0} tin tuyển dụng trong dữ liệu đã tải`} />
         {jobsQuery.loading ? <LoadingState /> : null}
-        {!jobsQuery.loading && jobsQuery.error ? <EmptyState message={jobsQuery.error} /> : null}
+        {!jobsQuery.loading && jobsQuery.error ? <ErrorState message={jobsQuery.error} /> : null}
         {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Không có tin tuyển dụng phù hợp." /> : null}
-        {!jobsQuery.loading && jobs.length > 0 ? (
+        {!jobsQuery.loading && !jobsQuery.error && jobs.length > 0 ? (
           <div className="space-y-4">
-            <Table
+            <RecruiterDataTable
               rows={jobs}
               getRowKey={(job) => String(job.id)}
               columns={[
@@ -352,7 +354,7 @@ function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "
     return (
       <PageContainer>
         <PageHeader title="Chi tiết tin tuyển dụng" description="Không thể tải dữ liệu tin tuyển dụng." />
-        <EmptyState message={detailQuery.error ?? "Không tìm thấy tin tuyển dụng."} />
+        <ErrorState message={detailQuery.error ?? "Không tìm thấy tin tuyển dụng."} />
       </PageContainer>
     );
   }
@@ -372,8 +374,8 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
         <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>Sửa tin</Button></Link>
         <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
       </div>
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <TextBlock title="Mô tả công việc" value={job.description} />
           <TextBlock title="Yêu cầu" value={job.requirements} />
           <TextBlock title="Quyền lợi" value={job.benefits} />
@@ -386,7 +388,7 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
             ) : <EmptyState message="Tin chưa có kỹ năng yêu cầu." />}
           </Card>
         </div>
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin tin tuyển dụng" />
             <div className="space-y-3 text-sm text-slate-700">
@@ -406,10 +408,14 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
 }
 
 function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: JobDetailResponse; company: CompanyResponse | null }) {
+  const formRef = useRef<HTMLFieldSetElement>(null);
   const { showToast } = useToast();
   const [form, setForm] = useState<JobFormState>(() => job ? mapJobToForm(job) : DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (Object.keys(errors).length) formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [errors]);
   const skillsQuery = useAsyncData(() => getSkills(), []);
   const editing = mode === "edit";
   const verifiedCompany = Boolean(company && isCompanyVerified(company));
@@ -485,11 +491,12 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
 
   return (
     <PageContainer>
-      <PageHeader title={editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng"} description="Nhập thông tin tin tuyển dụng của công ty." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-5">
+      <PageHeader title={editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng"} description="Chuẩn bị thông tin vị trí, nội dung và kỹ năng trước khi lưu nháp hoặc gửi duyệt." />
+      {Object.keys(errors).length ? <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">Vui lòng kiểm tra các trường được đánh dấu bên dưới trước khi lưu tin.</div> : null}
+      <fieldset ref={formRef} disabled={saving} aria-busy={saving} className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card>
-            <SectionHeader title="Thông tin cơ bản" />
+            <SectionHeader title="1. Thông tin vị trí" description="Tiêu đề, địa điểm và hạn nộp là thông tin bắt buộc. Mức lương sử dụng đơn vị đồng." />
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Input label="Tiêu đề" value={form.title} maxLength={maxJobTitleLength} error={errors.title} onChange={(event) => update("title", limitText(event.target.value, maxJobTitleLength))} />
@@ -506,7 +513,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
           </Card>
 
           <Card>
-            <SectionHeader title="Nội dung tin" />
+            <SectionHeader title="2. Nội dung tuyển dụng" description="Mô tả rõ công việc, yêu cầu và quyền lợi để ứng viên dễ đánh giá cơ hội." />
             <div className="grid gap-4">
               <LimitedTextarea label="Mô tả công việc" value={form.description} error={errors.description} onChange={(value) => update("description", value)} />
               <LimitedTextarea label="Yêu cầu" value={form.requirements} error={errors.requirements} onChange={(value) => update("requirements", value)} />
@@ -515,14 +522,14 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
           </Card>
 
           <Card>
-            <SectionHeader title="Kỹ năng" description="Chọn kỹ năng phù hợp với yêu cầu tuyển dụng." />
+            <SectionHeader title="3. Kỹ năng yêu cầu" description={`Đã chọn ${form.skillIds.length} kỹ năng. Chọn kỹ năng phù hợp với yêu cầu tuyển dụng.`} />
             {skillsQuery.loading ? <LoadingState /> : null}
-            {!skillsQuery.loading && skillsQuery.error ? <EmptyState message={skillsQuery.error} /> : null}
+            {!skillsQuery.loading && skillsQuery.error ? <ErrorState message={skillsQuery.error} /> : null}
             {!skillsQuery.loading && skillsQuery.data?.length === 0 ? <EmptyState message="Chưa có danh mục kỹ năng." /> : null}
             <div className="grid gap-2 md:grid-cols-2">
               {(skillsQuery.data ?? []).map((skill) => (
-                <label key={skill.id} className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-sm">
-                  <input type="checkbox" checked={selectedSkillIds.has(String(skill.id))} onChange={(event) => toggleSkill(skill.id, event.target.checked)} />
+                <label key={skill.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm transition-colors focus-within:ring-2 focus-within:ring-brand-200 ${selectedSkillIds.has(String(skill.id)) ? "border-brand-300 bg-brand-50" : "border-slate-200 hover:border-brand-200"}`}>
+                  <input className="h-4 w-4 shrink-0 accent-brand-600" type="checkbox" checked={selectedSkillIds.has(String(skill.id))} onChange={(event) => toggleSkill(skill.id, event.target.checked)} />
                   <span>
                     <strong className="block text-slate-900">{skill.name}</strong>
                     <span className="text-xs text-slate-500">{skill.category || "Chưa phân loại"}</span>
@@ -533,9 +540,10 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
           </Card>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <Card>
-            <SectionHeader title="Trạng thái" />
+            <SectionHeader title="Lưu và gửi duyệt" description="Lưu nháp để tiếp tục hoàn thiện. Tin gửi duyệt cần được admin phê duyệt trước khi hiển thị tuyển dụng." />
+            <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-600"><p className="break-words font-semibold text-slate-900">{form.title.trim() || "Tiêu đề chưa nhập"}</p><p>{form.location || "Chưa chọn địa điểm"}</p><p>{form.skillIds.length} kỹ năng đã chọn</p></div>
             {!verifiedCompany ? <EmptyState message={`Trạng thái công ty hiện tại: ${company ? COMPANY_STATUS_LABELS[company.status] : "Chưa cập nhật"}. Chỉ công ty đã xác thực mới được gửi tin sang admin chờ duyệt.`} /> : null}
             <div className="mt-5 flex flex-col gap-2">
               <Button loading={saving} disabled={!verifiedCompany || (editing && !formChanged)} onClick={() => void save("PENDING_APPROVAL")}>{editing ? "Gửi duyệt" : "Tạo tin"}</Button>
@@ -544,7 +552,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
             </div>
           </Card>
         </aside>
-      </div>
+      </fieldset>
     </PageContainer>
   );
 }
@@ -636,7 +644,7 @@ function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResp
   const canClose = job.status !== "CLOSED" && job.status !== "PENDING_APPROVAL";
 
   return (
-    <div className="flex min-w-64 flex-col gap-2">
+    <div className="flex w-full max-w-sm flex-col gap-2 xl:min-w-64">
       <div className="grid grid-cols-3 gap-2">
         <Link to={`/recruiter/jobs/${job.id}`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>

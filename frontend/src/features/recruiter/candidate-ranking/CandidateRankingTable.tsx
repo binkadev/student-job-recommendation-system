@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Avatar } from "../../../components/ui/Avatar";
 import { Button } from "../../../components/ui/Button";
-import { Table } from "../../../components/ui/Table";
+import { RecruiterDataTable } from "../RecruiterDataTable";
 import { getScorePresentation } from "../../shared/ranking/rankingScoreTypes";
 import { formatScore } from "./candidateRankingMappers";
 import type { CandidateRankingApplicationStatus, CandidateRankingResult } from "./candidateRankingTypes";
@@ -26,11 +26,11 @@ interface CandidateRankingTableProps {
 
 export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze, onSave }: CandidateRankingTableProps) {
   return (
-    <Table
+    <RecruiterDataTable
       rows={results}
       getRowKey={(result) => `${result.applicationId}-${result.rankingTier}-${result.tierRankPosition}-${result.id}`}
       columns={[
-        { key: "rank", header: "Hạng", render: (result) => <strong className="text-slate-950">{result.tierRankPosition ? `#${result.tierRankPosition}` : "—"}</strong> },
+        { key: "rank", header: "Hạng trong nhóm", render: (result) => <strong className={`inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 tabular-nums ${result.rankingTier === "FALLBACK" ? "bg-amber-50 text-amber-900" : "bg-brand-50 text-brand-800"}`}>{result.tierRankPosition ? `#${result.tierRankPosition}` : "—"}</strong> },
         { key: "candidate", header: "Ứng viên", render: (result) => <CandidateCell result={result} /> },
         { key: "score", header: "Kết quả đối sánh", render: (result) => <ScoreCell result={result} /> },
         { key: "matched", header: "Kỹ năng phù hợp", render: (result) => <SkillChips skills={result.matchedSkills} /> },
@@ -44,7 +44,7 @@ export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze,
 
 function CandidateCell({ result }: { result: CandidateRankingResult }) {
   return (
-    <div className="flex min-w-72 items-center gap-3">
+    <div className="flex min-w-0 items-center gap-3 xl:min-w-48">
       <Avatar name={result.studentName || result.studentEmail} />
       <div className="min-w-0">
         <p className="font-medium text-slate-900">{result.studentName}</p>
@@ -59,9 +59,10 @@ function ScoreCell({ result }: { result: CandidateRankingResult }) {
   const presentation = getScorePresentation(result);
 
   return (
-    <div className="min-w-28">
-      <p className="text-xs font-semibold uppercase text-brand-700">{presentation.label}</p>
-      <p className="font-semibold text-slate-950">{formatScore(presentation.value)}</p>
+    <div className={`min-w-28 rounded-xl border p-3 ${result.rankingTier === "FALLBACK" ? "border-amber-200 bg-amber-50/60" : "border-brand-100 bg-brand-50/60"}`}>
+      <p className={`text-xs font-semibold ${result.rankingTier === "FALLBACK" ? "text-amber-900" : "text-brand-700"}`}>{presentation.label}</p>
+      <p className="mt-1 text-xl font-bold tabular-nums text-slate-950">{formatScore(presentation.value)}</p>
+      {result.rankingTier === "FALLBACK" ? <p className="mt-1 text-xs text-amber-900">Chỉ đối sánh kỹ năng</p> : null}
       <div className="mt-1 space-y-0.5 text-xs leading-5 text-slate-500">
         <p>Final Score: {formatScore(result.overallScore)}</p>
         <p>Text Score: {formatScore(result.textScore)}</p>
@@ -89,7 +90,7 @@ interface ActionsProps {
 }
 
 function Actions({ result, saved, onAnalyze, onSave }: ActionsProps) {
-  const buttonClass = "h-8 w-full justify-start whitespace-nowrap px-2 text-xs";
+  const buttonClass = "w-full justify-start whitespace-nowrap px-3";
 
   return (
     <div className="grid w-28 gap-1.5">

@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import { PageContainer } from "../../components/common/PageContainer";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
@@ -89,7 +90,8 @@ const JOB_STATUS_LABELS: Record<JobStatus, string> = {
 
 export function RecruiterDashboardPage() {
   const [range, setRange] = useState<RangeFilter>("30");
-  const dashboardQuery = useAsyncData(() => getRecruiterDashboardData(), []);
+  const [reloadKey, setReloadKey] = useState(0);
+  const dashboardQuery = useAsyncData(() => getRecruiterDashboardData(), [reloadKey]);
 
   if (dashboardQuery.loading) {
     return (
@@ -102,7 +104,8 @@ export function RecruiterDashboardPage() {
   if (dashboardQuery.error || !dashboardQuery.data) {
     return (
       <PageContainer>
-        <EmptyState message={dashboardQuery.error ?? "Không thể tải dashboard nhà tuyển dụng."} />
+        <ErrorState message={dashboardQuery.error ?? "Không thể tải dashboard nhà tuyển dụng."} />
+        <div className="mt-4"><Button variant="secondary" onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button></div>
       </PageContainer>
     );
   }
@@ -124,7 +127,7 @@ export function RecruiterDashboardPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Tổng quan nhà tuyển dụng</h1>
-          <p className="mt-1 text-sm text-slate-600">Theo dõi tin tuyển dụng và hồ sơ ứng tuyển.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Nắm bắt tiến độ tuyển dụng và ưu tiên hồ sơ cần xử lý.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select
@@ -137,11 +140,13 @@ export function RecruiterDashboardPage() {
               { label: "90 ngày", value: "90" },
             ]}
           />
-          <Link className="self-end" to="/recruiter/candidates"><Button>Việc cần xử lý hôm nay</Button></Link>
+          <Link className="self-end" to="/recruiter/jobs/create"><Button>Tạo tin tuyển dụng</Button></Link>
+          <Link className="self-end" to="/recruiter/candidates"><Button variant="secondary">Xem hồ sơ ứng tuyển</Button></Link>
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <p className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-500">Các số đếm theo trạng thái và biểu đồ dựa trên tối đa 100 tin và 100 hồ sơ đã tải. Tổng ứng tuyển lấy từ số liệu trả về của hệ thống.</p>
+      <section className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
         <StatLink icon={<BriefcaseBusiness size={20} />} label="Tin đang tuyển" value={String(activeJobs.length)} to="/recruiter/jobs" />
         <StatLink icon={<Users size={20} />} label="Ứng viên mới" value={String(pendingApplications.length)} to="/recruiter/candidates" />
         <StatLink icon={<BarChart3 size={20} />} label="Đã xem xét" value={String(reviewedApplications.length)} to="/recruiter/candidates" />
@@ -151,7 +156,7 @@ export function RecruiterDashboardPage() {
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
         <Card>
-          <SectionHeader title="Ứng viên theo thời gian" description="Theo dõi lượng hồ sơ ứng tuyển trong khoảng thời gian đã chọn." />
+          <SectionHeader title="Ứng viên theo thời gian" description={`Hiển thị các ngày có hồ sơ trong ${Math.min(Number(range), 14)} ngày gần nhất từ dữ liệu đã tải.`} />
           {trendData.length ? (
             <ChartBox>
               <BarChart data={trendData}>
@@ -177,6 +182,7 @@ export function RecruiterDashboardPage() {
               </PieChart>
             </ChartBox>
           ) : <EmptyState message="Chưa có hồ sơ ứng tuyển." />}
+          {statusChartData.length ? <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-600">{statusChartData.map((item) => <li key={item.label}>{item.label}: <strong className="tabular-nums text-slate-900">{item.value}</strong></li>)}</ul> : null}
         </Card>
 
         <Card>
@@ -210,7 +216,7 @@ export function RecruiterDashboardPage() {
         </Card>
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-[380px_1fr]">
+      <section className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
         <Card>
           <SectionHeader title="Việc cần xử lý" />
           <div className="space-y-3">
@@ -224,8 +230,8 @@ export function RecruiterDashboardPage() {
           <SectionHeader title="Ứng viên mới nhất" action={<Link to="/recruiter/candidates" className="text-sm font-medium text-brand-700 hover:text-brand-800">Xem tất cả</Link>} />
           <div className="space-y-3">
             {recentApplications.length ? recentApplications.map((application) => (
-              <div key={application.id} className="grid gap-3 rounded-lg border border-slate-100 p-3 lg:grid-cols-[1fr_auto]">
-                <div>
+              <div key={application.id} className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="min-w-0 break-words">
                   <p className="font-medium text-slate-900">{application.studentName || application.studentEmail || "Ứng viên"}</p>
                   <p className="text-sm text-slate-500">{application.jobTitle} • {formatDateTime(application.appliedAt)}</p>
                   <div className="mt-2"><StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /></div>
@@ -261,7 +267,7 @@ export function RecruiterDashboardPage() {
 
 function ChartBox({ children }: { children: ReactNode }) {
   return (
-    <div className="h-72">
+    <div className="h-64 min-w-0 sm:h-72">
       <ResponsiveContainer>{children}</ResponsiveContainer>
     </div>
   );
@@ -269,10 +275,10 @@ function ChartBox({ children }: { children: ReactNode }) {
 
 function StatLink({ icon, label, value, to }: { icon: ReactNode; label: string; value: string; to: string }) {
   return (
-    <Link to={to}>
+    <Link to={to} className="min-w-0">
       <Card className="h-full transition hover:border-brand-200 hover:shadow-md">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-brand-50 p-2 text-brand-700">{icon}</div>
+          <div className="shrink-0 rounded-xl bg-brand-50 p-2.5 text-brand-700">{icon}</div>
           <div>
             <p className="text-sm text-slate-500">{label}</p>
             <p className="text-2xl font-semibold text-slate-950">{value}</p>

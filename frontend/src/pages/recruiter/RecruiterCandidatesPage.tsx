@@ -5,6 +5,7 @@ import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
@@ -14,7 +15,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
-import { Table } from "../../components/ui/Table";
+import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
@@ -133,6 +134,7 @@ export function RecruiterCandidatesPage({ mode = "list" }: RecruiterCandidatesPa
       mode={mode}
       jobs={jobsQuery.data ?? []}
       jobsLoading={jobsQuery.loading}
+      jobsError={jobsQuery.error}
       showToast={showToast}
     />
   );
@@ -142,11 +144,13 @@ function ApplicationsListPage({
   mode,
   jobs,
   jobsLoading,
+  jobsError,
   showToast,
 }: {
   mode: RecruiterCandidatesPageProps["mode"];
   jobs: JobResponse[];
   jobsLoading: boolean;
+  jobsError: string | null;
   showToast: ReturnType<typeof useToast>["showToast"];
 }) {
   const [query, setQuery] = useState("");
@@ -214,33 +218,36 @@ function ApplicationsListPage({
         description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
       />
       <Card>
-        <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_1.2fr_1fr_1fr_auto]">
+        <div className="grid items-end gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <Input label="Tìm kiếm" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tên, email, vị trí..." />
           <Select label="Vị trí tuyển dụng" value={jobFilter} disabled={jobsLoading} onChange={(event) => { setJobFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...jobOptions.map((job) => ({ label: job.title, value: String(job.id) }))]} />
           <Select label="Trạng thái" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
           <Select label="Sắp xếp" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} options={[{ label: "Mới nhất", value: "appliedAt,desc" }, { label: "Cũ nhất", value: "appliedAt,asc" }]} />
-          <div className="flex items-end pt-6">
-            <Button className="w-full" icon={<Search size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tìm kiếm</Button>
+          <div className="flex flex-wrap gap-2 sm:col-span-2 2xl:col-span-4">
+            <Button variant="secondary" disabled={applicationsQuery.loading} icon={<Search size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại danh sách</Button>
+            {query || jobFilter || statusFilter ? <Button variant="ghost" onClick={() => { setQuery(""); setJobFilter(""); setStatusFilter(""); setPage(1); }}>Xóa bộ lọc</Button> : null}
           </div>
         </div>
+        {jobsError ? <p role="alert" className="mt-4 text-sm text-amber-800">Không tải được danh sách vị trí cho bộ lọc. Bạn vẫn có thể xem hồ sơ ứng tuyển.</p> : null}
       </Card>
 
-      {mode === "pipeline" ? <PipelineSummary applications={filteredApplications} /> : null}
+      {mode === "pipeline" && !applicationsQuery.loading && !applicationsQuery.error ? <><p className="mt-5 text-xs text-slate-500">Số lượng theo trạng thái trên trang kết quả hiện tại, sau khi lọc.</p><PipelineSummary applications={filteredApplications} /></> : null}
 
       <Card className="mt-5">
-        <SectionHeader title="Danh sách ứng viên" description={`${applicationsPage?.totalItems ?? 0} hồ sơ ứng tuyển`} />
+        <SectionHeader title="Danh sách ứng viên" description={applicationsQuery.loading ? "Đang tải hồ sơ..." : applicationsQuery.error ? "Danh sách chưa sẵn sàng." : `${applicationsPage?.totalItems ?? 0} hồ sơ ứng tuyển`} />
         {applicationsQuery.loading ? <LoadingState /> : null}
-        {!applicationsQuery.loading && applicationsQuery.error ? <EmptyState message={applicationsQuery.error} /> : null}
+        {!applicationsQuery.loading && applicationsQuery.error ? <ErrorState message={applicationsQuery.error} /> : null}
+        {savedCandidatesQuery.error ? <p role="alert" className="mb-4 text-sm text-amber-800">Chưa tải được trạng thái lưu ứng viên. Vui lòng tải lại trang trước khi lưu hồ sơ.</p> : null}
         {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length === 0 ? <EmptyState message="Không có hồ sơ ứng tuyển phù hợp." /> : null}
-        {!applicationsQuery.loading && filteredApplications.length > 0 ? (
+        {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length > 0 ? (
           <div className="space-y-4">
-            <Table
+            <RecruiterDataTable
               rows={filteredApplications}
               getRowKey={(application) => String(application.id)}
               columns={[
                 { key: "candidate", header: "Ứng viên", render: (application) => <CandidateCell application={application} /> },
                 { key: "job", header: "Tin ứng tuyển", render: (application) => <div><p className="font-medium text-slate-900">{application.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(application.appliedAt)}</p></div> },
-                { key: "cv", header: "CV", render: (application) => application.cvFileName ? <StatusBadge label={application.cvFileName} /> : "Chưa có CV" },
+                { key: "cv", header: "CV", render: (application) => <span className="block max-w-56 truncate text-sm" title={application.cvFileName ?? undefined}>{application.cvFileName || "Chưa có CV"}</span> },
                 { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /> },
                 { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedStudentIds.has(application.studentId)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
               ]}
@@ -325,7 +332,7 @@ function ApplicationDetailPage({
     return (
       <PageContainer>
         <PageHeader title="Chi tiết ứng viên" description="Không thể tải dữ liệu ứng tuyển." />
-        <EmptyState message={applicationQuery.error ?? "Không tìm thấy hồ sơ ứng tuyển."} />
+        <ErrorState message={applicationQuery.error ?? "Không tìm thấy hồ sơ ứng tuyển."} />
       </PageContainer>
     );
   }
@@ -340,8 +347,8 @@ function ApplicationDetailPage({
         </Button>
         <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
       </div>
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin ứng tuyển" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -360,12 +367,12 @@ function ApplicationDetailPage({
           <Card>
             <SectionHeader title="CV ứng tuyển" />
             {application.cvFileName ? (
-              <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="text-brand-600" size={20} />
-                  <div>
-                    <p className="font-medium text-slate-900">{application.cvFileName}</p>
-                    <p className="text-xs text-slate-500">CV file ID: {application.cvFileId}</p>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <FileText className="shrink-0 text-brand-600" size={20} />
+                  <div className="min-w-0">
+                    <p className="break-words font-medium text-slate-900">{application.cvFileName}</p>
+                    <p className="text-xs text-slate-500">Tệp đính kèm hồ sơ ứng tuyển</p>
                   </div>
                 </div>
                 <Button variant="secondary" onClick={() => void openApplicationCv(application, showToast)}>Xem CV</Button>
@@ -373,7 +380,7 @@ function ApplicationDetailPage({
             ) : <EmptyState message="Hồ sơ ứng tuyển chưa có CV." />}
           </Card>
         </div>
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Trạng thái ứng tuyển" />
             <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} />
@@ -391,7 +398,7 @@ function ApplicationDetailPage({
 
 function PipelineSummary({ applications }: { applications: ApplicationResponse[] }) {
   return (
-    <div className="mt-5 grid gap-3 md:grid-cols-5">
+    <div className="mt-3 grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
       {(Object.keys(APPLICATION_STATUS_LABELS) as ApplicationStatus[]).map((status) => (
         <Card key={status}>
           <p className="text-sm text-slate-500">{APPLICATION_STATUS_LABELS[status]}</p>
@@ -424,18 +431,18 @@ function SavedCandidatesPage() {
     <PageContainer>
       <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu." />
       <Card>
-        <SectionHeader title="Danh sách hồ sơ" description={`${result?.totalItems ?? 0} hồ sơ đã lưu`} />
+        <SectionHeader title="Danh sách hồ sơ" description={savedCandidatesQuery.loading ? "Đang tải hồ sơ..." : savedCandidatesQuery.error ? "Danh sách chưa sẵn sàng." : `${result?.totalItems ?? 0} hồ sơ đã lưu`} />
         {savedCandidatesQuery.loading ? <LoadingState /> : null}
-        {savedCandidatesQuery.error ? <EmptyState message={savedCandidatesQuery.error} /> : null}
+        {savedCandidatesQuery.error ? <ErrorState message={savedCandidatesQuery.error} /> : null}
         {!savedCandidatesQuery.loading && !savedCandidatesQuery.error && savedCandidates.length === 0 ? <EmptyState message="Chưa có hồ sơ ứng viên nào được lưu." /> : null}
-        {savedCandidates.length > 0 ? (
-          <Table
+        {!savedCandidatesQuery.loading && !savedCandidatesQuery.error && savedCandidates.length > 0 ? (
+          <RecruiterDataTable
             rows={savedCandidates}
             getRowKey={(candidate) => String(candidate.id)}
             columns={[
               { key: "candidate", header: "Ứng viên", render: (candidate) => <SavedCandidateCell candidate={candidate} /> },
               { key: "job", header: "Tin ứng tuyển", render: (candidate) => <div><p className="font-medium text-slate-900">{candidate.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(candidate.savedAt)}</p></div> },
-              { key: "cv", header: "CV", render: (candidate) => candidate.cvFileName ? <StatusBadge label={candidate.cvFileName} /> : "Chưa có CV" },
+              { key: "cv", header: "CV", render: (candidate) => <span className="block max-w-56 truncate text-sm" title={candidate.cvFileName ?? undefined}>{candidate.cvFileName || "Chưa có CV"}</span> },
               {
                 key: "actions",
                 header: "Thao tác",
@@ -460,7 +467,7 @@ function CandidateCell({ application }: { application: ApplicationResponse }) {
   return (
     <div className="flex items-center gap-3">
       <Avatar name={name} />
-      <div>
+      <div className="min-w-0 break-words">
         <p className="font-medium text-slate-900">{name}</p>
         <p className="text-xs text-slate-500">{application.studentEmail || "Chưa có email"}</p>
       </div>
@@ -473,7 +480,7 @@ function SavedCandidateCell({ candidate }: { candidate: SavedCandidateResponse }
   return (
     <div className="flex items-center gap-3">
       <Avatar name={name} />
-      <div>
+      <div className="min-w-0 break-words">
         <p className="font-medium text-slate-900">{name}</p>
         <p className="text-xs text-slate-500">{candidate.studentEmail || "Chưa có email"}</p>
         {candidate.headline ? <p className="text-xs text-slate-500">{candidate.headline}</p> : null}
@@ -562,7 +569,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex justify-between gap-4 border-b border-slate-100 pb-2 last:border-b-0">
       <span className="text-slate-500">{label}</span>
-      <strong className="text-right font-medium text-slate-900">{value || "Chưa cập nhật"}</strong>
+      <strong className="min-w-0 break-words text-right font-medium text-slate-900">{value || "Chưa cập nhật"}</strong>
     </div>
   );
 }
