@@ -31,10 +31,10 @@ const locationOptions = [
 
 const fallbackHomeData: HomeData = {
   statistics: [
-    { id: "jobs", label: "Việc làm đang tuyển", value: "0" },
-    { id: "candidates", label: "Ứng viên", value: "0" },
-    { id: "companies", label: "Công ty", value: "0" },
-    { id: "applications", label: "Lượt ứng tuyển", value: "0" },
+    { id: "jobs", label: "Việc làm đang tuyển", value: null },
+    { id: "candidates", label: "Sinh viên đang hoạt động", value: null },
+    { id: "companies", label: "Công ty đã xác thực", value: null },
+    { id: "applications", label: "Đơn ứng tuyển", value: null },
   ],
   statisticsUnavailable: false,
   jobs: [],
@@ -123,18 +123,20 @@ export function HomePage() {
                 {index === 0 ? <BriefcaseBusiness size={18} /> : index === 1 ? <Users size={18} /> : index === 2 ? <Building2 size={18} /> : <FileText size={18} />}
                 <p className="text-sm font-medium">{item.label}</p>
               </div>
-              <strong className="mt-2 block text-3xl text-slate-950">{item.value}</strong>
+              {homeQuery.loading ? <span role="status" className="mt-2 block text-sm text-slate-500">Đang tải số liệu…</span>
+                : !homeQuery.error && item.value != null ? <strong className="mt-2 block text-3xl text-slate-950">{item.value}</strong>
+                  : <span className="mt-2 block text-sm text-slate-600">{homeQuery.error ? "Không tải được số liệu" : item.unavailableReason ?? "Chưa có số liệu"}</span>}
             </Card>
           ))}
         </div>
         {statisticsUnavailable ? (
-          <p className="text-sm text-amber-700 lg:col-span-2">Không tải được thống kê công khai từ API, các số liệu chưa có dữ liệu sẽ hiển thị 0.</p>
+          <div role="status" className="text-sm text-amber-800 lg:col-span-2">Không tải được thống kê công khai. Số liệu hiện chưa xác định. <Button variant="ghost" onClick={() => setReloadKey((value) => value + 1)}>Thử lại thống kê</Button></div>
         ) : null}
       </section>
 
       {homeQuery.error ? (
         <Card className="mt-5">
-          <ErrorState message="Không thể tải dữ liệu trang chủ. Giao diện vẫn hiển thị với số liệu 0." />
+          <ErrorState message="Không thể tải dữ liệu trang chủ. Vui lòng thử lại để xem số liệu và danh sách hiện tại." />
           <div className="mt-3">
             <Button onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
           </div>
@@ -148,7 +150,7 @@ export function HomePage() {
         />
         {homeQuery.loading ? (
           <Card><LoadingState message="Đang tải việc làm..." /></Card>
-        ) : jobs.length ? (
+        ) : homeQuery.error ? <ErrorState message="Không tải được danh sách việc làm." /> : jobs.length ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {jobs.slice(0, 6).map((job) => <FeaturedHomeJobCard key={job.id} job={job} saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)} onToggleSave={(jobId) => void handleToggleSave(jobId)} />)}
           </div>
@@ -159,7 +161,7 @@ export function HomePage() {
 
       <section className="mt-8">
         <SectionHeader title="Công ty nổi bật" />
-        {companies.length ? (
+        {homeQuery.loading ? <LoadingState message="Đang tải công ty…" /> : homeQuery.error ? <ErrorState message="Không tải được danh sách công ty." /> : companies.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {companies.slice(0, 6).map((company) => <FeaturedHomeCompanyCard key={company.id} company={company} />)}
           </div>

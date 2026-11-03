@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { UnsupportedFeature } from "../../components/feedback/UnsupportedFeature";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -117,16 +118,15 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       return;
     }
 
-    if (type === "reset") {
-      const password = String(formData.get("password") ?? "");
-      const confirmPassword = String(formData.get("confirmPassword") ?? "");
-      if (!password || password !== confirmPassword) {
-        showToast({ type: "error", title: "Vui lòng kiểm tra lại mật khẩu" });
-        return;
-      }
-    }
+  }
 
-    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Chức năng sẽ được xử lý khi sẵn sàng." });
+  if (type === "forgot" || type === "reset") {
+    return <PageContainer>
+      <PageHeader title={page.title} description="Thông tin về khả năng khôi phục mật khẩu của hệ thống." />
+      <UnsupportedFeature title="Chưa hỗ trợ khôi phục mật khẩu qua email"
+        description="Hệ thống hiện chưa hỗ trợ gửi email hoặc xác thực liên kết đặt lại mật khẩu. Trang này không gửi yêu cầu khôi phục và không thay đổi mật khẩu. Nếu còn đăng nhập, bạn có thể đổi mật khẩu trong phần Bảo mật bằng mật khẩu hiện tại."
+        to="/login" action="Quay lại đăng nhập" />
+    </PageContainer>;
   }
 
   if (type === "register") {
@@ -307,52 +307,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
     );
   }
 
-  const fallbackType = type as AuthFlowPageProps["type"];
-
-  return (
-    <PageContainer>
-      <PageHeader title={page.title} description={page.description} />
-      <Card className="max-w-2xl">
-        <form className="space-y-4" onSubmit={submit}>
-            {fallbackType === "candidate" ? (
-              <>
-                <Input name="email" label="Email" type="email" placeholder="ungvien@example.com" required />
-                <Input name="fullName" label="Họ và tên" placeholder="Nguyễn Văn An" required />
-                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
-                <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            {fallbackType === "recruiter" ? (
-              <>
-                <Input name="email" label="Email doanh nghiệp" type="email" placeholder="hr@congty.vn" required />
-                <Input name="companyName" label="Tên công ty" placeholder="Công ty TNHH Công nghệ NovaTech" required />
-                <Input name="contactName" label="Tên người đại diện" placeholder="Trần Thị Bình" />
-                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
-                <Input name="taxCode" label="Mã số thuế" placeholder="0312345678" disabled />
-                <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Cập nhật thông tin này trong hồ sơ công ty sau khi đăng nhập." disabled />
-                <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            {fallbackType === "forgot" ? <Input name="email" label="Email" type="email" placeholder="you@example.com" required /> : null}
-
-            {fallbackType === "reset" ? (
-              <>
-                <Input name="password" label="Mật khẩu mới" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            <Button type="submit" className={fallbackType === "candidate" || fallbackType === "recruiter" ? "w-full" : ""} loading={loading}>
-              {fallbackType === "forgot" ? "Gửi hướng dẫn" : fallbackType === "candidate" || fallbackType === "recruiter" ? "Đăng ký" : "Lưu thông tin"}
-            </Button>
-        </form>
-      </Card>
-    </PageContainer>
-  );
+  return null;
 }
 
 function CvSheet({ className, icon, title, tone }: { className: string; icon: ReactNode; title: string; tone: string }) {

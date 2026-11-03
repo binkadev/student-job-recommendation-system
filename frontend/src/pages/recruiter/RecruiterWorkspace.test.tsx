@@ -8,12 +8,13 @@ import { httpClient } from "../../services/api/httpClient";
 import { RecruiterJobsPage } from "./RecruiterJobsPage";
 import { RecruiterCandidatesPage } from "./RecruiterCandidatesPage";
 import { RecruiterDashboardPage } from "./RecruiterDashboardPage";
+import { RecruiterReportsPage } from "./RecruiterReportsPage";
 
 vi.mock("../../services/api/httpClient", () => ({ httpClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
 // Chart geometry requires a browser; this suite checks data states and actions.
 vi.mock("recharts", () => ({
   ResponsiveContainer: () => null, Bar: () => null, BarChart: () => null, CartesianGrid: () => null,
-  Cell: () => null, Pie: () => null, PieChart: () => null, Tooltip: () => null, XAxis: () => null, YAxis: () => null,
+  Cell: () => null, Legend: () => null, Pie: () => null, PieChart: () => null, Tooltip: () => null, XAxis: () => null, YAxis: () => null,
 }));
 
 const application = {
@@ -112,5 +113,34 @@ describe("Recruiter dashboard", () => {
     renderPage(<RecruiterDashboardPage />);
     expect(await screen.findByRole("button", { name: "Thử lại" })).toBeEnabled();
     expect(screen.queryByText("Tin đang tuyển")).not.toBeInTheDocument();
+  });
+});
+
+describe("Recruiter reports data scope", () => {
+  it("excludes other companies' public jobs and explains the loaded sample instead of global totals", async () => {
+    const original = vi.mocked(httpClient.get).getMockImplementation()!;
+    vi.mocked(httpClient.get).mockImplementation(async (url, config) => {
+      if (url === "/jobs") return envelope({ ...page([job, { ...job, id: 100, companyId: 999, title: "Other company public job" }]), totalItems: 300 });
+      if (url === "/companies/me/applications") return envelope({ ...page([application]), totalItems: 120 });
+      return original(url, config);
+    });
+    renderPage(<RecruiterReportsPage />);
+    expect(await screen.findByText(/Phạm vi:/)).toHaveTextContent("1/120 đơn ứng tuyển");
+    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("2/300 tin");
+    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("lọc còn 1 tin của công ty");
+    expect(screen.queryByRole("option", { name: "Other company public job" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Frontend Developer" })).toBeInTheDocument();
+    expect(screen.queryByText("Tổng ứng viên")).not.toBeInTheDocument();
+  });
+
+  it("retries a failed report request without showing zero KPIs", async () => {
+    const user = userEvent.setup();
+    vi.mocked(httpClient.get).mockRejectedValueOnce(new Error("Offline"));
+    renderPage(<RecruiterReportsPage />);
+    const retry = await screen.findByRole("button", { name: "Thử lại" });
+    expect(screen.queryByText("Đơn trong phạm vi lọc")).not.toBeInTheDocument();
+    await user.click(retry);
+    await screen.findByText("Đơn trong phạm vi lọc");
+    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("1/1 đơn ứng tuyển");
   });
 });

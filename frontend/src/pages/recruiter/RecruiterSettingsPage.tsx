@@ -5,6 +5,7 @@ import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
+import { UnsupportedFeature } from "../../components/feedback/UnsupportedFeature";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
@@ -106,14 +107,6 @@ export function RecruiterSettingsPage({ section = "account" }: { section?: "main
     if (section !== "main") setTab(section);
   }, [section]);
 
-  function notifyUnsupported(feature: string) {
-    showToast({
-      type: "info",
-      title: "Chức năng chưa sẵn sàng",
-      message: `${feature} hiện chưa thể lưu dữ liệu.`,
-    });
-  }
-
   async function saveCompany(form: CompanySettingsForm) {
     try {
       await updateMyCompany(form);
@@ -147,10 +140,10 @@ export function RecruiterSettingsPage({ section = "account" }: { section?: "main
               {!companyQuery.loading && companyQuery.data ? <AccountSettings company={companyQuery.data} onSave={saveCompany} /> : null}
             </>
           ) : null}
-          {tab === "recruitment-process" ? <UnsupportedSettingsPanel title="Quy trình tuyển dụng" onUnsupported={notifyUnsupported} /> : null}
-          {tab === "email-templates" ? <UnsupportedSettingsPanel title="Mẫu email" onUnsupported={notifyUnsupported} /> : null}
+          {tab === "recruitment-process" ? <UnsupportedSettingsPanel title="Quy trình tuyển dụng" /> : null}
+          {tab === "email-templates" ? <UnsupportedSettingsPanel title="Mẫu email" /> : null}
           {tab === "notifications" ? <NotificationSettings /> : null}
-          {tab === "security" ? <SecuritySettings onUnsupported={notifyUnsupported} /> : null}
+          {tab === "security" ? <SecuritySettings /> : null}
         </div>
       </Card>
     </PageContainer>
@@ -212,14 +205,10 @@ function AccountSettings({ company, onSave }: { company: CompanyResponse; onSave
   );
 }
 
-function UnsupportedSettingsPanel({ title, onUnsupported }: { title: string; onUnsupported: (feature: string) => void }) {
-  return (
-    <div className="space-y-4">
-      <EmptyState message={`${title} chưa có dữ liệu cấu hình.`} />
-      <Textarea label={title} value="" disabled placeholder="Chưa cập nhật" />
-      <Button variant="secondary" onClick={() => onUnsupported(title)}>Lưu cấu hình</Button>
-    </div>
-  );
+function UnsupportedSettingsPanel({ title }: { title: string }) {
+  return <UnsupportedFeature title={title}
+    description="Hệ thống chưa hỗ trợ lưu cấu hình này. Quy trình xử lý đơn ứng tuyển hiện tuân theo các trạng thái cố định của hệ thống; chưa có chức năng tùy chỉnh quy trình hoặc mẫu email."
+    to="/recruiter/candidates" action="Xem đơn ứng tuyển" />;
 }
 
 function NotificationSettings() {
@@ -386,7 +375,7 @@ function RecruiterNotificationItem({
   );
 }
 
-function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
+function SecuritySettings() {
   const { showToast } = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -414,7 +403,7 @@ function SecuritySettings({ onUnsupported }: { onUnsupported: (feature: string) 
     <div className="space-y-4">
       <Input label="Mật khẩu hiện tại" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
       <Input label="Mật khẩu mới" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
-      <Switch label="Bật xác thực hai bước" checked={false} onChange={() => onUnsupported("Xác thực hai bước")} />
+      <p className="text-sm text-slate-600">Xác thực hai bước chưa được hệ thống hỗ trợ.</p>
       <Button loading={saving} onClick={() => void changePassword()}>Đổi mật khẩu</Button>
     </div>
   );

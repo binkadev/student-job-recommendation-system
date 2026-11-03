@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { UnsupportedFeature } from "../../components/feedback/UnsupportedFeature";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { Button } from "../../components/ui/Button";
@@ -55,15 +56,6 @@ interface NotificationSettingsResponse {
   updatedAt: string | null;
 }
 
-const INITIAL_PRIVACY_SETTINGS = {
-  discoverable: false,
-  showEmail: false,
-  showPhone: false,
-  allowCvDownload: false,
-  allowInvitations: false,
-  publicExperience: false,
-};
-
 export function CandidateSettingsPage({ section = "account" }: { section?: "main" | SettingsTab }) {
   const { showToast } = useToast();
   const [tab, setTab] = useState<SettingsTab>(section === "main" ? "account" : section);
@@ -115,7 +107,7 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
             </>
           ) : null}
           {tab === "security" ? <SecuritySettings /> : null}
-          {tab === "privacy" ? <PrivacySettings onUnsupported={notifyUnsupported} /> : null}
+          {tab === "privacy" ? <PrivacySettings /> : null}
           {tab === "notifications" ? <NotificationSettings /> : null}
         </div>
       </Card>
@@ -239,18 +231,10 @@ function SecuritySettings() {
   );
 }
 
-function PrivacySettings({ onUnsupported }: { onUnsupported: (feature: string) => void }) {
-  return (
-    <div className="space-y-4">
-      <EmptyState message="Chưa có cài đặt quyền riêng tư để hiển thị." />
-      <Switch label="Cho phép recruiter tìm thấy hồ sơ" checked={INITIAL_PRIVACY_SETTINGS.discoverable} onChange={() => onUnsupported("Quyền riêng tư")} />
-      <Switch label="Hiển thị email" checked={INITIAL_PRIVACY_SETTINGS.showEmail} onChange={() => onUnsupported("Quyền riêng tư")} />
-      <Switch label="Hiển thị số điện thoại" checked={INITIAL_PRIVACY_SETTINGS.showPhone} onChange={() => onUnsupported("Quyền riêng tư")} />
-      <Switch label="Cho phép tải CV" checked={INITIAL_PRIVACY_SETTINGS.allowCvDownload} onChange={() => onUnsupported("Quyền riêng tư")} />
-      <Switch label="Cho phép gửi lời mời ứng tuyển" checked={INITIAL_PRIVACY_SETTINGS.allowInvitations} onChange={() => onUnsupported("Quyền riêng tư")} />
-      <Switch label="Công khai kinh nghiệm làm việc" checked={INITIAL_PRIVACY_SETTINGS.publicExperience} onChange={() => onUnsupported("Quyền riêng tư")} />
-    </div>
-  );
+function PrivacySettings() {
+  return <UnsupportedFeature title="Chưa thể thiết lập quyền riêng tư"
+    description="Hệ thống chưa hỗ trợ lưu tùy chọn ẩn email, số điện thoại, CV hoặc khả năng tìm thấy hồ sơ. Không có lựa chọn quyền riêng tư nào được áp dụng từ trang này. Quyền truy cập hồ sơ và CV hiện tuân theo quyền của đơn ứng tuyển."
+    to="/candidate/applications" action="Xem đơn ứng tuyển" />;
 }
 
 function NotificationSettings() {

@@ -1,24 +1,12 @@
-import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
-import { EmptyState } from "../../components/feedback/EmptyState";
-import { Button } from "../../components/ui/Button";
-import { Card } from "../../components/ui/Card";
+import { UnsupportedFeature } from "../../components/feedback/UnsupportedFeature";
 
 export function CandidateInterviewsPage({ mode = "list" }: { mode?: "list" | "detail" }) {
-  return (
-    <PageContainer>
-      <PageHeader
-        title={mode === "detail" ? "Chi tiết phỏng vấn" : "Lịch phỏng vấn"}
-        description="Theo dõi lịch phỏng vấn của các đơn ứng tuyển."
-      />
-      <Card>
-        <EmptyState message="Chưa có lịch phỏng vấn." />
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <Link to="/candidate/applications"><Button>Quay lại đơn ứng tuyển</Button></Link>
-          <Link to="/candidate/jobs"><Button variant="secondary">Tìm việc</Button></Link>
-        </div>
-      </Card>
-    </PageContainer>
-  );
+  return <PageContainer>
+    <PageHeader title={mode === "detail" ? "Chi tiết phỏng vấn" : "Lịch phỏng vấn"} description="Thông tin về khả năng theo dõi lịch phỏng vấn của hệ thống." />
+    <UnsupportedFeature title="Chưa thể xem lịch phỏng vấn tại đây"
+      description="Hệ thống hiện chưa hỗ trợ truy xuất hoặc xác nhận lịch phỏng vấn. Trang này không xác định bạn có hay chưa có lịch hẹn. Bạn có thể kiểm tra trạng thái các đơn ứng tuyển."
+      to="/candidate/applications" action="Xem đơn ứng tuyển" />
+  </PageContainer>;
 }

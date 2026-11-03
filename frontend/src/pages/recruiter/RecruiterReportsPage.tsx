@@ -16,6 +16,7 @@ import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
+import { ErrorState } from "../../components/feedback/ErrorState";
 import { LoadingState } from "../../components/feedback/LoadingState";
 import { StatusBadge } from "../../components/feedback/StatusBadge";
 import { Button } from "../../components/ui/Button";
@@ -75,6 +76,9 @@ interface ApplicationResponse {
 interface ReportData {
   jobs: JobResponse[];
   applications: ApplicationResponse[];
+  sourceJobCount: number;
+  sourceJobTotal: number;
+  applicationTotal: number;
 }
 
 interface JobPerformanceRow {
@@ -117,7 +121,8 @@ export function RecruiterReportsPage() {
   const [toMonth, setToMonth] = useState("");
   const [jobFilter, setJobFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const reportQuery = useAsyncData(() => getRecruiterReportData(), []);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reportQuery = useAsyncData(() => getRecruiterReportData(), [reloadKey]);
 
   const jobs = useMemo(() => reportQuery.data?.jobs ?? [], [reportQuery.data?.jobs]);
   const applications = useMemo(() => reportQuery.data?.applications ?? [], [reportQuery.data?.applications]);
@@ -171,7 +176,8 @@ export function RecruiterReportsPage() {
     return (
       <PageContainer>
         <PageHeader title="Báo cáo tuyển dụng" description="Không thể tải dữ liệu báo cáo." />
-        <EmptyState message={reportQuery.error} />
+        <ErrorState message={reportQuery.error} />
+        <Button onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
       </PageContainer>
     );
   }
@@ -179,6 +185,11 @@ export function RecruiterReportsPage() {
   return (
     <PageContainer>
       <PageHeader title="Báo cáo tuyển dụng" description="Theo dõi hiệu quả tuyển dụng của công ty." />
+
+      <Card className="mb-5">
+        <p className="text-sm leading-6 text-slate-600">Phạm vi: {applications.length}/{reportQuery.data?.applicationTotal ?? 0} đơn ứng tuyển mới nhất của công ty, tối đa 100 đơn. Danh sách tin lấy từ {reportQuery.data?.sourceJobCount ?? 0}/{reportQuery.data?.sourceJobTotal ?? 0} tin được API trả về, sau đó lọc còn {jobs.length} tin của công ty. Các số đếm, tỷ lệ, biểu đồ và CSV áp dụng cho dữ liệu đã tải và bộ lọc hiện tại; không đại diện cho tổng toàn bộ lịch sử. Một sinh viên có thể có nhiều đơn ứng tuyển.</p>
+        <Button className="mt-3" variant="secondary" onClick={() => setReloadKey((value) => value + 1)}>Tải lại báo cáo</Button>
+      </Card>
 
       <Card className="mb-5">
         <div className="space-y-3">
@@ -201,7 +212,7 @@ export function RecruiterReportsPage() {
       {monthRangeError ? <div className="mb-5"><EmptyState message={monthRangeError} /></div> : null}
 
       <div className="mb-5 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Tổng ứng viên" value={totals.total} />
+        <StatCard label="Đơn trong phạm vi lọc" value={totals.total} />
         <StatCard label="Chờ xử lý" value={totals.pending} />
         <StatCard label="Đã xem" value={totals.reviewed} />
         <StatCard label="Đã nhận" value={totals.accepted} />
@@ -219,7 +230,7 @@ export function RecruiterReportsPage() {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="applications" fill="#2563eb" name="Ứng viên" />
+                <Bar dataKey="applications" fill="#2563eb" name="Đơn ứng tuyển" />
                 <Bar dataKey="accepted" fill="#10b981" name="Đã nhận" />
               </BarChart>
             </ResponsiveContainer>
@@ -308,6 +319,7 @@ function JobPerformanceTable({ rows }: { rows: JobPerformanceRow[] }) {
 }
 
 async function getRecruiterReportData(): Promise<ReportData> {
+  const companyResponse = await httpClient.get<ApiResponse<{ id: number }>>("/companies/me");
   const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
     params: { page: 1, size: 100 },
   });
@@ -315,11 +327,13 @@ async function getRecruiterReportData(): Promise<ReportData> {
     params: { page: 1, size: 100, sort: "appliedAt,desc" },
   });
 
-  const jobs = jobsResponse.data.data.items;
+  // /jobs also includes other companies' ACTIVE jobs. Filter before any aggregation.
+  const jobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyResponse.data.data.id);
   const applications = applicationsResponse.data.data.items
     .sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
 
-  return { jobs, applications };
+  return { jobs, applications, sourceJobCount: jobsResponse.data.data.items.length,
+    sourceJobTotal: jobsResponse.data.data.totalItems, applicationTotal: applicationsResponse.data.data.totalItems };
 }
 
 function summarize(applications: ApplicationResponse[]) {

@@ -42,6 +42,7 @@ import { RecruiterCompanyPage } from "../../pages/recruiter/RecruiterCompanyPage
 import { RecruiterDashboardPage } from "../../pages/recruiter/RecruiterDashboardPage";
 import { RecruiterJobsPage } from "../../pages/recruiter/RecruiterJobsPage";
 import { RecruiterMembersPage } from "../../pages/recruiter/RecruiterMembersPage";
+import { RecruiterInterviewsPage } from "../../pages/recruiter/RecruiterInterviewsPage";
 import { RecruiterReportsPage } from "../../pages/recruiter/RecruiterReportsPage";
 import { RecruiterSettingsPage } from "../../pages/recruiter/RecruiterSettingsPage";
 import { GuestRoute, ProtectedRoute, PublicRoute, RoleRoute } from "../../routes/RouteGuards";
@@ -170,9 +171,15 @@ function recruiterRouteElement(route: AppRoute) {
       return <RecruiterCandidatesPage mode="saved" />;
     case "/recruiter/candidate-search":
       return <RecruiterCandidatesPage mode="search" />;
+    case "/recruiter/interviews":
+      return <RecruiterInterviewsPage />;
+    case "/recruiter/interviews/create":
+      return <RecruiterInterviewsPage mode="create" />;
+    case "/recruiter/interviews/:interviewId":
+      return <RecruiterInterviewsPage mode="detail" />;
     case "/recruiter/messages":
     case "/recruiter/messages/:conversationId":
-      return <CandidateMessagesPage />;
+      return <CandidateMessagesPage role="recruiter" />;
     case "/recruiter/reports":
       return <RecruiterReportsPage />;
     case "/recruiter/members":

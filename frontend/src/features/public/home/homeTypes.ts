@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 export interface HomeStatistic {
   id: string;
   label: string;
-  value: string;
+  value: string | null;
+  unavailableReason?: string;
 }
 
 export interface FeaturedHomeJob {
@@ -35,7 +36,7 @@ export interface FeaturedHomeCompany {
   industry: string;
   size: string;
   location: string;
-  openJobs: number;
+  openJobs: number | null;
   verified: boolean;
 }
 
