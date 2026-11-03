@@ -163,10 +163,15 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
 }
 
 async function getCandidateSkillCatalog(): Promise<CandidateSkillCatalogItem[]> {
-  const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
-    params: { page: 1, size: 200 },
-  });
-  return response.data.data.items.map((skill) => ({
+  const skills: SkillResponse[] = [];
+  for (let page = 1; ; page++) {
+    const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
+      params: { page, size: 100 },
+    });
+    skills.push(...response.data.data.items);
+    if (!(page < response.data.data.totalPages)) break;
+  }
+  return skills.map((skill) => ({
     id: skill.id,
     name: skill.name,
     normalizedName: skill.normalizedName,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../services/api/httpClient";
 import { useAuth } from "./useAuth";
 import { readStorage } from "../utils/localStorage";
@@ -30,12 +30,18 @@ export function useSavedJobs() {
   const storageKey = useMemo(() => `saved-job-ids:${currentUser?.id ?? "anonymous"}`, [currentUser?.id]);
   const [savedJobIds, setSavedJobIds] = useLocalStorageState<string[]>(storageKey, []);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const requestVersion = useRef(0);
+  const pendingJobs = useRef(new Map<string, Promise<void>>());
 
   const savedSet = useMemo(() => new Set(savedJobIds), [savedJobIds]);
 
   const refreshSavedJobs = useCallback(async () => {
-    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) {
+    const version = ++requestVersion.current;
+    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || currentUser?.role !== "candidate") {
       setSavedJobIds([]);
+      setSyncError(null);
+      setSyncing(false);
       return;
     }
     setSyncing(true);
@@ -44,23 +50,29 @@ export function useSavedJobs() {
       const activeIds = data
         .filter((item) => !item.status || item.status === "ACTIVE")
         .map((item) => String(item.jobId));
+      if (version !== requestVersion.current) return;
       setSavedJobIds(activeIds);
+      setSyncError(null);
     } catch {
-      setSavedJobIds([]);
+      if (version === requestVersion.current) setSyncError("Chưa đồng bộ được việc làm đã lưu. Dữ liệu đã xác nhận được giữ lại; hãy thử tải lại.");
     } finally {
-      setSyncing(false);
+      if (version === requestVersion.current) setSyncing(false);
     }
-  }, [setSavedJobIds]);
+  }, [currentUser?.role, setSavedJobIds]);
 
   useEffect(() => {
+    const requests = requestVersion;
     setSavedJobIds(readStorage(storageKey, []));
     void refreshSavedJobs();
+    return () => { requests.current++; };
   }, [refreshSavedJobs, setSavedJobIds, storageKey]);
 
   useEffect(() => {
     function syncSavedJobs(event: Event) {
       const detail = (event as CustomEvent<{ jobId?: string; saved?: boolean }>).detail;
       if (!detail?.jobId || typeof detail.saved !== "boolean") return;
+      requestVersion.current++;
+      setSyncing(false);
       setSavedJobIds((current) => {
         if (detail.saved) return current.includes(detail.jobId!) ? current : [...current, detail.jobId!];
         return current.filter((id) => id !== detail.jobId);
@@ -71,30 +83,41 @@ export function useSavedJobs() {
     return () => window.removeEventListener(savedJobsChangedEvent, syncSavedJobs);
   }, [setSavedJobIds]);
 
-  async function toggleSavedJob(jobId: string) {
+  function toggleSavedJob(jobId: string) {
+    const pendingKey = `${currentUser?.id ?? "anonymous"}:${jobId}`;
+    const pending = pendingJobs.current.get(pendingKey);
+    if (pending) return pending;
+    const tokenAtStart = window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
     const currentlySaved = savedSet.has(jobId);
     const nextSaved = !currentlySaved;
-    setSavedJobIds((current) => (currentlySaved ? current.filter((id) => id !== jobId) : Array.from(new Set([...current, jobId]))));
-    window.dispatchEvent(new CustomEvent(savedJobsChangedEvent, { detail: { jobId, saved: nextSaved } }));
-
-    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) return;
-
-    try {
-      if (currentlySaved) {
-        await httpClient.delete<ApiResponse<null>>(`/students/me/saved-jobs/${jobId}`);
-      } else {
-        await httpClient.post<ApiResponse<SavedJobResponse>>(`/students/me/saved-jobs/${jobId}`);
+    const operation = (async () => {
+      try {
+        if (window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) {
+          if (currentlySaved) {
+            await httpClient.delete<ApiResponse<null>>(`/students/me/saved-jobs/${jobId}`);
+          } else {
+            await httpClient.post<ApiResponse<SavedJobResponse>>(`/students/me/saved-jobs/${jobId}`);
+          }
+        }
+        if (tokenAtStart !== window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) return;
+        // Publish only a confirmed mutation; a failed refresh must never erase it.
+        setSavedJobIds((current) => (currentlySaved ? current.filter((id) => id !== jobId) : Array.from(new Set([...current, jobId]))));
+        setSyncError(null);
+        window.dispatchEvent(new CustomEvent(savedJobsChangedEvent, { detail: { jobId, saved: nextSaved } }));
+      } catch (error) {
+        setSyncError("Không thể cập nhật việc làm đã lưu. Trạng thái trước đó được giữ lại; hãy thử lại khi có kết nối.");
+        throw error;
       }
-      await refreshSavedJobs();
-    } catch (error) {
-      await refreshSavedJobs();
-      throw error;
-    }
+    })();
+    const settled = operation.finally(() => { pendingJobs.current.delete(pendingKey); });
+    pendingJobs.current.set(pendingKey, settled);
+    return settled;
   }
 
   return {
     savedJobIds,
     syncing,
+    syncError,
     isSaved: (jobId: string) => savedSet.has(jobId),
     toggleSavedJob,
     refreshSavedJobs,

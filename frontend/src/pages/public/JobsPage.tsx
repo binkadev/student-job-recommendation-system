@@ -62,8 +62,8 @@ export function JobsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentRole, isAuthenticated } = useAuth();
-  const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { canApply, getApplyButtonLabel } = useAppliedJobs();
+  const { isSaved, toggleSavedJob, syncError: savedSyncError, refreshSavedJobs } = useSavedJobs();
+  const { canApply, hasApplied, getApplyButtonLabel, syncError: appliedSyncError, refreshAppliedJobs } = useAppliedJobs();
   const { showToast } = useToast();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -180,6 +180,12 @@ export function JobsPage() {
         </form>
       </Card>
 
+      {savedSyncError || appliedSyncError ? <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        {savedSyncError ? <p>{savedSyncError}</p> : null}
+        {appliedSyncError ? <p>{appliedSyncError}</p> : null}
+        <Button className="mt-3" variant="secondary" onClick={() => { void refreshSavedJobs(); void refreshAppliedJobs(); }}>Tải lại trạng thái</Button>
+      </div> : null}
+
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
         <aside className="hidden lg:block">
           <Card>
@@ -229,7 +235,8 @@ export function JobsPage() {
                   key={job.id}
                   job={job}
                   saved={isAuthenticated && currentRole === "candidate" && isSaved(job.id)}
-                  applied={isAuthenticated && currentRole === "candidate" && !canApply(job.id)}
+                  applied={isAuthenticated && currentRole === "candidate" && hasApplied(job.id)}
+                  applyDisabled={isAuthenticated && currentRole === "candidate" && !canApply(job.id)}
                   applyLabel={isAuthenticated && currentRole === "candidate" ? getApplyButtonLabel(job.id) : "Ứng tuyển"}
                   onToggleSave={(jobId) => void requireCandidate("save", jobId)}
                   onApply={(jobId) => void requireCandidate("apply", jobId)}

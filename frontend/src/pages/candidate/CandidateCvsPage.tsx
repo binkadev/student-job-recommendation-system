@@ -1,5 +1,5 @@
 import { FileText, RefreshCw, UploadCloud, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -69,6 +69,8 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
+  const [activatingCvId, setActivatingCvId] = useState<number | null>(null);
+  const activationPending = useRef(false);
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
   const cvs = useMemo(() => cvsQuery.data ?? [], [cvsQuery.data]);
   const selectedCv = useMemo(() => {
@@ -107,9 +109,19 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   }
 
   async function activateCv(cv: CvFileResponse) {
-    const updatedCv = await activateCandidateCv(cv.id);
-    showToast({ type: "success", title: "Đã đặt CV đang dùng", message: `${updatedCv.originalFileName} đang là CV được dùng.` });
-    setReloadKey((current) => current + 1);
+    if (activationPending.current) return;
+    activationPending.current = true;
+    setActivatingCvId(cv.id);
+    try {
+      const updatedCv = await activateCandidateCv(cv.id);
+      showToast({ type: "success", title: "Đã đặt CV đang dùng", message: `${updatedCv.originalFileName} đang là CV được dùng.` });
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể đặt CV đang dùng", message: getApiErrorMessage(error) });
+    } finally {
+      activationPending.current = false;
+      setActivatingCvId(null);
+    }
   }
 
   async function deleteCv(cv: CvFileResponse) {
@@ -272,7 +284,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">{hasCvAnalysis(cv) ? "Phân tích lại" : "Phân tích"}</Button></Link>
-              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
+              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" loading={activatingCvId === cv.id} disabled={activatingCvId !== null} onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
         ))}

@@ -42,6 +42,21 @@ function renderProfile(path = "/candidate/profile/edit") {
 }
 
 describe("Student profile persistence contract (mocked HTTP, not E2E)", () => {
+  it("uses the Backend catalog page limit and resolves skills beyond the first page before writing", async () => {
+    const profile = await getCandidateProfileData();
+    profile.skills.tools = [{ id: "custom", name: "Next.js", level: "Khá", years: 1, source: "MANUAL" }];
+    const existingGet = vi.mocked(httpClient.get).getMockImplementation()!;
+    vi.mocked(httpClient.get).mockImplementation(async (url, config) => {
+      if (url !== "/skills") return existingGet(url, config);
+      expect(config?.params.size).toBe(100);
+      const page = config?.params.page as number;
+      return envelope({ page, totalPages: 2, items: page === 2 ? [{ id: 202, name: "Next.js", normalizedName: "next.js", category: "Tools" }] : [] });
+    });
+    await updateCandidateProfileData(profile);
+    expect(httpClient.get).toHaveBeenCalledWith("/skills", { params: { page: 2, size: 100 } });
+    expect(httpClient.put).toHaveBeenCalledWith("/students/me/skills", { skills: [{ skillId: 202, proficiencyLevel: "INTERMEDIATE", yearsOfExperience: 1, source: "MANUAL" }] });
+  });
+
   it("preserves independent preferences and original multiline sections across repeated saves and reads", async () => {
     const profile = await getCandidateProfileData();
     const reloaded = await updateCandidateProfileData({ ...profile, header: { ...profile.header, name: "Tên mới" } });

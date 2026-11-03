@@ -75,7 +75,7 @@ interface BackendApplicationResponse {
 export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: ApplyFlowJob | null; onClose: () => void; onApplied?: () => void }) {
   const open = Boolean(job);
   const cvsQuery = useAsyncData(() => getSelectableCvs(open), [open]);
-  const { canApply, applyToJob, refreshAppliedJobs } = useAppliedJobs();
+  const { canApply, applyToJob, refreshAppliedJobs, syncError, syncing } = useAppliedJobs();
   const { showToast } = useToast();
   const [step, setStep] = useState(0);
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
@@ -169,6 +169,10 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
   return (
     <Modal open={open} title={`Ứng tuyển ${job?.title ?? ""}`} onClose={requestClose} size="lg">
       <Stepper steps={steps} currentStep={step} />
+      {syncError ? <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <p>{syncError}</p>
+        <Button variant="secondary" className="mt-2" loading={syncing} onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button>
+      </div> : null}
       <div className="mt-5 max-h-[70vh] overflow-y-auto pr-1">
         {cvsQuery.loading && step === 0 ? <LoadingState /> : null}
         {!cvsQuery.loading && step === 0 ? (

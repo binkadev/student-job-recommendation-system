@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../../services/api/httpClient";
 
@@ -56,31 +56,45 @@ export function useAppliedJobs() {
   const { currentUser } = useAuth();
   const [applications, setApplications] = useState<StudentApplication[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncedUserId, setSyncedUserId] = useState<string | null>(null);
+  const requestVersion = useRef(0);
 
   const refreshAppliedJobs = useCallback(async () => {
-    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)) {
+    const version = ++requestVersion.current;
+    if (!window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || currentUser?.role !== "candidate") {
       setApplications([]);
+      setSyncedUserId(null);
+      setSyncError(null);
+      setSyncing(false);
       return;
     }
     setSyncing(true);
     try {
       const response = await httpClient.get<ApiResponse<StudentApplication[]>>("/students/me/applications");
+      if (version !== requestVersion.current) return;
       setApplications(response.data.data ?? []);
+      setSyncedUserId(currentUser.id);
+      setSyncError(null);
     } catch {
-      setApplications([]);
+      if (version === requestVersion.current) setSyncError("Chưa xác minh được trạng thái ứng tuyển. Hãy tải lại trước khi gửi đơn.");
     } finally {
-      setSyncing(false);
+      if (version === requestVersion.current) setSyncing(false);
     }
-  }, []);
+  }, [currentUser?.id, currentUser?.role]);
 
   useEffect(() => {
+    const requests = requestVersion;
     void refreshAppliedJobs();
+    return () => { requests.current++; };
   }, [currentUser?.id, refreshAppliedJobs]);
 
   useEffect(() => {
     function syncApplications(event: Event) {
       const detail = (event as CustomEvent<{ application?: StudentApplication }>).detail;
       if (!detail?.application) return;
+      requestVersion.current++;
+      setSyncing(false);
       setApplications((current) => [detail.application!, ...current.filter((item) => item.id !== detail.application!.id)]);
     }
 
@@ -99,15 +113,17 @@ export function useAppliedJobs() {
   }
 
   function getApplicationState(jobId: string) {
+    if (syncedUserId !== currentUser?.id) return "NEVER_APPLIED" as const;
     return statesByJob.get(jobId) ?? "NEVER_APPLIED";
   }
 
   return {
-    applications,
+    applications: syncedUserId === currentUser?.id ? applications : [],
     syncing,
+    syncError,
     getApplicationState,
-    canApply: (jobId: string) => canApplyForJob(getApplicationState(jobId)),
-    getApplyButtonLabel: (jobId: string) => getApplyButtonLabelForState(getApplicationState(jobId)),
+    canApply: (jobId: string) => syncedUserId === currentUser?.id && !syncError && canApplyForJob(getApplicationState(jobId)),
+    getApplyButtonLabel: (jobId: string) => syncError ? "Chưa xác minh ứng tuyển" : getApplyButtonLabelForState(getApplicationState(jobId)),
     hasApplied: (jobId: string) => !canApplyForJob(getApplicationState(jobId)),
     applyToJob,
     refreshAppliedJobs,

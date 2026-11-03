@@ -65,7 +65,7 @@ export function CandidateRecommendedJobsPage() {
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { canApply, getApplyButtonLabel } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel, syncError: appliedSyncError, refreshAppliedJobs } = useAppliedJobs();
   const { showToast } = useToast();
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
@@ -189,6 +189,11 @@ export function CandidateRecommendedJobsPage() {
   return (
     <PageContainer>
       <PageHeader title="Việc làm gợi ý" description="Khám phá cơ hội từ CV của bạn, hiểu kỹ năng phù hợp và những điểm cần bổ sung." />
+
+      {appliedSyncError ? <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <p>{appliedSyncError}</p>
+        <Button className="mt-3" variant="secondary" onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button>
+      </div> : null}
 
       <div className="mb-5 grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
