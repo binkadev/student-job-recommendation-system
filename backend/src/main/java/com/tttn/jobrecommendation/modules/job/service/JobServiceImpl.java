@@ -59,16 +59,26 @@ public class JobServiceImpl implements JobService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<JobResponse> getJobs(JobFilterRequest request, Long userId, UserRole role) {
+        return getJobsPage(request, userId, role, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<JobResponse> getMyJobs(JobFilterRequest request, Long userId) {
+        return getJobsPage(request, userId, UserRole.COMPANY, true);
+    }
+
+    private PageResponse<JobResponse> getJobsPage(JobFilterRequest request, Long userId, UserRole role, boolean ownCompanyOnly) {
         int pageNumber = request.getPage() == null ? 1 : request.getPage();
         int pageSize = request.getSize() == null ? 10 : request.getSize();
         Pageable pageable = PageRequest.of(
                 Math.max(pageNumber, 1) - 1,
                 Math.min(Math.max(pageSize, 1), 100),
-                Sort.by(Sort.Direction.DESC, "createdAt")
+                ownCompanyOnly ? Sort.by(Sort.Direction.DESC, "createdAt", "id") : Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
         Company currentCompany = role == UserRole.COMPANY ? getCompanyByUserId(userId) : null;
-        Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany), pageable);
+        Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany, ownCompanyOnly), pageable);
         Map<Long, List<JobSkill>> skillsByJobId = getSkillsByJobId(page.getContent());
         List<JobResponse> items = page.getContent().stream()
                 .map(job -> jobMapper.toJobResponse(
@@ -270,11 +280,13 @@ public class JobServiceImpl implements JobService {
                 ));
     }
 
-    private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany) {
+    private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany, boolean ownCompanyOnly) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (role == UserRole.STUDENT) {
+            if (ownCompanyOnly) {
+                predicates.add(criteriaBuilder.equal(root.get("company").get("id"), currentCompany.getId()));
+            } else if (role == UserRole.STUDENT) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE));
                 predicates.add(criteriaBuilder.equal(root.get("company").get("status"), CompanyStatus.VERIFIED));
             } else if (role == UserRole.COMPANY) {

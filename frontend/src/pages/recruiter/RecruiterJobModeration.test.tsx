@@ -16,7 +16,7 @@ beforeEach(() => {
   vi.mocked(httpClient.get).mockImplementation(async (url) => {
     if (url === "/companies/me") return envelope({ id: 7, status: companyStatus });
     if (url === "/jobs/42") return envelope({ ...job });
-    if (url === "/jobs") return envelope({ items: [{ ...job }], totalPages: 1, totalItems: 1, page: 1 });
+    if (url === "/companies/me/jobs") return envelope({ items: [{ ...job }], totalPages: 1, totalItems: 1, page: 1, size: 8 });
     if (url === "/skills") return envelope({ items: [] });
     throw new Error(`Unexpected request ${url}`);
   });

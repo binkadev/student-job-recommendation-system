@@ -4,6 +4,8 @@ Snapshot lịch sử tại `caa33f54`. G01 bên dưới đã được xử lý t
 
 G02 profile atomicity/concurrency cũng đã được xử lý tiếp trên baseline `3bd7a88d`: [thiết kế, rollback và two-tab evidence](student-profile-atomic-save-results.md). Các dòng gap bên dưới là snapshot lịch sử, không phải trạng thái current của G01/G02.
 
+G03 đã được xử lý cho danh sách quản lý tin trên baseline `71381b34`: [owner query, 260-fixture PostgreSQL và browser evidence](company-jobs-pagination-b06-results.md). Dashboard/Reports vẫn có query mẫu giới hạn riêng. B06 tiếp tục **UNRESOLVED / NOT REPRODUCED** sau diagnostic riêng; không coi các dòng inventory lịch sử là kết quả kiểm chứng mới.
+
 Ngày: 2026-11-03. Sinh bởi `node e2e/write-inventory.mjs` từ source inventory + quan sát browser thật. 104 route khai báo; 79 Public/Auth/Student/Company được điều hướng, 25 Admin ngoài phạm vi UI. Chi tiết gap/defect trong [kết quả](real-world-e2e-results.md).
 
 **Không có route nào được đánh PASS chỉ vì render.** Mỗi nút/link hiện có trong main content ở trạng thái dữ liệu khảo sát được liệt kê dưới đây. Các nút trong modal/tab chỉ hiện sau tương tác nằm trong các business test được nêu và source audit trước đó; mọi nhánh chưa mở là NOT_VERIFIED. Đây không phải tuyên bố exhaustive coverage của mọi tổ hợp dữ liệu/trạng thái. Bộ quét không click các action này.

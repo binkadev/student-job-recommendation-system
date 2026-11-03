@@ -118,3 +118,5 @@ Không thay AI/CV processing V2, TF-IDF/Cosine, Recommendation V3/Ranking V3, el
 Revision bảo vệ owned profile state; không đại diện lịch sử chỉnh sửa metadata catalog chung bởi Admin. UI không hỗ trợ tự merge conflict, không phục hồi draft sau đóng tab hoàn toàn; draft được giữ trong tab sống với beforeunload warning. Preferences/Settings giữ precondition và draft khi conflict; người dùng có thể quay về profile editor để đối chiếu. Không có chứng nhận exhaustive accessibility/performance hoặc external client compatibility. PR #66 giữ Draft, không merge.
 
 B06 có một lần reload/transport failure chưa chốt nguyên nhân như mô tả trên; lần full cuối có cả HTTP body và UI assertions PASS. Không coi lần pass sau là chứng minh nguyên nhân đã được sửa hoặc toàn bộ sản phẩm hết transient errors.
+
+Điều tra tiếp trên baseline `71381b34`: xem [diagnostic B06 và P1 own-jobs](company-jobs-pagination-b06-results.md). Kết luận hiện tại vẫn **UNRESOLVED / NOT REPRODUCED**; giữ nguyên quan sát lỗi lịch sử ở báo cáo này.

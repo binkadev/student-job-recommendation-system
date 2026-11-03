@@ -13,6 +13,8 @@ public interface JobService {
 
     PageResponse<JobResponse> getJobs(JobFilterRequest request, Long userId, UserRole role);
 
+    PageResponse<JobResponse> getMyJobs(JobFilterRequest request, Long userId);
+
     JobDetailResponse getJob(Long id, Long userId, UserRole role);
 
     JobDetailResponse createJob(CreateJobRequest request, Long userId, UserRole role);

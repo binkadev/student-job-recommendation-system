@@ -255,6 +255,18 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
   const [closeTarget, setCloseTarget] = useState<JobResponse | null>(null);
   const jobsQuery = useAsyncData(() => getJobs({ page, keyword, status, jobType, workingModel }), [page, reloadKey, keyword, status, jobType, workingModel]);
   const jobs = jobsQuery.data?.items ?? [];
+  const queryKey = JSON.stringify({ page, keyword, status, jobType, workingModel });
+  const confirmed = jobsQuery.data;
+  const current = confirmed?.queryKey === queryKey;
+  const refreshing = jobsQuery.loading || Boolean(confirmed && !current && !jobsQuery.error);
+  const actionsLocked = refreshing || Boolean(jobsQuery.error) || !current;
+
+  useEffect(() => {
+    if (!confirmed || !current || jobsQuery.loading || jobsQuery.error) return;
+    // A status/close operation can remove the last row on the last filtered page.
+    const last = Math.max(1, confirmed.totalPages);
+    if (page > last) setPage(last);
+  }, [confirmed, current, jobsQuery.loading, jobsQuery.error, page]);
 
   async function updateStatus(job: JobResponse, nextStatus: JobStatus) {
     if (nextStatus === "PENDING_APPROVAL" && company && !isCompanyVerified(company)) {
@@ -309,11 +321,12 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
       </Card>
 
       <Card className="mt-5">
-        <SectionHeader title="Tin tuyển dụng" description={jobsQuery.loading ? "Đang tải danh sách..." : jobsQuery.error ? "Danh sách chưa sẵn sàng." : `${jobsQuery.data?.totalItems ?? 0} tin tuyển dụng trong dữ liệu đã tải`} />
-        {jobsQuery.loading ? <LoadingState /> : null}
-        {!jobsQuery.loading && jobsQuery.error ? <ErrorState message={jobsQuery.error} /> : null}
-        {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Không có tin tuyển dụng phù hợp." /> : null}
-        {!jobsQuery.loading && !jobsQuery.error && jobs.length > 0 ? (
+        <SectionHeader title="Tin tuyển dụng" description={confirmed ? `${confirmed.totalItems} tin tuyển dụng • Trang ${confirmed.page}/${Math.max(1, confirmed.totalPages)}` : jobsQuery.error ? "Chưa tải được danh sách." : "Đang tải danh sách..."} />
+        {refreshing && !confirmed ? <LoadingState /> : null}
+        {confirmed && (refreshing || jobsQuery.error || !current) ? <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{refreshing ? "Đang cập nhật danh sách. " : "Chưa cập nhật được danh sách. "}Kết quả bên dưới là lần tải thành công gần nhất; bộ lọc hoặc trang mới chưa được xác nhận.</p> : null}
+        {jobsQuery.error ? <div className="mb-4 space-y-3"><ErrorState message={jobsQuery.error} /><Button variant="secondary" onClick={() => setReloadKey(key => key + 1)}>Thử tải lại</Button></div> : null}
+        {!refreshing && !jobsQuery.error && current && confirmed?.totalItems === 0 ? <EmptyState message="Không có tin tuyển dụng phù hợp." /> : null}
+        {jobs.length > 0 ? (
           <div className="space-y-4">
             <RecruiterDataTable
               rows={jobs}
@@ -324,12 +337,12 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
                 { key: "salary", header: "Mức lương", render: (job) => formatSalary(job) },
                 { key: "deadline", header: "Hạn nộp", render: (job) => formatDate(job.deadline) },
                 { key: "status", header: "Trạng thái", render: (job) => <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} /> },
-                { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} canPublish={Boolean(company && isCompanyVerified(company))} onUpdateStatus={updateStatus} onClose={setCloseTarget} /> },
+                { key: "actions", header: "Thao tác", render: (job) => <JobActions job={job} disabled={actionsLocked} canPublish={Boolean(company && isCompanyVerified(company))} onUpdateStatus={updateStatus} onClose={setCloseTarget} /> },
               ]}
             />
-            <Pagination page={page} totalPages={jobsQuery.data?.totalPages ?? 1} onPageChange={setPage} />
           </div>
         ) : null}
+        {confirmed && confirmed.totalPages > 0 ? <fieldset disabled={actionsLocked} className="mt-4"><Pagination page={confirmed.page} totalPages={confirmed.totalPages} onPageChange={setPage} /></fieldset> : null}
       </Card>
       <CloseJobModal job={closeTarget} onClose={() => setCloseTarget(null)} onConfirm={(job) => void closeJob(job)} />
     </PageContainer>
@@ -660,20 +673,20 @@ function JobTitleCell({ job }: { job: JobResponse }) {
   );
 }
 
-function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResponse; canPublish: boolean; onUpdateStatus: (job: JobResponse, status: JobStatus) => void; onClose: (job: JobResponse) => void }) {
+function JobActions({ job, canPublish, onUpdateStatus, onClose, disabled = false }: { job: JobResponse; canPublish: boolean; disabled?: boolean; onUpdateStatus: (job: JobResponse, status: JobStatus) => void; onClose: (job: JobResponse) => void }) {
   const actions = getCompanyJobActions(job.status, canPublish ? "VERIFIED" : "PENDING");
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-2 xl:min-w-64">
       <div className="grid grid-cols-3 gap-2">
         <Link to={`/recruiter/jobs/${job.id}`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
-        {actions.edit ? <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link> : <Button className="w-full justify-center" variant="secondary" size="sm" disabled title="Đưa tin về nháp trước khi sửa">Sửa</Button>}
+        {actions.edit && !disabled ? <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link> : <Button className="w-full justify-center" variant="secondary" size="sm" disabled title={disabled ? "Chờ xác nhận lại danh sách" : "Đưa tin về nháp trước khi sửa"}>Sửa</Button>}
         {job.status === "DRAFT" ? (
-          <Button className="w-full justify-center" size="sm" disabled={!actions.submit} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button>
+          <Button className="w-full justify-center" size="sm" disabled={disabled || !actions.submit} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button>
         ) : actions.withdraw || actions.returnToDraft ? (
-          <Button className="w-full justify-center" variant="secondary" size="sm" onClick={() => onUpdateStatus(job, "DRAFT")}>{actions.withdraw ? "Rút về nháp" : "Đưa về nháp"}</Button>
+          <Button className="w-full justify-center" variant="secondary" size="sm" disabled={disabled} onClick={() => onUpdateStatus(job, "DRAFT")}>{actions.withdraw ? "Rút về nháp" : "Đưa về nháp"}</Button>
         ) : actions.close ? (
-          <Button className="w-full justify-center" variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button>
+          <Button className="w-full justify-center" variant="danger" size="sm" disabled={disabled} icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button>
         ) : (
           <span />
         )}
@@ -712,34 +725,17 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 async function getJobs(filters: { page: number; keyword: string; status: string; jobType: string; workingModel: string }) {
-  const [companyResponse, jobsResponse] = await Promise.all([
-    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
-    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
+  const jobsResponse = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/companies/me/jobs", {
       params: {
-        page: 1,
-        size: 100,
+        page: filters.page,
+        size: 8,
         keyword: filters.keyword || undefined,
         status: filters.status || undefined,
         jobType: filters.jobType || undefined,
         workingModel: filters.workingModel || undefined,
       },
-    }),
-  ]);
-  const companyId = companyResponse.data.data.id;
-  const ownJobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyId);
-  const pageSize = 8;
-  const totalItems = ownJobs.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const currentPage = Math.min(Math.max(filters.page, 1), totalPages);
-  const start = (currentPage - 1) * pageSize;
-
-  return {
-    items: ownJobs.slice(start, start + pageSize),
-    page: currentPage,
-    size: pageSize,
-    totalItems,
-    totalPages,
-  };
+    });
+  return { ...jobsResponse.data.data, queryKey: JSON.stringify(filters) };
 }
 
 async function getMyCompany() {

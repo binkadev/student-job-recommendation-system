@@ -75,3 +75,17 @@ node verify-preservation.mjs profile-atomic-baseline.json
 ```
 
 Comparator profile dùng baseline local `profile-primary-content-baseline.json` đã chụp trước work package; nếu chạy trong môi trường mới, chụp lại qua GET basic/profile/skills trước khi chạy. `--capture` chỉ ghi snapshot local và không sửa DB. Snapshot exact của PRIMARY/secondary (cả revision/timestamps) phải còn nguyên sau recreate. Xem [report](../docs/datn/student-profile-atomic-save-results.md) để phân biệt baseline nội dung với snapshot persistence.
+
+`own-jobs.spec.mjs` kiểm tra phân trang/filters Backend thật, giữ kết quả khi offline, phục hồi explicit và năm viewport. J02 dùng đúng một DRAFT riêng `[p1-e2e]` của `companyB`, tạo qua UI ở lần đầu rồi tái sử dụng; edit/submit/withdraw và kết thúc DRAFT, không publish. Bộ 130+130 Job nằm trong PostgreSQL Testcontainers của `CompanyOwnJobsApiIT`, không tạo hàng trăm fixture trong database demo.
+
+B06 diagnostic chạy riêng, không tăng timeout/retry, không mock Backend và không sửa application:
+
+```powershell
+$env:E2E_RESULTS_FILE = '.local/b06-results.json'
+npx playwright test --config=b06.playwright.config.mjs
+node collect-b06-server-evidence.mjs
+```
+
+Ba cases gồm 6 fresh sessions, 12 reload và 12 route remount. Native XHR instrumentation chỉ quan sát, giữ nguyên open/send; đối chiếu HTTP/body shape/Request-ID với Backend logs, session fingerprint (không lưu token), DOM state và lỗi resource/console đã redact. Artifacts chứa dữ liệu môi trường nên giữ gitignored. Nếu không tái hiện, kết luận **UNRESOLVED / NOT REPRODUCED**, không coi diagnostic pass là đã sửa B06. Xem [report](../docs/datn/company-jobs-pagination-b06-results.md).
+
+Trước work package riêng, `node verify-own-jobs-preservation.mjs --capture` chụp PRIMARY aggregate local; không ghi đè baseline khi đang chạy. Sau tests, chạy `summarize-state.mjs`, `verify-preservation.mjs own-jobs-baseline.json` và `verify-own-jobs-preservation.mjs`. Comparator cuối kiểm PRIMARY content (loại revision/timestamps do positive regression saves) và đúng một secondary DRAFT/benefits đã persist. Baseline aliases/jobs/applications được chụp riêng bằng summarize-state trước sửa như workflow phía trên.

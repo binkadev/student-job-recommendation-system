@@ -1,5 +1,10 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## P1 Own-company Job pagination / B06 — 2026-11-03
+
+- [API, PostgreSQL 260-fixture tests, browser và bảo toàn dữ liệu](company-jobs-pagination-b06-results.md).
+- Danh sách quản lý dùng owner scope/filter/count/page trong Backend, sort có ID tie-break. G03 được xử lý cho trang quản lý; Dashboard/Reports còn giới hạn riêng. B06 giữ **UNRESOLVED / NOT REPRODUCED**; không tuyên bố đã sửa lỗi reload application.
+
 ## P0 Student profile atomic save — 2026-11-03
 
 - [Thiết kế API/DB/versioning, rollback, hai tab và data preservation](student-profile-atomic-save-results.md).

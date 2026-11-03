@@ -461,6 +461,16 @@ Deletes only the authenticated student's saved-search record. A foreign or absen
 
 ## Company
 
+### GET `/api/companies/me/jobs`
+
+Role: `COMPANY`. Management list scoped exclusively to the authenticated User's Company, including PENDING/BLOCKED Companies. Company ownership is resolved by Backend; client `companyId`, `userId`, `sort`, and other unknown query parameters return 400 `BAD_REQUEST`.
+
+Optional query parameters: `page` (1-based, default 1, minimum 1), `size` (default 10, range 1–100), `keyword` (case-insensitive substring of title, description or requirements), `status`, `jobType`, `workingModel`, `location` (case-insensitive substring). Enum values follow the shared Job enums. Invalid pagination/enums return 400. Filters combine with AND and run in PostgreSQL before pagination and counting.
+
+Response: `ApiResponse<PageResponse<JobResponse>>`, ordered by `createdAt DESC, id DESC`. No total-result limit of 100. All six own Job statuses are readable. `totalItems` counts all matching own Jobs and `totalPages = ceil(totalItems / size)`. Empty matches return `items: []`, `totalItems: 0`, `totalPages: 0`; out-of-range pages return 200 with empty items, the requested page and accurate totals. Offset pages have deterministic ordering for an unchanged dataset; they do not provide a cross-request snapshot during concurrent inserts/deletes.
+
+Student/Admin receive 403; unauthenticated requests follow the existing security entry point. This endpoint grants no foreign Job detail or write access and no publishing rights. Existing generic `/api/jobs`, public discovery, moderation, Recommendation V3 and Candidate Ranking V3 semantics remain unchanged.
+
 ### GET `/api/companies/me`
 
 Role: `COMPANY`.

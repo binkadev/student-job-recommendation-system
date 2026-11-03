@@ -262,6 +262,8 @@ Student profile edits use `/api/students/me/profile-aggregate`, one transaction 
 
 ## Database Rules
 
+Company Job management uses `GET /api/companies/me/jobs`: JWT-derived ownership, database filtering/counting/pagination, fixed `createdAt DESC, id DESC`, page size 1–100 and no total-result cap. Reject client ownership/sort parameters. PENDING/BLOCKED Companies can read their own Jobs; moderation gates still control writes/public visibility. Do not replace management with the mixed-scope generic `/jobs` discovery list or client filtering after LIMIT. See [evidence](docs/datn/company-jobs-pagination-b06-results.md).
+
 - Use PostgreSQL.
 - Use existing BIGSERIAL identifiers and VARCHAR-backed enums unless a new reviewed design changes them.
 - Business tables use `created_at` and `updated_at` where established.
