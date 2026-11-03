@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),
     VALIDATION_ERROR("VALIDATION_ERROR", "Validation error", HttpStatus.BAD_REQUEST),
+    UPLOAD_TOO_LARGE("UPLOAD_TOO_LARGE", "Uploaded file or request exceeds the size limit", HttpStatus.PAYLOAD_TOO_LARGE),
     UNAUTHORIZED("UNAUTHORIZED", "Authentication is required", HttpStatus.UNAUTHORIZED),
     INVALID_CREDENTIALS("INVALID_CREDENTIALS", "Invalid email or password", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED("ACCESS_DENIED", "Access denied", HttpStatus.FORBIDDEN),

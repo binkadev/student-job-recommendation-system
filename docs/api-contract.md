@@ -1,5 +1,12 @@
 # API Contract
 
+Multipart requests exceeding the servlet file/request size limits return `413`
+with the normal error envelope and `errorCode: "UPLOAD_TOO_LARGE"`. The message
+does not expose multipart parser exceptions or storage details. Limits remain
+configurable; the default file and total multipart request limits are both 10 MB,
+so multipart framing also counts toward the request limit. This does not change
+CV type validation or the AI parsing/scoring contracts.
+
 Backend base URL: `http://localhost:8080`
 
 JSON responses use `ApiResponse<T>`.
