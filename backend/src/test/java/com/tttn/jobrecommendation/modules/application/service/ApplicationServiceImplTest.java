@@ -1,6 +1,8 @@
 package com.tttn.jobrecommendation.modules.application.service;
 
 import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.modules.application.dto.request.ApplyJobRequest;
@@ -69,7 +71,8 @@ class ApplicationServiceImplTest {
                 notificationService
         );
         when(studentRepository.findByUserId(USER_ID)).thenReturn(Optional.of(Student.builder().id(STUDENT_ID).build()));
-        when(jobRepository.findById(JOB_ID)).thenReturn(Optional.of(Job.builder().id(JOB_ID).status(JobStatus.ACTIVE).build()));
+        when(jobRepository.findById(JOB_ID)).thenReturn(Optional.of(Job.builder().id(JOB_ID).status(JobStatus.ACTIVE)
+                .company(Company.builder().id(1L).status(CompanyStatus.VERIFIED).build()).build()));
         when(applicationRepository.existsByStudentIdAndJobIdAndStatusIn(any(), any(), any())).thenReturn(false);
         when(applicationRepository.findFirstByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(STUDENT_ID, JOB_ID))
                 .thenReturn(Optional.empty());

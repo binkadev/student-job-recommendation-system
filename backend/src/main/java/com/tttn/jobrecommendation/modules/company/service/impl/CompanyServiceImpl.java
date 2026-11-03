@@ -29,7 +29,10 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse updateMe(Long userId, CompanyUpdateRequest request) {
-        Company company = getCompanyByUserId(userId);
+        // Profile writes must not overwrite a concurrent Admin verification/block
+        // with the status from an earlier Hibernate snapshot.
+        Company company = companyRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
 
         if (StringUtils.hasText(request.getCompanyName())) {
             company.setCompanyName(request.getCompanyName().trim());

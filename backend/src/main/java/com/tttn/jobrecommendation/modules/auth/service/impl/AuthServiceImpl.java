@@ -123,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
                     .user(user)
                     .companyName(resolveCompanyName(request, user))
                     .phone(trimToNull(request.getPhone()))
-                    .status(CompanyStatus.VERIFIED)
+                    .status(CompanyStatus.PENDING)
                     .build());
         }
     }

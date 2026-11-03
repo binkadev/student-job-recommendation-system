@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.util.Collection;
 import java.time.LocalDate;
@@ -26,6 +28,13 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     Optional<Job> findFirstByCompanyIdAndTitleOrderByIdAsc(Long companyId, String title);
 
     Optional<Job> findByIdAndCompanyId(Long id, Long companyId);
+
+    @Query("select job.company.id from Job job where job.id = :id")
+    Optional<Long> findCompanyIdById(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select job from Job job where job.id = :id")
+    Optional<Job> findByIdForUpdate(@Param("id") Long id);
 
     long countByCompanyIdAndStatus(Long companyId, JobStatus status);
 

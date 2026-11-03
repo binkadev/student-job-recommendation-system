@@ -1,6 +1,6 @@
 import { BriefcaseBusiness, Eye, Pencil, Plus, RefreshCcw, Users, XCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
@@ -15,6 +15,7 @@ import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
+import { getCompanyJobActions } from "../../features/recruiter/jobModerationActions";
 import { Textarea } from "../../components/ui/Textarea";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
@@ -236,10 +237,6 @@ export function RecruiterJobsPage({ mode = "list" }: RecruiterJobsPageProps) {
     return <PageContainer><LoadingState /></PageContainer>;
   }
 
-  if (mode === "create" && company && !isCompanyVerified(company)) {
-    return <VerificationRequiredView company={company} />;
-  }
-
   if (mode === "create") return <JobFormView mode="create" company={company} />;
   if ((mode === "detail" || mode === "edit" || mode === "preview" || mode === "statistics") && jobId) {
     return <JobDetailRouter mode={mode} jobId={Number(jobId)} company={company} />;
@@ -260,7 +257,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
   const jobs = jobsQuery.data?.items ?? [];
 
   async function updateStatus(job: JobResponse, nextStatus: JobStatus) {
-    if (nextStatus !== "DRAFT" && company && !isCompanyVerified(company)) {
+    if (nextStatus === "PENDING_APPROVAL" && company && !isCompanyVerified(company)) {
       showToast({ type: "error", title: "Công ty chưa được xác thực", message: "Bạn cần chờ admin chuyển trạng thái công ty sang Đã xác thực trước khi gửi duyệt tin." });
       return;
     }
@@ -290,7 +287,7 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
       <PageHeader title="Quản lý tin tuyển dụng" description="Theo dõi trạng thái tin, cập nhật nội dung và tìm ứng viên cho từng vị trí." />
       {company && !isCompanyVerified(company) ? (
         <Card className="mb-5 border-amber-200 bg-amber-50">
-          <SectionHeader title="Công ty đang chờ xác thực" description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Bạn chưa thể tạo tin hoặc gửi duyệt cho đến khi admin xác thực công ty.`} />
+          <SectionHeader title="Công ty chưa đủ điều kiện công khai tin" description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Bạn vẫn có thể lưu tin nháp và chỉnh sửa bản nháp. Chỉ gửi duyệt khi Admin xác thực; tin không được công khai trong lúc công ty chưa xác thực hoặc bị chặn.`} />
         </Card>
       ) : null}
       <Card>
@@ -302,10 +299,10 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
           <div className="flex flex-wrap items-center gap-2 sm:col-span-2 2xl:col-span-4">
             <Button variant="secondary" disabled={jobsQuery.loading} icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
             {keyword || status || jobType || workingModel ? <Button variant="ghost" onClick={() => { setKeyword(""); setStatus(""); setJobType(""); setWorkingModel(""); setPage(1); }}>Xóa bộ lọc</Button> : null}
-            {company && isCompanyVerified(company) ? (
+            {company ? (
               <Link to="/recruiter/jobs/create"><Button icon={<Plus size={16} />}>Tạo tin</Button></Link>
             ) : (
-              <Button disabled={companyLoading || Boolean(company)} icon={<Plus size={16} />}>Tạo tin</Button>
+              <Button disabled={companyLoading || !company} icon={<Plus size={16} />}>Tạo tin</Button>
             )}
           </div>
         </div>
@@ -340,7 +337,8 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
 }
 
 function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "preview" | "statistics"; jobId: number; company: CompanyResponse | null }) {
-  const detailQuery = useAsyncData(() => getJobDetail(jobId), [jobId]);
+  const [reloadKey, setReloadKey] = useState(0);
+  const detailQuery = useAsyncData(() => getJobDetail(jobId), [jobId, reloadKey]);
 
   if (detailQuery.loading) {
     return (
@@ -359,10 +357,44 @@ function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "
     );
   }
 
-  if (mode === "edit") return <JobFormView mode="edit" job={detailQuery.data} company={company} />;
+  if (mode === "edit" && detailQuery.data.status !== "DRAFT") return <PrepareJobDraft job={detailQuery.data} onChanged={() => setReloadKey(key => key + 1)} />;
+  if (mode === "edit") return <JobFormView mode="edit" job={detailQuery.data} company={company} onSaved={() => setReloadKey(key => key + 1)} />;
   if (mode === "preview") return <UnsupportedJobView job={detailQuery.data} title="Xem trước tin tuyển dụng" message="Bạn có thể xem nội dung tin ở trang chi tiết." />;
   if (mode === "statistics") return <UnsupportedJobView job={detailQuery.data} title="Thống kê tin tuyển dụng" message="Chưa có dữ liệu thống kê cho tin tuyển dụng này." />;
   return <JobDetailView job={detailQuery.data} />;
+}
+
+function PrepareJobDraft({ job, onChanged }: { job: JobDetailResponse; onChanged: () => void }) {
+  const { showToast } = useToast();
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  async function prepare(target: "DRAFT" | "CLOSED") {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    try {
+      await updateJobStatus(job.id, target);
+      setConfirmClose(false);
+      onChanged();
+      showToast({ type: "success", title: target === "DRAFT" ? "Đã đưa tin về nháp" : "Đã đóng tin", message: "Mọi lần gửi lại đều cần Admin phê duyệt trước khi công khai." });
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái tin", message: getErrorMessage(error) });
+    } finally { inFlight.current = false; setPending(false); }
+  }
+  return <PageContainer>
+    <PageHeader title="Chuẩn bị chỉnh sửa tin" description={job.title} />
+    <Card>
+      <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} />
+      <p className="mt-4 text-sm leading-6 text-slate-700">Chỉ tin ở trạng thái Bản nháp được chỉnh sửa. Tin đang tuyển cần được đóng trước; tin chờ duyệt cần được rút về nháp. Sau khi sửa, hãy gửi duyệt lại.</p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        {job.status === "ACTIVE" ? <Button variant="danger" disabled={pending} onClick={() => setConfirmClose(true)}>Đóng tin để chỉnh sửa</Button>
+          : <Button loading={pending} disabled={pending} onClick={() => void prepare("DRAFT")}>{job.status === "PENDING_APPROVAL" ? "Rút về nháp" : "Đưa về nháp"}</Button>}
+        <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách tin</Button></Link>
+      </div>
+    </Card>
+    <CloseJobModal job={confirmClose ? job : null} pending={pending} onClose={() => { if (!pending) setConfirmClose(false); }} onConfirm={() => void prepare("CLOSED")} />
+  </PageContainer>;
 }
 
 function JobDetailView({ job }: { job: JobDetailResponse }) {
@@ -371,7 +403,7 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
       <PageHeader title={job.title} description={`${job.companyName} • ${job.location || "Chưa cập nhật địa điểm"}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}><Button icon={<Users size={16} />}>Ứng viên phù hợp</Button></Link>
-        <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>Sửa tin</Button></Link>
+        <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>{job.status === "DRAFT" ? "Sửa tin" : "Chuẩn bị chỉnh sửa"}</Button></Link>
         <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
       </div>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -407,7 +439,8 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
   );
 }
 
-function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: JobDetailResponse; company: CompanyResponse | null }) {
+function JobFormView({ mode, job, company, onSaved }: { mode: "create" | "edit"; job?: JobDetailResponse; company: CompanyResponse | null; onSaved?: () => void }) {
+  const navigate = useNavigate();
   const formRef = useRef<HTMLFieldSetElement>(null);
   const { showToast } = useToast();
   const [form, setForm] = useState<JobFormState>(() => job ? mapJobToForm(job) : DEFAULT_FORM);
@@ -469,18 +502,20 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
     }
     setSaving(true);
     try {
-      const payload = buildJobPayload({ ...form, status: targetStatus });
+      const { status, ...content } = buildJobPayload({ ...form, status: targetStatus });
       if (editing && job) {
-        await updateJob(job.id, payload);
-        if (nextStatus) await updateJobStatus(job.id, nextStatus);
+        if (formChanged || targetStatus === "DRAFT") await updateJob(job.id, content);
+        if (status !== job.status) await updateJobStatus(job.id, status);
+        onSaved?.();
         showToast({ type: "success", title: "Đã cập nhật tin tuyển dụng" });
       } else {
-        await createJob(payload);
+        const created = await createJob({ ...content, status });
         showToast({
           type: "success",
-          title: targetStatus === "DRAFT" ? "Lưu nháp thành công" : "Đăng tin tuyển dụng thành công",
+          title: targetStatus === "DRAFT" ? "Lưu nháp thành công" : "Đã gửi tin chờ duyệt",
           message: targetStatus === "PENDING_APPROVAL" ? "Tin tuyển dụng đã được gửi sang admin chờ duyệt." : "Tin tuyển dụng đã được lưu nháp.",
         });
+        navigate(`/recruiter/jobs/${created.id}`);
       }
     } catch (error) {
       showToast({ type: "error", title: "Không thể lưu tin tuyển dụng", message: getErrorMessage(error) });
@@ -546,7 +581,7 @@ function JobFormView({ mode, job, company }: { mode: "create" | "edit"; job?: Jo
             <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-600"><p className="break-words font-semibold text-slate-900">{form.title.trim() || "Tiêu đề chưa nhập"}</p><p>{form.location || "Chưa chọn địa điểm"}</p><p>{form.skillIds.length} kỹ năng đã chọn</p></div>
             {!verifiedCompany ? <EmptyState message={`Trạng thái công ty hiện tại: ${company ? COMPANY_STATUS_LABELS[company.status] : "Chưa cập nhật"}. Chỉ công ty đã xác thực mới được gửi tin sang admin chờ duyệt.`} /> : null}
             <div className="mt-5 flex flex-col gap-2">
-              <Button loading={saving} disabled={!verifiedCompany || (editing && !formChanged)} onClick={() => void save("PENDING_APPROVAL")}>{editing ? "Gửi duyệt" : "Tạo tin"}</Button>
+              <Button loading={saving} disabled={!verifiedCompany} onClick={() => void save("PENDING_APPROVAL")}>{editing ? "Gửi duyệt" : "Tạo tin"}</Button>
               <Button variant="secondary" loading={saving} onClick={() => void save("DRAFT")}>Lưu nháp</Button>
               <Link to={editing && job ? `/recruiter/jobs/${job.id}` : "/recruiter/jobs"}><Button className="w-full" variant="secondary">Quay lại</Button></Link>
             </div>
@@ -566,21 +601,6 @@ function UnsupportedJobView({ job, title, message }: { job: JobDetailResponse; t
         <div className="mt-4 flex gap-2">
           <Link to={`/recruiter/jobs/${job.id}`}><Button>Xem chi tiết tin</Button></Link>
           <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
-        </div>
-      </Card>
-    </PageContainer>
-  );
-}
-
-function VerificationRequiredView({ company }: { company: CompanyResponse }) {
-  return (
-    <PageContainer>
-      <PageHeader title="Công ty chưa được xác thực" description="Bạn chưa thể đăng tin tuyển dụng cho đến khi admin xác thực công ty." />
-      <Card className="border-amber-200 bg-amber-50">
-        <SectionHeader title={company.companyName || "Thông tin công ty"} description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Sau khi admin chuyển sang Đã xác thực, bạn có thể tạo tin và gửi admin duyệt.`} />
-        <div className="flex flex-wrap gap-2">
-          <Link to="/recruiter/company"><Button variant="secondary">Xem hồ sơ công ty</Button></Link>
-          <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách tin</Button></Link>
         </div>
       </Card>
     </PageContainer>
@@ -641,16 +661,18 @@ function JobTitleCell({ job }: { job: JobResponse }) {
 }
 
 function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResponse; canPublish: boolean; onUpdateStatus: (job: JobResponse, status: JobStatus) => void; onClose: (job: JobResponse) => void }) {
-  const canClose = job.status !== "CLOSED" && job.status !== "PENDING_APPROVAL";
+  const actions = getCompanyJobActions(job.status, canPublish ? "VERIFIED" : "PENDING");
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-2 xl:min-w-64">
       <div className="grid grid-cols-3 gap-2">
         <Link to={`/recruiter/jobs/${job.id}`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Eye size={14} />}>Xem</Button></Link>
-        <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link>
-        {job.status === "DRAFT" || job.status === "REJECTED" ? (
-          <Button className="w-full justify-center" size="sm" disabled={!canPublish} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button>
-        ) : canClose ? (
+        {actions.edit ? <Link to={`/recruiter/jobs/${job.id}/edit`} className="min-w-0"><Button className="w-full justify-center" variant="secondary" size="sm" icon={<Pencil size={14} />}>Sửa</Button></Link> : <Button className="w-full justify-center" variant="secondary" size="sm" disabled title="Đưa tin về nháp trước khi sửa">Sửa</Button>}
+        {job.status === "DRAFT" ? (
+          <Button className="w-full justify-center" size="sm" disabled={!actions.submit} onClick={() => onUpdateStatus(job, "PENDING_APPROVAL")}>Gửi duyệt</Button>
+        ) : actions.withdraw || actions.returnToDraft ? (
+          <Button className="w-full justify-center" variant="secondary" size="sm" onClick={() => onUpdateStatus(job, "DRAFT")}>{actions.withdraw ? "Rút về nháp" : "Đưa về nháp"}</Button>
+        ) : actions.close ? (
           <Button className="w-full justify-center" variant="danger" size="sm" icon={<XCircle size={14} />} onClick={() => onClose(job)}>Đóng</Button>
         ) : (
           <span />
@@ -663,7 +685,7 @@ function JobActions({ job, canPublish, onUpdateStatus, onClose }: { job: JobResp
   );
 }
 
-function CloseJobModal({ job, onClose, onConfirm }: { job: JobResponse | null; onClose: () => void; onConfirm: (job: JobResponse) => void }) {
+function CloseJobModal({ job, onClose, onConfirm, pending = false }: { job: JobResponse | null; onClose: () => void; onConfirm: (job: JobResponse) => void; pending?: boolean }) {
   return (
     <Modal open={Boolean(job)} title="Xác nhận đóng tin tuyển dụng" onClose={onClose}>
       <div className="space-y-4">
@@ -672,8 +694,8 @@ function CloseJobModal({ job, onClose, onConfirm }: { job: JobResponse | null; o
         </p>
         <p className="text-sm text-slate-500">Tin đã đóng sẽ không còn hiển thị như tin đang tuyển.</p>
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="danger" onClick={() => job && onConfirm(job)}>Xác nhận đóng</Button>
+          <Button variant="secondary" disabled={pending} onClick={onClose}>Hủy</Button>
+          <Button variant="danger" loading={pending} disabled={pending} onClick={() => job && onConfirm(job)}>Xác nhận đóng</Button>
         </div>
       </div>
     </Modal>
@@ -756,7 +778,7 @@ async function createJob(payload: ReturnType<typeof buildJobPayload>) {
   return response.data.data;
 }
 
-async function updateJob(jobId: number, payload: ReturnType<typeof buildJobPayload>) {
+async function updateJob(jobId: number, payload: Omit<ReturnType<typeof buildJobPayload>, "status">) {
   const response = await httpClient.put<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`, payload);
   return response.data.data;
 }

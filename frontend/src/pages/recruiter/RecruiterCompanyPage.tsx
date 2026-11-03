@@ -407,6 +407,7 @@ function CompanyVerificationView({ company, onUnsupported }: { company: CompanyR
   return (
     <PageContainer>
       <PageHeader title="Xác thực doanh nghiệp" description="Theo dõi trạng thái xác thực công ty." />
+      <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">Doanh nghiệp mới đăng ký ở trạng thái Chờ xác thực. Chỉ Admin được xác thực hoặc chặn công ty. Bạn có thể lưu bản nháp; tin chỉ được công khai khi công ty đã xác thực và tin được Admin duyệt. Việc chặn công ty không xóa jobs hoặc applications đã có.</p>
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title={company.companyName || company.email} description="Trạng thái hiện tại của hồ sơ doanh nghiệp." />

@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { accounts, jobs, studentProfile, companyProfile, namespace } from './dataset.mjs';
 import { api, ok, login, devAdmin, credentials, root, local, upload, writeLocal } from './helpers.mjs';
@@ -8,11 +7,13 @@ const creds = credentials();
 const admin = await devAdmin();
 const manifest = { namespace, generatedAt: new Date().toISOString(), accounts: {}, jobs: [], cvs: {}, baseline: await ok('GET', '/public/statistics'), adminAvailable: !!admin };
 const tokens = {};
+const createdAliases = new Set();
 for (const [alias, account] of Object.entries(accounts)) {
   const trial = await api('POST', '/auth/login', null, { email: creds[alias].email, password: creds[alias].password });
   if (!trial.success) {
     // Registration collision is an error; never overwrite an existing account's password.
     await ok('POST', '/auth/register', null, creds[alias]);
+    createdAliases.add(alias);
   }
   tokens[alias] = await login(alias);
   const me = await ok('GET', '/auth/me', tokens[alias]);
@@ -51,9 +52,13 @@ for (const alias of ['company', 'companyB', 'companyC']) {
   manifest.accounts[alias].companyId = company.id;
   manifest.accounts[alias].registrationStatus = company.status;
   if (!company.description) company = await ok('PUT', '/companies/me', tokens[alias], { ...companyProfile, companyName: accounts[alias].companyName });
-  if (alias === 'companyC' && admin && company.status !== 'PENDING') {
-    await ok('PATCH', `/admin/companies/${company.id}/status`, admin, { status: 'PENDING' });
+  // Never silently verify/unblock or reset an existing company on reruns.
+  // Fresh publish fixtures must pass the same Admin workflow as the product.
+  if (createdAliases.has(alias) && alias !== 'companyC') {
+    if (!admin) throw new Error('Fresh Company fixtures require E2E_USE_DEV_SEED_ADMIN=1 and a valid existing Admin. No verification bypass is available.');
+    company = await ok('PATCH', `/admin/companies/${company.id}/status`, admin, { status: 'VERIFIED' });
   }
+  manifest.accounts[alias].status = company.status;
 }
 // Query all pages: /jobs intentionally includes other companies' active jobs.
 const allJobs = [];
@@ -65,6 +70,12 @@ for (let page = 1; ; page++) {
 for (const fixture of jobs) {
   let job = allJobs.find(j => j.companyId === manifest.accounts.company.companyId && j.title === fixture.payload.title);
   if (!job) {
+    if (fixture.targetStatus !== 'DRAFT' && manifest.accounts.company.status !== 'VERIFIED') {
+      throw new Error('Existing primary Company is not VERIFIED. Setup preserves its status; an administrator must review it explicitly.');
+    }
+    if (!['DRAFT', 'PENDING_APPROVAL'].includes(fixture.targetStatus) && !admin) {
+      throw new Error('Publishing new fixtures requires a valid existing Admin; setup cannot self-approve.');
+    }
     job = await ok('POST', '/jobs', tokens.company, { ...fixture.payload, skills: fixture.skillNames.filter(findSkill).map(name => ({ skillId: findSkill(name).id, importance: 'REQUIRED', minLevel: 'BEGINNER' })) });
     if (fixture.targetStatus !== 'DRAFT') {
       job = await ok('PATCH', `/jobs/${job.id}/status`, tokens.company, { status: 'PENDING_APPROVAL' });
@@ -78,6 +89,7 @@ for (const fixture of jobs) {
   }
   const expectedSkills = fixture.skillNames.filter(findSkill).map(name => ({ skillId: findSkill(name).id, importance: 'REQUIRED', minLevel: 'BEGINNER' }));
   if (expectedSkills.some(s => !job.skills?.some(existing => existing.skillId === s.skillId))) {
+    if (job.status !== 'DRAFT') throw new Error(`Fixture job ${job.id} needs skill review but is not DRAFT. Setup will not unpublish or edit an approved legacy job.`);
     job = await ok('PUT', `/jobs/${job.id}`, tokens.company, { skills: expectedSkills });
   }
   manifest.jobs.push({ key: fixture.key, id: job.id, title: job.title, companyId: job.companyId, status: job.status, targetStatus: fixture.targetStatus, language: fixture.language, skillNames: fixture.skillNames.filter(findSkill) });

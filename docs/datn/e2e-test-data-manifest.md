@@ -1,5 +1,7 @@
 # Manifest dữ liệu E2E local
 
+Bổ sung P0 moderation sau snapshot này: giữ nguyên chín alias/CV/Job PRIMARY bên dưới, thêm alias riêng `moderationCompany` (Company 6, PENDING) và Jobs 27–30 (DRAFT/CLOSED, không công khai). Read-back/comparator cuối `2026-11-03T13:45:54.910Z` PASS; application history phụ tăng hợp lệ qua reruns. Xem [kết quả và bảo toàn dữ liệu](company-job-moderation-results.md); các bảng dưới giữ snapshot lịch sử được ghi ngày rõ ràng.
+
 Namespace: `datn-e2e-v1`; email chỉ trong miền reserved `datn-e2e.invalid`. Snapshot đọc lại qua API: **2026-11-03T11:55:16.621Z (UTC)**. Tên người/công ty/JD/CV là tổng hợp. Không chứa password, JWT, email, stored filename hoặc storage path.
 
 ## Tài khoản bền vững

@@ -99,7 +99,8 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       try {
         await registerRequest(payload);
         const successTitle = type === "recruiter" ? "Đăng ký doanh nghiệp thành công" : "Đăng ký ứng viên thành công";
-        window.sessionStorage.setItem("registrationSuccessMessage", "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.");
+        const successMessage = type === "recruiter" ? "Doanh nghiệp đang chờ xác thực. Bạn có thể đăng nhập, hoàn thiện hồ sơ và lưu tin nháp; gửi duyệt sau khi Admin xác thực." : "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.";
+        window.sessionStorage.setItem("registrationSuccessMessage", successMessage);
         window.sessionStorage.setItem("registrationSuccessTitle", successTitle);
         logout();
         navigate("/login", {
@@ -107,7 +108,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
           state: {
             registrationSuccess: true,
             title: successTitle,
-            message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.",
+            message: successMessage,
           },
         });
       } catch (error) {

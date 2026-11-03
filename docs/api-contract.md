@@ -138,6 +138,8 @@ Request:
 
 Response data: `AuthUserResponse` with `id`, `email`, `fullName`, `phone`, `role`, `status`, `lastLoginAt`, `createdAt`. `passwordHash` is never returned.
 
+Registering `COMPANY` creates a `PENDING` Company profile and an `ACTIVE` User account. Login/profile completion/DRAFT jobs are allowed; only Admin can verify the Company. User status and Company verification status are separate.
+
 ### POST `/api/auth/login`
 
 Request:
@@ -612,6 +614,8 @@ Rules:
 - Returns updated `AdminCompanyResponse`.
 - Does not automatically modify the associated `User.status`.
 - Does not create notifications or a separate approval workflow.
+- All transitions between `PENDING`, `VERIFIED`, `BLOCKED` are Admin-only; same-state requests return 200. Company cannot verify/unblock itself.
+- No Job rows are rewritten. Removing verification immediately hides existing ACTIVE jobs through visibility filters; reverifying restores still-ACTIVE, unexpired jobs. Applications/CVs/history remain intact.
 
 ## Skills
 
@@ -647,15 +651,15 @@ Filters: `keyword`, `location`, `jobType`, `workingModel`, `status`, `page`, `si
 
 Visibility:
 
-- `STUDENT` sees active jobs.
-- `COMPANY` sees active jobs plus its own jobs.
+- `STUDENT` sees ACTIVE jobs from VERIFIED Companies.
+- `COMPANY` sees ACTIVE jobs from VERIFIED Companies plus its own jobs in all states.
 - `ADMIN` sees active jobs by default unless `status` is provided.
 
 ### GET `/api/jobs/{id}`
 
 Roles: `STUDENT`, `COMPANY`, `ADMIN`.
 
-Students can view active jobs. Companies can view active jobs and their own jobs. Admin can view all jobs.
+Students can view ACTIVE jobs from VERIFIED Companies. Companies can view those jobs and their own jobs in all states. Admin can view all jobs. Generic authenticated job APIs retain their existing deadline semantics; public search/detail additionally require deadline null/today/future.
 
 ### POST `/api/jobs`
 
@@ -669,11 +673,15 @@ Job skill item fields: `skillId`, `importance`, `minLevel`.
 
 Validation: `salaryMin <= salaryMax`, duplicate job skill IDs are rejected, and `jobType=REMOTE` is invalid.
 
+Creation permits only DRAFT (default) or PENDING_APPROVAL. Any Company verification state can save DRAFT; PENDING_APPROVAL requires VERIFIED (otherwise 403). Company targets ACTIVE/REJECTED/EXPIRED return 403; other unsupported creation statuses return 400. Admin must also create DRAFT/PENDING_APPROVAL and review an existing pending Job before activation.
+
 ### PUT `/api/jobs/{id}`
 
 Roles: `COMPANY`, `ADMIN`.
 
 Company users can update only their own jobs. Admin can update all jobs.
+
+Content updates require DRAFT for both roles (other states: 400). `status` is not a content field; unknown fields, including `status`, return 400. Explicitly withdraw/close/return to DRAFT before editing; saving content never implicitly unpublishes a Job.
 
 ### PATCH `/api/jobs/{id}/status`
 
@@ -686,6 +694,15 @@ Request:
   "status": "ACTIVE"
 }
 ```
+
+The example is Admin-only for a PENDING_APPROVAL Job owned by a VERIFIED Company. State machine:
+
+- COMPANY owner / ADMIN: DRAFT → PENDING_APPROVAL (VERIFIED only), PENDING_APPROVAL → DRAFT, REJECTED/CLOSED/EXPIRED → DRAFT, any state → CLOSED.
+- ADMIN only: PENDING_APPROVAL → ACTIVE (VERIFIED only), PENDING_APPROVAL → REJECTED, ACTIVE → EXPIRED.
+- Allowed same-state calls are idempotent. Company can never target ACTIVE/REJECTED/EXPIRED, including no-ops (403). ACTIVE/PENDING_APPROVAL targets always require VERIFIED (403).
+- All other edges return 400; wrong role/ownership returns 403. CLOSED cannot reopen directly to ACTIVE; it must return to DRAFT and be reviewed again. Competing review/verification writes are serialized with database row locks.
+
+See the complete [moderation policy and transition table](datn/company-job-moderation-policy.md). `publishedAt` remains first publication; `closedAt` is set on entering CLOSED and cleared on leaving it; no-ops do not rewrite timestamps.
 
 ### DELETE `/api/jobs/{id}`
 
@@ -701,7 +718,7 @@ Role: `STUDENT`.
 
 Request fields: `cvFileId`, `coverLetter`.
 
-Rules: Job must be ACTIVE, deadline null/today/future; supplied CV must belong to the authenticated Student. CV is optional and apply does not require READY analysis.
+Rules: Job must be ACTIVE with a VERIFIED Company, deadline null/today/future (otherwise 400); supplied CV must belong to the authenticated Student. CV is optional and apply does not require READY analysis.
 
 An existing PENDING/REVIEWED/ACCEPTED row for the pair returns `409 APPLICATION_ALREADY_ACTIVE`. If none exists, first apply is allowed; reapply requires latest history by appliedAt DESC, id DESC to be REJECTED. Latest WITHDRAWN returns `400 BAD_REQUEST` with message `Reapplication is only allowed after the latest application was rejected`. Reapply inserts a new PENDING record and preserves old rejected history. V18 enforces active-pair uniqueness with a partial index, not lifetime uniqueness; the latest-REJECTED rule is enforced by Backend. [Service](../backend/src/main/java/com/tttn/jobrecommendation/modules/application/service/ApplicationServiceImpl.java), [V18](../backend/src/main/resources/db/migration/V18__allow_reapplication_after_rejection.sql), and [API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/ApplicationReapplyApiIT.java) establish this behavior.
 

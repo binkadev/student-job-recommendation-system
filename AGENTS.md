@@ -256,6 +256,8 @@ Roles:
 - `COMPANY`: manage own company profile, jobs, applications, saved candidates, and notification settings
 - `ADMIN`: manage system users, companies, jobs, applications, and skills according to existing endpoint rules
 
+Company verification and Job moderation follow [the policy](docs/datn/company-job-moderation-policy.md): COMPANY registration creates PENDING; only Admin verifies/blocks Company. Any Company can save DRAFT; VERIFIED is required for PENDING_APPROVAL and ACTIVE. Only Admin reviews PENDING_APPROVAL into ACTIVE/REJECTED. Content edits require DRAFT for both Company and Admin; reopening requires draft and review again. Wrong role/ownership is 403, unsupported edges 400. Do not cascade status changes to existing Jobs when Company verification changes; visibility requires VERIFIED. Keep moderation authoritative in Backend and E2E setup on valid Admin APIs.
+
 ## Database Rules
 
 - Use PostgreSQL.

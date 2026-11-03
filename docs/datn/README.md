@@ -1,5 +1,11 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## P0 Company verification / Job moderation — 2026-11-03
+
+- [Chính sách, đối chiếu source và state transitions](company-job-moderation-policy.md).
+- [Kết quả kiểm chứng, HTTP evidence và bảo toàn dữ liệu](company-job-moderation-results.md).
+- Bổ sung Backend state machine/authorization, Company register PENDING và UI phản ánh action hợp lệ. G01 trong audit trước được xử lý theo yêu cầu P0 này; các gap khác vẫn giữ phạm vi cũ. PR #66 tiếp tục Draft, không merge.
+
 ## Full-stack real E2E — 2026-11-03
 
 - [Kế hoạch và chiến lược dữ liệu](real-world-e2e-test-plan.md).

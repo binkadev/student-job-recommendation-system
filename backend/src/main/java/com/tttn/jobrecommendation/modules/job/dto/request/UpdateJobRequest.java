@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.modules.job.dto.request;
 
 import com.tttn.jobrecommendation.common.enums.JobType;
 import com.tttn.jobrecommendation.common.enums.WorkingModel;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -48,4 +49,9 @@ public class UpdateJobRequest {
 
     @Valid
     private List<JobSkillRequest> skills;
+
+    @JsonAnySetter
+    public void rejectUnknownField(String name, Object value) {
+        throw new IllegalArgumentException("Unsupported field: " + name);
+    }
 }

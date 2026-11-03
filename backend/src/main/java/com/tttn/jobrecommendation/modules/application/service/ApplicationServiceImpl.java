@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.application.service;
 
 import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
+import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.common.exception.AppException;
@@ -77,6 +78,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         if (job.getStatus() != JobStatus.ACTIVE) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Only active jobs can receive applications");
+        }
+
+        if (job.getCompany().getStatus() != CompanyStatus.VERIFIED) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Only jobs from verified companies can receive applications");
         }
 
         if (job.getDeadline() != null && job.getDeadline().isBefore(LocalDate.now())) {

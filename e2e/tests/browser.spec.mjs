@@ -315,6 +315,7 @@ test('B12 Company browser creates/edits a durable DRAFT; no public exposure', as
     await page.getByRole('button', { name: 'Lưu nháp', exact: true }).click();
     job = (await (await response).json()).data;
     expect(job.status).toBe('DRAFT');
+    await expect(page).toHaveURL(`/recruiter/jobs/${job.id}`);
   }
   await page.goto(`/recruiter/jobs/${job.id}/edit`);
   await expect(page.getByLabel('Tiêu đề', { exact: true })).toHaveValue(title);
