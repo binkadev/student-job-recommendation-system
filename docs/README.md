@@ -47,6 +47,9 @@ khai. Production monitoring và alerting hoàn chỉnh vẫn còn pending.
 
 ## Testing and Performance
 
+- [Student/Company functional audit (2026-11-03)](datn/student-company-functional-audit-20261103.md) — route inventory, actual API mappings, focused fixes and unverified runtime gaps for Draft PR #66.
+- [Student/Company batch report (2026-11-03)](datn/student-company-batch-report-20261103.md) — implementation commits, verification results and next priorities.
+
 - [Postman regression](postman-regression.md) — API regression setup.
 - [E2E demo checklist](testing/e2e-demo-checklist.md) — evidence table cho
   Student, Company, Admin, authorization và recommendation flow.
