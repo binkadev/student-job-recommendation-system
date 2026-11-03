@@ -1,0 +1,14 @@
+{
+  "name": "datn-real-world-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "test": "playwright test",
+    "test:api": "playwright test api.spec.mjs",
+    "test:browser": "playwright test browser.spec.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

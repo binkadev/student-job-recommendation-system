@@ -1,5 +1,15 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## Full-stack real E2E — 2026-11-03
+
+- [Kế hoạch và chiến lược dữ liệu](real-world-e2e-test-plan.md).
+- [Kết quả, defects, verification và giới hạn](real-world-e2e-results.md): 32/32 real E2E; 138 Frontend tests; 457 Backend tests; 887 AI tests. Không đồng nghĩa nghiệm thu toàn bộ sản phẩm.
+- [Matrix 79 route và các action/gap](student-company-functional-gaps.md): phân biệt action đã kiểm chứng với navigation smoke/unsupported.
+- [Manifest dữ liệu demo bền vững](e2e-test-data-manifest.md), [nguồn tham khảo](e2e-external-data-sources.md), [login local](e2e-local-login.md).
+- [Runner và hướng dẫn chạy lại](../../e2e/README.md). Credentials/raw browser artifacts không commit. PR #66 giữ Draft.
+
+## Baseline lịch sử — 2026-10-13
+
 Đề tài: **Thiết kế và xây dựng Hệ thống Gợi ý Việc làm cho Sinh viên Công nghệ Thông tin sử dụng Content-Based Filtering.**
 
 Audit ngày **2026-10-13**, trên latest `master` sau `git pull --ff-only origin master`, commit **`e1335d5e0177b35647dd12e841df9b693be71682`**. Đây là baseline của hệ thống phát triển tiếp từ TTTN; không phải thiết kế lại hệ thống.
