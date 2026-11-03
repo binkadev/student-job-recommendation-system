@@ -1,5 +1,5 @@
 import { CheckCircle2, FileUp, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { SectionHeader } from "../../../components/common/SectionHeader";
 import { LoadingState } from "../../../components/feedback/LoadingState";
@@ -16,6 +16,8 @@ import { httpClient } from "../../../services/api/httpClient";
 import type { Cv } from "../../../types/domain";
 import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
+import { useAuth } from "../../../hooks/useAuth";
+import { ErrorState } from "../../../components/feedback/ErrorState";
 
 export interface ApplyFlowJob {
   id: string;
@@ -74,8 +76,16 @@ interface BackendApplicationResponse {
 
 export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: ApplyFlowJob | null; onClose: () => void; onApplied?: () => void }) {
   const open = Boolean(job);
-  const cvsQuery = useAsyncData(() => getSelectableCvs(open), [open]);
-  const { canApply, applyToJob, refreshAppliedJobs, syncError, syncing } = useAppliedJobs();
+  const { currentUser } = useAuth();
+  const [reloadKey, setReloadKey] = useState(0);
+  const cvsQuery = useAsyncData(async () => ({ userId: currentUser?.id, ...await getSelectableCvs(open) }), [open, currentUser?.id, reloadKey]);
+  const jobQuery = useAsyncData(async () => open && job ? (await httpClient.get<ApiResponse<{ status: string; deadline: string | null }>>(`/jobs/${job.id}`)).data.data : null, [open, job?.id, reloadKey]);
+  const { canApply, getApplicationState, applyToJob, refreshAppliedJobs, syncError, syncing } = useAppliedJobs();
+  const submittingRef = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const owner = useRef(currentUser?.id);
+  owner.current = currentUser?.id;
   const { showToast } = useToast();
   const [step, setStep] = useState(0);
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
@@ -85,7 +95,9 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
   const [applicationCode, setApplicationCode] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const cvs = useMemo(() => cvsQuery.data?.items ?? [], [cvsQuery.data?.items]);
+  const cvs = useMemo(() => cvsQuery.data?.userId === currentUser?.id ? cvsQuery.data?.items ?? [] : [], [cvsQuery.data, currentUser?.id]);
+  const reapply = Boolean(job && getApplicationState(job.id) === "REJECTED_CAN_REAPPLY");
+  const unavailable = !jobQuery.data || jobQuery.data.status !== "ACTIVE" || Boolean(jobQuery.data.deadline && jobQuery.data.deadline < new Date().toLocaleDateString("en-CA"));
   const selectedCv = cvs.find((cv) => cv.id === selectedCvId) ?? null;
   const dirty = step > 0 || Boolean(selectedCvId || coverLetter);
 
@@ -98,7 +110,8 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
     setSubmitting(false);
     setApplicationCode("");
     setErrors({});
-  }, [open, job?.id]);
+    void refreshAppliedJobs();
+  }, [open, job?.id, currentUser?.id, refreshAppliedJobs]);
 
   useEffect(() => {
     if (!open || selectedCvId !== null || cvs.length === 0) return;
@@ -125,18 +138,22 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
   }
 
   async function submitApplication() {
-    if (!job || !validateStep(2)) return;
-    if (!canApply(job.id)) {
+    if (submittingRef.current || !job || !validateStep(2)) return;
+    if (!canApply(job.id) || unavailable || jobQuery.error || cvsQuery.error || cvsQuery.loading) {
       showToast({ type: "error", title: "Chưa thể ứng tuyển", message: "Đơn ứng tuyển gần nhất cho việc làm này vẫn đang được xử lý hoặc đã rút." });
       return;
     }
+    if (selectedCvId && !cvs.some(cv => cv.id === selectedCvId)) { setErrors({ cv: "Hãy chọn một CV READY đã được xác minh." }); return; }
+    submittingRef.current = true;
     setSubmitting(true);
+    const userId = currentUser?.id;
     try {
       const validCvId = selectedCvId && cvs.some((cv) => cv.id === selectedCvId) ? Number(selectedCvId) : null;
       const response = await httpClient.post<ApiResponse<BackendApplicationResponse>>(`/jobs/${job.id}/apply`, {
         cvFileId: validCvId,
         coverLetter: coverLetter.trim() || null,
       });
+      if (!mounted.current || owner.current !== userId) return;
       const code = `APP-${response.data.data.id}`;
       applyToJob({
         id: response.data.data.id,
@@ -154,25 +171,33 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
       onApplied?.();
       showToast({ type: "success", title: "Ứng tuyển thành công", message: `Mã ứng tuyển của bạn là ${code}.` });
     } catch (error) {
+      if (!mounted.current || owner.current !== userId) return;
       const message = getApiErrorMessage(error, "Vui lòng kiểm tra CV đã chọn hoặc thử lại sau.");
       if (isApplicationAlreadyActiveError(error)) {
         await refreshAppliedJobs();
         showToast({ type: "error", title: "Đơn ứng tuyển đang được xử lý", message: "Bạn đã có đơn ứng tuyển đang hoạt động cho việc làm này." });
         return;
       }
+      // Read back after an ambiguous transport failure or changed eligibility; never retry POST.
+      await refreshAppliedJobs();
+      setReloadKey(value => value + 1);
       showToast({ type: "error", title: "Không thể gửi ứng tuyển", message });
     } finally {
-      setSubmitting(false);
+      submittingRef.current = false;
+      if (mounted.current && owner.current === userId) setSubmitting(false);
     }
   }
 
   return (
-    <Modal open={open} title={`Ứng tuyển ${job?.title ?? ""}`} onClose={requestClose} size="lg">
+    <Modal open={open} title={`${reapply ? "Ứng tuyển lại" : "Ứng tuyển"} ${job?.title ?? ""}`} onClose={requestClose} size="lg">
       <Stepper steps={steps} currentStep={step} />
       {syncError ? <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>{syncError}</p>
         <Button variant="secondary" className="mt-2" loading={syncing} onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button>
       </div> : null}
+      {job && getApplicationState(job.id) === "WITHDRAWN_BLOCKED" ? <p role="alert" className="mt-4 text-sm text-amber-900">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
+      {(jobQuery.error || cvsQuery.error) && step < 3 ? <div className="mt-4 space-y-2"><ErrorState message={jobQuery.error ?? cvsQuery.error ?? "Chưa xác minh dữ liệu."} /><Button variant="secondary" onClick={() => setReloadKey(value => value + 1)}>Tải lại dữ liệu ứng tuyển</Button></div> : null}
+      {!jobQuery.loading && unavailable && step < 3 ? <p role="alert" className="mt-3 text-sm text-amber-900">Việc làm hiện không đủ điều kiện nhận hồ sơ.</p> : null}
       <div className="mt-5 max-h-[70vh] overflow-y-auto pr-1">
         {cvsQuery.loading && step === 0 ? <LoadingState /> : null}
         {!cvsQuery.loading && step === 0 ? (
@@ -191,8 +216,8 @@ export function CandidateApplyFlowModal({ job, onClose, onApplied }: { job: Appl
         <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
           <Button variant="secondary" onClick={requestClose}>Đóng</Button>
           {step > 0 ? <Button variant="secondary" onClick={() => setStep((current) => current - 1)} disabled={submitting}>Quay lại</Button> : null}
-          {step < 2 ? <Button onClick={nextStep}>Tiếp tục</Button> : null}
-          {step === 2 ? <Button onClick={submitApplication} loading={submitting} disabled={submitting}>Gửi ứng tuyển</Button> : null}
+          {step < 2 ? <Button onClick={nextStep} disabled={cvsQuery.loading || Boolean(cvsQuery.error)}>Tiếp tục</Button> : null}
+          {step === 2 ? <Button onClick={submitApplication} loading={submitting} disabled={submitting || syncing || jobQuery.loading || unavailable || Boolean(jobQuery.error || cvsQuery.error) || !job || !canApply(job.id)}>Gửi ứng tuyển</Button> : null}
         </div>
       ) : null}
     </Modal>
@@ -207,7 +232,7 @@ function isApplicationAlreadyActiveError(error: unknown) {
 function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvId: string; error?: string; onSelect: (id: string) => void }) {
   return (
     <div className="space-y-4">
-      <SectionHeader title="Chọn CV" description="CV là tùy chọn khi ứng tuyển. Bạn có thể gửi hồ sơ không kèm CV hoặc chọn một CV đã tải lên." />
+      <SectionHeader title="Chọn CV" description="CV là tùy chọn khi ứng tuyển. Chỉ CV đã phân tích READY được hiển thị để lựa chọn." />
       <div className="grid gap-3">
         <button
           type="button"
@@ -238,7 +263,6 @@ function CvStep({ cvs, selectedCvId, error, onSelect }: { cvs: Cv[]; selectedCvI
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {cv.isDefault ? <StatusBadge label="CV mặc định" tone="success" /> : null}
-                  <StatusBadge label={`${cv.score} điểm`} />
                   <StatusBadge label={status.label} tone={status.tone} />
                 </div>
               </div>
@@ -343,7 +367,7 @@ async function getSelectableCvs(open: boolean): Promise<{ items: Cv[] }> {
     const analysis = await getCvAnalysis(cv.id);
     return mapBackendCvFile(cv, analysis);
   }));
-  return { items };
+  return { items: items.filter(cv => cv.status === "analyzed") };
 }
 
 async function getCvAnalysis(cvId: number): Promise<BackendCvAnalysisResponse | null> {

@@ -14,6 +14,7 @@ import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useToast } from "../../../hooks/useToast";
 import { httpClient } from "../../../services/api/httpClient";
 import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
+import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -49,6 +50,7 @@ type JobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED"
 const pageSize = 10;
 
 export function CandidateSavedJobsPage() {
+  const { getApplicationState } = useAppliedJobs();
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
@@ -96,7 +98,7 @@ export function CandidateSavedJobsPage() {
 
           <div className="grid gap-4">
             {savedJobs.map((job) => (
-              <SavedJobCard key={job.savedJobId} job={job} onRemoveSaved={() => void removeSaved(job)} />
+              <SavedJobCard key={job.savedJobId} job={job} applicationState={getApplicationState(String(job.jobId))} onRemoveSaved={() => void removeSaved(job)} />
             ))}
           </div>
 
@@ -109,7 +111,7 @@ export function CandidateSavedJobsPage() {
   );
 }
 
-function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveSaved: () => void }) {
+function SavedJobCard({ job, onRemoveSaved, applicationState }: { job: SavedJobResponse; onRemoveSaved: () => void; applicationState: string }) {
   const detailPath = `/candidate/jobs/${job.jobId}`;
   const openDetail = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -140,10 +142,11 @@ function SavedJobCard({ job, onRemoveSaved }: { job: SavedJobResponse; onRemoveS
         <div className="flex w-full flex-wrap justify-end gap-2 lg:w-auto">
           <Button variant="secondary" size="sm" icon={<BookmarkCheck size={16} />} onClick={onRemoveSaved}>Bỏ lưu</Button>
           <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail}>
-            <Button variant="secondary" size="sm">Xem chi tiết</Button>
+            <Button variant="secondary" size="sm">{applicationState === "REJECTED_CAN_REAPPLY" ? "Ứng tuyển lại" : "Xem chi tiết"}</Button>
           </Link>
         </div>
       </div>
+      {applicationState === "WITHDRAWN_BLOCKED" ? <p className="mt-3 text-sm text-slate-600">Đơn đã rút không thể ứng tuyển lại theo chính sách hiện tại.</p> : null}
     </Card>
   );
 }

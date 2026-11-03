@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSavedJobs } from "./useSavedJobs";
-import { useAppliedJobs } from "../features/public/jobs/useAppliedJobs";
+import { applicationStorageEvent, publishApplicationChange, useAppliedJobs } from "../features/public/jobs/useAppliedJobs";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../services/api/httpClient";
 
 const auth = vi.hoisted(() => ({ currentUser: { id: "4", role: "candidate" } }));
@@ -82,5 +82,38 @@ describe("confirmed job state during network failures (mocked HTTP regression)",
     auth.currentUser = { id: "8", role: "recruiter" };
     renderHook(() => { useSavedJobs(); useAppliedJobs(); });
     expect(httpClient.get).not.toHaveBeenCalled();
+  });
+
+  it("keeps initial failure UNKNOWN rather than claiming no application, then explicitly recovers", async () => {
+    vi.mocked(httpClient.get).mockRejectedValue(new Error("offline"));
+    const { result } = renderHook(() => useAppliedJobs());
+    await waitFor(() => expect(result.current.syncError).toBeTruthy());
+    expect(result.current.getApplicationState("11")).toBe("UNKNOWN");
+    expect(result.current.canApply("11")).toBe(false);
+    vi.mocked(httpClient.get).mockResolvedValue({ data: { data: [] } });
+    await act(async () => { await result.current.refreshAppliedJobs(); });
+    expect(result.current.getApplicationState("11")).toBe("NEVER_APPLIED");
+  });
+
+  it("ignores stale same-user refetch and foreign events; cross-tab invalidation reads Backend", async () => {
+    vi.mocked(httpClient.get).mockResolvedValue(apps());
+    const { result } = renderHook(() => useAppliedJobs());
+    await waitFor(() => expect(result.current.getApplicationState("11")).toBe("ACTIVE"));
+    let late!: (value: ReturnType<typeof apps>) => void;
+    vi.mocked(httpClient.get).mockImplementationOnce(() => new Promise(resolve => { late = resolve; }));
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.refreshAppliedJobs(); });
+    vi.mocked(httpClient.get).mockResolvedValue({ data: { data: [{ id: 22, jobId: 11, status: "WITHDRAWN" }] } });
+    act(() => { publishApplicationChange({ id: 22, jobId: 11, status: "WITHDRAWN" }, "4"); });
+    await waitFor(() => expect(result.current.getApplicationState("11")).toBe("WITHDRAWN_BLOCKED"));
+    await act(async () => { late(apps()); await pending; });
+    expect(result.current.getApplicationState("11")).toBe("WITHDRAWN_BLOCKED");
+    const count = vi.mocked(httpClient.get).mock.calls.length;
+    act(() => { publishApplicationChange({ id: 99, jobId: 11, status: "REJECTED" }, "someone-else"); });
+    expect(result.current.applications).toHaveLength(1);
+    expect(httpClient.get).toHaveBeenCalledTimes(count);
+    vi.mocked(httpClient.get).mockResolvedValue({ data: { data: [{ id: 22, jobId: 11, status: "REJECTED" }] } });
+    act(() => { window.dispatchEvent(new StorageEvent("storage", { key: applicationStorageEvent, newValue: JSON.stringify({ userId: "4", nonce: "test" }) })); });
+    await waitFor(() => expect(result.current.canApply("11")).toBe(true));
   });
 });

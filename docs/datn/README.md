@@ -1,5 +1,10 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## P1 Student application lifecycle — 2026-11-04
+
+- [Transition matrix, PostgreSQL race, withdrawal/reapply UI và browser evidence](student-application-lifecycle-results.md).
+- Rút PENDING có confirmation/read-back; rejected reapply tạo history mới, WITHDRAWN vẫn chặn. G04 được xử lý trong phạm vi các entry points đã kiểm thử; không thay business rules hoặc V3. B06 vẫn UNRESOLVED / NOT REPRODUCED.
+
 ## P1 Own-company Job pagination / B06 — 2026-11-03
 
 - [API, PostgreSQL 260-fixture tests, browser và bảo toàn dữ liệu](company-jobs-pagination-b06-results.md).

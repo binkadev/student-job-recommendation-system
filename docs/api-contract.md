@@ -882,6 +882,12 @@ Company/Admin transitions: `PENDING -> REVIEWED`, `PENDING|REVIEWED -> ACCEPTED|
 
 Student transition: `PENDING -> WITHDRAWN`.
 
+Status mutation acquires a PostgreSQL pessimistic lock on the application row before ownership/state validation, and holds it through status write and notification persistence in the same transaction. Concurrent withdraw/review cannot both validate an old PENDING state: one succeeds (200), the other rechecks the committed state and returns 400 `BAD_REQUEST`. This is state-machine serialization, not a new revision/ETag contract. Duplicate withdrawal returns 400; no terminal status can be reopened. Foreign Student/Company mutation returns 403; Student targeting ACCEPTED/REJECTED returns 403, other unsupported transitions return 400.
+
+Company/Admin successful status changes notify the owning Student only when their application-status notification preference is enabled. Student withdrawal and apply/reapply do not create that notification; rejected/foreign/duplicate operations create none. Existing notification settings and transaction rollback behavior remain authoritative.
+
+Frontend withdrawal is available on Student list/detail/status only for PENDING, with explicit confirmation that WITHDRAWN blocks future reapply. Network failure retains confirmed data; a GET read-back reconciles ambiguous results before an explicit retry. No automatic mutation retry. Application state is scoped to authenticated User; focus/cross-tab invalidations refetch Backend, and unverified history never means NEVER_APPLIED. Apply UI offers READY CVs (or the existing optional no-CV choice); Backend apply still accepts an owned CV without a READY requirement as documented above.
+
 ## CV
 
 ### POST `/api/students/me/cv?active=true`

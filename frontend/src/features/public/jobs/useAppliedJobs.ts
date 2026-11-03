@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../../services/api/httpClient";
 
-export type JobApplicationState = "NEVER_APPLIED" | "ACTIVE" | "REJECTED_CAN_REAPPLY" | "WITHDRAWN_BLOCKED";
+export type JobApplicationState = "UNKNOWN" | "NEVER_APPLIED" | "ACTIVE" | "REJECTED_CAN_REAPPLY" | "WITHDRAWN_BLOCKED";
 
 export interface StudentApplication {
   id: number;
@@ -22,7 +22,14 @@ interface ApiResponse<T> {
   data: T;
 }
 
-const appliedJobsChangedEvent = "candidate-applied-jobs-changed";
+export const appliedJobsChangedEvent = "candidate-applied-jobs-changed";
+export const applicationStorageEvent = "candidate-applications-refresh";
+
+export function publishApplicationChange(application: StudentApplication, userId: string) {
+  window.dispatchEvent(new CustomEvent(appliedJobsChangedEvent, { detail: { application, userId } }));
+  // Cross-tab invalidation contains no application, CV, token or personal data.
+  try { localStorage.setItem(applicationStorageEvent, JSON.stringify({ userId, nonce: crypto.randomUUID() })); } catch { /* Storage is optional; focus/reload still refetch. */ }
+}
 
 export function getLatestApplication(applications: StudentApplication[], jobId: string): StudentApplication | null {
   return applications
@@ -34,6 +41,7 @@ export function getLatestApplication(applications: StudentApplication[], jobId: 
 }
 
 export function getApplicationStateForJob(applications: StudentApplication[], jobId: string): JobApplicationState {
+  if (applications.some(item => String(item.jobId) === jobId && ["PENDING", "REVIEWED", "ACCEPTED"].includes(item.status))) return "ACTIVE";
   const latest = getLatestApplication(applications, jobId);
   if (!latest) return "NEVER_APPLIED";
   if (latest.status === "REJECTED") return "REJECTED_CAN_REAPPLY";
@@ -46,6 +54,7 @@ export function canApplyForJob(state: JobApplicationState) {
 }
 
 export function getApplyButtonLabelForState(state: JobApplicationState) {
+  if (state === "UNKNOWN") return "Chưa xác minh ứng tuyển";
   if (state === "REJECTED_CAN_REAPPLY") return "Ứng tuyển lại";
   if (state === "ACTIVE") return "Đã ứng tuyển";
   if (state === "WITHDRAWN_BLOCKED") return "Không thể ứng tuyển";
@@ -73,7 +82,8 @@ export function useAppliedJobs() {
     try {
       const response = await httpClient.get<ApiResponse<StudentApplication[]>>("/students/me/applications");
       if (version !== requestVersion.current) return;
-      setApplications(response.data.data ?? []);
+      if (!Array.isArray(response.data.data)) throw new Error("Invalid application history response");
+      setApplications(response.data.data);
       setSyncedUserId(currentUser.id);
       setSyncError(null);
     } catch {
@@ -85,22 +95,36 @@ export function useAppliedJobs() {
 
   useEffect(() => {
     const requests = requestVersion;
+    setApplications([]);
+    setSyncedUserId(null);
+    setSyncError(null);
     void refreshAppliedJobs();
     return () => { requests.current++; };
   }, [currentUser?.id, refreshAppliedJobs]);
 
   useEffect(() => {
     function syncApplications(event: Event) {
-      const detail = (event as CustomEvent<{ application?: StudentApplication }>).detail;
-      if (!detail?.application) return;
+      const detail = (event as CustomEvent<{ application?: StudentApplication; userId?: string }>).detail;
+      if (!detail?.application || detail.userId !== currentUser?.id || currentUser?.role !== "candidate") return;
       requestVersion.current++;
       setSyncing(false);
       setApplications((current) => [detail.application!, ...current.filter((item) => item.id !== detail.application!.id)]);
+      void refreshAppliedJobs();
     }
-
+    function focus() { void refreshAppliedJobs(); }
+    function storage(event: StorageEvent) {
+      if (event.key !== applicationStorageEvent || !event.newValue) return;
+      try { if (JSON.parse(event.newValue).userId === currentUser?.id) void refreshAppliedJobs(); } catch { /* Ignore malformed invalidations. */ }
+    }
     window.addEventListener(appliedJobsChangedEvent, syncApplications);
-    return () => window.removeEventListener(appliedJobsChangedEvent, syncApplications);
-  }, []);
+    window.addEventListener("focus", focus);
+    window.addEventListener("storage", storage);
+    return () => {
+      window.removeEventListener(appliedJobsChangedEvent, syncApplications);
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("storage", storage);
+    };
+  }, [currentUser?.id, currentUser?.role, refreshAppliedJobs]);
 
   const statesByJob = useMemo(() => {
     const jobIds = new Set(applications.map((application) => String(application.jobId)));
@@ -108,12 +132,11 @@ export function useAppliedJobs() {
   }, [applications]);
 
   function applyToJob(application: StudentApplication) {
-    setApplications((current) => [application, ...current.filter((item) => item.id !== application.id)]);
-    window.dispatchEvent(new CustomEvent(appliedJobsChangedEvent, { detail: { application } }));
+    if (currentUser?.role === "candidate") publishApplicationChange(application, currentUser.id);
   }
 
   function getApplicationState(jobId: string) {
-    if (syncedUserId !== currentUser?.id) return "NEVER_APPLIED" as const;
+    if (!currentUser || syncedUserId !== currentUser.id) return "UNKNOWN" as const;
     return statesByJob.get(jobId) ?? "NEVER_APPLIED";
   }
 
@@ -122,9 +145,9 @@ export function useAppliedJobs() {
     syncing,
     syncError,
     getApplicationState,
-    canApply: (jobId: string) => syncedUserId === currentUser?.id && !syncError && canApplyForJob(getApplicationState(jobId)),
+    canApply: (jobId: string) => Boolean(currentUser && syncedUserId === currentUser.id && !syncing && !syncError && canApplyForJob(getApplicationState(jobId))),
     getApplyButtonLabel: (jobId: string) => syncError ? "Chưa xác minh ứng tuyển" : getApplyButtonLabelForState(getApplicationState(jobId)),
-    hasApplied: (jobId: string) => !canApplyForJob(getApplicationState(jobId)),
+    hasApplied: (jobId: string) => ["ACTIVE", "WITHDRAWN_BLOCKED"].includes(getApplicationState(jobId)),
     applyToJob,
     refreshAppliedJobs,
   };

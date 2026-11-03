@@ -11,9 +11,11 @@ interface JobCardProps {
   saved?: boolean;
   onToggleSave?: (jobId: string) => void;
   detailPath?: string;
+  detailLabel?: string;
+  applicationNote?: string;
 }
 
-export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/${job.id}` }: JobCardProps) {
+export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/${job.id}`, detailLabel = "Xem chi tiết", applicationNote }: JobCardProps) {
   const openDetail = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!detailPath.startsWith("/candidate/")) return;
     event.preventDefault();
@@ -77,10 +79,11 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
         <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail}>
           <Button variant="secondary" size="sm">
-            Xem chi tiết
+            {detailLabel}
           </Button>
         </Link>
       </div>
+      {applicationNote ? <p className="mt-3 text-sm text-slate-600">{applicationNote}</p> : null}
     </article>
   );
 }

@@ -258,7 +258,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     @Transactional
     public ApplicationResponse updateStatus(Long id, UpdateApplicationStatusRequest request, Long userId, UserRole role) {
-        JobApplication application = getApplicationById(id);
+        JobApplication application = applicationRepository.findByIdForStatusUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
         if (role == UserRole.ADMIN) {
             assertValidEmployerTransition(application.getStatus(), request.getStatus());

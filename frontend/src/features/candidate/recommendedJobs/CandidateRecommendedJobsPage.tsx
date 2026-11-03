@@ -65,7 +65,7 @@ export function CandidateRecommendedJobsPage() {
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { canApply, getApplyButtonLabel, syncError: appliedSyncError, refreshAppliedJobs } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel, applications, syncError: appliedSyncError, refreshAppliedJobs } = useAppliedJobs();
   const { showToast } = useToast();
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
@@ -189,6 +189,7 @@ export function CandidateRecommendedJobsPage() {
   return (
     <PageContainer>
       <PageHeader title="Việc làm gợi ý" description="Khám phá cơ hội từ CV của bạn, hiểu kỹ năng phù hợp và những điểm cần bổ sung." />
+      {applications?.some(item => item.status === "WITHDRAWN") ? <p className="mb-4 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
 
       {appliedSyncError ? <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <p>{appliedSyncError}</p>
