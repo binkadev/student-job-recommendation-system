@@ -74,6 +74,16 @@ export interface CandidateProfileLinks {
 }
 
 export interface CandidateProfileData {
+  /** Exact editable scalar fields; Backend stores these sections as plain text. */
+  record?: {
+    major: string | null;
+    university: string | null;
+    graduationYear: number | null;
+    education: string | null;
+    experience: string | null;
+    projects: string | null;
+    preferredLocation: string | null;
+  };
   header: CandidateProfileHeader;
   summary: string;
   careerGoal: string;

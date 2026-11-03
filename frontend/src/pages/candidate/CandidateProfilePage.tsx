@@ -33,10 +33,11 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
   async function copyText(label: string, value: string) {
     try {
-      await navigator.clipboard?.writeText(value);
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(value);
       showToast({ type: "success", title: `Đã copy ${label}` });
     } catch {
-      showToast({ type: "success", title: `Đã tạo nội dung copy`, message: value });
+      showToast({ type: "error", title: "Không thể sao chép", message: "Trình duyệt chưa cho phép truy cập bộ nhớ tạm. Bạn có thể chọn và sao chép nội dung trực tiếp." });
     }
   }
 
@@ -115,7 +116,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
           <Card>
             <SectionHeader title="Kinh nghiệm" />
-            {profile.experiences.length ? (
+            {profile.record ? <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{profile.record.experience || "Chưa cập nhật kinh nghiệm."}</p> : profile.experiences.length ? (
               <div className="space-y-4">
                 {profile.experiences.map((experience) => (
                   <div key={experience.id} className="rounded-lg border border-slate-200 p-4">
@@ -139,7 +140,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
           <Card>
             <SectionHeader title="Học vấn" />
-            {profile.education.length ? (
+            {profile.record ? <div className="space-y-3 text-sm leading-6 text-slate-700"><p>{[profile.record.university, profile.record.major, profile.record.graduationYear].filter(Boolean).join(" · ")}</p><p className="whitespace-pre-wrap break-words">{profile.record.education || "Chưa cập nhật nội dung học vấn."}</p></div> : profile.education.length ? (
               <div className="space-y-4">
                 {profile.education.map((education) => (
                   <div key={education.id} className="rounded-lg border border-slate-200 p-4">
@@ -188,7 +189,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
           <Card>
             <SectionHeader title="Dự án" />
-            {profile.projects.length ? (
+            {profile.record ? <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{profile.record.projects || "Chưa cập nhật dự án."}</p> : profile.projects.length ? (
               <div className="space-y-4">
                 {profile.projects.map((project) => (
                   <div key={project.id} className="rounded-lg border border-slate-200 p-4">

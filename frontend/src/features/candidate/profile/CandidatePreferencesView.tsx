@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { PageContainer } from "../../../components/common/PageContainer";
@@ -15,6 +15,7 @@ import { Textarea } from "../../../components/ui/Textarea";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useToast } from "../../../hooks/useToast";
 import { httpClient } from "../../../services/api/httpClient";
+import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { CandidateProfileSkeleton } from "./CandidateProfileSkeleton";
 
 interface ApiResponse<T> {
@@ -59,6 +60,8 @@ const schema = z.object({
 type PreferenceFormValues = z.infer<typeof schema>;
 
 export function CandidatePreferencesView() {
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saving = useRef(false);
   const { showToast } = useToast();
   const profileQuery = useAsyncData(() => getStudentProfile(), []);
   const profile = profileQuery.data;
@@ -94,14 +97,23 @@ export function CandidatePreferencesView() {
   const watchedValues = watch();
 
   async function onSubmit(values: PreferenceFormValues) {
-    const updatedProfile = await updateCareerPreferences(currentProfile, values);
-    profileQuery.setData(updatedProfile);
-    reset({
-      targetPosition: updatedProfile.targetPosition ?? "",
-      preferredLocation: updatedProfile.preferredLocation ?? "",
-      preferredJobType: updatedProfile.preferredJobType ?? values.preferredJobType,
-    });
-    showToast({ type: "success", title: "Đã lưu mong muốn nghề nghiệp", message: "Dữ liệu đã được cập nhật." });
+    if (saving.current) return;
+    saving.current = true;
+    setSaveError(null);
+    try {
+      const updatedProfile = await updateCareerPreferences(currentProfile, values);
+      profileQuery.setData(updatedProfile);
+      reset({
+        targetPosition: updatedProfile.targetPosition ?? "",
+        preferredLocation: updatedProfile.preferredLocation ?? "",
+        preferredJobType: updatedProfile.preferredJobType ?? values.preferredJobType,
+      });
+      showToast({ type: "success", title: "Đã lưu mong muốn nghề nghiệp", message: "Dữ liệu đã được cập nhật." });
+    } catch (error) {
+      setSaveError(getApiErrorMessage(error, "Không thể lưu mong muốn nghề nghiệp. Vui lòng thử lại."));
+    } finally {
+      saving.current = false;
+    }
   }
 
   return (
@@ -114,16 +126,17 @@ export function CandidatePreferencesView() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        {saveError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 lg:col-span-2">{saveError}</p> : null}
         <main className="space-y-5">
           <Card>
             <SectionHeader title="Thông tin mong muốn" />
-            <div className="grid gap-4 md:grid-cols-2">
+            <fieldset disabled={isSubmitting} className="grid min-w-0 gap-4 md:grid-cols-2">
               <Input label="Vị trí mong muốn" error={errors.targetPosition?.message} {...register("targetPosition")} />
               <Input label="Địa điểm mong muốn" error={errors.preferredLocation?.message} {...register("preferredLocation")} />
               <div className="md:col-span-2">
                 <Select label="Loại hình công việc" options={jobTypeOptions} error={errors.preferredJobType?.message} {...register("preferredJobType")} />
               </div>
-            </div>
+            </fieldset>
           </Card>
 
           <Card>
@@ -172,8 +185,8 @@ async function updateCareerPreferences(profile: StudentProfileResponse, values: 
     education: profile.education,
     experience: profile.experience,
     projects: profile.projects,
-    targetPosition: emptyToNull(values.targetPosition),
-    preferredLocation: emptyToNull(values.preferredLocation),
+    targetPosition: values.targetPosition.trim(),
+    preferredLocation: values.preferredLocation.trim(),
     preferredJobType: values.preferredJobType,
   });
   return response.data.data;
@@ -196,9 +209,4 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 
 function getJobTypeLabel(value: JobType) {
   return jobTypeOptions.find((option) => option.value === value)?.label ?? value;
-}
-
-function emptyToNull(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
 }

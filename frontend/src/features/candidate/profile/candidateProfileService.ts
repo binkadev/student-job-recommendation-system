@@ -1,4 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
+import { getApiErrorMessage } from "../../../utils/apiErrors";
 import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
 
 interface ApiResponse<T> {
@@ -117,31 +118,48 @@ export async function getCandidateProfileData(): Promise<CandidateProfileData> {
 }
 
 export async function updateCandidateProfileData(profile: CandidateProfileData): Promise<CandidateProfileData> {
+  if (!profile.record) throw new Error("Hãy tải lại hồ sơ trước khi lưu để bảo toàn dữ liệu hiện có.");
   const studentPayload = {
-    fullName: emptyToNull(profile.header.name),
-    phone: emptyToNull(profile.header.phone),
-    location: emptyToNull(profile.header.location),
-    headline: emptyToNull(profile.header.currentTitle),
-    major: firstEducation(profile)?.major ?? null,
-    university: firstEducation(profile)?.school ?? null,
-    graduationYear: extractGraduationYear(firstEducation(profile)?.period),
+    fullName: profile.header.name.trim(),
+    phone: profile.header.phone.trim(),
+    location: profile.header.location.trim(),
+    headline: profile.header.currentTitle.trim(),
+    major: profile.record.major ?? "",
+    university: profile.record.university ?? "",
+    graduationYear: profile.record.graduationYear,
   };
 
   const profilePayload = {
-    summary: emptyToNull(profile.summary),
-    education: profile.education.length ? serializeEducation(profile.education) : null,
-    experience: profile.experiences.length ? serializeExperiences(profile.experiences) : null,
-    projects: profile.projects.length ? serializeProjects(profile.projects) : null,
-    targetPosition: emptyToNull(profile.header.currentTitle || profile.careerGoal.slice(0, 255)),
-    preferredLocation: emptyToNull(profile.header.location),
+    // This API treats null as "keep existing" and an empty string as "clear".
+    summary: profile.summary.trim(),
+    education: profile.record.education ?? "",
+    experience: profile.record.experience ?? "",
+    projects: profile.record.projects ?? "",
+    targetPosition: profile.careerGoal.trim(),
+    preferredLocation: profile.record.preferredLocation ?? "",
     preferredJobType: normalizeJobType(profile.header.preferredJobType),
   };
 
-  await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
-  await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", profilePayload);
-  await updateStudentSkills(profile);
-
-  return getCandidateProfileData();
+  // Resolve catalog reads before the first write. The three existing APIs are not atomic.
+  const catalog = flattenSkillGroups(profile).length ? await getCandidateSkillCatalog() : [];
+  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
+  let completedWrites = 0;
+  try {
+    await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
+    completedWrites++;
+    await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", profilePayload);
+    completedWrites++;
+    await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
+    completedWrites++;
+    return await getCandidateProfileData();
+  } catch (error) {
+    const context = completedWrites === 3
+      ? "Các yêu cầu lưu đã thành công nhưng chưa tải lại được hồ sơ. Hãy tải lại trước khi sửa tiếp."
+      : completedWrites > 0
+        ? "Một phần hồ sơ đã được lưu. Hãy kiểm tra lại dữ liệu trước khi thử lại."
+        : "Chưa lưu được hồ sơ.";
+    throw new Error(`${context} ${getApiErrorMessage(error)}`);
+  }
 }
 
 async function getCandidateSkillCatalog(): Promise<CandidateSkillCatalogItem[]> {
@@ -162,13 +180,22 @@ function mapCandidateProfile(
   skills: StudentSkillResponse[],
 ): CandidateProfileData {
   const name = student.fullName || student.email || "Ứng viên";
-  const currentTitle = student.headline || profile.targetPosition || profile.headline || "";
-  const location = student.location || profile.preferredLocation || "";
+  const currentTitle = student.headline ?? "";
+  const location = student.location ?? "";
   const educationText = profile.education || "";
   const experienceText = profile.experience || "";
   const projectsText = profile.projects || "";
 
   return {
+    record: {
+      major: student.major,
+      university: student.university,
+      graduationYear: student.graduationYear,
+      education: profile.education,
+      experience: profile.experience,
+      projects: profile.projects,
+      preferredLocation: profile.preferredLocation,
+    },
     header: {
       avatar: getInitials(name),
       name,
@@ -183,7 +210,7 @@ function mapCandidateProfile(
       completion: profile.profileCompleteness ?? calculateProfileCompleteness(student, profile, skills),
     },
     summary: profile.summary || "",
-    careerGoal: profile.targetPosition || currentTitle,
+    careerGoal: profile.targetPosition ?? "",
     experiences: experienceText ? [{
       id: "experience-backend",
       company: "Thông tin hồ sơ",
@@ -220,19 +247,6 @@ function mapCandidateProfile(
       website: "",
     },
   };
-}
-
-async function updateStudentSkills(profile: CandidateProfileData) {
-  const skills = flattenSkillGroups(profile);
-  if (!skills.length) {
-    await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: [] });
-    return;
-  }
-
-  const catalog = await getCandidateSkillCatalog();
-  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
-
-  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
 }
 
 export function buildStudentSkillsPayload(profile: Pick<CandidateProfileData, "skills">, catalog: CandidateSkillCatalogItem[]) {
@@ -301,34 +315,6 @@ function normalizeJobType(value?: string | null): BackendJobType | null {
   return null;
 }
 
-function serializeExperiences(items: CandidateProfileData["experiences"]) {
-  return items
-    .map((item) => [item.position, item.company, item.period, item.description].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function serializeEducation(items: CandidateProfileData["education"]) {
-  return items
-    .map((item) => [item.school, item.major, item.degree, item.period, item.gpa ? `GPA ${item.gpa}` : ""].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function serializeProjects(items: CandidateProfileData["projects"]) {
-  return items
-    .map((item) => [item.name, item.role, item.period, item.description].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function firstEducation(profile: CandidateProfileData) {
-  return profile.education[0];
-}
-
-function extractGraduationYear(period?: string) {
-  const match = period?.match(/\b(19\d{2}|20\d{2}|2100)\b/g);
-  if (!match?.length) return null;
-  return Number(match[match.length - 1]);
-}
-
 function calculateProfileCompleteness(student: StudentResponse, profile: StudentProfileResponse, skills: StudentSkillResponse[]) {
   const values = [
     student.fullName,
@@ -356,11 +342,6 @@ function getInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase() || "UV";
-}
-
-function emptyToNull(value: string | undefined | null) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
 }
 
 function normalize(value: string) {
