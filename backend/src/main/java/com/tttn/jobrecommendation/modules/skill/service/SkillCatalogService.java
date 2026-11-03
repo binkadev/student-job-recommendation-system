@@ -10,9 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * Persists user-entered catalog skills in an isolated transaction so a unique-index
- * race can be recovered by reading the winner instead of poisoning the caller's
- * replacement transaction.
+ * PostgreSQL upsert joins the profile transaction. Concurrent custom-skill names
+ * reuse the winner without poisoning the transaction or leaving catalog orphans on rollback.
  */
 @Service
 @RequiredArgsConstructor
@@ -24,12 +23,9 @@ public class SkillCatalogService {
         return skillRepository.findByNormalizedName(normalizedName);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.MANDATORY)
     public Skill create(String name, String normalizedName, String category) {
-        return skillRepository.saveAndFlush(Skill.builder()
-                .name(name)
-                .normalizedName(normalizedName)
-                .category(category)
-                .build());
+        skillRepository.insertIfAbsent(name, normalizedName, category);
+        return skillRepository.findByNormalizedName(normalizedName).orElseThrow();
     }
 }

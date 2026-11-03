@@ -78,14 +78,16 @@ test('B03 Student UI profile edit/save/reload and multiline preservation', async
   await expect(summary).toHaveValue(before.summary);
   const draft = `${before.summary}\nĐã kiểm chứng bằng browser E2E.`;
   await summary.fill(draft);
-  const response = page.waitForResponse(r => r.url().endsWith('/api/students/me/profile') && r.request().method() === 'PUT');
+  const response = page.waitForResponse(r => r.url().endsWith('/api/students/me/profile-aggregate') && r.request().method() === 'PUT');
   await page.getByRole('button', { name: 'Lưu hồ sơ', exact: true }).click();
-  expect((await response).status()).toBe(200);
+  const saved = await response;
+  expect(saved.status()).toBe(200);
+  const revision = (await saved.json()).data.revision;
   await expect(page.getByRole('button', { name: 'Lưu hồ sơ', exact: true })).toBeEnabled();
   await page.reload();
   await expect(summary).toHaveValue(draft);
   expect((await ok('GET', '/students/me/profile', token)).projects).toBe(before.projects);
-  await ok('PUT', '/students/me/profile', token, { summary: before.summary });
+  await ok('PUT', '/students/me/profile', token, { summary: before.summary }, { 'If-Match': `"${revision}"` });
   expect(observed.pageErrors).toEqual([]);
 });
 
@@ -158,22 +160,33 @@ test('B06 browser apply → Company reads/processes → Student sees persisted s
   const app = (await ok('GET', `/students/me/applications?jobId=${primaryJob.id}`, token))[0];
   const context = await browser.newContext();
   const companyPage = await context.newPage();
-  await signIn(companyPage, 'company');
-  await companyPage.goto(`/recruiter/candidates/${app.id}`);
-  await expect(companyPage.getByText(app.coverLetter, { exact: true })).toBeVisible();
-  if (app.status === 'PENDING') {
-    await companyPage.getByLabel('Chuyển trạng thái', { exact: true }).selectOption('REVIEWED');
-    const response = companyPage.waitForResponse(r => r.url().endsWith(`/api/applications/${app.id}/status`) && r.request().method() === 'PATCH');
-    await companyPage.getByRole('button', { name: 'Cập nhật trạng thái', exact: true }).click();
-    expect((await response).status()).toBe(200);
+  companyPage.on('pageerror', error => observed.pageErrors.push(error.message));
+  companyPage.on('requestfailed', r => observed.failedRequests.push({ path: new URL(r.url()).pathname, failure: r.failure()?.errorText }));
+  try {
+    await signIn(companyPage, 'company');
+    await companyPage.goto(`/recruiter/candidates/${app.id}`);
+    await expect(companyPage.getByText(app.coverLetter, { exact: true })).toBeVisible();
+    if (app.status === 'PENDING') {
+      await companyPage.getByLabel('Chuyển trạng thái', { exact: true }).selectOption('REVIEWED');
+      const response = companyPage.waitForResponse(r => r.url().endsWith(`/api/applications/${app.id}/status`) && r.request().method() === 'PATCH');
+      await companyPage.getByRole('button', { name: 'Cập nhật trạng thái', exact: true }).click();
+      expect((await response).status()).toBe(200);
+    }
+    const reloaded = companyPage.waitForResponse(r => r.url().endsWith(`/api/companies/me/applications/${app.id}`) && r.request().method() === 'GET');
+    await companyPage.reload();
+    const response = await reloaded;
+    const payload = await response.json();
+    observed.companyReload = { http: response.status(), success: payload.success, applicationStatus: payload.data?.status };
+    expect(response.status()).toBe(200); expect(payload.data.status).toBe('REVIEWED');
+    await expect(companyPage.getByText('Đã xem', { exact: true }).first()).toBeVisible();
+    await page.goto(`/candidate/applications/${app.id}`);
+    await expect(page.getByText('Đã xem', { exact: true }).first()).toBeVisible();
+    await page.reload();
+    expect((await ok('GET', `/students/me/applications/${app.id}`, token)).status).toBe('REVIEWED');
+  } finally {
+    await context.close();
+    writeLocal('company-reload-evidence.json', observed);
   }
-  await companyPage.reload();
-  await expect(companyPage.getByText('Đã xem', { exact: true }).first()).toBeVisible();
-  await page.goto(`/candidate/applications/${app.id}`);
-  await expect(page.getByText('Đã xem', { exact: true }).first()).toBeVisible();
-  await page.reload();
-  expect((await ok('GET', `/students/me/applications/${app.id}`, token)).status).toBe('REVIEWED');
-  await context.close();
   expect(observed.pageErrors).toEqual([]);
 });
 

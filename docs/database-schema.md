@@ -2,11 +2,11 @@
 
 The implemented database is PostgreSQL managed by Flyway migrations under `backend/src/main/resources/db/migration`.
 
-Old migrations must not be edited after being applied. This document describes the released schema from `V1` through `V18` at source SHA `131a4b869a3248dd08475c5da84989be23ce8ac9`; it does not certify which migrations a deployed environment has applied.
+Old migrations must not be edited after being applied. Released `V1`–`V18` remain unchanged; this branch adds `V19` for the owned Student profile revision. The schema below includes V19; verify actual deployed Flyway history separately.
 
 All 19 business tables use `BIGSERIAL` primary key `id` and non-null `created_at`/`updated_at` timestamps defaulting to `CURRENT_TIMESTAMP`. All released foreign keys use `ON DELETE RESTRICT`. Types, defaults and column nullability are also shown in [the DBML](database-erd.dbml); omitted `not null` means nullable. VARCHAR enum values in application code are not automatically database CHECK constraints.
 
-Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness. See [released migrations](../backend/src/main/resources/db/migration/).
+Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision. See [released migrations](../backend/src/main/resources/db/migration/).
 
 ## Tables
 
@@ -26,7 +26,9 @@ Constraints and indexes:
 
 Purpose: student account profile root linked one-to-one to `users`.
 
-Columns: `id`, `user_id`, `student_code`, `university`, `major`, `graduation_year`, `location`, `created_at`, `updated_at`.
+Columns: `id`, `user_id`, `student_code`, `university`, `major`, `graduation_year`, `location`, `profile_revision`, `created_at`, `updated_at`.
+
+V19 adds `profile_revision BIGINT NOT NULL DEFAULT 0`, CHECK `profile_revision >= 0`. Existing content/IDs are untouched. Aggregate and all legacy profile mutations claim this revision with one transactional compare-and-swap; failed mutations also roll it back. See [atomic API/version contract](api-contract.md#student) and [verification](datn/student-profile-atomic-save-results.md). Hibernate does not write this column through ordinary entity updates.
 
 Constraints and indexes:
 

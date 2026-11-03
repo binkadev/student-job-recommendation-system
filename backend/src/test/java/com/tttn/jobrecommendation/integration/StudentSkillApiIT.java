@@ -30,7 +30,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
                 {"skills":[{"skillName":"  Next.js  ","category":"Frontend", "proficiencyLevel":"BEGINNER",
                 "yearsOfExperience":0,"source":"MANUAL"}]}""";
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
@@ -57,7 +57,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
     void duplicateNormalizedCustomSkillsAndAmbiguousIdentifiersAreRejected() throws Exception {
         Student student = createStudent("custom-skill-duplicate@example.test");
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[
@@ -67,7 +67,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[{"skillId":1,"skillName":"Next.js","proficiencyLevel":"BEGINNER","source":"MANUAL"}]}""")
@@ -80,7 +80,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
     void repeatedCustomSkillNameReusesAndUpdatesTheExistingStudentSkillRow() throws Exception {
         Student student = createStudent("custom-skill-repeat@example.test");
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[{"skillName":"Next.js","proficiencyLevel":"BEGINNER","source":"MANUAL"}]}""")
@@ -92,7 +92,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
                 .getId();
         Long globalSkillId = skillRepository.findByNormalizedName("next.js").orElseThrow().getId();
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[{"skillName":" NEXT.JS ","proficiencyLevel":"INTERMEDIATE","source":"MANUAL"}]}""")
@@ -121,7 +121,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
                 .category("Frontend")
                 .build());
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[{"skillId":%d,"proficiencyLevel":"BEGINNER","source":"MANUAL"}]}"""
@@ -132,7 +132,7 @@ class StudentSkillApiIT extends AbstractPostgresWebIntegrationTest {
                 .getFirst()
                 .getId();
 
-        mockMvc.perform(put("/api/students/me/skills")
+        mockMvc.perform(put("/api/students/me/skills").header("If-Match", "\"" + studentRepository.findById(student.getId()).orElseThrow().getProfileRevision() + "\"")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"skills":[{"skillName":" TYPESCRIPT ","proficiencyLevel":"INTERMEDIATE","source":"MANUAL"}]}""")

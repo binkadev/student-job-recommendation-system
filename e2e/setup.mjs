@@ -37,15 +37,17 @@ for (const alias of ['student', 'frontend', 'data']) {
   const me = await ok('GET', '/students/me', tokens[alias]);
   manifest.accounts[alias].studentId = me.id;
   // Only populate profiles the first time. Re-running preserves manual demo edits.
-  const profile = await ok('GET', '/students/me/profile', tokens[alias]);
-  if (!profile.summary) {
-    await ok('PUT', '/students/me', tokens[alias], { fullName: accounts[alias].fullName, major: 'Công nghệ phần mềm', university: 'Chương trình đại học giả định E2E', graduationYear: 2026, location: 'Thành phố Hồ Chí Minh', headline: alias === 'student' ? 'Backend Developer Intern / Fresher' : alias === 'frontend' ? 'Frontend React Intern' : 'Data Analyst Intern' });
-    await ok('PUT', '/students/me/profile', tokens[alias], alias === 'student' ? studentProfile : { ...studentProfile, targetPosition: alias === 'frontend' ? 'Frontend React Intern' : 'Data Analyst Intern' });
+  const snapshot = await ok('GET', '/students/me/profile-aggregate', tokens[alias]);
+  const changes = { revision: snapshot.revision };
+  if (!snapshot.profile.summary) {
+    changes.student = { fullName: accounts[alias].fullName, major: 'Công nghệ phần mềm', university: 'Chương trình đại học giả định E2E', graduationYear: 2026, location: 'Thành phố Hồ Chí Minh', headline: alias === 'student' ? 'Backend Developer Intern / Fresher' : alias === 'frontend' ? 'Frontend React Intern' : 'Data Analyst Intern' };
+    changes.profile = alias === 'student' ? studentProfile : { ...studentProfile, targetPosition: alias === 'frontend' ? 'Frontend React Intern' : 'Data Analyst Intern' };
   }
-  if (!(await ok('GET', '/students/me/skills', tokens[alias])).length) {
+  if (!snapshot.skills.length) {
     const names = alias === 'student' ? ['Java', 'Spring Boot', 'PostgreSQL', 'Git', 'Docker'] : alias === 'frontend' ? ['React', 'TypeScript', 'JavaScript', 'Git'] : ['Python', 'SQL', 'PostgreSQL'];
-    await ok('PUT', '/students/me/skills', tokens[alias], { skills: names.filter(findSkill).map(name => ({ skillId: findSkill(name).id, proficiencyLevel: 'INTERMEDIATE', source: 'MANUAL', yearsOfExperience: 0 })) });
+    changes.manualSkills = names.filter(findSkill).map(name => ({ skillId: findSkill(name).id, proficiencyLevel: 'INTERMEDIATE', source: 'MANUAL', yearsOfExperience: 0 }));
   }
+  if (Object.keys(changes).length > 1) await ok('PUT', '/students/me/profile-aggregate', tokens[alias], changes);
 }
 for (const alias of ['company', 'companyB', 'companyC']) {
   let company = await ok('GET', '/companies/me', tokens[alias]);

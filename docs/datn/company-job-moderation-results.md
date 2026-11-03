@@ -1,5 +1,7 @@
 # P0 — Company verification và Job moderation: kết quả
 
+Checkpoint lịch sử tại `3bd7a88d`. Gap profile aggregate được nêu trong giới hạn bên dưới đã được xử lý ở [P0 atomic save/concurrency](student-profile-atomic-save-results.md), cùng migration V19. Counts/HTTP moderation evidence dưới đây giữ nguyên mốc lịch sử.
+
 Branch `design/datn-ui-ux-refresh-20261102`, baseline `caa33f540c0837554cc4220effed15765ddcbb89`, PR [#66 Draft](https://github.com/binkadev/student-job-recommendation-system/pull/66). Master `e019f7a4` là ancestor; HEAD/working tree đã kiểm trước sửa. Giữ ngoài commit các thay đổi có sẵn: `frontend/tsconfig.app.tsbuildinfo`, `.agents/`, `skills-lock.json`.
 
 ## Quyết định và thay đổi

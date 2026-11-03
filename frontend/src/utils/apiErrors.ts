@@ -1,4 +1,6 @@
 const apiErrorMessages: Record<string, string> = {
+  PROFILE_REVISION_CONFLICT: "Hồ sơ đã thay đổi ở phiên khác. Bản đang soạn vẫn được giữ; hãy tải bản mới để đối chiếu trước khi lưu tiếp.",
+  PROFILE_REVISION_REQUIRED: "Hãy tải lại hồ sơ để lấy phiên bản trước khi lưu.",
   ACCESS_DENIED: "Bạn không có quyền thực hiện thao tác này.",
   ALREADY_APPLIED: "Bạn đã ứng tuyển công việc này trước đó.",
   APPLICATION_ALREADY_ACTIVE: "Bạn đã có đơn ứng tuyển đang được xử lý cho việc làm này.",

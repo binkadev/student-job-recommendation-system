@@ -52,6 +52,10 @@ public class Student {
     @Column(name = "location", length = 255)
     private String location;
 
+    // Updated by the aggregate compare-and-swap, never by Hibernate's full-row update.
+    @Column(name = "profile_revision", nullable = false, insertable = false, updatable = false)
+    private long profileRevision;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

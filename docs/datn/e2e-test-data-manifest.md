@@ -1,5 +1,7 @@
 # Manifest dữ liệu E2E local
 
+P0 atomic profile tiếp theo giữ cả 10 alias hiện hữu, không thêm account; dùng `studentUi` làm secondary fixture có nội dung chỉnh sửa chủ đích. PRIMARY basic/profile/skills content và các protected records được đối chiếu; full aggregate snapshots/revision còn nguyên sau Backend recreate với Flyway V19. Xem [atomic save và preservation evidence](student-profile-atomic-save-results.md). Các bảng dưới vẫn là snapshot lịch sử theo thời gian ghi rõ.
+
 Bổ sung P0 moderation sau snapshot này: giữ nguyên chín alias/CV/Job PRIMARY bên dưới, thêm alias riêng `moderationCompany` (Company 6, PENDING) và Jobs 27–30 (DRAFT/CLOSED, không công khai). Read-back/comparator cuối `2026-11-03T13:45:54.910Z` PASS; application history phụ tăng hợp lệ qua reruns. Xem [kết quả và bảo toàn dữ liệu](company-job-moderation-results.md); các bảng dưới giữ snapshot lịch sử được ghi ngày rõ ràng.
 
 Namespace: `datn-e2e-v1`; email chỉ trong miền reserved `datn-e2e.invalid`. Snapshot đọc lại qua API: **2026-11-03T11:55:16.621Z (UTC)**. Tên người/công ty/JD/CV là tổng hợp. Không chứa password, JWT, email, stored filename hoặc storage path.

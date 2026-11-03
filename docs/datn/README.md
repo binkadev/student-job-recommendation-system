@@ -1,5 +1,10 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## P0 Student profile atomic save — 2026-11-03
+
+- [Thiết kế API/DB/versioning, rollback, hai tab và data preservation](student-profile-atomic-save-results.md).
+- Aggregate một transaction; V19 additive revision; legacy PUT giữ URL/body nhưng bắt buộc If-Match (428 thiếu / 409 stale). G02 trong audit cũ được xử lý; PR #66 giữ Draft.
+
 ## P0 Company verification / Job moderation — 2026-11-03
 
 - [Chính sách, đối chiếu source và state transitions](company-job-moderation-policy.md).

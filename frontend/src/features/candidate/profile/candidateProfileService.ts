@@ -1,5 +1,4 @@
 import { httpClient } from "../../../services/api/httpClient";
-import { getApiErrorMessage } from "../../../utils/apiErrors";
 import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
 
 interface ApiResponse<T> {
@@ -7,14 +6,6 @@ interface ApiResponse<T> {
   message: string;
   data: T;
   errorCode?: string;
-}
-
-interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
-  totalItems: number;
-  totalPages: number;
 }
 
 interface StudentResponse {
@@ -104,21 +95,19 @@ const LEVEL_VALUES: Record<string, BackendSkillLevel> = {
 };
 
 export async function getCandidateProfileData(): Promise<CandidateProfileData> {
-  const [studentResponse, profileResponse, skillsResponse] = await Promise.all([
-    httpClient.get<ApiResponse<StudentResponse>>("/students/me"),
-    httpClient.get<ApiResponse<StudentProfileResponse>>("/students/me/profile"),
-    httpClient.get<ApiResponse<StudentSkillResponse[]>>("/students/me/skills"),
-  ]);
+  const response = await httpClient.get<ApiResponse<Aggregate>>("/students/me/profile-aggregate");
+  return fromAggregate(response.data.data);
+}
 
-  return mapCandidateProfile(
-    studentResponse.data.data,
-    profileResponse.data.data,
-    skillsResponse.data.data,
-  );
+interface Aggregate { revision: number; student: StudentResponse; profile: StudentProfileResponse; skills: StudentSkillResponse[] }
+function fromAggregate(data: Aggregate) { return mapCandidateProfile(data.student, data.profile, data.skills, data.revision); }
+
+export function isProfileConflict(error: unknown) {
+  return (error as { response?: { status?: number; data?: { errorCode?: string } } })?.response?.data?.errorCode === "PROFILE_REVISION_CONFLICT";
 }
 
 export async function updateCandidateProfileData(profile: CandidateProfileData): Promise<CandidateProfileData> {
-  if (!profile.record) throw new Error("Hãy tải lại hồ sơ trước khi lưu để bảo toàn dữ liệu hiện có.");
+  if (!profile.record || !profile.baseline || !Number.isSafeInteger(profile.revision)) throw new Error("Hãy tải lại hồ sơ trước khi lưu để bảo toàn dữ liệu hiện có.");
   const studentPayload = {
     fullName: profile.header.name.trim(),
     phone: profile.header.phone.trim(),
@@ -140,49 +129,31 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
     preferredJobType: normalizeJobType(profile.header.preferredJobType),
   };
 
-  // Resolve catalog reads before the first write. The three existing APIs are not atomic.
-  const catalog = flattenSkillGroups(profile).length ? await getCandidateSkillCatalog() : [];
-  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
-  let completedWrites = 0;
-  try {
-    await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
-    completedWrites++;
-    await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", profilePayload);
-    completedWrites++;
-    await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
-    completedWrites++;
-    return await getCandidateProfileData();
-  } catch (error) {
-    const context = completedWrites === 3
-      ? "Các yêu cầu lưu đã thành công nhưng chưa tải lại được hồ sơ. Hãy tải lại trước khi sửa tiếp."
-      : completedWrites > 0
-        ? "Một phần hồ sơ đã được lưu. Hãy kiểm tra lại dữ liệu trước khi thử lại."
-        : "Chưa lưu được hồ sơ.";
-    throw new Error(`${context} ${getApiErrorMessage(error)}`);
-  }
+  const manualSkills = buildStudentSkillsPayload(profile, []);
+  const clearFields = [
+    ...(studentPayload.graduationYear == null && profile.baseline.student.graduationYear != null ? ["graduationYear"] : []),
+    ...(profilePayload.preferredJobType == null && profile.baseline.profile.preferredJobType != null ? ["preferredJobType"] : []),
+  ];
+  const response = await httpClient.put<ApiResponse<Aggregate>>("/students/me/profile-aggregate", {
+    revision: profile.revision,
+    student: changedFields(studentPayload, profile.baseline.student),
+    profile: changedFields(profilePayload, profile.baseline.profile),
+    ...(JSON.stringify(manualSkills) !== profile.baseline.manualSkills ? { manualSkills } : {}),
+    ...(clearFields.length ? { clearFields } : {}),
+  });
+  return fromAggregate(response.data.data);
 }
 
-async function getCandidateSkillCatalog(): Promise<CandidateSkillCatalogItem[]> {
-  const skills: SkillResponse[] = [];
-  for (let page = 1; ; page++) {
-    const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
-      params: { page, size: 100 },
-    });
-    skills.push(...response.data.data.items);
-    if (!(page < response.data.data.totalPages)) break;
-  }
-  return skills.map((skill) => ({
-    id: skill.id,
-    name: skill.name,
-    normalizedName: skill.normalizedName,
-    category: skill.category,
-  }));
+function changedFields(values: Record<string, string | number | null>, baseline: Record<string, string | number | null>) {
+  const comparable = (value: string | number | null | undefined) => typeof value === "string" ? value.trim() : value ?? "";
+  return Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== null && comparable(value) !== comparable(baseline[key])));
 }
 
 function mapCandidateProfile(
   student: StudentResponse,
   profile: StudentProfileResponse,
   skills: StudentSkillResponse[],
+  revision: number,
 ): CandidateProfileData {
   const name = student.fullName || student.email || "Ứng viên";
   const currentTitle = student.headline ?? "";
@@ -191,7 +162,8 @@ function mapCandidateProfile(
   const experienceText = profile.experience || "";
   const projectsText = profile.projects || "";
 
-  return {
+  const mapped: CandidateProfileData = {
+    revision,
     record: {
       major: student.major,
       university: student.university,
@@ -252,15 +224,18 @@ function mapCandidateProfile(
       website: "",
     },
   };
+  mapped.baseline = { student: { ...student }, profile: { ...profile }, manualSkills: JSON.stringify(buildStudentSkillsPayload(mapped, [])) };
+  return mapped;
 }
 
 export function buildStudentSkillsPayload(profile: Pick<CandidateProfileData, "skills">, catalog: CandidateSkillCatalogItem[]) {
   return flattenSkillGroups(profile)
+    .filter((skill) => !skill.source || skill.source === "MANUAL")
     .map((skill) => {
       const skillId = skill.skillId ?? findSkillId(skill, catalog);
       const common = {
         proficiencyLevel: mapSkillLevel(skill.level),
-        yearsOfExperience: Number.isFinite(skill.years) ? skill.years : 0,
+        yearsOfExperience: skill.years === 0 && skill.storedYears === null ? null : Number.isFinite(skill.years) ? skill.years : 0,
         source: (skill.source as BackendSkillSource | undefined) ?? "MANUAL",
       };
       if (skillId) return { skillId, ...common };
@@ -280,6 +255,7 @@ function groupStudentSkills(skills: StudentSkillResponse[]): CandidateProfileDat
       name: skill.skillName,
       level: LEVEL_LABELS[skill.proficiencyLevel] ?? skill.proficiencyLevel,
       years: Number(skill.yearsOfExperience ?? 0),
+      storedYears: skill.yearsOfExperience == null ? null : Number(skill.yearsOfExperience),
       source: skill.source,
     });
     return groups;

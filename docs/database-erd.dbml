@@ -1,6 +1,6 @@
 Project student_job_recommendation {
   database_type: 'PostgreSQL'
-  Note: 'Released Flyway V1-V18. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
+  Note: 'Flyway V1-V19 source; released V1-V18 unchanged. V19 adds Student profile revision. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
 }
 
 Table users {
@@ -30,6 +30,7 @@ Table students {
   major varchar(255)
   graduation_year integer
   location varchar(255)
+  profile_revision bigint [not null, default: 0, note: 'V19: CHECK profile_revision >= 0; shared aggregate/legacy profile CAS revision, not Hibernate entity version.']
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }

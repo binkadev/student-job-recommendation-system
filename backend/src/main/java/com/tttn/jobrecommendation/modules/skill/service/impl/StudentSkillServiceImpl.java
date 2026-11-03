@@ -16,10 +16,12 @@ import com.tttn.jobrecommendation.modules.skill.service.StudentSkillService;
 import com.tttn.jobrecommendation.modules.skill.service.SkillCatalogService;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
+import com.tttn.jobrecommendation.modules.student.service.StudentProfileRevision;
+import com.tttn.jobrecommendation.common.enums.SkillSource;
+import org.springframework.transaction.annotation.Propagation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
@@ -38,6 +40,7 @@ public class StudentSkillServiceImpl implements StudentSkillService {
     private final StudentSkillRepository studentSkillRepository;
     private final StudentSkillMapper studentSkillMapper;
     private final SkillCatalogService skillCatalogService;
+    private final StudentProfileRevision profileRevision;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,9 +54,21 @@ public class StudentSkillServiceImpl implements StudentSkillService {
 
     @Override
     @Transactional
-    public List<StudentSkillResponse> updateMySkills(Long userId, UpdateStudentSkillsRequest request) {
+    public List<StudentSkillResponse> updateMySkills(Long userId, UpdateStudentSkillsRequest request, Long revision) {
+        profileRevision.claim(userId, revision);
         Student student = getStudentByUserId(userId);
-        List<StudentSkillItemRequest> requestedSkills = request.getSkills();
+        return replaceSkills(student, request.getSkills(), false);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<StudentSkillResponse> updateManualSkills(Long userId, List<StudentSkillItemRequest> requestedSkills) {
+        if (requestedSkills.stream().anyMatch(item -> item.getSource() != SkillSource.MANUAL))
+            throw new AppException(ErrorCode.BAD_REQUEST, "manualSkills may contain only MANUAL skills");
+        return replaceSkills(getStudentByUserId(userId), requestedSkills, true);
+    }
+
+    private List<StudentSkillResponse> replaceSkills(Student student, List<StudentSkillItemRequest> requestedSkills, boolean manualOnly) {
         List<PendingSkillItem> pendingItems = requestedSkills.stream()
                 .map(this::resolveExistingSkill)
                 .toList();
@@ -74,7 +89,11 @@ public class StudentSkillServiceImpl implements StudentSkillService {
         Map<Long, StudentSkill> existingBySkillId = existingSkills.stream()
                 .collect(Collectors.toMap(studentSkill -> studentSkill.getSkill().getId(), Function.identity()));
 
+        if (manualOnly && existingSkills.stream().anyMatch(skill -> skill.getSource() != SkillSource.MANUAL && requestedSkillIds.contains(skill.getSkill().getId())))
+            throw new AppException(ErrorCode.BAD_REQUEST, "A non-MANUAL skill cannot be replaced by a manual skill");
+
         List<StudentSkill> skillsToRemove = existingSkills.stream()
+                .filter(skill -> !manualOnly || skill.getSource() == SkillSource.MANUAL)
                 .filter(studentSkill -> !requestedSkillIds.contains(studentSkill.getSkill().getId()))
                 .toList();
         studentSkillRepository.deleteAll(skillsToRemove);
@@ -152,12 +171,7 @@ public class StudentSkillServiceImpl implements StudentSkillService {
     }
 
     private Skill createOrReuseSkill(String name, String normalizedName, String category) {
-        try {
-            return skillCatalogService.create(name, normalizedName, category);
-        } catch (DataIntegrityViolationException exception) {
-            return skillCatalogService.findByNormalizedName(normalizedName)
-                    .orElseThrow(() -> exception);
-        }
+        return skillCatalogService.create(name, normalizedName, category);
     }
 
     private String normalizeDisplayName(String skillName) {

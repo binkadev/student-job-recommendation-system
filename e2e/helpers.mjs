@@ -26,19 +26,19 @@ export function credentials() {
   return readLocal('credentials.json');
 }
 
-export async function api(method, route, token, body) {
+export async function api(method, route, token, body, headers = {}) {
   const response = await fetch(`${apiBase}/api${route}`, {
     method,
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...headers },
     ...(body === undefined ? {} : { body: body instanceof FormData ? body : JSON.stringify(body) }),
     signal: AbortSignal.timeout(90_000),
   });
   const result = await response.json();
-  return { status: response.status, ...result };
+  return { status: response.status, etag: response.headers.get('ETag'), ...result };
 }
 
-export async function ok(method, route, token, body) {
-  const result = await api(method, route, token, body);
+export async function ok(method, route, token, body, headers) {
+  const result = await api(method, route, token, body, headers);
   if (result.status >= 400 || !result.success) throw new Error(`${method} ${route}: HTTP ${result.status} ${result.errorCode ?? ''}`);
   return result.data;
 }

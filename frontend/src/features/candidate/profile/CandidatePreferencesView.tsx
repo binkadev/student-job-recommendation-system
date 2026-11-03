@@ -28,6 +28,7 @@ interface ApiResponse<T> {
 type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 
 interface StudentProfileResponse {
+  profileEtag: string;
   id: number;
   studentId: number;
   headline: string | null;
@@ -176,20 +177,16 @@ export function CandidatePreferencesView() {
 
 async function getStudentProfile() {
   const response = await httpClient.get<ApiResponse<StudentProfileResponse>>("/students/me/profile");
-  return response.data.data;
+  return { ...response.data.data, profileEtag: response.headers.etag };
 }
 
 async function updateCareerPreferences(profile: StudentProfileResponse, values: PreferenceFormValues) {
   const response = await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", {
-    summary: profile.summary,
-    education: profile.education,
-    experience: profile.experience,
-    projects: profile.projects,
     targetPosition: values.targetPosition.trim(),
     preferredLocation: values.preferredLocation.trim(),
     preferredJobType: values.preferredJobType,
-  });
-  return response.data.data;
+  }, { headers: { "If-Match": profile.profileEtag } });
+  return { ...response.data.data, profileEtag: response.headers.etag };
 }
 
 function ReadonlyField({ label, value }: { label: string; value: string | null }) {

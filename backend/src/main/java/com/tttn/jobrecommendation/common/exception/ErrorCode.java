@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),
     VALIDATION_ERROR("VALIDATION_ERROR", "Validation error", HttpStatus.BAD_REQUEST),
+    PROFILE_REVISION_CONFLICT("PROFILE_REVISION_CONFLICT", "Profile changed; reload and compare before saving", HttpStatus.CONFLICT),
+    PROFILE_REVISION_REQUIRED("PROFILE_REVISION_REQUIRED", "A profile revision precondition is required", HttpStatus.PRECONDITION_REQUIRED),
     UPLOAD_TOO_LARGE("UPLOAD_TOO_LARGE", "Uploaded file or request exceeds the size limit", HttpStatus.PAYLOAD_TOO_LARGE),
     UNAUTHORIZED("UNAUTHORIZED", "Authentication is required", HttpStatus.UNAUTHORIZED),
     INVALID_CREDENTIALS("INVALID_CREDENTIALS", "Invalid email or password", HttpStatus.UNAUTHORIZED),

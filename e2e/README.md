@@ -58,3 +58,20 @@ node verify-preservation.mjs
 ```
 
 Comparator xác nhận mọi alias baseline giữ user/resource ID/status, CV metadata baseline, các trường Job PRIMARY đã snapshot (id/title/status/deadline/skills) và application PRIMARY ban đầu. Không tuyên bố snapshot này so sánh toàn bộ bytes/file/database. Không ghi đè baseline trong lúc chạy.
+
+`profile-atomic.spec.mjs` thêm P01–P04 trên alias phụ **studentUi**: hai tab đăng nhập thật cùng revision, atomic basic/profile/manual skills save, 409 giữ draft, GET đối chiếu và confirm reload/retry; DTO/skill rollback; ba legacy PUT thiếu If-Match 428, stale 409; offline và hai legacy UI consumers. Không dùng PRIMARY để tạo negative profile cases. 36 tests cũ giữ assertions; B03 đổi response predicate sang aggregate, A02 legacy ghi với revision explicit. Helpers không tự lấy tag mới để overwrite draft.
+
+Backend hiện cần Flyway V19. Setup đi qua aggregate một transaction khi populate hồ sơ, giữ manual edits cũ. Mọi caller legacy phải gửi ETag đã đọc trong `If-Match`; signature helper `api/ok(method,route,token,body,headers)` hỗ trợ header explicit, không tự retry conflict. Credentials, CVs, Jobs và existing alias moderation được giữ.
+
+Read-back trước/sau recreate Backend, **không reset volumes**:
+
+```powershell
+node verify-profile-persistence.mjs --capture
+# Tại repo root: docker compose up -d --no-deps --force-recreate backend
+# Đợi Backend healthy, quay lại e2e/:
+node verify-profile-persistence.mjs
+node summarize-state.mjs
+node verify-preservation.mjs profile-atomic-baseline.json
+```
+
+Comparator profile dùng baseline local `profile-primary-content-baseline.json` đã chụp trước work package; nếu chạy trong môi trường mới, chụp lại qua GET basic/profile/skills trước khi chạy. `--capture` chỉ ghi snapshot local và không sửa DB. Snapshot exact của PRIMARY/secondary (cả revision/timestamps) phải còn nguyên sau recreate. Xem [report](../docs/datn/student-profile-atomic-save-results.md) để phân biệt baseline nội dung với snapshot persistence.

@@ -275,6 +275,42 @@ Applies the exact list visibility rules. Response data contains all public list 
 
 ## Student
 
+### GET / PUT `/api/students/me/profile-aggregate`
+
+Role: `STUDENT`; ownership always comes from JWT, never from request IDs. GET returns one PostgreSQL repeatable-read snapshot in `ApiResponse<StudentProfileAggregateResponse>`: `{revision, student, profile, skills}`. `student`/`profile` reuse the legacy response fields below; `skills` contains the full confirmed skill list, including non-MANUAL sources. Response header `ETag: "N"` identifies the shared profile revision. CORS exposes ETag.
+
+PUT example (one atomic mutation):
+
+```json
+{
+  "revision": 7,
+  "student": {"fullName": "Synthetic Student", "phone": "", "major": "Software"},
+  "profile": {"summary": "Updated summary", "education": "Line one\nLine two"},
+  "manualSkills": [{"skillId": 1, "proficiencyLevel": "INTERMEDIATE", "yearsOfExperience": 1, "source": "MANUAL"}],
+  "clearFields": ["graduationYear"]
+}
+```
+
+- `revision` is required, a nonnegative JSON integer. Missing/null/negative/fractional/string versions return 400. Successful PUT returns the complete committed snapshot at `N+1`, HTTP 200, ETag `"N+1"`.
+- PUT uses the body revision as its precondition. PostgreSQL compares and increments it as the first write in the same transaction as all User/Student/Profile/skills/catalog changes. Competing aggregate **or legacy** requests cannot both claim N; stale → **409 PROFILE_REVISION_CONFLICT**. Any failure rolls back business rows and revision, including newly created catalog skills.
+- Optional `student` fields: `fullName`, `phone`, `major`, `university`, `graduationYear`, `location`, `headline`. Optional `profile` fields: `summary`, `education`, `experience`, `projects`, `targetPosition`, `preferredLocation`, `preferredJobType`. Existing Jakarta length/year/enum validation applies. IDs, email, GPA, certificates, links, languages and other unsupported top-level/basic/profile properties are rejected (400).
+- Omitted/null groups or scalar values mean **keep**. Blank/empty optional text means **clear to null**, preserving legacy trim semantics. Blank fullName means keep (cannot clear the required stored name).
+- `clearFields` explicitly clears nullable `graduationYear` and/or `preferredJobType`; null/omitted means no clears. Unknown clear fields or simultaneously setting a non-null value and clearing it return 400. Existing unsupported columns remain unchanged. Empty groups/revision-only saves do not rewrite profile fields/timestamps.
+- `manualSkills` omitted/null means keep all skill rows. A supplied list replaces **only MANUAL** rows; `[]` removes only MANUAL rows. Items use the legacy skill-item format (ID or normalized custom name, level, optional years, source MANUAL). Non-MANUAL rows are retained unchanged; attempting to replace one by a MANUAL item with the same catalog ID/name returns 400. This API cannot assign CV_EXTRACTED/ADMIN_SEEDED provenance. Actual CV analysis remains separate in `cv_files` and is never modified.
+- Every successful mutation, including no-op/revision-only, advances the owned profile revision exactly once. GET does not. Profile search text/completeness retain their existing derived-field rules. Shared catalog metadata is read for display; profile revision covers owned profile state, not administrative catalog-edit history.
+
+### Legacy profile preconditions — breaking precondition, unchanged bodies
+
+The following three GET/PUT URLs and JSON request/response bodies remain available: `/api/students/me`, `/api/students/me/profile`, `/api/students/me/skills`. **All three legacy PUTs now require `If-Match: "N"` from the snapshot the consumer edited.** GET and successful PUT return the shared ETag without adding a revision field to legacy JSON bodies.
+
+- Missing If-Match → **428 PROFILE_REVISION_REQUIRED**.
+- Well-formed stale revision → **409 PROFILE_REVISION_CONFLICT** (application concurrency contract; this API uses 409 consistently rather than 412).
+- Malformed, weak, wildcard, multiple or out-of-range ETags → 400 BAD_REQUEST. No unconditional overwrite is supported.
+- Success → 200 with original body shape, ETag N+1. Legacy writes use the same transactional PostgreSQL compare-and-swap as aggregate PUT; subsequent stale aggregate/legacy writes fail. Validation/authorization may reject a request before precondition evaluation.
+- This is an intentional breaking **precondition** for external clients without If-Match. All repository consumers are updated: main editor uses aggregate PUT; Preferences/Settings retain their captured ETag; setup uses aggregate; regression callers supply explicit revisions. No external consumer is identified in this repository; external deployment clients require coordination before rollout. Never fetch a new ETag automatically immediately before overwriting an old draft or silently retry a conflict with a new revision.
+
+See [design, rollback/concurrency evidence and limitations](datn/student-profile-atomic-save-results.md).
+
 ### GET `/api/students/me`
 
 Role: `STUDENT`.
@@ -287,6 +323,8 @@ Role: `STUDENT`.
 
 Request fields: `fullName`, `major`, `university`, `phone`, `graduationYear`, `location`, `headline`.
 
+If-Match is required as above. Omitted/null values keep existing data. Optional text empty/blank clears to null; fullName blank keeps existing. graduationYear null keeps existing; use aggregate clearFields for an explicit clear.
+
 ### GET `/api/students/me/profile`
 
 Role: `STUDENT`.
@@ -298,6 +336,8 @@ Returns confirmed structured student profile fields, including `preferredJobType
 Role: `STUDENT`.
 
 Request fields: `summary`, `education`, `experience`, `projects`, `targetPosition`, `preferredLocation`, `preferredJobType`.
+
+If-Match is required as above. Omitted/null values keep existing data; empty/blank text clears to null. preferredJobType null keeps existing; aggregate clearFields supports explicit clearing.
 
 ## Student Skills
 
@@ -327,6 +367,8 @@ Response item:
 Role: `STUDENT`.
 
 Replace semantics: the request is the student's complete confirmed current skill list. Existing skills are updated, new skills are created, and omitted skills are removed.
+
+If-Match is required. These existing legacy replace semantics include all confirmed provenance labels; `[]` clears the confirmed list. They do **not** modify a CV's extractedSkills/READY analysis snapshot. The aggregate/manual editor has the narrower MANUAL-only replacement described above; no legacy provenance restriction is silently introduced.
 
 Request:
 

@@ -38,6 +38,7 @@ export interface CandidateSkill {
   level: string;
   years: number;
   source?: string;
+  storedYears?: number | null;
 }
 
 export interface CandidateCertificate {
@@ -74,6 +75,8 @@ export interface CandidateProfileLinks {
 }
 
 export interface CandidateProfileData {
+  revision?: number;
+  baseline?: { student: Record<string, string | number | null>; profile: Record<string, string | number | null>; manualSkills: string };
   /** Exact editable scalar fields; Backend stores these sections as plain text. */
   record?: {
     major: string | null;

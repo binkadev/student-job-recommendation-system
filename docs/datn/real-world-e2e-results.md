@@ -2,6 +2,8 @@
 
 Checkpoint lịch sử tại `caa33f54`. Gap G01 (Company verification / Job moderation) đã được xử lý trong work package P0 tiếp theo: xem [chính sách](company-job-moderation-policy.md) và [kết quả mới](company-job-moderation-results.md). Counts/nhận định bên dưới mô tả lượt baseline trước thay đổi đó.
 
+G02 profile atomicity/concurrency đã có [work package và real two-tab evidence riêng](student-profile-atomic-save-results.md); legacy PUT hiện bắt buộc If-Match. Không dùng hướng dẫn partial-save của baseline dưới đây làm contract current.
+
 ## Kết luận và giới hạn
 
 Đã chạy các hành trình chính bằng Chromium, Spring Boot, PostgreSQL và AI thật; đã tái hiện/sửa lỗi lưu hồ sơ có kỹ năng, saved/application state khi mất mạng, kích hoạt CV từ danh sách và upload quá kích thước. **Chưa nghiệm thu toàn bộ sản phẩm**: còn policy gap P0, các action chưa kiểm chứng và các module chưa có Backend. Xem [matrix hành động](student-company-functional-gaps.md), không suy ra business PASS từ navigation smoke.

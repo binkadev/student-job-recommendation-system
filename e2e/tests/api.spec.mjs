@@ -73,14 +73,16 @@ test('A01 durable identities, public search/detail and company profile persisten
 
 test('A02 profile multiline edit, clear and read-back; invalid graduation rejected', async () => {
   const token = await login('student');
-  const before = await ok('GET', '/students/me/profile', token);
-  await ok('PUT', '/students/me/profile', token, { ...before, summary: `${before.summary}\nKiểm chứng lưu hồ sơ E2E.` });
+  const snapshot = await ok('GET', '/students/me/profile-aggregate', token);
+  const before = snapshot.profile;
+  let revision = snapshot.revision;
+  await ok('PUT', '/students/me/profile', token, { ...before, summary: `${before.summary}\nKiểm chứng lưu hồ sơ E2E.` }, { 'If-Match': `"${revision++}"` });
   const updated = await ok('GET', '/students/me/profile', token);
   expect(updated.summary).toContain('\nKiểm chứng');
   expect(updated.projects).toBe(before.projects);
-  await ok('PUT', '/students/me/profile', token, { experience: '' });
+  await ok('PUT', '/students/me/profile', token, { experience: '' }, { 'If-Match': `"${revision++}"` });
   expect((await ok('GET', '/students/me/profile', token)).experience).toBeNull();
-  await ok('PUT', '/students/me/profile', token, { summary: before.summary, experience: before.experience });
+  await ok('PUT', '/students/me/profile', token, { summary: before.summary, experience: before.experience }, { 'If-Match': `"${revision++}"` });
   expect((await api('PUT', '/students/me', token, { graduationYear: 2200 })).status).toBe(400);
   evidence.A02 = { preservedProjects: true, clearPersisted: true, restored: true };
 });

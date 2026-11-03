@@ -1,5 +1,5 @@
 import { Camera, LogOut, ShieldAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -15,6 +15,7 @@ import { Tabs } from "../../components/ui/Tabs";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 type SettingsTab = "account" | "security" | "privacy" | "notifications";
 
@@ -26,6 +27,7 @@ interface ApiResponse<T> {
 }
 
 interface StudentResponse {
+  profileEtag: string;
   id: number;
   userId: number;
   email: string;
@@ -61,6 +63,7 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
   const [tab, setTab] = useState<SettingsTab>(section === "main" ? "account" : section);
   const [reloadKey, setReloadKey] = useState(0);
   const studentQuery = useAsyncData(() => getStudentSettings(), [reloadKey]);
+  const accountSettings = useMemo(() => studentQuery.data ? mapStudentToAccount(studentQuery.data) : null, [studentQuery.data]);
 
   useEffect(() => {
     if (section !== "main") setTab(section);
@@ -68,7 +71,8 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
 
   async function saveAccount(account: AccountSettingsForm) {
     try {
-      await updateStudentAccount(account);
+      if (!studentQuery.data?.profileEtag) throw new Error("Hãy tải lại hồ sơ trước khi lưu.");
+      await updateStudentAccount(account, studentQuery.data.profileEtag);
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã cập nhật thông tin tài khoản" });
     } catch (error) {
@@ -103,7 +107,7 @@ export function CandidateSettingsPage({ section = "account" }: { section?: "main
             <>
               {studentQuery.loading ? <LoadingState /> : null}
               {!studentQuery.loading && studentQuery.error ? <EmptyState message={studentQuery.error} /> : null}
-              {!studentQuery.loading && studentQuery.data ? <AccountSettings account={mapStudentToAccount(studentQuery.data)} onSave={saveAccount} onUnsupported={notifyUnsupported} /> : null}
+              {!studentQuery.loading && accountSettings ? <AccountSettings account={accountSettings} onSave={saveAccount} onUnsupported={notifyUnsupported} /> : null}
             </>
           ) : null}
           {tab === "security" ? <SecuritySettings /> : null}
@@ -284,14 +288,14 @@ function NotificationSettings() {
 
 async function getStudentSettings() {
   const response = await httpClient.get<ApiResponse<StudentResponse>>("/students/me");
-  return response.data.data;
+  return { ...response.data.data, profileEtag: response.headers.etag };
 }
 
-async function updateStudentAccount(account: AccountSettingsForm) {
+async function updateStudentAccount(account: AccountSettingsForm, etag: string) {
   await httpClient.put<ApiResponse<StudentResponse>>("/students/me", {
     fullName: emptyToNull(account.fullName),
-    phone: emptyToNull(account.phone),
-  });
+    phone: account.phone.trim(),
+  }, { headers: { "If-Match": etag } });
 }
 
 async function changeMyPassword(currentPassword: string, newPassword: string) {
@@ -359,9 +363,5 @@ function getStrengthLabel(score: number) {
 }
 
 function getErrorMessage(error: unknown) {
-  if (typeof error === "object" && error && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message ?? "Vui lòng thử lại.";
-  }
-  return "Vui lòng thử lại.";
+  return getApiErrorMessage(error, "Vui lòng thử lại.");
 }

@@ -15,6 +15,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import jakarta.servlet.http.HttpServletResponse;
+import com.tttn.jobrecommendation.modules.student.service.StudentProfileRevision;
+import com.tttn.jobrecommendation.modules.student.dto.request.StudentProfileAggregateUpdateRequest;
+import com.tttn.jobrecommendation.modules.student.dto.response.StudentProfileAggregateResponse;
 
 @RestController
 @RequestMapping("/api/students")
@@ -24,27 +31,57 @@ public class StudentController {
 
     private final StudentService studentService;
     private final SecurityUtils securityUtils;
+    private final StudentProfileRevision profileRevision;
 
     @GetMapping("/me")
-    public ApiResponse<StudentResponse> getMe() {
-        return ApiResponse.success(studentService.getMe(securityUtils.getCurrentUserId()));
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public ApiResponse<StudentResponse> getMe(HttpServletResponse response) {
+        var data = studentService.getMe(securityUtils.getCurrentUserId());
+        response.setHeader("ETag", StudentProfileRevision.etag(profileRevision.current(securityUtils.getCurrentUserId())));
+        return ApiResponse.success(data);
     }
 
     @PutMapping("/me")
-    public ApiResponse<StudentResponse> updateMe(@Valid @RequestBody StudentUpdateRequest request) {
-        return ApiResponse.success("Student updated successfully", studentService.updateMe(securityUtils.getCurrentUserId(), request));
+    public ApiResponse<StudentResponse> updateMe(@Valid @RequestBody StudentUpdateRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch, HttpServletResponse response) {
+        long revision = StudentProfileRevision.parseIfMatch(ifMatch);
+        var data = studentService.updateMe(securityUtils.getCurrentUserId(), request, revision);
+        response.setHeader("ETag", StudentProfileRevision.etag(revision + 1));
+        return ApiResponse.success("Student updated successfully", data);
     }
 
     @GetMapping("/me/profile")
-    public ApiResponse<StudentProfileResponse> getMyProfile() {
-        return ApiResponse.success(studentService.getMyProfile(securityUtils.getCurrentUserId()));
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public ApiResponse<StudentProfileResponse> getMyProfile(HttpServletResponse response) {
+        var data = studentService.getMyProfile(securityUtils.getCurrentUserId());
+        response.setHeader("ETag", StudentProfileRevision.etag(profileRevision.current(securityUtils.getCurrentUserId())));
+        return ApiResponse.success(data);
     }
 
     @PutMapping("/me/profile")
-    public ApiResponse<StudentProfileResponse> updateMyProfile(@Valid @RequestBody StudentProfileUpdateRequest request) {
+    public ApiResponse<StudentProfileResponse> updateMyProfile(@Valid @RequestBody StudentProfileUpdateRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch, HttpServletResponse response) {
+        long revision = StudentProfileRevision.parseIfMatch(ifMatch);
+        var data = studentService.updateMyProfile(securityUtils.getCurrentUserId(), request, revision);
+        response.setHeader("ETag", StudentProfileRevision.etag(revision + 1));
         return ApiResponse.success(
                 "Student profile updated successfully",
-                studentService.updateMyProfile(securityUtils.getCurrentUserId(), request)
+                data
         );
+    }
+
+    @GetMapping("/me/profile-aggregate")
+    public ApiResponse<StudentProfileAggregateResponse> getAggregate(HttpServletResponse response) {
+        var data = studentService.getAggregate(securityUtils.getCurrentUserId());
+        response.setHeader("ETag", StudentProfileRevision.etag(data.revision()));
+        return ApiResponse.success(data);
+    }
+
+    @PutMapping("/me/profile-aggregate")
+    public ApiResponse<StudentProfileAggregateResponse> updateAggregate(@Valid @RequestBody StudentProfileAggregateUpdateRequest request,
+            HttpServletResponse response) {
+        var data = studentService.updateAggregate(securityUtils.getCurrentUserId(), request);
+        response.setHeader("ETag", StudentProfileRevision.etag(data.revision()));
+        return ApiResponse.success("Student profile saved atomically", data);
     }
 }
