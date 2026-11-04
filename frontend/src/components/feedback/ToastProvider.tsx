@@ -41,15 +41,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed right-4 top-4 z-[60] w-full max-w-sm space-y-3">
+      <div role="region" aria-label="Thông báo tạm thời" aria-live="polite" aria-relevant="additions" className="fixed bottom-4 right-4 z-[60] w-[calc(100vw-2rem)] max-w-sm space-y-3 sm:bottom-auto sm:top-4">
         {toasts.map((toast) => (
-          <div key={toast.id} className={`rounded-lg border p-4 shadow-lg ${toneClasses[toast.type]}`}>
+          <div key={toast.id} aria-atomic="true" className={`rounded-lg border p-4 shadow-lg ${toneClasses[toast.type]}`}>
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0 break-words">
                 <p className="text-sm font-semibold">{toast.title}</p>
                 {toast.message ? <p className="mt-1 text-sm opacity-90">{toast.message}</p> : null}
               </div>
-              <button onClick={() => removeToast(toast.id)} aria-label="Đóng thông báo" className="rounded p-1 hover:bg-white/50">
+              <button onClick={() => removeToast(toast.id)} aria-label="Đóng thông báo" className="flex h-11 w-11 shrink-0 items-center justify-center rounded hover:bg-white/50">
                 <X size={16} />
               </button>
             </div>

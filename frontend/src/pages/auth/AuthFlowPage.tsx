@@ -1,4 +1,4 @@
-import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 import { BriefcaseBusiness, Building2, CheckCircle2, FileText, GraduationCap, Sparkles, UserRoundSearch } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
@@ -43,10 +43,7 @@ const copy = {
 };
 
 function getErrorMessage(error: unknown) {
-  if (isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? "Không thể xử lý yêu cầu. Vui lòng kiểm tra lại thông tin.";
-  }
-  return "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+  return getApiErrorMessage(error, "Không thể xử lý yêu cầu. Vui lòng kiểm tra lại thông tin.");
 }
 
 export function AuthFlowPage({ type }: AuthFlowPageProps) {

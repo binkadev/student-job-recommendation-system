@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { login, ok, readLocal, writeLocal } from './helpers.mjs';
 const data = {};
-const namespace = process.argv.includes('--reliability') ? 'reliability' : process.argv.includes('--analytics') ? 'analytics' : 'settings';
+const namespace = process.argv.includes('--uiux') ? 'uiux' : process.argv.includes('--reliability') ? 'reliability' : process.argv.includes('--analytics') ? 'analytics' : 'settings';
 for (const alias of ['student', 'company', 'studentUi', 'companyUi', 'frontend']) {
   const token = await login(alias);
   data[alias] = {

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Table } from "../../components/ui/Table";
 
 interface RecruiterDataTableProps<T> {
+  label?: string;
   columns: { key: string; header: string; render: (row: T) => ReactNode }[];
   rows: T[];
   getRowKey: (row: T) => string;

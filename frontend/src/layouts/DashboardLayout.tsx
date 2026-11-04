@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Building2, ShieldCheck, UserRound } from "lucide-react";
-import { Outlet } from "react-router-dom";
+import { RouteContent } from "../app/router/RouteContent";
 import { DashboardHeader } from "../components/layout/DashboardHeader";
 import { MobileSidebar } from "../components/layout/MobileSidebar";
 import { Sidebar } from "../components/layout/Sidebar";
@@ -48,7 +48,7 @@ export function DashboardLayout({ title, menu, extra, variant = "candidate" }: D
       </div>
       <div className="min-w-0 lg:pl-72">
         <DashboardHeader title={title} extra={extra} onOpenSidebar={() => setSidebarOpen(true)} />
-        <section className="border-b border-slate-200/80 bg-white">
+        <section aria-label="Không gian làm việc" className="border-b border-slate-200/80 bg-white">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{copy.icon}</div>
@@ -59,7 +59,7 @@ export function DashboardLayout({ title, menu, extra, variant = "candidate" }: D
             </div>
           </div>
         </section>
-        <Outlet />
+        <RouteContent />
       </div>
     </div>
   );

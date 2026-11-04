@@ -1,5 +1,7 @@
 const apiErrorMessages: Record<string, string> = {
   INVALID_CURRENT_PASSWORD: "Mật khẩu hiện tại không đúng.",
+  SETTINGS_REVISION_CONFLICT: "Cài đặt đã thay đổi ở phiên khác. Bản nháp vẫn được giữ; hãy đọc lại dữ liệu để đối chiếu trước khi lưu tiếp.",
+  SETTINGS_REVISION_REQUIRED: "Chưa có phiên bản cài đặt để lưu. Hãy đọc lại dữ liệu rồi kiểm tra bản nháp.",
   PROFILE_REVISION_CONFLICT: "Hồ sơ đã thay đổi ở phiên khác. Bản đang soạn vẫn được giữ; hãy tải bản mới để đối chiếu trước khi lưu tiếp.",
   PROFILE_REVISION_REQUIRED: "Hãy tải lại hồ sơ để lấy phiên bản trước khi lưu.",
   ACCESS_DENIED: "Bạn không có quyền thực hiện thao tác này.",

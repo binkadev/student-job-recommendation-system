@@ -26,8 +26,14 @@ test('D02 Student Dashboard main counts match API totals and offline reload show
   const auth = await login('student'); await signIn(page, 'student', 'candidate');
   const [jobs, saved, apps, cvs] = await Promise.all([ok('GET', '/public/jobs?size=1', auth), ok('GET', '/students/me/saved-jobs?size=1', auth), ok('GET', '/students/me/applications', auth), ok('GET', '/students/me/cv', auth)]);
   for (const [name, count] of [['Việc đang tuyển', jobs.totalItems], ['Việc đã lưu', saved.totalItems], ['Đơn ứng tuyển', apps.length], ['Tổng CV', cvs.length]]) await expect(page.getByRole('link', { name: new RegExp(`${name}.*${count}`) })).toBeVisible();
+  // Load the route module online so this case isolates offline API recovery.
+  // Offline first-load chunk failure is covered separately by U07.
+  await page.getByRole('link', { name: /Đơn ứng tuyển/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Lịch sử ứng tuyển', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('link', { name: new RegExp(`Tổng CV.*${cvs.length}`) })).toBeVisible();
   await context.setOffline(true);
-  try { await page.getByRole('link', { name: /Đơn ứng tuyển/ }).first().click(); await page.goBack(); await expect(page.getByRole('alert')).toBeVisible(); expect(await page.getByRole('link', { name: /Việc đang tuyển.*0 việc/ }).count()).toBe(0); }
+  try { await page.getByRole('link', { name: /Đơn ứng tuyển/ }).first().click(); await expect(page).toHaveURL('/candidate/applications'); await expect(page.getByRole('alert')).toBeVisible(); await page.goBack(); await expect(page).toHaveURL('/candidate/dashboard'); await expect(page.getByRole('alert')).toBeVisible(); expect(await page.getByRole('link', { name: /Việc đang tuyển.*0 việc/ }).count()).toBe(0); }
   finally { await context.setOffline(false); }
   await page.reload(); await expect(page.getByRole('link', { name: new RegExp(`Tổng CV.*${cvs.length}`) })).toBeVisible();
   evidence.D02 = { correctTotals: true, offlineUnknown: true, recovered: true };

@@ -18,15 +18,17 @@ const applicationStatusLabels: Record<CandidateRankingApplicationStatus | "UNKNO
 };
 
 interface CandidateRankingTableProps {
+  label?: string;
   results: CandidateRankingResult[];
   savedApplicationIds: Set<string>;
   onAnalyze: (result: CandidateRankingResult) => void;
   onSave: (result: CandidateRankingResult) => void;
 }
 
-export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze, onSave }: CandidateRankingTableProps) {
+export function CandidateRankingTable({ results, savedApplicationIds, onAnalyze, onSave, label }: CandidateRankingTableProps) {
   return (
     <RecruiterDataTable
+      label={label}
       rows={results}
       getRowKey={(result) => `${result.applicationId}-${result.rankingTier}-${result.tierRankPosition}-${result.id}`}
       columns={[

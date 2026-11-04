@@ -319,8 +319,8 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
   return (
     <PageContainer>
       <PageHeader title="Chi tiết CV" description="Thông tin file CV và trạng thái sử dụng hiện tại." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <main className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin file" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -332,8 +332,8 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
             </div>
           </Card>
-        </main>
-        <aside className="space-y-5">
+        </div>
+        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
@@ -343,7 +343,7 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
-        </aside>
+        </section>
       </div>
     </PageContainer>
   );
@@ -353,7 +353,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
   return (
     <Modal open={Boolean(cv)} title="Xóa CV" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-700">
+        <p className="break-words text-sm text-slate-700 [overflow-wrap:anywhere]">
           Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> không?
         </p>
         {cv && isActiveCv(cv) ? <p className="text-sm text-amber-700">Đây là CV đang dùng. Bạn có chắc muốn xóa?</p> : null}
@@ -466,8 +466,8 @@ function CvAnalysisView({
   return (
     <PageContainer>
       <PageHeader title={title} description="Xem trạng thái phân tích CV và dữ liệu chỉ hiển thị khi phân tích đã sẵn sàng." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <main className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin CV" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -532,9 +532,9 @@ function CvAnalysisView({
               </Card>
             </>
           ) : null}
-        </main>
+        </div>
 
-        <aside className="space-y-5">
+        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Trạng thái" />
             <div className="flex flex-wrap gap-2">
@@ -551,7 +551,7 @@ function CvAnalysisView({
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
           </Card>
-        </aside>
+        </section>
       </div>
     </PageContainer>
   );
@@ -617,7 +617,7 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-slate-500">{label}</p>
-      <p className="mt-1 break-words font-medium text-slate-900">{value}</p>
+      <p className="mt-1 break-words font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
     </div>
   );
 }

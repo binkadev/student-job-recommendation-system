@@ -275,6 +275,7 @@ function RankingTierSection({
     <Card>
       <SectionHeader title={`${title} · ${results.length}`} description={description} />
       <CandidateRankingTable
+        label={`Ứng viên: ${title}`}
         results={results}
         savedApplicationIds={savedApplicationIds}
         onAnalyze={onAnalyze}

@@ -119,7 +119,7 @@ export function CandidateDashboardPage() {
           </Card>
         </div>
 
-        <aside className="space-y-5">
+        <section aria-label="Hồ sơ và thông báo" className="space-y-5">
           <Card>
             <SectionHeader title="Tiến độ hoàn thiện hồ sơ" description="Hoàn thiện thêm thông tin để nhà tuyển dụng đánh giá dễ hơn." />
             <ProgressBar value={data.profile.profileCompletion} label={`${data.profile.profileCompletion}% hoàn thiện`} />
@@ -182,7 +182,7 @@ export function CandidateDashboardPage() {
                       <div>
                         <p className="text-sm font-medium text-slate-950">{notification.title}</p>
                         <p className="mt-1 text-xs text-slate-600">{notification.body}</p>
-                        <p className="mt-1 text-xs text-slate-400">{notification.createdAt}</p>
+                        <p className="mt-1 text-xs text-slate-600">{notification.createdAt}</p>
                       </div>
                     </div>
                   </Link>
@@ -192,7 +192,7 @@ export function CandidateDashboardPage() {
               <EmptyState message="Chưa có thông báo." />
             )}
           </Card>
-        </aside>
+        </section>
       </section>
     </PageContainer>
   );

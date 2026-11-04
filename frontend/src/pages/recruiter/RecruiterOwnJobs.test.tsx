@@ -78,6 +78,8 @@ describe("Owned jobs server pagination (mocked HTTP; 260-row PostgreSQL evidence
     load = filters => filters.keyword === "old" ? old.promise : filters.keyword === "new" ? latest.promise : Promise.resolve(result());
     show(); await screen.findByText("130 tin tuyển dụng • Trang 1/17");
     await userEvent.type(screen.getByLabelText("Từ khóa"), "old");
+    // Let the first debounced request start; retain the original late-response regression.
+    await waitFor(() => expect(vi.mocked(httpClient.get).mock.calls.some(([url, config]) => url === URL && config?.params?.keyword === "old")).toBe(true));
     await userEvent.clear(screen.getByLabelText("Từ khóa")); await userEvent.type(screen.getByLabelText("Từ khóa"), "new");
     expect(screen.getByRole("status")).toHaveTextContent("chưa được xác nhận");
     latest.resolve(result(1, 1, [{ ...job, id: 2, title: "Newest filtered role" }]));

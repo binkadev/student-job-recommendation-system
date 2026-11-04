@@ -249,11 +249,17 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [keyword, setKeyword] = useState("");
+  const [queryKeyword, setQueryKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [jobType, setJobType] = useState("");
   const [workingModel, setWorkingModel] = useState("");
   const [closeTarget, setCloseTarget] = useState<JobResponse | null>(null);
-  const jobsQuery = useAsyncData(() => getJobs({ page, keyword, status, jobType, workingModel }), [page, reloadKey, keyword, status, jobType, workingModel]);
+  useEffect(() => {
+    if (keyword === queryKeyword) return;
+    const timer = window.setTimeout(() => { setQueryKeyword(keyword); setPage(1); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [keyword, queryKeyword]);
+  const jobsQuery = useAsyncData(() => getJobs({ page, keyword: queryKeyword, status, jobType, workingModel }), [page, reloadKey, queryKeyword, status, jobType, workingModel]);
   const jobs = jobsQuery.data?.items ?? [];
   const queryKey = JSON.stringify({ page, keyword, status, jobType, workingModel });
   const confirmed = jobsQuery.data;
@@ -304,13 +310,13 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
       ) : null}
       <Card>
         <div className="grid items-end gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-          <Input label="Từ khóa" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Tên tin, địa điểm..." />
-          <Select label="Trạng thái" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
-          <Select label="Loại việc" value={jobType} onChange={(event) => { setJobType(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label }))]} />
-          <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label }))]} />
+          <Input label="Từ khóa" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tên tin, địa điểm..." />
+          <Select label="Trạng thái" value={status} onChange={(event) => { setStatus(event.target.value); setQueryKeyword(keyword); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
+          <Select label="Loại việc" value={jobType} onChange={(event) => { setJobType(event.target.value); setQueryKeyword(keyword); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(JOB_TYPE_LABELS).map(([value, label]) => ({ value, label }))]} />
+          <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value); setQueryKeyword(keyword); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label }))]} />
           <div className="flex flex-wrap items-center gap-2 sm:col-span-2 2xl:col-span-4">
             <Button variant="secondary" disabled={jobsQuery.loading} icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
-            {keyword || status || jobType || workingModel ? <Button variant="ghost" onClick={() => { setKeyword(""); setStatus(""); setJobType(""); setWorkingModel(""); setPage(1); }}>Xóa bộ lọc</Button> : null}
+            {keyword || status || jobType || workingModel ? <Button variant="ghost" onClick={() => { setKeyword(""); setQueryKeyword(""); setStatus(""); setJobType(""); setWorkingModel(""); setPage(1); }}>Xóa bộ lọc</Button> : null}
             {company ? (
               <Link to="/recruiter/jobs/create"><Button icon={<Plus size={16} />}>Tạo tin</Button></Link>
             ) : (

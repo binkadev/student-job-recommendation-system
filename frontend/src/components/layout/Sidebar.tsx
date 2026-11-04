@@ -10,7 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ items, title, onNavigate }: SidebarProps) {
   return (
-    <aside className="flex h-full w-72 flex-col border-r border-slate-200/80 bg-white">
+    <aside aria-label={`Thanh bên ${title}`} className="flex h-full w-72 flex-col border-r border-slate-200/80 bg-white">
       <div className="border-b border-slate-100 px-5 py-5">
         <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white p-3.5">
           <div className="flex items-center gap-3">
@@ -24,7 +24,7 @@ export function Sidebar({ items, title, onNavigate }: SidebarProps) {
           </div>
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav aria-label={`Điều hướng ${title}`} className="flex-1 overflow-y-auto px-3 py-4">
         {items.map((item) => (
           <div key={item.label} className="mb-1">
             {item.path ? (
@@ -41,7 +41,7 @@ export function Sidebar({ items, title, onNavigate }: SidebarProps) {
                 {item.label}
               </NavLink>
             ) : (
-              <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                 {item.label}
                 <ChevronDown size={14} />
               </div>

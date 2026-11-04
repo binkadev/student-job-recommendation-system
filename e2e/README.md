@@ -220,3 +220,42 @@ của comparator strict. Raw credentials, response logs và screenshots ở `.lo
 B06 config chỉ discover ba bounded B06 cases; N07 diagnostic dùng
 `E2E_DIAGNOSTIC_PREFIX=reliability` để giữ evidence package cũ.
 Không có thao tác nguồn Windows trong runners này.
+
+## Student/Company UI/UX production acceptance
+
+`@axe-core/playwright@4.10.2` là dependency kiểm thử pinned, dùng cho accessibility
+audit; không thêm dependency runtime vào Frontend. Xem
+[kết quả và giới hạn phép đo](../docs/datn/student-company-uiux-performance-results.md).
+
+Chạy production build/preview riêng trước phép đo; giữ nguyên demo dev server và
+Backend/PostgreSQL/AI. Preview dùng Vite proxy hiện hữu, không HTTP mock. Từ `e2e/`:
+
+```powershell
+$env:UIUX_BASE_URL = 'http://127.0.0.1:5177'
+$env:UIUX_DIST = '../frontend/dist'
+# Dùng phase mới: tool từ chối ghi đè performance JSON đã tồn tại.
+node measure-uiux.mjs review
+# Comparator cần uiux-before-performance.json + immutable uiux-before-dist baseline.
+node compare-uiux.mjs review
+$env:UIUX_PHASE = 'after'
+$env:E2E_RESULTS_FILE = '.local/uiux-acceptance-results.json'
+node node_modules/playwright/cli.js test --config=uiux-acceptance.playwright.config.mjs
+```
+
+Measure chạy 10 màn × 3 cold/warm pairs, 5 viewport axe/overflow/screenshots mỗi
+màn. Cache điều kiện, browser/version, readyMs, LCP/CLS/long tasks, resource timings
+được ghi local. Không chạy browser suites/builds/heavy tests song song với phép đo;
+không dùng số đo này thay Lighthouse/INP/WAN benchmark. Report 11 acceptance cases
+gồm real401, validation, keyboard/mobile menu, offline lazy chunk recovery, debounce,
+toast bounds và DOCX tên dài upload/analyze/detail/dialog trên alias phụ.
+U11 cleanup chỉ xóa CV mới không active do chính test tạo.
+
+Trước work package, copy summarize-state vào `uiux-baseline.json` một lần rồi capture
+`verify-candidate-preservation.mjs --uiux --capture`, `--uiux --cv-content --capture`,
+`verify-settings-preservation.mjs --uiux --capture` và
+`verify-settings-runtime-persistence.mjs --uiux --capture`.
+Sau tests chạy lại không `--capture`, cùng `verify-preservation.mjs uiux-baseline.json`.
+Strict CV timestamp mismatch phải giữ nguyên kết quả FAIL/evidence, so content bằng
+baseline riêng; không normalize strict để che mismatch. Runtime snapshot filename
+`uiux-before-recreate.json` kế thừa từ tool, không có nghĩa phase này recreate service.
+Raw logs/images có thể chứa metadata riêng; không stage/upload `.local/`.

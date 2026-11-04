@@ -1,7 +1,7 @@
-import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 import { Eye, EyeOff, FileText, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { Button } from "../../components/ui/Button";
@@ -17,13 +17,11 @@ const dashboardByRole: Record<UserRole, string> = {
 };
 
 function getErrorMessage(error: unknown) {
-  if (isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.";
-  }
-  return "Không thể đăng nhập. Vui lòng thử lại.";
+  return getApiErrorMessage(error, "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.");
 }
 
 export function LoginPage() {
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -48,6 +46,8 @@ export function LoginPage() {
     window.sessionStorage.removeItem("registrationSuccessTitle");
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, showToast]);
+
+  useEffect(() => { if (loginError) errorRef.current?.focus(); }, [loginError]);
 
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,7 +125,7 @@ export function LoginPage() {
               </div>
 
               <form className="space-y-4" onSubmit={submitLogin}>
-                {loginError ? <p id="login-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-800">{loginError}</p> : null}
+                {loginError ? <p ref={errorRef} tabIndex={-1} id="login-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-800">{loginError}</p> : null}
                 <label className="block text-sm">
                   <span className="font-medium text-slate-700">Email</span>
                   <span className="mt-1 flex h-12 items-center gap-3 rounded-md border border-slate-200 bg-white px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
@@ -151,6 +151,7 @@ export function LoginPage() {
                     <input
                       name="password"
                       autoComplete="current-password"
+                      aria-describedby={loginError ? "login-error" : undefined}
                       type={showPassword ? "text" : "password"}
                       placeholder="Nhập mật khẩu"
                       value={credentials.password}

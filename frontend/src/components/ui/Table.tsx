@@ -7,14 +7,15 @@ interface Column<T> {
 }
 
 interface TableProps<T> {
+  label?: string;
   columns: Column<T>[];
   rows: T[];
   getRowKey: (row: T) => string;
 }
 
-export function Table<T>({ columns, rows, getRowKey }: TableProps<T>) {
+export function Table<T>({ columns, rows, getRowKey, label = "Bảng dữ liệu" }: TableProps<T>) {
   return (
-    <div role="region" aria-label="Bảng dữ liệu" tabIndex={0} className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-soft">
+    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-soft">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50">
           <tr>
