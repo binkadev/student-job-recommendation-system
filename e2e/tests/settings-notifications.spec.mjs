@@ -4,7 +4,7 @@ import path from 'node:path';
 import { api, ok, login, credentials, devAdmin, writeLocal, local } from '../helpers.mjs';
 
 // All HTTP is real. Only secondary accounts are mutated; no SQL fixture writes to the demo DB.
-const evidence = { cases: {}, http: [], pageErrors: [], limitations: [] };
+const evidence = { cases: {}, http: [], pageErrors: [], requestsFailed: [], limitations: [] };
 const prefRoute = '/users/me/notification-settings';
 const flags = ['applicationStatusEnabled', 'jobStatusEnabled', 'recommendationEnabled', 'systemEnabled'];
 const pick = (data, keys = flags) => Object.fromEntries(keys.map(key => [key, data[key]]));
@@ -38,15 +38,17 @@ async function replaceReviewed(page) {
   await page.getByRole('button', { name: 'Thay bản nháp bằng dữ liệu đã lưu', exact: true }).click();
   await page.getByRole('button', { name: 'Xác nhận thay bản nháp', exact: true }).click();
 }
-test.beforeEach(async ({ page }) => {
+function observePage(page) {
   page.on('pageerror', error => evidence.pageErrors.push(error.message));
+  page.on('requestfailed', request => evidence.requestsFailed.push({ path: new URL(request.url()).pathname, type: request.resourceType(), error: request.failure()?.errorText }));
   page.on('response', r => {
     const url = new URL(r.url());
     if (url.pathname.startsWith('/api/') && /notifications|notification-settings|password|\/students\/me$|\/companies\/me$/.test(url.pathname)) {
       evidence.http.push({ method: r.request().method(), path: url.pathname, query: url.search, status: r.status() });
     }
   });
-});
+}
+test.beforeEach(async ({ page }) => observePage(page));
 test.afterEach(() => writeLocal('settings-notifications-evidence.json', evidence));
 
 for (const alias of ['studentUi', 'companyUi']) {
@@ -239,11 +241,16 @@ test('N06 logout/login isolation and real invalid-session 401 recovery on second
   evidence.cases.N06 = { noPreviousInbox: true, noPreviousAccountData: true, realUnauthorized: 401, relogin: true, actualClockExpiry: 'NOT_TESTED' };
 });
 
-test('N07 changed screens at 375/430/768/1024/1440 with labeled inputs, keyboard and no horizontal overflow', async ({ page }) => {
+test('N07 changed screens at 375/430/768/1024/1440 with labeled inputs, keyboard and no horizontal overflow', async ({ browser }) => {
   for (const alias of ['studentUi', 'companyUi']) {
-    await signIn(page, alias);
     for (const width of [375, 430, 768, 1024, 1440]) {
-      await page.setViewportSize({ width, height: 950 });
+      // Bound dev-module/renderer lifetime per viewport, as the existing route inventory does.
+      // All original screens/assertions remain; no failed navigation is retried.
+      const context = await browser.newContext({ baseURL: process.env.E2E_FRONTEND_URL || 'http://localhost:5173', viewport: { width, height: 950 } });
+      context.setDefaultTimeout(15_000); context.setDefaultNavigationTimeout(20_000);
+      const page = await context.newPage(); observePage(page);
+      try {
+      await signIn(page, alias);
       for (const section of ['account', 'security', 'notifications']) {
         await settings(page, alias, section);
         await expect(page.getByRole('heading', { name: roleFor(alias) === 'candidate' ? 'Cài đặt ứng viên' : 'Cài đặt nhà tuyển dụng', exact: true })).toBeVisible();
@@ -259,8 +266,7 @@ test('N07 changed screens at 375/430/768/1024/1440 with labeled inputs, keyboard
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({ path: path.join(local, `settings-candidate-inbox-${width}.png`), fullPage: true });
       }
-    }
-    if (alias === 'studentUi') {
+    if (alias === 'studentUi' && width === 1440) {
       await page.goto('/candidate/notifications');
       await expect(page.getByRole('button', { name: 'Tải lại thông báo', exact: true })).toBeEnabled();
       await page.getByLabel('Loại thông báo', { exact: true }).focus();
@@ -268,7 +274,12 @@ test('N07 changed screens at 375/430/768/1024/1440 with labeled inputs, keyboard
       await expect(page.getByRole('button', { name: 'Tải lại thông báo', exact: true })).toBeFocused();
     }
     await signOut(page);
+      } catch (error) {
+        await page.screenshot({ path: path.join(local, `analytics-n07-failure-${alias}-${width}.png`), fullPage: true }).catch(() => undefined);
+        throw error;
+      } finally { await context.close(); }
+    }
   }
-  evidence.cases.N07 = { widths: [375, 430, 768, 1024, 1440], screens: 7, screenshots: 35, noHorizontalOverflow: true, keyboard: true };
+  evidence.cases.N07 = { widths: [375, 430, 768, 1024, 1440], screens: 7, screenshots: 35, contexts: 10, noHorizontalOverflow: true, keyboard: true };
   expect(evidence.pageErrors).toEqual([]);
 });

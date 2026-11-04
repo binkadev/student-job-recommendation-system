@@ -95,15 +95,17 @@ test('Q03 full CSV exports all 362 rows, exact SQL ownership/order, UTF-8 and fo
 });
 
 test('Q04 BLOCKED Company B has internal analytics but no Company A data; foreign Job and unauthenticated denied', async ({ page }) => {
-  await signIn(page, 'otherCompany'); await page.goto('/recruiter/reports'); await dataLoaded(page);
+  await signIn(page, 'otherCompany');
+  await expect(metric(page, 'Tin đang tuyển')).toContainText('22');
+  await page.goto('/recruiter/reports'); await dataLoaded(page);
   const auth = await token('otherCompany');
   const report = (await api('GET', '/companies/me/recruitment-report', auth)).data;
   expect(report.topJobs.every(row => row.jobTitle.startsWith('Analytics b '))).toBe(true);
   expect(report.applications.items.every(row => row.jobTitle.startsWith('Analytics b '))).toBe(true);
   for (const endpoint of ['recruitment-report', 'recruitment-report/export']) expect((await api('GET', `/companies/me/${endpoint}?jobId=${fixture.accounts.company.firstJob}`, auth)).status).toBe(404);
   for (const endpoint of ['dashboard-summary', 'recruitment-report', 'recruitment-report/export']) expect((await api('GET', `/companies/me/${endpoint}`)).status).toBe(401);
-  expect((await api('GET', `/public/jobs/${fixture.accounts.otherCompany.firstJob}`)).status).toBe(404);
-  evidence.cases.Q04 = { blockedInternal: 200, foreignJob: 404, unauthenticated: 401, publicHidden: 404 };
+  expect((await api('GET', `/public/jobs/${fixture.accounts.otherCompany.activeJob}`)).status).toBe(404);
+  evidence.cases.Q04 = { blockedInternal: 200, internalActiveJobs: 22, foreignJob: 404, unauthenticated: 401, activeJobPublicHidden: 404 };
 });
 
 test('Q05 offline snapshots retain their scope, explicit retry obtains real zero, rapid filters and relogin isolate data', async ({ page, context }) => {

@@ -42,7 +42,8 @@ public class CompanyAnalyticsBrowserFixture {
                             .status(alias.equals("company") ? CompanyStatus.VERIFIED : CompanyStatus.BLOCKED).build());
                     CompanyAnalyticsFixtures.seed(jdbc, company.getId(), alias.equals("company") ? "a" : "b");
                     accounts.put(alias, Map.of("email", user.getEmail(), "password", password, "companyId", company.getId(),
-                            "firstJob", jdbc.queryForObject("select min(id) from jobs where company_id=?", Long.class, company.getId())));
+                            "firstJob", jdbc.queryForObject("select min(id) from jobs where company_id=?", Long.class, company.getId()),
+                            "activeJob", jdbc.queryForObject("select min(id) from jobs where company_id=? and status='ACTIVE'", Long.class, company.getId())));
                 }
                 int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
                 context.getBean(ObjectMapper.class).writeValue(output.toFile(), Map.of("backendUrl", "http://127.0.0.1:" + port,

@@ -43,6 +43,8 @@ class CompanyAnalyticsApiIT extends AbstractPostgresWebIntegrationTest {
             assertThat(data.get("trend")).hasSize(90);
             for (JsonNode day : data.get("trend")) assertThat(day.get("applications").asLong()).isEqualTo(4);
             assertThat(data.get("expiringJobCount").asLong()).isEqualTo(22);
+            long activeJob = jdbcTemplate.queryForObject("select min(id) from jobs where company_id=? and status='ACTIVE'", Long.class, company.getId());
+            mockMvc.perform(get("/api/public/jobs/{id}", activeJob)).andExpect(status().isNotFound());
             assertThat(data.get("expiringJobs")).hasSize(5);
             assertThat(data.at("/recentApplications/items")).hasSize(5);
             assertThat(data.at("/recentApplications/totalItems").asLong()).isEqualTo(362);

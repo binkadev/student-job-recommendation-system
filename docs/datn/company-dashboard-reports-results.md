@@ -134,6 +134,27 @@ new DB-only analytics beans; wrapper exports sửa compile; wildcard MockMvc dù
 explicit `.param` thay double-encoded URI. Q01 browser loop ban đầu bỏ bước chọn30
 sau7; sửa loop chọn đúng range rồi cả6 pass. Không remove/skip assertions.
 
+### N07 blank-page checkpoint
+
+Lượt full sau table refinement có **65/66 PASS**: N07 không tìm thấy Company Settings
+heading trong12s, còn65 cases gồm analytics đều pass. Last safe HTTP observations
+có200, không pageerror; không đủ bằng chứng chốt root cause. Giữ log/JSON failure
+và HTTP observations local. Fresh instrumented diagnostic30 settings +5 inbox
+navigations **1/1 PASS**, không console/pageerror/non-aborted request failure;
+không tuyên bố lỗi historical session đã fixed.
+
+N07 harness giờ đóng context sau mỗi viewport (10 contexts cho2roles×5widths),
+đăng nhập lại thật như route inventory hiện hữu, giữ mọi heading/input/switch/
+keyboard/no-overflow assertions và35 screenshots. Không retry navigation bị fail,
+không skip/bỏ assertion hoặc tăng timeout. Request-failure logging áp dụng cả các
+context mới. Targeted N07 **PASS/35.2s**. Đây là resource-lifetime/isolation của test,
+không sửa production Settings/Notifications; long-lived dev-reload failure root
+cause vẫn chưa xác minh. Full default regression tiếp theo ghi ở checkpoint cuối.
+
+Table analytics375px ban đầu ép dates thành nhiều dòng khó đọc; đã cho bảng
+min-width640, vùng cuộn ngang có tên/Tab focus/ring và hướng dẫn mobile. Q06 giữ
+document-no-overflow và thêm kiểm keyboard ArrowRight làm scrollLeft tăng.
+
 ## Preservation / boundaries
 
 Read-only API baseline `analytics-baseline.json`:22 aliases (bao gồm20 baseline
