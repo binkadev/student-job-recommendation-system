@@ -23,6 +23,25 @@ Runtime metrics/counts/CSV/downloads/credentials remain gitignored `.local`/test
 `analytics-csv.mjs` only parses assertions, not production export generation.
 See [contract/calculations/preservation evidence](../docs/datn/company-dashboard-reports-results.md).
 
+N07 dùng context riêng mỗi role/viewport (10 contexts), giữ35 screenshots và mọi
+assertion; không retry hoặc tăng timeout. Một lượt full có transient blank Company
+Settings; fresh long-sequence diagnostic không tái hiện, nên không kết luận đã sửa
+production bug. Chạy diagnostic riêng (read-only, không mặc định thêm vào66 cases):
+
+```powershell
+npx playwright test --config=analytics-settings-diagnostic.playwright.config.mjs
+```
+
+Preservation package analytics dùng namespace riêng, không ghi đè các settings/
+candidate baselines cũ: `verify-candidate-preservation.mjs --analytics --capture`
+và `--analytics --cv-content --capture`; `verify-settings-preservation.mjs --analytics --capture`.
+Chụp `summarize-state.mjs` vào `analytics-baseline.json` trước mutations. Sau test:
+`verify-preservation.mjs analytics-baseline.json`, strict row comparator (giữ mismatch
+evidence nếu A03 đổi CV updated_at), content comparator và security/profile-content
+comparator. `verify-settings-runtime-persistence.mjs --analytics --capture` chụp thêm
+analytics responses trước Backend-only recreate; chạy không capture để compare.
+Analytics capture từ chối overwrite snapshot đã có. Không chia sẻ raw artifacts/PII.
+
 ## Settings / notifications
 
 `settings-notifications.spec.mjs` bổ sung 10 journeys, giữ 54 cases cũ (tổng 64).
