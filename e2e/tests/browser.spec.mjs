@@ -217,6 +217,9 @@ test('B08 offline unsave must preserve previously confirmed saved state and reco
   await page.goto(`/jobs?q=${encodeURIComponent(primaryJob.title)}`);
   const card = page.locator('article').filter({ has: page.getByRole('heading', { name: primaryJob.title, exact: true }) });
   await expect(card.getByRole('button', { name: 'Bỏ lưu việc làm', exact: true })).toBeVisible();
+  // Saved jobs and application history load independently. Confirm both snapshots
+  // before taking the network offline; otherwise this tests an unverified initial load.
+  await expect(card.getByRole('button', { name: 'Đã ứng tuyển', exact: true })).toBeDisabled();
   await context.setOffline(true);
   try {
     await card.getByRole('button', { name: 'Bỏ lưu việc làm', exact: true }).click();

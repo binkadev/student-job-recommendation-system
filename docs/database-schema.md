@@ -2,11 +2,11 @@
 
 The implemented database is PostgreSQL managed by Flyway migrations under `backend/src/main/resources/db/migration`.
 
-Old migrations must not be edited after being applied. Released `V1`–`V18` remain unchanged; this branch adds `V19` for the owned Student profile revision. The schema below includes V19; verify actual deployed Flyway history separately.
+Old migrations must not be edited after being applied. Released `V1`–`V19` remain unchanged; V20 adds the Saved Candidate note revision. The schema below includes V20; verify actual deployed Flyway history separately.
 
 All 19 business tables use `BIGSERIAL` primary key `id` and non-null `created_at`/`updated_at` timestamps defaulting to `CURRENT_TIMESTAMP`. All released foreign keys use `ON DELETE RESTRICT`. Types, defaults and column nullability are also shown in [the DBML](database-erd.dbml); omitted `not null` means nullable. VARCHAR enum values in application code are not automatically database CHECK constraints.
 
-Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision. See [released migrations](../backend/src/main/resources/db/migration/).
+Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision; V20 Saved Candidate revision. See [released migrations](../backend/src/main/resources/db/migration/).
 
 ## Tables
 
@@ -230,11 +230,13 @@ Not implemented:
 - Recommendation matching-job notifications
 - Account-blocked persistent notifications
 
-### `saved_candidates` (V13)
+### `saved_candidates` (V13/V20)
 
 Purpose: Company bookmark of a Student, with the source Application.
 
-Columns: `id`, `company_id`, `student_id`, `application_id`, `note`, `created_at`, `updated_at`.
+Columns: `id`, `company_id`, `student_id`, `application_id`, `note`, `revision`, `created_at`, `updated_at`.
+
+V20 adds `revision BIGINT NOT NULL DEFAULT 0`, used as the Hibernate optimistic version for note edits. Existing bookmarks and notes retain their values; stale edits return `409 SAVED_CANDIDATE_REVISION_CONFLICT`. Company-scoped mutations lock the Company row to serialize save/delete/note races. Notes are private to that Company; they never enter Student/Application/ranking responses. Note edits and bookmark deletion do not mutate the source Application.
 
 All three FK columns are BIGINT NOT NULL, referencing `companies`, `students`, and `applications` respectively. `note` is nullable TEXT. UNIQUE `uk_saved_candidates_company_student` is `(company_id, student_id)`; `application_id` is not unique. No extra indexes or cross-column ownership CHECKs are created by V13.
 

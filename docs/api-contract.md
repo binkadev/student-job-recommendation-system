@@ -507,12 +507,14 @@ Returns `ApiResponse<PageResponse<SavedCandidateResponse>>`.
 
 Query parameters:
 
-- `keyword`: optional case-insensitive partial match against student full name, student email, university, major, headline, or the saved application's job title; maximum length 255.
+- `keyword`: optional case-insensitive literal partial match against student full name, student email, university, major, headline, the saved application's job title, or the Company's private note; maximum length 255. `%`, `_` and backslash are literal characters.
+- `studentId`, `jobId`: optional positive IDs, applied inside the authenticated Company's scope before count/pagination. A foreign/nonexistent filter yields an empty list.
+- `applicationStatus`: optional `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, `WITHDRAWN`, read directly from the saved **source application**. A bookmark remains tied to its original source after a later reapplication; this is not a candidate-wide lifecycle status.
 - `page`: 1-based page number, default `1`.
 - `size`: page size from 1 through 100, default `10`.
 - `sort`: accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`; maximum length 100.
 
-Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`. Unsupported fields or directions return `400 BAD_REQUEST`.
+Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`, with `id DESC` as a deterministic tie-breaker. Unsupported fields or directions return `400 BAD_REQUEST`.
 
 Each response item contains:
 
@@ -520,6 +522,8 @@ Each response item contains:
 {
   "id": 42,
   "applicationId": 123,
+  "applicationStatus": "PENDING",
+  "revision": 0,
   "studentId": 15,
   "studentName": "Nguyen Van A",
   "studentEmail": "student@example.com",
@@ -556,6 +560,14 @@ The backend derives the student from the application and creates no application 
 Withdrawn applications remain saveable because the current application domain does not prohibit recruiter bookmarking after withdrawal.
 
 Response data: the created `SavedCandidateResponse`.
+
+### PATCH `/api/companies/me/saved-candidates/{id}/note`
+
+Role `COMPANY`. Body: `{ "note": "Internal assessment", "revision": 0 }`. `revision` is required, nonnegative and must equal the revision captured with the draft. `note` is nullable/optional, trimmed, maximum 2,000 characters; null/blank clears it. Unknown fields return `400 BAD_REQUEST`. Success is `200` with the updated `SavedCandidateResponse`. A changed note increments the persisted revision; an unchanged note may retain it.
+
+Missing/foreign bookmark: `404 SAVED_CANDIDATE_NOT_FOUND`. Stale draft: `409 SAVED_CANDIDATE_REVISION_CONFLICT`, with no mutation. Frontend retains the draft, offers explicit read-back/compare and never automatically retries with a freshly fetched revision. Notes are Company-internal; Student and other Companies cannot read or write them. No application status, CV analysis or ranking changes occur.
+
+Existing policy permits PENDING/BLOCKED Companies to manage their own existing applicants/bookmarks; verification gates Job publication/public visibility, not these internal operations. An inactive/blocked **User** remains subject to authentication policy. Missing/invalid authentication is 401, wrong role is 403. Simultaneous duplicate saves return one 200/one 409; simultaneous deletes of the same bookmark return one 200/one 404.
 
 ### DELETE `/api/companies/me/saved-candidates/{id}`
 

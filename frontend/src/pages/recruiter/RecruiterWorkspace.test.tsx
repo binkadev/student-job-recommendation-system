@@ -10,7 +10,7 @@ import { RecruiterCandidatesPage } from "./RecruiterCandidatesPage";
 import { RecruiterDashboardPage } from "./RecruiterDashboardPage";
 import { RecruiterReportsPage } from "./RecruiterReportsPage";
 
-vi.mock("../../services/api/httpClient", () => ({ httpClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
+vi.mock("../../services/api/httpClient", () => ({ AUTH_TOKEN_STORAGE_KEY: "job-system:auth-token", httpClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
 // Chart geometry requires a browser; this suite checks data states and actions.
 vi.mock("recharts", () => ({
   ResponsiveContainer: () => null, Bar: () => null, BarChart: () => null, CartesianGrid: () => null,

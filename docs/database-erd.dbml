@@ -1,6 +1,6 @@
 Project student_job_recommendation {
   database_type: 'PostgreSQL'
-  Note: 'Flyway V1-V19 source; released V1-V18 unchanged. V19 adds Student profile revision. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
+  Note: 'Flyway V1-V20 source; released V1-V19 unchanged. V20 adds Saved Candidate note revision. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
 }
 
 Table users {
@@ -292,6 +292,7 @@ Table saved_candidates {
   student_id bigint [not null]
   application_id bigint [not null]
   note text
+  revision bigint [not null, default: 0, note: 'V20: optimistic version; stale Company note edits return 409.']
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 

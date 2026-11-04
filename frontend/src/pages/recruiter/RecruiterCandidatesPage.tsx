@@ -18,7 +18,9 @@ import { Select } from "../../components/ui/Select";
 import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
-import { httpClient } from "../../services/api/httpClient";
+import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../services/api/httpClient";
+import { SavedCandidatesPage } from "../../features/recruiter/saved-candidates/SavedCandidatesPage";
+import { useCandidateMutation } from "../../features/recruiter/saved-candidates/useCandidateMutation";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 
 interface RecruiterCandidatesPageProps {
@@ -105,7 +107,11 @@ const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   WITHDRAWN: "Ứng viên rút đơn",
 };
 
-export function RecruiterCandidatesPage({ mode = "list" }: RecruiterCandidatesPageProps) {
+export function RecruiterCandidatesPage(props: RecruiterCandidatesPageProps) {
+  return <RecruiterCandidateWorkspace key={sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) ?? "anonymous"} {...props} />;
+}
+
+function RecruiterCandidateWorkspace({ mode = "list" }: RecruiterCandidatesPageProps) {
   const { candidateId } = useParams();
   const { showToast } = useToast();
   const [reloadKey, setReloadKey] = useState(0);
@@ -163,6 +169,7 @@ function ApplicationsListPage({
   const [updating, setUpdating] = useState(false);
   const [sortOrder, setSortOrder] = useState("appliedAt,desc");
   const [savedReloadKey, setSavedReloadKey] = useState(0);
+  const saveMutation = useCandidateMutation();
 
   const jobOptions = useMemo(() => jobs.slice().sort((left, right) => left.title.localeCompare(right.title)), [jobs]);
   const applicationsQuery = useAsyncData(() => getCompanyApplicationsPage({
@@ -202,13 +209,11 @@ function ApplicationsListPage({
   }
 
   async function saveCandidate(application: ApplicationResponse) {
-    try {
-      await saveCandidateByApplication(application.id);
+    if (savedCandidatesQuery.loading || savedCandidatesQuery.error) return;
+    await saveMutation.run(() => saveCandidateByApplication(application.id), () => {
       setSavedReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
-    } catch (error) {
-      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getApiErrorMessage(error) });
-    }
+    });
   }
 
   return (
@@ -237,6 +242,7 @@ function ApplicationsListPage({
         <SectionHeader title="Danh sách ứng viên" description={applicationsQuery.loading ? "Đang tải hồ sơ..." : applicationsQuery.error ? "Danh sách chưa sẵn sàng." : `${applicationsPage?.totalItems ?? 0} hồ sơ ứng tuyển`} />
         {applicationsQuery.loading ? <LoadingState /> : null}
         {!applicationsQuery.loading && applicationsQuery.error ? <ErrorState message={applicationsQuery.error} /> : null}
+        {saveMutation.error ? <ErrorState message={saveMutation.error} /> : null}
         {savedCandidatesQuery.error ? <p role="alert" className="mb-4 text-sm text-amber-800">Chưa tải được trạng thái lưu ứng viên. Vui lòng tải lại trang trước khi lưu hồ sơ.</p> : null}
         {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length === 0 ? <EmptyState message="Không có hồ sơ ứng tuyển phù hợp." /> : null}
         {!applicationsQuery.loading && !applicationsQuery.error && filteredApplications.length > 0 ? (
@@ -249,7 +255,7 @@ function ApplicationsListPage({
                 { key: "job", header: "Tin ứng tuyển", render: (application) => <div><p className="font-medium text-slate-900">{application.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(application.appliedAt)}</p></div> },
                 { key: "cv", header: "CV", render: (application) => <span className="block max-w-56 truncate text-sm" title={application.cvFileName ?? undefined}>{application.cvFileName || "Chưa có CV"}</span> },
                 { key: "status", header: "Trạng thái", render: (application) => <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} /> },
-                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions application={application} saved={savedStudentIds.has(application.studentId)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
+                { key: "actions", header: "Thao tác", render: (application) => <ApplicationActions saving={saveMutation.pending} saveDisabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error)} application={application} saved={savedStudentIds.has(application.studentId)} onSave={(target) => void saveCandidate(target)} onOpenStatus={(target) => { setSelectedApplication(target); setNextStatus(getDefaultNextStatus(target.status)); }} /> },
               ]}
             />
             <Pagination page={applicationsPage?.page ?? page} totalPages={applicationsPage?.totalPages ?? 1} onPageChange={setPage} />
@@ -284,6 +290,7 @@ function ApplicationDetailPage({
   const [nextStatus, setNextStatus] = useState<ApplicationStatus>("REVIEWED");
   const [updating, setUpdating] = useState(false);
   const [savedReloadKey, setSavedReloadKey] = useState(0);
+  const saveMutation = useCandidateMutation();
   const savedCandidatesQuery = useAsyncData(() => getAllSavedCandidates(), [savedReloadKey]);
   const savedStudentIds = new Set((savedCandidatesQuery.data ?? []).map((candidate) => candidate.studentId));
 
@@ -311,13 +318,11 @@ function ApplicationDetailPage({
   }
 
   async function saveCandidate(application: ApplicationResponse) {
-    try {
-      await saveCandidateByApplication(application.id);
+    if (savedCandidatesQuery.loading || savedCandidatesQuery.error) return;
+    await saveMutation.run(() => saveCandidateByApplication(application.id), () => {
       setSavedReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: application.studentName || application.studentEmail || application.jobTitle });
-    } catch (error) {
-      showToast({ type: "error", title: "Không thể lưu hồ sơ ứng viên", message: getApiErrorMessage(error) });
-    }
+    });
   }
 
   if (applicationQuery.loading) {
@@ -342,11 +347,13 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
-        <Button variant="secondary" disabled={savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
+        <Button variant="secondary" loading={saveMutation.pending} disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error) || savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
           {savedStudentIds.has(application.studentId) ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
         </Button>
         <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
       </div>
+      {saveMutation.error ? <ErrorState message={saveMutation.error} /> : null}
+      {savedCandidatesQuery.error ? <ErrorState message={savedCandidatesQuery.error} /> : null}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-5">
           <Card>
@@ -366,12 +373,12 @@ function ApplicationDetailPage({
           </Card>
           <Card>
             <SectionHeader title="CV ứng tuyển" />
-            {application.cvFileName ? (
+            {application.cvFileId ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <FileText className="shrink-0 text-brand-600" size={20} />
                   <div className="min-w-0">
-                    <p className="break-words font-medium text-slate-900">{application.cvFileName}</p>
+                    <p className="break-words font-medium text-slate-900">{application.cvFileName || "CV ứng tuyển"}</p>
                     <p className="text-xs text-slate-500">Tệp đính kèm hồ sơ ứng tuyển</p>
                   </div>
                 </div>
@@ -409,59 +416,6 @@ function PipelineSummary({ applications }: { applications: ApplicationResponse[]
   );
 }
 
-function SavedCandidatesPage() {
-  const { showToast } = useToast();
-  const [page, setPage] = useState(1);
-  const [reloadKey, setReloadKey] = useState(0);
-  const savedCandidatesQuery = useAsyncData(() => getSavedCandidatesPage(page), [page, reloadKey]);
-  const result = savedCandidatesQuery.data;
-  const savedCandidates = result?.items ?? [];
-
-  async function removeSavedCandidate(savedCandidateId: number) {
-    try {
-      await deleteSavedCandidate(savedCandidateId);
-      setReloadKey((current) => current + 1);
-      showToast({ type: "success", title: "Đã bỏ lưu hồ sơ ứng viên" });
-    } catch (error) {
-      showToast({ type: "error", title: "Không thể bỏ lưu hồ sơ", message: getApiErrorMessage(error) });
-    }
-  }
-
-  return (
-    <PageContainer>
-      <PageHeader title="Hồ sơ đã lưu" description="Danh sách hồ sơ ứng viên đã lưu." />
-      <Card>
-        <SectionHeader title="Danh sách hồ sơ" description={savedCandidatesQuery.loading ? "Đang tải hồ sơ..." : savedCandidatesQuery.error ? "Danh sách chưa sẵn sàng." : `${result?.totalItems ?? 0} hồ sơ đã lưu`} />
-        {savedCandidatesQuery.loading ? <LoadingState /> : null}
-        {savedCandidatesQuery.error ? <ErrorState message={savedCandidatesQuery.error} /> : null}
-        {!savedCandidatesQuery.loading && !savedCandidatesQuery.error && savedCandidates.length === 0 ? <EmptyState message="Chưa có hồ sơ ứng viên nào được lưu." /> : null}
-        {!savedCandidatesQuery.loading && !savedCandidatesQuery.error && savedCandidates.length > 0 ? (
-          <RecruiterDataTable
-            rows={savedCandidates}
-            getRowKey={(candidate) => String(candidate.id)}
-            columns={[
-              { key: "candidate", header: "Ứng viên", render: (candidate) => <SavedCandidateCell candidate={candidate} /> },
-              { key: "job", header: "Tin ứng tuyển", render: (candidate) => <div><p className="font-medium text-slate-900">{candidate.jobTitle}</p><p className="text-xs text-slate-500">{formatDateTime(candidate.savedAt)}</p></div> },
-              { key: "cv", header: "CV", render: (candidate) => <span className="block max-w-56 truncate text-sm" title={candidate.cvFileName ?? undefined}>{candidate.cvFileName || "Chưa có CV"}</span> },
-              {
-                key: "actions",
-                header: "Thao tác",
-                render: (candidate) => (
-                  <div className="flex flex-wrap gap-2">
-                    <Link to={`/recruiter/candidates/${candidate.applicationId}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
-                    <Button variant="secondary" size="sm" onClick={() => void removeSavedCandidate(candidate.id)}>Bỏ lưu</Button>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        ) : null}
-        <Pagination page={result?.page ?? page} totalPages={result?.totalPages ?? 1} onPageChange={setPage} />
-      </Card>
-    </PageContainer>
-  );
-}
-
 function CandidateCell({ application }: { application: ApplicationResponse }) {
   const name = application.studentName || application.studentEmail || "Ứng viên";
   return (
@@ -475,26 +429,16 @@ function CandidateCell({ application }: { application: ApplicationResponse }) {
   );
 }
 
-function SavedCandidateCell({ candidate }: { candidate: SavedCandidateResponse }) {
-  const name = candidate.studentName || candidate.studentEmail || "Ứng viên";
-  return (
-    <div className="flex items-center gap-3">
-      <Avatar name={name} />
-      <div className="min-w-0 break-words">
-        <p className="font-medium text-slate-900">{name}</p>
-        <p className="text-xs text-slate-500">{candidate.studentEmail || "Chưa có email"}</p>
-        {candidate.headline ? <p className="text-xs text-slate-500">{candidate.headline}</p> : null}
-      </div>
-    </div>
-  );
-}
-
 function ApplicationActions({
+  saving,
+  saveDisabled,
   application,
   saved,
   onSave,
   onOpenStatus,
 }: {
+  saving: boolean;
+  saveDisabled: boolean;
   application: ApplicationResponse;
   saved: boolean;
   onSave: (application: ApplicationResponse) => void;
@@ -503,7 +447,7 @@ function ApplicationActions({
   return (
     <div className="flex flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
-      <Button variant="secondary" size="sm" disabled={saved} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
+      <Button variant="secondary" size="sm" loading={saving} disabled={saved || saveDisabled} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
         {saved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
       </Button>
       <Button variant="secondary" size="sm" icon={<UserCheck size={14} />} disabled={!hasAllowedStatusTransition(application.status)} onClick={() => onOpenStatus(application)}>Trạng thái</Button>
@@ -597,13 +541,6 @@ async function getCompanyApplicationDetail(applicationId: number) {
   return response.data.data;
 }
 
-async function getSavedCandidatesPage(page: number) {
-  const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
-    params: { page, size: 10, sort: "createdAt,desc" },
-  });
-  return response.data.data;
-}
-
 async function getAllSavedCandidates(page = 1, items: SavedCandidateResponse[] = []): Promise<SavedCandidateResponse[]> {
   const response = await httpClient.get<ApiResponse<PageResponse<SavedCandidateResponse>>>("/companies/me/saved-candidates", {
     params: { page, size: 100, sort: "createdAt,desc" },
@@ -620,10 +557,6 @@ async function saveCandidateByApplication(applicationId: number) {
     note: null,
   });
   return response.data.data;
-}
-
-async function deleteSavedCandidate(savedCandidateId: number) {
-  await httpClient.delete<ApiResponse<null>>(`/companies/me/saved-candidates/${savedCandidateId}`);
 }
 
 async function getCompanyJobs() {

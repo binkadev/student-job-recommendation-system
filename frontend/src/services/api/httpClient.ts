@@ -21,7 +21,9 @@ httpClient.interceptors.request.use((config) => {
 httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const requestToken = error?.config?.headers?.Authorization;
+    const currentToken = window.sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+    if (error?.response?.status === 401 && requestToken === `Bearer ${currentToken}`) {
       window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
       window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
       window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));

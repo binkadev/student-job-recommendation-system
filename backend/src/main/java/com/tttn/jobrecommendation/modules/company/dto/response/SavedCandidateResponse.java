@@ -1,5 +1,7 @@
 package com.tttn.jobrecommendation.modules.company.dto.response;
 
+import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,6 +13,8 @@ public class SavedCandidateResponse {
 
     private Long id;
     private Long applicationId;
+    private ApplicationStatus applicationStatus;
+    private Long revision;
     private Long studentId;
     private String studentName;
     private String studentEmail;

@@ -8,6 +8,7 @@ import com.tttn.jobrecommendation.common.utils.PageableUtils;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.company.dto.request.SaveCandidateRequest;
+import com.tttn.jobrecommendation.modules.company.dto.request.UpdateSavedCandidateNoteRequest;
 import com.tttn.jobrecommendation.modules.company.dto.request.SavedCandidateFilterRequest;
 import com.tttn.jobrecommendation.modules.company.dto.response.SavedCandidateResponse;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
@@ -67,9 +68,10 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
                 ALLOWED_SORTS
         );
 
+        pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id")));
         Page<SavedCandidate> savedCandidates = savedCandidateRepository.findAll(
-                buildSpecification(company.getId(), request.getKeyword()),
-                pageable
+                buildSpecification(company.getId(), request), pageable
         );
         Map<Long, StudentProfile> profilesByStudentId = getProfilesByStudentId(savedCandidates.getContent());
         List<SavedCandidateResponse> items = savedCandidates.getContent()
@@ -92,7 +94,7 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
     @Override
     @Transactional
     public SavedCandidateResponse saveCandidate(Long userId, SaveCandidateRequest request) {
-        Company company = getCompanyByUserId(userId);
+        Company company = lockCompany(userId);
         JobApplication application = applicationRepository.findDetailedById(request.getApplicationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
 
@@ -125,7 +127,7 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
     @Override
     @Transactional
     public void deleteSavedCandidate(Long userId, Long savedCandidateId) {
-        Company company = getCompanyByUserId(userId);
+        Company company = lockCompany(userId);
         SavedCandidate savedCandidate = savedCandidateRepository.findByIdAndCompanyId(
                         savedCandidateId,
                         company.getId()
@@ -134,13 +136,38 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
         savedCandidateRepository.delete(savedCandidate);
     }
 
-    private Specification<SavedCandidate> buildSpecification(Long companyId, String rawKeyword) {
+    @Override
+    @Transactional
+    public SavedCandidateResponse updateNote(Long userId, Long savedCandidateId, UpdateSavedCandidateNoteRequest request) {
+        Company company = lockCompany(userId);
+        SavedCandidate saved = savedCandidateRepository.findByIdAndCompanyId(savedCandidateId, company.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.SAVED_CANDIDATE_NOT_FOUND));
+        if (!saved.getRevision().equals(request.getRevision())) {
+            throw new AppException(ErrorCode.SAVED_CANDIDATE_REVISION_CONFLICT);
+        }
+        saved.setNote(trimToNull(request.getNote()));
+        savedCandidateRepository.saveAndFlush(saved);
+        StudentProfile profile = studentProfileRepository.findByStudentId(saved.getStudent().getId()).orElse(null);
+        return savedCandidateMapper.toSavedCandidateResponse(saved, profile);
+    }
+
+    // Serialize this company's bookmark mutations, including duplicate saves and double deletes.
+    // No application status or external AI work is performed under this lock.
+    private Company lockCompany(Long userId) {
+        return companyRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+    }
+
+    private Specification<SavedCandidate> buildSpecification(Long companyId, SavedCandidateFilterRequest request) {
         return (root, query, criteriaBuilder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.equal(root.get("company").get("id"), companyId));
+            if (request.getStudentId() != null) predicates.add(criteriaBuilder.equal(root.get("student").get("id"), request.getStudentId()));
+            if (request.getJobId() != null) predicates.add(criteriaBuilder.equal(root.get("application").get("job").get("id"), request.getJobId()));
+            if (request.getApplicationStatus() != null) predicates.add(criteriaBuilder.equal(root.get("application").get("status"), request.getApplicationStatus()));
 
-            if (StringUtils.hasText(rawKeyword)) {
-                String keyword = likeValue(rawKeyword);
+            if (StringUtils.hasText(request.getKeyword())) {
+                String keyword = likeValue(request.getKeyword());
                 var profileHeadline = query.subquery(Long.class);
                 var profileRoot = profileHeadline.from(StudentProfile.class);
                 profileHeadline.select(profileRoot.get("student").get("id"))
@@ -149,24 +176,25 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
                                         profileRoot.get("student").get("id"),
                                         root.get("student").get("id")
                                 ),
-                                criteriaBuilder.like(criteriaBuilder.lower(profileRoot.get("headline")), keyword)
+                                criteriaBuilder.like(criteriaBuilder.lower(profileRoot.get("headline")), keyword, '\\')
                         );
 
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(
                                 criteriaBuilder.lower(root.get("student").get("user").get("fullName")),
-                                keyword
+                                keyword, '\\'
                         ),
                         criteriaBuilder.like(
                                 criteriaBuilder.lower(root.get("student").get("user").get("email")),
-                                keyword
+                                keyword, '\\'
                         ),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("university")), keyword),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("major")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("university")), keyword, '\\'),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("student").get("major")), keyword, '\\'),
                         criteriaBuilder.like(
                                 criteriaBuilder.lower(root.get("application").get("job").get("title")),
-                                keyword
+                                keyword, '\\'
                         ),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("note")), keyword, '\\'),
                         criteriaBuilder.exists(profileHeadline)
                 ));
             }
@@ -198,6 +226,6 @@ public class SavedCandidateServiceImpl implements SavedCandidateService {
     }
 
     private String likeValue(String value) {
-        return "%" + value.trim().toLowerCase(Locale.ROOT) + "%";
+        return "%" + value.trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
     }
 }
