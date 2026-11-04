@@ -1341,7 +1341,18 @@ Disabling a preference suppresses only future automatic notifications of that ty
 
 Roles: any authenticated active user.
 
-Returns newest notifications first. Users only see their own notifications.
+Returns only the JWT user's notifications, ordered by `createdAt DESC, id DESC`.
+Optional `unread=true` selects unread records, `unread=false` selects read records;
+omitting it selects both. Optional `type` is one of `APPLICATION_STATUS_CHANGED`,
+`JOB_STATUS_CHANGED`, `SYSTEM`, `RECOMMENDATION`. Both filters combine with AND.
+Filtering and count execute in PostgreSQL before LIMIT/OFFSET; the existing
+`PageResponse` envelope has filtered `totalItems`/`totalPages`, 1-based page and
+size 1–100 (defaults 1/20). Invalid non-empty boolean/enum values return 400
+`BAD_REQUEST`; invalid page/size returns 400 `VALIDATION_ERROR`.
+Omitted filters retain existing behavior. Out-of-range pages contain no items,
+with the filtered total unchanged. Offset pagination is not a snapshot across
+concurrent writes. `/unread-count` always counts all unread records for the JWT
+user, independently of filters or the current page.
 
 Response item:
 

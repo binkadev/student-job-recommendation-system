@@ -1,5 +1,10 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## Student / Company Settings và Notifications — 2026-11-04
+
+- [API/DB contract, filtering, settings recovery và real browser evidence](student-company-settings-notifications-results.md).
+- Notification filtering/count trước database pagination; account/preferences có read-back và giữ draft khi lỗi; legacy Student If-Match tiếp tục 428/409. Password/unsupported capabilities và giới hạn producer được báo rõ. B06 vẫn **UNRESOLVED / NOT REPRODUCED**, PR #66 giữ Draft.
+
 ## P1 Student application lifecycle — 2026-11-04
 
 - [Transition matrix, PostgreSQL race, withdrawal/reapply UI và browser evidence](student-application-lifecycle-results.md).

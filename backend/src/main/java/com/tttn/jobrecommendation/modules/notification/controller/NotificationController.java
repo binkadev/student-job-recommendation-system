@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.notification.controller;
 
 import com.tttn.jobrecommendation.common.response.ApiResponse;
+import com.tttn.jobrecommendation.common.enums.NotificationType;
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
 import com.tttn.jobrecommendation.modules.notification.dto.response.NotificationResponse;
@@ -31,12 +32,16 @@ public class NotificationController {
     @GetMapping
     public ApiResponse<PageResponse<NotificationResponse>> getMyNotifications(
             @RequestParam(defaultValue = "1") @Min(1) Integer page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) Integer size,
+            @RequestParam(required = false) Boolean unread,
+            @RequestParam(required = false) NotificationType type
     ) {
         return ApiResponse.success(notificationService.getMyNotifications(
                 securityUtils.getCurrentUserId(),
                 page,
-                size
+                size,
+                unread,
+                type
         ));
     }
 

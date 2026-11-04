@@ -12,7 +12,7 @@ import { AuthFlowPage } from "./auth/AuthFlowPage";
 
 vi.mock("../hooks/useAuth", () => ({ useAuth: () => ({ logout: vi.fn() }) }));
 vi.mock("../hooks/useToast", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
-vi.mock("../services/api/httpClient", () => ({ httpClient: { get: vi.fn(() => new Promise(() => undefined)) } }));
+vi.mock("../services/api/httpClient", async original => ({ ...await original<typeof import("../services/api/httpClient")>(), httpClient: { get: vi.fn(() => new Promise(() => undefined)) } }));
 
 describe("unsupported capabilities remain explicit", () => {
   it.each([

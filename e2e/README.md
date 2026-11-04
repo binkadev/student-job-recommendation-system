@@ -1,5 +1,48 @@
 # Real-world E2E (local only)
 
+## Settings / notifications
+
+`settings-notifications.spec.mjs` bổ sung 10 journeys, giữ 54 cases cũ (tổng 64).
+Mutations dùng `studentUi`, `companyUi`, `frontend` và Job riêng của `companyB`;
+password/preferences được restore trong finally. N04 tạo 12 thông báo bằng
+application lifecycle hợp lệ (6 histories REJECTED), rồi soft-close Job riêng.
+Không SQL write vào demo DB, không reset volume. Đọc cả bốn preferences không
+đồng nghĩa cả bốn loại đã có producer; Company demo inbox hiện rỗng.
+
+```powershell
+$env:E2E_USE_DEV_SEED_ADMIN='1'
+npx playwright test settings-notifications.spec.mjs
+```
+
+Populated Company/Student inbox, missing/foreign/closed reference, signed expired
+JWT và response loss sau commit dùng **stack PostgreSQL Testcontainers riêng**:
+
+```powershell
+# Repo root; Java 21, Docker, frontend/e2e dependencies phải đã có.
+.\scripts\run-settings-notifications-isolated-e2e.ps1 -JavaHome $env:JAVA_HOME
+```
+
+Runner compile test-only `NotificationBrowserFixture`, tạo PostgreSQL tạm và
+Backend port ngẫu nhiên + Vite 5175, seed 48 records mỗi role (Company có thêm ba
+reference), chạy sáu browser checks rồi đóng đúng processes/container do runner
+tạo. Không trỏ fixture vào DB demo; không thêm notification producer vào runtime.
+Maven dependency plugin 3.8.1 chỉ xuất test classpath, không thêm production
+dependency. Config riêng không thay testDir/default suite. Không chạy đồng thời
+hai Playwright suites. HTTP thật; offline/response throttling dùng CDP, không
+route mock/fulfil. Credentials/expired JWT/raw artifacts giữ trong `.local/`.
+
+Preservation của package này: capture `summarize-state` vào
+`settings-notifications-baseline.json` trước mutations; SQL digests history/CV/Job
+trong `settings-db-baseline.json` và content variant bỏ riêng CV `updated_at`.
+`node verify-settings-preservation.mjs --capture` chụp thêm PRIMARY identity/password,
+preferences và profile content; từ chối ghi đè baseline đã tồn tại. Sau regression
+chạy `node summarize-state.mjs`, `node verify-preservation.mjs settings-notifications-baseline.json`
+và `node verify-settings-preservation.mjs`. Không chia sẻ digests/credentials/raw JSON.
+`node verify-settings-runtime-persistence.mjs --capture` chụp exact account/preferences/
+inbox/unread của PRIMARY và ba secondary trước Backend-only recreate; chạy lại
+không `--capture` để đối chiếu sau recreate. Không overwrite baseline giữa lượt.
+Xem [report và giới hạn](../docs/datn/student-company-settings-notifications-results.md).
+
 Chạy từ PowerShell tại `e2e/`; Backend/AI/PostgreSQL và Vite phải đang chạy đúng source branch. Node 24/Python 3.11 đã dùng để kiểm chứng. Playwright Test **1.56.1** là dependency dev được khóa riêng trong `package-lock.json`; không thêm dependency production. Chromium tương ứng được tải bằng Playwright.
 
 ```powershell

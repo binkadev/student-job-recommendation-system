@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.notification.service.impl;
 
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.common.enums.NotificationType;
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.notification.dto.response.NotificationResponse;
@@ -16,7 +17,8 @@ import java.util.List;
 public class NoDbNotificationServiceImpl implements NotificationService {
 
     @Override
-    public PageResponse<NotificationResponse> getMyNotifications(Long userId, Integer page, Integer size) {
+    public PageResponse<NotificationResponse> getMyNotifications(Long userId, Integer page, Integer size,
+                                                              Boolean unread, NotificationType type) {
         int pageNumber = page == null ? 1 : page;
         int pageSize = size == null ? 20 : size;
         return new PageResponse<>(List.of(), pageNumber, pageSize, 0, 0);
