@@ -1,5 +1,10 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## Company Dashboard / Reports — 2026-11-04
+
+- [Full SQL aggregates, date/rate definitions, filtered CSV và real E2E](company-dashboard-reports-results.md).
+- Loại bỏ analytics từ100 sampled rows; full JWT-owner scope, histories/distinct Students tách biệt, explicit UTC và CSV row limit/safety. Không thay moderation/lifecycle/scoring. PR #66 giữ Draft; B06 UNRESOLVED / NOT REPRODUCED.
+
 ## Student / Company Settings và Notifications — 2026-11-04
 
 - [API/DB contract, filtering, settings recovery và real browser evidence](student-company-settings-notifications-results.md).

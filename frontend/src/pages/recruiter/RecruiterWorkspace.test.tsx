@@ -11,6 +11,7 @@ import { RecruiterDashboardPage } from "./RecruiterDashboardPage";
 import { RecruiterReportsPage } from "./RecruiterReportsPage";
 
 vi.mock("../../services/api/httpClient", () => ({ AUTH_TOKEN_STORAGE_KEY: "job-system:auth-token", httpClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ currentUser: { id: "company-test" } }) }));
 // Chart geometry requires a browser; this suite checks data states and actions.
 vi.mock("recharts", () => ({
   ResponsiveContainer: () => null, Bar: () => null, BarChart: () => null, CartesianGrid: () => null,
@@ -34,6 +35,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(httpClient.get).mockImplementation(async (url) => {
     if (url === "/companies/me") return envelope({ id: 7, status: "VERIFIED" });
+    if (url === "/companies/me/dashboard-summary") return envelope({ summary: { totalApplications: 120, uniqueStudents: 100, statusCounts: { PENDING: 120, REVIEWED: 0, ACCEPTED: 0, REJECTED: 0, WITHDRAWN: 0 }, acceptedRate: 0 }, jobCounts: { ACTIVE: 130 }, totalJobs: 130, trendFrom: "2026-10-06", trendTo: "2026-11-04", trend: [], topJobs: [], expiringJobs: [], expiringJobCount: 0, recentApplications: { ...page([application]), size: 5, totalItems: 120 } });
+    if (url === "/companies/me/recruitment-report") return envelope({ scope: { from: null, to: null, jobId: null, status: null, keyword: null, timeZone: "UTC" }, summary: { totalApplications: 120, uniqueStudents: 100, statusCounts: { PENDING: 120, REVIEWED: 0, ACCEPTED: 0, REJECTED: 0, WITHDRAWN: 0 }, acceptedRate: 0 }, trend: [], topJobs: [], applications: { ...page([application]), totalItems: 120, totalPages: 12 } });
     if (url === "/jobs") return envelope(page([job]));
     if (url === "/skills") return envelope(page([{ id: 5, name: "React", category: "Frontend" }]));
     if (url === "/companies/me/applications") return envelope(page([application]));
@@ -100,12 +103,12 @@ describe("Recruiter application workspace", () => {
 });
 
 describe("Recruiter dashboard", () => {
-  it("explains the loaded sample and preserves navigation to real workflows", async () => {
+  it("uses full server totals and preserves navigation to real workflows", async () => {
     renderPage(<RecruiterDashboardPage />);
-    await screen.findByText(/Các số đếm theo trạng thái và biểu đồ/);
+    await screen.findByText(/Số đếm toàn bộ lịch sử/);
     expect(screen.getByRole("link", { name: "Tạo tin tuyển dụng" })).toHaveAttribute("href", "/recruiter/jobs/create");
     expect(screen.getByRole("link", { name: "Xem hồ sơ ứng tuyển" })).toHaveAttribute("href", "/recruiter/candidates");
-    expect(screen.getByText(/14 ngày gần nhất từ dữ liệu đã tải/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Tin đang tuyển.*130/ })).toBeInTheDocument();
   });
 
   it("offers retry on API failure without showing zero statistics as success", async () => {
@@ -117,7 +120,7 @@ describe("Recruiter dashboard", () => {
 });
 
 describe("Recruiter reports data scope", () => {
-  it("excludes other companies' public jobs and explains the loaded sample instead of global totals", async () => {
+  it("uses owner-scoped aggregate report instead of sampling mixed-scope jobs", async () => {
     const original = vi.mocked(httpClient.get).getMockImplementation()!;
     vi.mocked(httpClient.get).mockImplementation(async (url, config) => {
       if (url === "/jobs") return envelope({ ...page([job, { ...job, id: 100, companyId: 999, title: "Other company public job" }]), totalItems: 300 });
@@ -125,11 +128,11 @@ describe("Recruiter reports data scope", () => {
       return original(url, config);
     });
     renderPage(<RecruiterReportsPage />);
-    expect(await screen.findByText(/Phạm vi:/)).toHaveTextContent("1/120 đơn ứng tuyển");
-    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("2/300 tin");
-    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("lọc còn 1 tin của công ty");
+    expect(await screen.findByText(/Phạm vi:/)).toHaveTextContent("toàn bộ lịch sử");
+    expect(screen.getByText("Đơn trong phạm vi lọc").parentElement).toHaveTextContent("120");
+    expect(httpClient.get).not.toHaveBeenCalledWith("/jobs", expect.anything());
     expect(screen.queryByRole("option", { name: "Other company public job" })).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Frontend Developer" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "91" })).toHaveAttribute("href", "/recruiter/candidates/91");
     expect(screen.queryByText("Tổng ứng viên")).not.toBeInTheDocument();
   });
 
@@ -141,6 +144,6 @@ describe("Recruiter reports data scope", () => {
     expect(screen.queryByText("Đơn trong phạm vi lọc")).not.toBeInTheDocument();
     await user.click(retry);
     await screen.findByText("Đơn trong phạm vi lọc");
-    expect(screen.getByText(/Phạm vi:/)).toHaveTextContent("1/1 đơn ứng tuyển");
+    expect(screen.getByText("Đơn trong phạm vi lọc").parentElement).toHaveTextContent("120");
   });
 });

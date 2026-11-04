@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { login, ok, readLocal, writeLocal } from './helpers.mjs';
 
-const baseline = readLocal('settings-notifications-baseline.json');
+const namespace = process.argv.includes('--analytics') ? 'analytics' : 'settings';
+const baseline = readLocal(namespace === 'analytics' ? 'analytics-baseline.json' : 'settings-notifications-baseline.json');
 const ids = ['student', 'company'].map(alias => Number(baseline.accounts[alias].userId));
 assert.ok(ids.every(id => Number.isSafeInteger(id) && id > 0));
 const studentId = Number(baseline.accounts.student.resourceId), companyId = Number(baseline.accounts.company.resourceId);
@@ -31,7 +32,7 @@ function content(value) {
   return value;
 }
 const current = { digests, profile: content(profile) };
-const filename = 'settings-security-content-baseline.json';
+const filename = `${namespace}-security-content-baseline.json`;
 if (process.argv.includes('--capture')) {
   // Never silently replace a baseline during a work package.
   try { readLocal(filename); throw new Error('Settings baseline already exists; choose a new work-package namespace.'); }
@@ -42,7 +43,7 @@ if (process.argv.includes('--capture')) {
   const before = readLocal(filename);
   const checks = Object.fromEntries(Object.keys(before.digests).map(key => [key, JSON.stringify(before.digests[key]) === JSON.stringify(current.digests[key])]));
   checks.primaryProfileContent = JSON.stringify(before.profile) === JSON.stringify(current.profile);
-  writeLocal('settings-security-preservation.json', { checkedAt: new Date().toISOString(), checks });
+  writeLocal(`${namespace}-security-preservation.json`, { checkedAt: new Date().toISOString(), checks });
   console.log(JSON.stringify(checks));
   assert.ok(Object.values(checks).every(Boolean), 'PRIMARY content changed; inspect local evidence.');
   function compareRows(beforeRows, contentOnly) {
@@ -55,9 +56,9 @@ if (process.argv.includes('--capture')) {
     }
     return { passed: mismatches.length === 0, counts, mismatches };
   }
-  const strict = compareRows(readLocal('settings-db-baseline.json'), false);
-  const cvContent = compareRows(readLocal('settings-db-content-baseline.json'), true);
-  writeLocal('settings-row-preservation.json', { checkedAt: new Date().toISOString(), strict, cvContent });
+  const strict = compareRows(readLocal(`${namespace}-db-baseline.json`), false);
+  const cvContent = compareRows(readLocal(`${namespace}-db-content-baseline.json`), true);
+  writeLocal(`${namespace}-row-preservation.json`, { checkedAt: new Date().toISOString(), strict, cvContent });
   console.log(JSON.stringify({ strict, cvContent }));
   assert.ok(cvContent.passed, 'Protected content or history changed; inspect row evidence.');
   assert.ok(strict.mismatches.every(row => row.kind === 'primaryCvs'), 'Unexpected strict mismatch outside CV timestamps.');

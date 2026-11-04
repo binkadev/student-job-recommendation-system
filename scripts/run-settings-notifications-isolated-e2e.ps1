@@ -1,11 +1,13 @@
-param([string]$JavaHome = $env:JAVA_HOME)
+param([string]$JavaHome = $env:JAVA_HOME, [ValidateSet('notifications','analytics')][string]$Suite = 'notifications')
 $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskBackend = Join-Path $taskRoot 'backend'
 $taskFrontend = Join-Path $taskRoot 'frontend'
 $taskE2e = Join-Path $taskRoot 'e2e'
 $taskLocal = Join-Path $taskE2e '.local'
-$taskFixture = Join-Path $taskLocal 'settings-isolated-fixture.json'
+$taskPrefix = if ($Suite -eq 'analytics') { 'analytics' } else { 'settings' }
+$taskFixtureClass = if ($Suite -eq 'analytics') { 'CompanyAnalyticsBrowserFixture' } else { 'NotificationBrowserFixture' }
+$taskFixture = Join-Path $taskLocal ($taskPrefix + '-isolated-fixture.json')
 $taskStop = $taskFixture + '.stop'
 $taskJvm = $null
 $taskVite = $null
@@ -29,8 +31,8 @@ try {
     if ($taskCompileExit -ne 0) { throw 'Isolated fixture compilation failed.' }
     $taskClasspath = (Join-Path $taskBackend 'target/test-classes') + ';' + (Join-Path $taskBackend 'target/classes') + ';' + [System.IO.File]::ReadAllText((Join-Path $taskBackend 'target/settings-browser-classpath.txt')).Trim()
     $taskJvm = Start-Process -FilePath $taskJavaExe -WindowStyle Hidden -PassThru -WorkingDirectory $taskBackend `
-        -ArgumentList @('-cp', ('"' + $taskClasspath + '"'), 'com.tttn.jobrecommendation.integration.NotificationBrowserFixture', ('"' + $taskFixture + '"')) `
-        -RedirectStandardOutput (Join-Path $taskLocal 'settings-isolated-server.log') -RedirectStandardError (Join-Path $taskLocal 'settings-isolated-server.err.log')
+        -ArgumentList @('-cp', ('"' + $taskClasspath + '"'), ('com.tttn.jobrecommendation.integration.' + $taskFixtureClass), ('"' + $taskFixture + '"')) `
+        -RedirectStandardOutput (Join-Path $taskLocal ($taskPrefix + '-isolated-server.log')) -RedirectStandardError (Join-Path $taskLocal ($taskPrefix + '-isolated-server.err.log'))
     $taskDeadline = (Get-Date).AddSeconds(60)
     while (!(Test-Path -LiteralPath $taskFixture)) {
         if ($taskJvm.HasExited -or (Get-Date) -gt $taskDeadline) { throw 'Isolated fixture did not become ready; inspect local server logs.' }
@@ -41,7 +43,7 @@ try {
     $env:VITE_API_PROXY_TARGET = $taskMetadata.backendUrl
     $taskVite = Start-Process -FilePath (Get-Command node.exe).Source -WindowStyle Hidden -PassThru -WorkingDirectory $taskFrontend `
         -ArgumentList @(('"' + (Join-Path $taskFrontend 'node_modules/vite/bin/vite.js') + '"'), '--host', '127.0.0.1', '--port', '5175', '--strictPort') `
-        -RedirectStandardOutput (Join-Path $taskLocal 'settings-isolated-vite.log') -RedirectStandardError (Join-Path $taskLocal 'settings-isolated-vite.err.log')
+        -RedirectStandardOutput (Join-Path $taskLocal ($taskPrefix + '-isolated-vite.log')) -RedirectStandardError (Join-Path $taskLocal ($taskPrefix + '-isolated-vite.err.log'))
     $taskReady = $false
     $taskDeadline = (Get-Date).AddSeconds(20)
     while (!$taskReady) {
@@ -51,7 +53,7 @@ try {
     }
     Set-Location $taskE2e
     $ErrorActionPreference = 'Continue'
-    & .\node_modules\.bin\playwright.cmd test --config=settings-isolated.playwright.config.mjs
+    & .\node_modules\.bin\playwright.cmd test ("--config=" + $taskPrefix + "-isolated.playwright.config.mjs")
     $taskBrowserExit = $LASTEXITCODE
     $ErrorActionPreference = 'Stop'
     if ($taskBrowserExit -ne 0) { throw 'Isolated browser checks failed; inspect local Playwright results.' }

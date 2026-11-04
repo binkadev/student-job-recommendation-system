@@ -3,6 +3,7 @@ package com.tttn.jobrecommendation.common.exception;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
+    REPORT_EXPORT_LIMIT_EXCEEDED("REPORT_EXPORT_LIMIT_EXCEEDED", "Report exceeds export row limit; narrow filters", HttpStatus.UNPROCESSABLE_ENTITY),
     SAVED_CANDIDATE_REVISION_CONFLICT("SAVED_CANDIDATE_REVISION_CONFLICT", "Note changed; reload and compare before saving", HttpStatus.CONFLICT),
     BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),
     VALIDATION_ERROR("VALIDATION_ERROR", "Validation error", HttpStatus.BAD_REQUEST),

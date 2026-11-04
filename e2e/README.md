@@ -1,5 +1,28 @@
 # Real-world E2E (local only)
 
+## Company analytics
+
+`company-analytics.spec.mjs` bổ sung D01/D02 (default suite66 =64 cũ +2 read-only
+journeys): Company Dashboard/Reports/CSV đối chiếu API, Student main totals và offline
+unknown/recovery. Không mock HTTP. Large dataset không seed vào demo.
+
+```powershell
+# Repo root; six isolated analytics journeys, two Companies with130 Jobs/362 histories each.
+.\scripts\run-settings-notifications-isolated-e2e.ps1 -JavaHome $env:JAVA_HOME -Suite analytics
+# Run default6 notification cases separately, unchanged default Suite.
+.\scripts\run-settings-notifications-isolated-e2e.ps1 -JavaHome $env:JAVA_HOME
+```
+
+Analytics config riêng `analytics-isolated.playwright.config.mjs`; disposable
+PostgreSQL + random Backend port + Vite5175. Q01–Q06 verify SQL-independent totals,
+7/30/90 days, histories vs distinct Students, month/Job/status filtering, detail
+pages, full362-row RFC4180 CSV (BOM/Vietnamese/formula/multiline), ownership/BLOCKED,
+offline/stale filters/account switch, five viewports. SQL uses BEGIN READ ONLY;
+core application digests compare before/after. No authenticated trace/video.
+Runtime metrics/counts/CSV/downloads/credentials remain gitignored `.local`/test-results.
+`analytics-csv.mjs` only parses assertions, not production export generation.
+See [contract/calculations/preservation evidence](../docs/datn/company-dashboard-reports-results.md).
+
 ## Settings / notifications
 
 `settings-notifications.spec.mjs` bổ sung 10 journeys, giữ 54 cases cũ (tổng 64).

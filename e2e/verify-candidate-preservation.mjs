@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { readLocal, writeLocal } from './helpers.mjs';
 
 // Read-only digests computed inside PostgreSQL; no CV text, notes, JWT or passwords leave it.
-const baseline = readLocal('candidates-baseline.json');
+const namespace = process.argv.includes('--analytics') ? 'analytics' : 'candidates';
+const baseline = readLocal(`${namespace}-baseline.json`);
 const studentId = Number(baseline.accounts.student.resourceId), companyId = Number(baseline.accounts.company.resourceId);
 assert.ok(Number.isSafeInteger(studentId) && Number.isSafeInteger(companyId));
 const cvContent = process.argv.includes('--cv-content');
@@ -22,8 +23,12 @@ const result = execFileSync('docker', ['exec', '-i', 'student-job-recommendation
 const current = Object.fromEntries(result.trim().split(/\r?\n/).map(line => { const row = JSON.parse(line); return [row.kind, row.rows]; }));
 // Separate baseline/evidence: never silently reinterpret or overwrite a strict snapshot.
 // Existing A03 deliberately changes CV active flags and updated_at, restoring the active CV.
-const filename = cvContent ? 'candidates-db-content-baseline.json' : 'candidates-db-baseline.json';
+const filename = cvContent ? `${namespace}-db-content-baseline.json` : `${namespace}-db-baseline.json`;
 if (process.argv.includes('--capture')) {
+  if (namespace === 'analytics') {
+    try { readLocal(filename); throw new Error('Do not overwrite the analytics preservation baseline.'); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
   writeLocal(filename, current); console.log('Captured read-only PostgreSQL digests of PRIMARY data and existing V3 history.');
 } else {
   const before = readLocal(filename), counts = {}, mismatches = [];
@@ -32,7 +37,7 @@ if (process.argv.includes('--capture')) {
     counts[kind] = { preserved: Object.keys(rows).length - mismatches.filter(row => row.kind === kind).length, changed: mismatches.filter(row => row.kind === kind).length, added: Object.keys(current[kind]).filter(id => !rows[id]).length };
   }
   const evidence = { passed: mismatches.length === 0, cvUpdatedAtExcluded: cvContent, measuredAt: new Date().toISOString(), counts, mismatches };
-  writeLocal(cvContent ? 'candidates-db-content-preservation.json' : 'candidates-db-preservation.json', evidence);
+  writeLocal(cvContent ? `${namespace}-db-content-preservation.json` : `${namespace}-db-preservation.json`, evidence);
   console.log(JSON.stringify(evidence));
   assert.equal(mismatches.length, 0, 'Existing protected rows changed; inspect the explicit evidence.');
 }

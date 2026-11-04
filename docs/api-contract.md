@@ -461,6 +461,70 @@ Deletes only the authenticated student's saved-search record. A foreign or absen
 
 ## Company
 
+### GET `/api/companies/me/dashboard-summary?days=30`
+
+COMPANY only, JWT-derived owner, including internal management for PENDING/BLOCKED
+Companies. No client ownership/sort parameters; unsupported/duplicate query keys
+return400. `days` must be7/30/90 (default30), invalid400. `ApiResponse<Dashboard>`:
+
+- `jobCounts` for all six persisted Job statuses and `totalJobs`: all owned Jobs,
+  independent of public visibility and the trend period.
+- `summary.totalApplications`, `uniqueStudents`, five `statusCounts`, `acceptedRate`:
+  all owned application **history rows**. Reapplications count separately; unique
+  students are DISTINCT student_id. Rate is current ACCEPTED/all histories×100,
+  including WITHDRAWN, HALF_UP2 decimals; zero denominator returns null.
+- `trendFrom`,`trendTo`,`timeZone="UTC"`,`trend[{bucket,applications}]`: exactly
+  N UTC calendar dates ending today inclusive, filled zero dates.
+- `topJobs`: top10 owned Jobs by history count DESC, jobId ASC, including count,
+  accepted and rate; this is an explicitly limited leaderboard, not all Jobs.
+- `recentApplications`: PageResponse with page1/size5/full all-time total and
+  latest5 rows ordered appliedAt DESC,id DESC. `expiringJobCount` counts owned
+  ACTIVE Jobs with deadline in [today,today+14] inclusive; `expiringJobs` contains
+  first5 by deadline ASC,id ASC. Null/past deadlines excluded.
+
+### GET `/api/companies/me/recruitment-report`
+
+COMPANY only. Optional `from`,`to` ISO calendar dates (years1–9998, from≤to),
+positive `jobId`, `status` PENDING/REVIEWED/ACCEPTED/REJECTED/WITHDRAWN, literal
+case-insensitive `keyword`≤255 (Student name/email, Job title, original CV filename),
+page≥1/size1–100 default1/10. All filters combine before database aggregation/count/
+LIMIT/OFFSET. `%`, `_`, backslash are literal keyword characters. Missing/foreign
+Job filter404; role403; unauth401; invalid/unknown/duplicate parameters400.
+
+Response `ApiResponse<Report>` includes normalized `scope` (from/to/jobId/status/
+keyword/timeZone), `summary` with the definitions above applied to the **full filtered
+set**, monthly nonempty `trend`, `topJobs`+`topJobLimit=10`, `applications` PageResponse.
+Application rows contain IDs, name/email, Job title/status, applied/reviewed timestamps,
+original CV filename; never hashes, stored filenames or internal paths. Empty result:
+five status zeros, total/unique0, rate null, empty trend/items. Out-of-range page may
+have empty items with unchanged filtered total. No dataset snapshot across page requests.
+
+Dates explicitly use UTC stored-calendar convention, `[from 00:00,to+1 00:00)` on
+applied_at. TIMESTAMP WITHOUT TIME ZONE columns have no historical source offset;
+analytics does not reinterpret/rewrite legacy rows or assume host timezone. Historical
+non-UTC producers require a separate reviewed migration to recover/standardize offsets.
+All queries for a single response execute in one read-only REPEATABLE_READ transaction.
+Current statuses are reported; there is no accepted-at audit cohort metric.
+
+### GET `/api/companies/me/recruitment-report/export`
+
+Same authenticated scope/filters as report, excluding page/size. JSON
+`ApiResponse<{scope,rowCount,encoding:"UTF-8",maxRows:10000,csv}>`, preserving the
+JSON API envelope; browser downloads the CSV string. **Full filtered dataset**,
+appliedAt DESC,id DESC. Count>10000 returns422 `REPORT_EXPORT_LIMIT_EXCEEDED`,
+without truncation. Count/export share one read-only transaction snapshot. A separate
+export request can observe changes since the previous report; rowCount is authoritative
+for that export. No background export job.
+
+CSV columns: applicationId,studentId,studentName,studentEmail,jobId,jobTitle,status,
+appliedAt,reviewedAt,cvFileName. UTF-8 BOM, CRLF, double-quoted/escaped cells and
+embedded newlines. Text starting with =,+,-,@ after leading whitespace, or starting
+tab/CR/LF, is prefixed with apostrophe for spreadsheet safety. CSV contains owned
+PII, requires authentication and Company authorization; never commit real downloads.
+No Job/Application state mutation, migration, scoring or notification change.
+
+Runtime/SQL evidence: [Company Dashboard & Reports](datn/company-dashboard-reports-results.md).
+
 ### GET `/api/companies/me/jobs`
 
 Role: `COMPANY`. Management list scoped exclusively to the authenticated User's Company, including PENDING/BLOCKED Companies. Company ownership is resolved by Backend; client `companyId`, `userId`, `sort`, and other unknown query parameters return 400 `BAD_REQUEST`.
