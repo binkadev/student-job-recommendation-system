@@ -426,7 +426,11 @@ class SavedCandidateApiIT extends AbstractPostgresWebIntegrationTest {
                     .schemas(schema).defaultSchema(schema).createSchemas(true);
             configuration.target("19").load().migrate();
             for (String table : java.util.List.of("users", "students", "companies", "jobs", "cv_files", "applications")) {
-                jdbcTemplate.execute("insert into " + schema + "." + table + " select * from " + sourceSchema + "." + table);
+                // Copy every V19 column explicitly: the live source can contain newer additive columns.
+                var legacyColumns = jdbcTemplate.queryForList("select column_name from information_schema.columns where table_schema=? and table_name=? order by ordinal_position", String.class, schema, table);
+                assertThat(legacyColumns).isNotEmpty();
+                String legacyNames = String.join(",", legacyColumns);
+                jdbcTemplate.execute("insert into " + schema + "." + table + " (" + legacyNames + ") select " + legacyNames + " from " + sourceSchema + "." + table);
             }
             String columns = "id,company_id,student_id,application_id,note,created_at,updated_at";
             jdbcTemplate.execute("insert into " + schema + ".saved_candidates (" + columns + ") select " + columns + " from " + sourceSchema + ".saved_candidates");

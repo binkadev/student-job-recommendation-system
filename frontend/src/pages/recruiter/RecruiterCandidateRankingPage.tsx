@@ -1,5 +1,8 @@
 import { ArrowLeft, History, RefreshCw, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GenerationRecovery } from "../../features/shared/ranking/GenerationRecovery";
+import { useGenerationRecovery } from "../../features/shared/ranking/useGenerationRecovery";
+import { useSessionAlive } from "../../features/account/useSessionAlive";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -38,6 +41,9 @@ export function RecruiterCandidateRankingPage() {
   const [primaryLimit, setPrimaryLimit] = useState("30");
   const [fallbackLimit, setFallbackLimit] = useState("30");
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
+  const alive = useSessionAlive();
+  const recovery = useGenerationRecovery(() => getCandidateRankingRuns(jobId), () => setReloadKey(current => current + 1));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState("");
   const [analysisResult, setAnalysisResult] = useState<CandidateRankingResult | null>(null);
@@ -59,7 +65,7 @@ export function RecruiterCandidateRankingPage() {
   const fallbackResults = useMemo(() => results.filter((result) => result.rankingTier === "FALLBACK").sort(compareTierRank), [results]);
   const legacyResults = useMemo(() => results.filter((result) => result.rankingTier == null), [results]);
   const isProcessing = run?.status === "PROCESSING" || run?.status === "PENDING";
-  const canCreateRun = !creating && !isProcessing && Boolean(jobId);
+  const canCreateRun = !creating && !recovery.blocked && !isProcessing && Boolean(jobId);
   useEffect(() => {
     if (!isProcessing || selectedRunId) return;
     const timer = window.setTimeout(() => setReloadKey((current) => current + 1), 5000);
@@ -69,6 +75,7 @@ export function RecruiterCandidateRankingPage() {
   const filteredRuns = useMemo(() => runsQuery.data ?? [], [runsQuery.data]);
 
   async function createRun() {
+    if (creatingRef.current || recovery.blocked || !alive()) return;
     const thresholdValue = Number(threshold);
     const primaryLimitValue = Number(primaryLimit);
     const fallbackLimitValue = Number(fallbackLimit);
@@ -81,16 +88,19 @@ export function RecruiterCandidateRankingPage() {
       return;
     }
 
-    setCreating(true);
+    creatingRef.current = true; setCreating(true);
     try {
       const detail = await createCandidateRankingRun(jobId, { threshold: thresholdValue, primaryLimit: primaryLimitValue, fallbackLimit: fallbackLimitValue });
+      if (!alive()) return;
       setSelectedRunId(detail.run.id);
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Lần chạy #${detail.run.id}` });
     } catch (error) {
+      if (!alive()) return;
+      recovery.requireReadBack();
       showToast({ type: "error", title: "Không thể chạy xếp hạng", message: getCreateRunErrorMessage(error) });
     } finally {
-      setCreating(false);
+      creatingRef.current = false; if (alive()) setCreating(false);
     }
   }
 
@@ -134,6 +144,7 @@ export function RecruiterCandidateRankingPage() {
 
   return (
     <PageContainer>
+      <GenerationRecovery recovery={recovery} />
       <PageHeader title="Ứng viên phù hợp" description="Xếp hạng ứng viên đã ứng tuyển theo từng tin tuyển dụng." />
       <Card>
         <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">

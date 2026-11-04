@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { login, ok, readLocal, writeLocal } from './helpers.mjs';
 
-const namespace = process.argv.includes('--analytics') ? 'analytics' : 'settings';
-const baseline = readLocal(namespace === 'analytics' ? 'analytics-baseline.json' : 'settings-notifications-baseline.json');
+const namespace = process.argv.includes('--reliability') ? 'reliability' : process.argv.includes('--analytics') ? 'analytics' : 'settings';
+const baseline = readLocal(namespace === 'settings' ? 'settings-notifications-baseline.json' : `${namespace}-baseline.json`);
 const ids = ['student', 'company'].map(alias => Number(baseline.accounts[alias].userId));
 assert.ok(ids.every(id => Number.isSafeInteger(id) && id > 0));
 const studentId = Number(baseline.accounts.student.resourceId), companyId = Number(baseline.accounts.company.resourceId);

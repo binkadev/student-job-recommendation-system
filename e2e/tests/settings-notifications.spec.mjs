@@ -87,7 +87,7 @@ for (const alias of ['studentUi', 'companyUi']) {
     } finally {
       await context.setOffline(false);
       const current = await api('GET', route, token);
-      await ok('PUT', route, token, { [field]: initial.data[field] }, role === 'candidate' ? { 'If-Match': current.etag } : {});
+      await ok('PUT', route, token, { [field]: initial.data[field] }, { 'If-Match': current.etag });
     }
   });
 
@@ -109,7 +109,7 @@ for (const alias of ['studentUi', 'companyUi']) {
       await context.setOffline(false); await replaceReviewed(page);
       await expect(control).toHaveAttribute('aria-checked', String(wanted.systemEnabled));
       evidence.cases[`N02-${role}`] = { persistedAllFourFlags: true, offlineDraftRetained: true, explicitReadBack: true };
-    } finally { await context.setOffline(false); await ok('PUT', prefRoute, token, initial); }
+    } finally { await context.setOffline(false); const current = await api('GET', prefRoute, token); await ok('PUT', prefRoute, token, initial, { 'If-Match': current.etag }); }
   });
 
   test(`N03 ${role} secondary password change, login and restore`, async ({ page }) => {
@@ -153,7 +153,8 @@ test('N04 Student real application notifications: pagination, filters, offline, 
   const settingsBefore = pick(await ok('GET', prefRoute, student));
   let job;
   try {
-    await ok('PUT', prefRoute, student, { ...settingsBefore, applicationStatusEnabled: true });
+    const captured = await api('GET', prefRoute, student);
+    await ok('PUT', prefRoute, student, { ...settingsBefore, applicationStatusEnabled: true }, { 'If-Match': captured.etag });
     job = await ok('POST', '/jobs', owner, { title: `Notifications secondary [${randomUUID().slice(0, 8)}]`, description: 'Synthetic notification QA only. Java Git SQL internship with mentoring.', requirements: 'Git SQL', location: 'Hà Nội', jobType: 'INTERNSHIP', workingModel: 'HYBRID', deadline: '2099-12-31', status: 'DRAFT', skills: [] });
     await ok('PATCH', `/jobs/${job.id}/status`, owner, { status: 'PENDING_APPROVAL' });
     await ok('PATCH', `/jobs/${job.id}/status`, admin, { status: 'ACTIVE' });
@@ -206,7 +207,7 @@ test('N04 Student real application notifications: pagination, filters, offline, 
     expect(foreign.status).toBe(404); expect(foreign.data).toBeNull();
     evidence.cases.N04 = { generated: 12, pageSize: 10, filteredEmptyTotal: 0, filterResetsPage: true, offlineRetained: true, readOne: 200, allRead: 200, reloadUnread: 0, foreign: 404, closedJobApplicationNavigation: true };
   } finally {
-    await context.setOffline(false); await ok('PUT', prefRoute, student, settingsBefore);
+    await context.setOffline(false); const current = await api('GET', prefRoute, student); await ok('PUT', prefRoute, student, settingsBefore, { 'If-Match': current.etag });
     if (job && (await ok('GET', `/jobs/${job.id}`, owner)).status === 'ACTIVE') await ok('PATCH', `/jobs/${job.id}/status`, owner, { status: 'CLOSED' });
   }
 });

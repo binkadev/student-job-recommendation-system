@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import type { UserRole } from "../types/auth";
+import { AUTH_TOKEN_STORAGE_KEY } from "../services/api/httpClient";
 
 const dashboardByRole: Record<UserRole, string> = {
   candidate: "/candidate/dashboard",
@@ -20,11 +21,11 @@ export function GuestRoute() {
 }
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, currentUser } = useAuth();
   const location = useLocation();
   if (isInitializing) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />;
-  return <Outlet />;
+  return <Outlet key={`${currentUser?.id}:${sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)}`} />;
 }
 
 export function RoleRoute({ role }: { role: UserRole }) {

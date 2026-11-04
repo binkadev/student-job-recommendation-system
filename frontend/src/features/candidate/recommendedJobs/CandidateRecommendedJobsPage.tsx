@@ -18,6 +18,9 @@ import { useToast } from "../../../hooks/useToast";
 import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
 import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { formatNormalizedScore } from "../../shared/ranking/rankingScoreTypes";
+import { GenerationRecovery } from "../../shared/ranking/GenerationRecovery";
+import { useGenerationRecovery } from "../../shared/ranking/useGenerationRecovery";
+import { useSessionAlive } from "../../account/useSessionAlive";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 import { formatExperience } from "../../public/jobs/experienceDisplay";
 import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
@@ -72,6 +75,8 @@ export function CandidateRecommendedJobsPage() {
   const runsQuery = useAsyncData(() => getRecommendationRuns(), [reloadKey]);
   const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
   const latestRun = runsQuery.data?.[0];
+  const alive = useSessionAlive();
+  const recovery = useGenerationRecovery(getRecommendationRuns, () => setReloadKey(current => current + 1));
   const latestRunSuccess = latestRun?.status === "SUCCESS";
   const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
   const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
@@ -92,7 +97,7 @@ export function CandidateRecommendedJobsPage() {
   const notReadyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => !cv.ready), [cvsQuery.data]);
   const selectedCv = useMemo(() => cvsQuery.data?.find((cv) => cv.id === selectedCvId), [cvsQuery.data, selectedCvId]);
   const selectedCvReady = Boolean(selectedCv?.ready);
-  const generateDisabled = generating || cvsQuery.loading || !selectedCvId || !selectedCvReady;
+  const generateDisabled = generating || recovery.blocked || latestRun?.status === "PROCESSING" || cvsQuery.loading || !selectedCvId || !selectedCvReady;
 
   useEffect(() => {
     if (selectedCvId || !readyCvs.length) return;
@@ -137,7 +142,7 @@ export function CandidateRecommendedJobsPage() {
   }
 
   async function refreshRecommendations() {
-    if (generatingRef.current) return;
+    if (generatingRef.current || recovery.blocked || !alive()) return;
     if (!selectedCvId) {
       showToast({ type: "error", title: "Chưa có CV sẵn sàng", message: "Vui lòng phân tích CV đến trạng thái READY trước khi tạo gợi ý." });
       return;
@@ -160,14 +165,17 @@ export function CandidateRecommendedJobsPage() {
     setGenerating(true);
     try {
       await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
+      if (!alive()) return;
       setSelectedRunId("");
       showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại khi có kết quả mới." });
       setReloadKey((current) => current + 1);
     } catch (error) {
+      if (!alive()) return;
+      recovery.requireReadBack();
       showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getApiErrorMessage(error) });
     } finally {
       generatingRef.current = false;
-      setGenerating(false);
+      if (alive()) setGenerating(false);
     }
   }
 
@@ -189,6 +197,7 @@ export function CandidateRecommendedJobsPage() {
   return (
     <PageContainer>
       <PageHeader title="Việc làm gợi ý" description="Khám phá cơ hội từ CV của bạn, hiểu kỹ năng phù hợp và những điểm cần bổ sung." />
+      <GenerationRecovery recovery={recovery} />
       {applications?.some(item => item.status === "WITHDRAWN") ? <p className="mb-4 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
 
       {appliedSyncError ? <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

@@ -227,7 +227,7 @@ class JobModerationApiIT extends AbstractPostgresWebIntegrationTest {
                             .andExpect(status().isOk());
                 } catch (Exception e) { throw new AssertionError(e); }
                 int adminConnection = jdbcTemplate.queryForObject("SELECT pg_backend_pid()", Integer.class);
-                var edit = pool.submit(() -> mockMvc.perform(put("/api/companies/me").header("Authorization", ownerToken)
+                var edit = pool.submit(() -> mockMvc.perform(put("/api/companies/me").header("Authorization", ownerToken).header("If-Match", com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(0))
                                 .contentType("application/json").content("{\"description\":\"Updated profile\"}"))
                         .andReturn().getResponse().getStatus());
                 await().pollInterval(Duration.ofMillis(20)).atMost(Duration.ofSeconds(10)).until(() ->

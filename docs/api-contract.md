@@ -85,7 +85,7 @@ Common protected-endpoint errors:
 - `CV_ANALYSIS_NOT_READY`: recommendation generation selected a CV whose persisted analysis status is not `READY`, or whose processed text or required language/version metadata is absent or incompatible (`409 Conflict`).
 - `CV_ANALYSIS_FAILED`: an unexpected CV-analysis integration failure occurred (`502 Bad Gateway`).
 - `FEATURE_NOT_SUPPORTED`: an authenticated owner requested a compatibility endpoint that is intentionally unavailable in the MVP (`501 Not Implemented`).
-- `AI_SERVICE_UNAVAILABLE`: the AI service connection failed or the service returned a server error (`503 Service Unavailable`).
+- `AI_SERVICE_UNAVAILABLE`: the AI service connection failed (including a socket reset during response-body reading) or the service returned a server error (`503 Service Unavailable`).
 - `AI_SERVICE_TIMEOUT`: the AI service exceeded the configured read/connect timeout (`504 Gateway Timeout`).
 - `AI_SERVICE_INVALID_RESPONSE`: the AI service rejected the request, returned malformed JSON, or violated its typed response contract (`502 Bad Gateway`).
 - `RECOMMENDATION_RUN_NOT_FOUND`: a recommendation run is absent or not owned by the current student (`404 Not Found`).
@@ -539,13 +539,25 @@ Student/Admin receive 403; unauthenticated requests follow the existing security
 
 Role: `COMPANY`.
 
-Returns current company profile.
+Returns current company profile, numeric `revision`, and strong numeric `ETag`
+(for example `"0"`). This is the account draft revision, independent of Student
+profile and Saved Candidate revisions.
 
 ### PUT `/api/companies/me`
 
 Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
+
+V21 requires `If-Match` with the ETag captured when loading this draft. Missing:
+428 `SETTINGS_REVISION_REQUIRED`; malformed/weak/wildcard/multiple/negative or
+overflowing ETag: 400 `BAD_REQUEST`; stale: 409 `SETTINGS_REVISION_CONFLICT`.
+Each successful write increments the account revision once, including no-op
+field values, and returns the new `revision` and ETag. The existing Company row
+lock still serializes profile writes with verification/status changes. Conflicts
+do not mutate fields or revision. The client keeps its draft and must explicitly
+review/replace it before using a newly fetched revision; never GET-and-retry an
+old draft automatically. No Company verification authority is added.
 
 ## Recruiter Candidate Ranking
 
@@ -1374,11 +1386,14 @@ Returns only the authenticated user's settings:
   "jobStatusEnabled": true,
   "recommendationEnabled": true,
   "systemEnabled": true,
+  "revision": 0,
   "updatedAt": null
 }
 ```
 
-When the user has no persisted row, every setting defaults to `true` and `updatedAt` is `null`. GET is read-only and does not create a row.
+When the user has no persisted row, every setting defaults to `true`, `revision`
+is 0 and `updatedAt` is `null`. GET is read-only and does not create a row. GET
+and successful PUT return a strong numeric ETag matching `data.revision`.
 
 ### PUT `/api/users/me/notification-settings`
 
@@ -1397,7 +1412,15 @@ Full replacement request:
 
 Every boolean is required. Unknown fields, including `userId`, are rejected. The authenticated user is always derived from the JWT.
 
-The first PUT atomically creates the user's row; later PUT requests update that same row. Concurrent first writes use the database unique key and atomic upsert, so duplicate rows are not created. Response data has the same fields as GET with a non-null `updatedAt`.
+V21 requires `If-Match` captured with the draft. The same 428/400/409 contract as
+Company account applies. `revision` is response metadata, not a PUT body field.
+An absent row accepts only revision 0 and inserts revision 1 using the existing
+unique key and `ON CONFLICT DO NOTHING`; existing rows use conditional SQL
+`WHERE user_id = JWT user AND revision = captured`, advancing once. Two writers
+at revision N have exactly one winner and one 409, including concurrent first
+inserts. Response data has the same fields as GET with non-null `updatedAt`.
+Reading current values after a conflict does not authorize attaching their
+revision to the old draft. Clients require explicit draft replacement/review.
 
 Disabling a preference suppresses only future automatic notifications of that type. It does not delete, hide, or mark existing notifications. A missing settings row always means enabled. Currently only `APPLICATION_STATUS_CHANGED` has an automatic producer.
 

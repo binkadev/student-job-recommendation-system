@@ -106,6 +106,8 @@ public enum ErrorCode {
             "Current password is incorrect",
             HttpStatus.BAD_REQUEST
     ),
+    SETTINGS_REVISION_REQUIRED("SETTINGS_REVISION_REQUIRED", "A captured settings If-Match ETag is required", HttpStatus.PRECONDITION_REQUIRED),
+    SETTINGS_REVISION_CONFLICT("SETTINGS_REVISION_CONFLICT", "Settings changed; read the current values and review your draft", HttpStatus.CONFLICT),
     RESOURCE_NOT_FOUND("RESOURCE_NOT_FOUND", "Resource not found", HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
 

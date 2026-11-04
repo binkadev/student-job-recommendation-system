@@ -1,6 +1,9 @@
 package com.tttn.jobrecommendation.modules.notification.service.impl;
 
 import com.tttn.jobrecommendation.common.enums.NotificationType;
+import com.tttn.jobrecommendation.common.exception.AppException;
+import com.tttn.jobrecommendation.common.exception.ErrorCode;
+import com.tttn.jobrecommendation.common.utils.SettingsRevision;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.modules.notification.dto.request.UpdateNotificationSettingsRequest;
 import com.tttn.jobrecommendation.modules.notification.dto.response.NotificationSettingsResponse;
@@ -40,19 +43,25 @@ public class NotificationSettingsServiceImpl implements NotificationSettingsServ
     @Transactional
     public NotificationSettingsResponse updateMySettings(
             Long userId,
-            UpdateNotificationSettingsRequest request
+            UpdateNotificationSettingsRequest request, Long revision
     ) {
+        SettingsRevision.require(revision);
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found");
         }
 
-        settingsRepository.upsert(
+        int changed = settingsRepository.updateIfRevision(
                 userId,
                 request.getApplicationStatusEnabled(),
                 request.getJobStatusEnabled(),
                 request.getRecommendationEnabled(),
-                request.getSystemEnabled()
+                request.getSystemEnabled(), revision
         );
+
+        if (changed == 0 && revision == 0) changed = settingsRepository.insertInitial(userId,
+                request.getApplicationStatusEnabled(), request.getJobStatusEnabled(),
+                request.getRecommendationEnabled(), request.getSystemEnabled());
+        if (changed == 0) throw new AppException(ErrorCode.SETTINGS_REVISION_CONFLICT);
 
         UserNotificationSettings settings = settingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification settings not found"));

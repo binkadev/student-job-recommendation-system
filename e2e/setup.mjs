@@ -53,7 +53,7 @@ for (const alias of ['company', 'companyB', 'companyC']) {
   let company = await ok('GET', '/companies/me', tokens[alias]);
   manifest.accounts[alias].companyId = company.id;
   manifest.accounts[alias].registrationStatus = company.status;
-  if (!company.description) company = await ok('PUT', '/companies/me', tokens[alias], { ...companyProfile, companyName: accounts[alias].companyName });
+  if (!company.description) company = await ok('PUT', '/companies/me', tokens[alias], { ...companyProfile, companyName: accounts[alias].companyName }, { 'If-Match': `"${company.revision}"` });
   // Never silently verify/unblock or reset an existing company on reruns.
   // Fresh publish fixtures must pass the same Admin workflow as the product.
   if (createdAliases.has(alias) && alias !== 'companyC') {

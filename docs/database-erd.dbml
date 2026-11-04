@@ -57,6 +57,7 @@ Table student_profiles {
 }
 
 Table companies {
+  account_revision bigint [not null, default: 0, note: 'V21: nonnegative account draft revision; checked under existing Company row lock.']
   id bigint [pk, increment]
   user_id bigint [not null, unique]
   company_name varchar(255) [not null]
@@ -304,6 +305,7 @@ Table saved_candidates {
 }
 
 Table user_notification_settings {
+  revision bigint [not null, default: 0, note: 'V21: nonnegative CAS revision; absent row reads as 0, first insert writes 1.']
   id bigint [pk, increment]
   user_id bigint [not null]
   application_status_enabled boolean [not null, default: true]

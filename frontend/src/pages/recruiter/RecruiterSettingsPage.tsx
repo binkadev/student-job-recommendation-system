@@ -19,7 +19,7 @@ import { useSettingsForm } from "../../features/account/useSettingsForm";
 
 type SettingsTab = "account" | "recruitment-process" | "email-templates" | "notifications" | "security";
 const fields = { companyName: "Tên công ty", taxCode: "Mã số thuế", industry: "Lĩnh vực", website: "Website", phone: "Số điện thoại", address: "Địa chỉ", description: "Mô tả công ty" };
-type CompanyForm = Record<keyof typeof fields, string> & { email: string; status: "PENDING" | "VERIFIED" | "BLOCKED" };
+type CompanyForm = Record<keyof typeof fields, string> & { email: string; status: "PENDING" | "VERIFIED" | "BLOCKED"; revision: number; etag?: string };
 
 export function RecruiterSettingsPage({ section = "account" }: { section?: "main" | SettingsTab }) {
   const { currentUser } = useAuth();
@@ -46,12 +46,14 @@ function SettingsPage({ section }: { section: "main" | SettingsTab }) {
   </PageContainer>;
 }
 async function readCompany(): Promise<CompanyForm> {
-  const data = (await httpClient.get<{ data: CompanyForm }>("/companies/me")).data.data;
-  return { ...data, ...Object.fromEntries(Object.keys(fields).map(key => [key, data[key as keyof typeof fields] ?? ""])) };
+  const response = await httpClient.get<{ data: CompanyForm }>("/companies/me");
+  const data = response.data.data;
+  return { ...data, etag: response.headers.etag, ...Object.fromEntries(Object.keys(fields).map(key => [key, data[key as keyof typeof fields] ?? ""])) };
 }
 function AccountSettings() {
   const form = useSettingsForm(readCompany, draft => httpClient.put("/companies/me",
-    Object.fromEntries(Object.keys(fields).map(key => [key, draft[key as keyof typeof fields].trim() || null]))),
+    Object.fromEntries(Object.keys(fields).map(key => [key, draft[key as keyof typeof fields].trim() || null])),
+    { headers: { "If-Match": draft.etag } }),
   (a, b) => Object.keys(fields).every(key => a[key as keyof typeof fields].trim() === b[key as keyof typeof fields]), "Đã cập nhật tài khoản doanh nghiệp");
   if (form.loading) return <LoadingState />;
   const draft = form.draft;
@@ -67,7 +69,7 @@ function AccountSettings() {
           const props = { label, value: draft[key], onChange: (e: { target: { value: string } }) => form.setDraft({ ...draft, [key]: e.target.value }) };
           return key === "description" || key === "address" ? <div key={key} className="md:col-span-2"><Textarea {...props} /></div> : <Input key={key} {...props} />;
         })}
-        <div><Button loading={form.saving} disabled={form.blocked || !draft.companyName.trim()} onClick={() => void form.save()}>Lưu tài khoản</Button></div>
+        <div><Button loading={form.saving} disabled={form.blocked || !draft.etag || !draft.companyName.trim()} onClick={() => void form.save()}>Lưu tài khoản</Button></div>
       </fieldset>
       <div><StatusBadge label={statusLabels[form.snapshot!.status]} /><p className="mt-2 text-sm text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p></div>
     </> : null}

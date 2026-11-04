@@ -189,3 +189,34 @@ node verify-candidate-roundtrip.mjs
 Round-trip tool chỉ dùng secondary fixture gần nhất sau browser cleanup, từ chối sửa bookmark có sẵn; save/update/clear/delete qua API thật rồi đọc PostgreSQL bằng `BEGIN READ ONLY`, so hash note/owner/source/revision và Application/CV trước/sau. Không in note/JWT/credential. `candidates-browser-evidence.json`, `candidates-db-roundtrip.json`, screenshots `saved-candidates-*.png` và logs nằm local.
 
 Trước full regression, capture `summarize-state` vào `candidates-baseline.json`, PRIMARY profile bằng `verify-own-jobs-preservation.mjs --capture`, SQL digests bằng `verify-candidate-preservation.mjs --capture`. A03 vốn activate CV rồi restore active flag, nên strict full-row CV digest có thể khác do `updated_at`; không diễn giải thành toàn DB unchanged. Chế độ `--cv-content --capture` ghi baseline **riêng** loại duy nhất CV `updated_at`; `--cv-content` so tất cả field còn lại và existing PRIMARY/V3 history rows. Không ghi đè/reinterpret strict baseline. Kết quả/mismatch đều giữ local. Xem [functional report và phạm vi evidence](../docs/datn/company-candidate-management-results.md).
+
+## Reliability/security isolated suite (V21)
+
+V21 Company account và notification preferences PUT yêu cầu captured `If-Match`
+từ đúng snapshot của draft: thiếu 428, stale 409. Các consumers trong suite gửi
+header tường minh, không helper GET-and-retry mutation. Chưa đổi scoring V3 hoặc
+parser V2. Xem [contract/evidence](../docs/datn/student-company-reliability-security-results.md).
+
+```powershell
+# Từ repository root, chạy riêng từng suite; không chạy hai Playwright cùng lúc.
+powershell -File scripts/run-settings-notifications-isolated-e2e.ps1 -Suite reliability -JavaHome C:\path\to\jdk21
+powershell -File scripts/run-settings-notifications-isolated-e2e.ps1 -Suite notifications -JavaHome C:\path\to\jdk21
+powershell -File scripts/run-settings-notifications-isolated-e2e.ps1 -Suite analytics -JavaHome C:\path\to\jdk21
+```
+
+Reliability runner chỉ tạo PostgreSQL/AI containers dùng một lần và processes riêng;
+không stop demo services/volumes. Cần local image `student-job-recommendation-ai:local`.
+Successful responses gọi AI thật qua HTTP/1.1 fault proxy; offline/500/503/read
+timeout/TCP RST/malformed/missing JSON được tiêm chỉ trong fixture. Browser kiểm
+response loss/40s client timeout sau commit, explicit run read-back, double-click,
+real two-tab CAS, expired JWT/late401 và response thuộc session cũ. Synthetic READY
+snapshot không thay parser; default suite vẫn kiểm parse thật. Control/evidence
+endpoints chỉ tồn tại trong test fixture loopback, không vào production.
+
+Giữ `reliability-*` namespace riêng cho API/SQL strict/content/password/profile
+baselines; capture một lần, không ghi đè. `--before-migration` runtime snapshot riêng
+với exact `before-recreate`; không dùng normalization migration để che mismatch
+của comparator strict. Raw credentials, response logs và screenshots ở `.local/`.
+B06 config chỉ discover ba bounded B06 cases; N07 diagnostic dùng
+`E2E_DIAGNOSTIC_PREFIX=reliability` để giữ evidence package cũ.
+Không có thao tác nguồn Windows trong runners này.

@@ -25,7 +25,7 @@ class DatabaseAiContractV2MigrationIT extends AbstractPostgresIntegrationTest {
             Flyway flyway = migrate(schema, null);
 
             assertThat(flyway.info().current()).isNotNull();
-            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("20");
+            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("21");
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + schema + ".students WHERE profile_revision = 0", Integer.class)).isPositive();
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + schema + ".students WHERE profile_revision <> 0", Integer.class)).isZero();

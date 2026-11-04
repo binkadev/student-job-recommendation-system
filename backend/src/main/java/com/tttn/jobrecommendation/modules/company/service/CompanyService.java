@@ -7,5 +7,5 @@ public interface CompanyService {
 
     CompanyResponse getMe(Long userId);
 
-    CompanyResponse updateMe(Long userId, CompanyUpdateRequest request);
+    CompanyResponse updateMe(Long userId, CompanyUpdateRequest request, Long revision);
 }

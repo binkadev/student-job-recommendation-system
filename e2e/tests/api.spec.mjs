@@ -255,10 +255,11 @@ test('A11 secondary CV deletion, insufficient profile and notification settings 
   await ok('DELETE', `/students/me/cv/${cvFile.id}`, token);
   expect((await api('GET', `/students/me/cv/${cvFile.id}`, token)).status).toBe(404);
   const settings = await ok('GET', '/users/me/notification-settings', token);
-  const { updatedAt, ...values } = settings;
-  await ok('PUT', '/users/me/notification-settings', token, { ...values, recommendationEnabled: !values.recommendationEnabled });
+  const { updatedAt, revision, ...values } = settings;
+  await ok('PUT', '/users/me/notification-settings', token, { ...values, recommendationEnabled: !values.recommendationEnabled }, { 'If-Match': `"${revision}"` });
   expect((await ok('GET', '/users/me/notification-settings', token)).recommendationEnabled).toBe(!values.recommendationEnabled);
-  await ok('PUT', '/users/me/notification-settings', token, values);
+  const restoreRevision = (await ok('GET', '/users/me/notification-settings', token)).revision;
+  await ok('PUT', '/users/me/notification-settings', token, values, { 'If-Match': `"${restoreRevision}"` });
   evidence.A11 = { deletedTemporaryCv: cvFile.id, primaryCvsPreserved: true };
 });
 

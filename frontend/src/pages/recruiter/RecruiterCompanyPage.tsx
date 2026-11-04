@@ -37,6 +37,8 @@ interface PageResponse<T> {
 }
 
 interface CompanyResponse {
+  etag?: string;
+  revision: number;
   id: number;
   userId: number;
   email: string;
@@ -53,6 +55,8 @@ interface CompanyResponse {
 }
 
 interface CompanyForm {
+  etag?: string;
+  revision: number;
   companyName: string;
   taxCode: string;
   description: string;
@@ -451,7 +455,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 
 async function getMyCompany() {
   const response = await httpClient.get<ApiResponse<CompanyResponse>>("/companies/me");
-  return response.data.data;
+  return { ...response.data.data, etag: response.headers?.etag };
 }
 
 async function updateMyCompany(form: CompanyForm) {
@@ -463,7 +467,7 @@ async function updateMyCompany(form: CompanyForm) {
     address: emptyToNull(form.address),
     phone: emptyToNull(form.phone),
     industry: emptyToNull(form.industry),
-  });
+  }, { headers: { "If-Match": form.etag } });
   return response.data.data;
 }
 
@@ -493,6 +497,8 @@ async function getCompanyJobs(page: number) {
 
 function mapCompanyToForm(company: CompanyResponse): CompanyForm {
   return {
+    revision: company.revision,
+    etag: company.etag,
     companyName: company.companyName || "",
     taxCode: company.taxCode || "",
     description: company.description || "",

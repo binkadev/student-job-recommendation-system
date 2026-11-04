@@ -36,8 +36,10 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class RestAiServiceClient implements AiServiceClient {
 
     private static final String INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key";
@@ -261,10 +263,15 @@ public class RestAiServiceClient implements AiServiceClient {
     }
 
     private AppException mapException(RestClientException exception) {
+        Throwable root = exception;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        log.debug("AI transport failure type={} rootType={}", exception.getClass().getName(), root.getClass().getName());
         if (isTimeout(exception)) {
             return new AppException(ErrorCode.AI_SERVICE_TIMEOUT);
         }
-        if (exception instanceof ResourceAccessException) {
+        // Spring can wrap a socket reset during byte[] body extraction in the
+        // base RestClientException, after response headers have already arrived.
+        if (exception instanceof ResourceAccessException || root instanceof java.net.SocketException) {
             return new AppException(ErrorCode.AI_SERVICE_UNAVAILABLE);
         }
         if (exception instanceof RestClientResponseException responseException

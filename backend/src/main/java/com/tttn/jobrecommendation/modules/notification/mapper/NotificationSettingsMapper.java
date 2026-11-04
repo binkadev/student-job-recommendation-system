@@ -13,6 +13,7 @@ public class NotificationSettingsMapper {
                 .jobStatusEnabled(settings.isJobStatusEnabled())
                 .recommendationEnabled(settings.isRecommendationEnabled())
                 .systemEnabled(settings.isSystemEnabled())
+                .revision(settings.getRevision())
                 .updatedAt(settings.getUpdatedAt())
                 .build();
     }

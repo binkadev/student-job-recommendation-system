@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { sessionVersion } from "../../services/auth/sessionVersion";
 import { AUTH_SESSION_EXPIRED_EVENT } from "../../services/api/httpClient";
 import { clearToken, getCurrentUserRequest, getStoredToken, loginRequest } from "../../services/auth/authService";
 import type { CurrentUser } from "../../types/auth";
@@ -7,6 +8,7 @@ import { AuthContext, type AuthContextValue } from "./authContext";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const operation = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -17,12 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const version = sessionVersion();
+      const attempt = operation.current;
+      const ownsSession = () => active && version === sessionVersion() && attempt === operation.current;
+
       try {
         const user = await getCurrentUserRequest();
-        if (active) setCurrentUser(user);
+        if (ownsSession()) setCurrentUser(user);
       } catch {
-        clearToken();
-        if (active) setCurrentUser(null);
+        if (ownsSession()) { clearToken(); setCurrentUser(null); }
       } finally {
         if (active) setIsInitializing(false);
       }
@@ -39,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let redirecting = false;
 
     function handleSessionExpired() {
+      operation.current++;
       setCurrentUser(null);
       if (redirecting) return;
       redirecting = true;
@@ -60,11 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(currentUser),
       isInitializing,
       login: async (email, password) => {
+        const attempt = ++operation.current;
         const user = await loginRequest({ email, password });
-        setCurrentUser(user);
+        if (attempt === operation.current) setCurrentUser(user);
         return user;
       },
       logout: () => {
+        operation.current++;
         clearToken();
         setCurrentUser(null);
       },

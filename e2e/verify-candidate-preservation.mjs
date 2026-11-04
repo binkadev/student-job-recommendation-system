@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readLocal, writeLocal } from './helpers.mjs';
 
 // Read-only digests computed inside PostgreSQL; no CV text, notes, JWT or passwords leave it.
-const namespace = process.argv.includes('--analytics') ? 'analytics' : 'candidates';
+const namespace = process.argv.includes('--reliability') ? 'reliability' : process.argv.includes('--analytics') ? 'analytics' : 'candidates';
 const baseline = readLocal(`${namespace}-baseline.json`);
 const studentId = Number(baseline.accounts.student.resourceId), companyId = Number(baseline.accounts.company.resourceId);
 assert.ok(Number.isSafeInteger(studentId) && Number.isSafeInteger(companyId));
@@ -25,7 +25,7 @@ const current = Object.fromEntries(result.trim().split(/\r?\n/).map(line => { co
 // Existing A03 deliberately changes CV active flags and updated_at, restoring the active CV.
 const filename = cvContent ? `${namespace}-db-content-baseline.json` : `${namespace}-db-baseline.json`;
 if (process.argv.includes('--capture')) {
-  if (namespace === 'analytics') {
+  if (namespace === 'analytics' || namespace === 'reliability') {
     try { readLocal(filename); throw new Error('Do not overwrite the analytics preservation baseline.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
   }

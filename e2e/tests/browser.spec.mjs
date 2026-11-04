@@ -308,7 +308,7 @@ test('B11 Company profile edit, save, reload and restore', async ({ page }) => {
     expect((await response).status()).toBe(200);
     await page.reload();
     await expect(description).toHaveValue(`${before.description}\nĐã kiểm chứng lưu hồ sơ qua browser.`);
-  } finally { await ok('PUT', '/companies/me', token, { description: before.description }); }
+  } finally { const restoreRevision = (await ok('GET', '/companies/me', token)).revision; await ok('PUT', '/companies/me', token, { description: before.description }, { 'If-Match': `"${restoreRevision}"` }); }
 });
 
 test('B12 Company browser creates/edits a durable DRAFT; no public exposure', async ({ page }) => {

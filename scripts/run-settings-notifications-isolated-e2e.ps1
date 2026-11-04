@@ -1,12 +1,12 @@
-param([string]$JavaHome = $env:JAVA_HOME, [ValidateSet('notifications','analytics')][string]$Suite = 'notifications')
+param([string]$JavaHome = $env:JAVA_HOME, [ValidateSet('notifications','analytics','reliability')][string]$Suite = 'notifications', [string]$TestFilter = '')
 $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskBackend = Join-Path $taskRoot 'backend'
 $taskFrontend = Join-Path $taskRoot 'frontend'
 $taskE2e = Join-Path $taskRoot 'e2e'
 $taskLocal = Join-Path $taskE2e '.local'
-$taskPrefix = if ($Suite -eq 'analytics') { 'analytics' } else { 'settings' }
-$taskFixtureClass = if ($Suite -eq 'analytics') { 'CompanyAnalyticsBrowserFixture' } else { 'NotificationBrowserFixture' }
+$taskPrefix = if ($Suite -eq 'notifications') { 'settings' } else { $Suite }
+$taskFixtureClass = switch ($Suite) { 'analytics' { 'CompanyAnalyticsBrowserFixture' } 'reliability' { 'ReliabilityBrowserFixture' } default { 'NotificationBrowserFixture' } }
 $taskFixture = Join-Path $taskLocal ($taskPrefix + '-isolated-fixture.json')
 $taskStop = $taskFixture + '.stop'
 $taskJvm = $null
@@ -53,7 +53,9 @@ try {
     }
     Set-Location $taskE2e
     $ErrorActionPreference = 'Continue'
-    & .\node_modules\.bin\playwright.cmd test ("--config=" + $taskPrefix + "-isolated.playwright.config.mjs")
+    $taskPlaywrightArgs = @('test', ("--config=" + $taskPrefix + "-isolated.playwright.config.mjs"))
+    if ($TestFilter) { $taskPlaywrightArgs += @('--grep', $TestFilter) }
+    & (Get-Command node.exe).Source (Join-Path $taskE2e 'node_modules/playwright/cli.js') @taskPlaywrightArgs
     $taskBrowserExit = $LASTEXITCODE
     $ErrorActionPreference = 'Stop'
     if ($taskBrowserExit -ne 0) { throw 'Isolated browser checks failed; inspect local Playwright results.' }

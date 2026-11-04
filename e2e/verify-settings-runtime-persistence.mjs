@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { login, ok, readLocal, writeLocal } from './helpers.mjs';
 const data = {};
-const namespace = process.argv.includes('--analytics') ? 'analytics' : 'settings';
+const namespace = process.argv.includes('--reliability') ? 'reliability' : process.argv.includes('--analytics') ? 'analytics' : 'settings';
 for (const alias of ['student', 'company', 'studentUi', 'companyUi', 'frontend']) {
   const token = await login(alias);
   data[alias] = {
@@ -10,12 +10,12 @@ for (const alias of ['student', 'company', 'studentUi', 'companyUi', 'frontend']
     notifications: await ok('GET', '/notifications?size=100', token),
     unread: await ok('GET', '/notifications/unread-count', token),
   };
-  if (namespace === 'analytics' && alias.startsWith('company')) {
+  if (namespace !== 'settings' && alias.startsWith('company')) {
     data[alias].dashboard = await ok('GET', '/companies/me/dashboard-summary', token);
     data[alias].report = await ok('GET', '/companies/me/recruitment-report', token);
   }
 }
-const filename = `${namespace}-before-recreate.json`;
+const filename = `${namespace}-${process.argv.includes('--before-migration') ? 'before-migration' : 'before-recreate'}.json`;
 if (process.argv.includes('--capture')) {
   try { readLocal(filename); throw new Error('Do not overwrite a settings persistence baseline.'); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }

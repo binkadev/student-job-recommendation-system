@@ -21,6 +21,7 @@ public class CompanyResponse {
     private String phone;
     private String industry;
     private CompanyStatus status;
+    private long revision;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

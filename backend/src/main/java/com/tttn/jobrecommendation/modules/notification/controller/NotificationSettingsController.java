@@ -1,6 +1,9 @@
 package com.tttn.jobrecommendation.modules.notification.controller;
 
 import com.tttn.jobrecommendation.common.response.ApiResponse;
+import com.tttn.jobrecommendation.common.utils.SettingsRevision;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
 import com.tttn.jobrecommendation.modules.notification.dto.request.UpdateNotificationSettingsRequest;
 import com.tttn.jobrecommendation.modules.notification.dto.response.NotificationSettingsResponse;
@@ -24,17 +27,18 @@ public class NotificationSettingsController {
     private final SecurityUtils securityUtils;
 
     @GetMapping
-    public ApiResponse<NotificationSettingsResponse> getMySettings() {
-        return ApiResponse.success(notificationSettingsService.getMySettings(securityUtils.getCurrentUserId()));
+    public ResponseEntity<ApiResponse<NotificationSettingsResponse>> getMySettings() {
+        var data = notificationSettingsService.getMySettings(securityUtils.getCurrentUserId());
+        return ResponseEntity.ok().eTag(SettingsRevision.etag(data.getRevision())).body(ApiResponse.success(data));
     }
 
     @PutMapping
-    public ApiResponse<NotificationSettingsResponse> updateMySettings(
-            @Valid @RequestBody UpdateNotificationSettingsRequest request
+    public ResponseEntity<ApiResponse<NotificationSettingsResponse>> updateMySettings(
+            @Valid @RequestBody UpdateNotificationSettingsRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch
     ) {
-        return ApiResponse.success(
-                "Notification settings updated successfully",
-                notificationSettingsService.updateMySettings(securityUtils.getCurrentUserId(), request)
-        );
+        var data = notificationSettingsService.updateMySettings(securityUtils.getCurrentUserId(), request, SettingsRevision.parse(ifMatch));
+        return ResponseEntity.ok().eTag(SettingsRevision.etag(data.getRevision()))
+                .body(ApiResponse.success("Notification settings updated successfully", data));
     }
 }

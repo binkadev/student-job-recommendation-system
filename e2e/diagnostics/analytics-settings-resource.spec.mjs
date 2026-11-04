@@ -1,8 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { credentials, writeLocal } from '../helpers.mjs';
-const evidence = { requestsFailed: [], consoleErrors: [], pageErrors: [], navigations: [] };
-test.afterEach(() => writeLocal('analytics-settings-resource-evidence.json', evidence));
+const evidence = { requestsFailed: [], consoleErrors: [], pageErrors: [], navigations: [], responses: [] };
+const prefix = process.env.E2E_DIAGNOSTIC_PREFIX === 'reliability' ? 'reliability' : 'analytics';
+test.afterEach(() => writeLocal(`${prefix}-settings-resource-evidence.json`, evidence));
 test('N07 diagnostic: unchanged 35 settings/inbox navigation sequence with network and renderer evidence', async ({ page }) => {
+  const pending = [];
+  page.on('response', response => {
+    const path = new URL(response.url()).pathname;
+    if (!path.startsWith('/api/')) return;
+    pending.push((async () => {
+      let body; try { body = await response.json(); } catch { /* status still recorded */ }
+      evidence.responses.push({ path, status: response.status(), requestId: response.headers()['x-request-id'],
+        success: body?.success, errorCode: body?.errorCode, hasData: body?.data != null });
+    })());
+  });
   page.on('requestfailed', request => evidence.requestsFailed.push({ path: new URL(request.url()).pathname, type: request.resourceType(), failure: request.failure()?.errorText }));
   page.on('console', message => { if (message.type() === 'error') evidence.consoleErrors.push(message.text().replace(/Bearer\s+[^\s]+/g, 'Bearer [redacted]')); });
   page.on('pageerror', error => evidence.pageErrors.push(error.message));
@@ -25,5 +36,6 @@ test('N07 diagnostic: unchanged 35 settings/inbox navigation sequence with netwo
     }
     await page.getByRole('button', { name: 'Menu tài khoản', exact: true }).click(); await page.getByRole('menuitem', { name: 'Đăng xuất', exact: true }).click(); await expect(page).toHaveURL('/login');
   }
+  await Promise.all(pending);
   expect(evidence.pageErrors).toEqual([]);
 });

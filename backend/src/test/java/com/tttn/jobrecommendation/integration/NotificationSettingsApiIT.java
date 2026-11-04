@@ -102,6 +102,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
     void putCreatesThenUpdatesTheSameRow() throws Exception {
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ALL_ENABLED))
                 .andExpect(status().isOk())
@@ -112,6 +113,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
 
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(APPLICATION_DISABLED))
                 .andExpect(status().isOk())
@@ -133,6 +135,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
 
             mockMvc.perform(put("/api/users/me/notification-settings")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(user))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(user.getId()).getRevision()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(ALL_ENABLED))
                     .andExpect(status().isOk())
@@ -141,6 +144,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
 
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(APPLICATION_DISABLED))
                 .andExpect(status().isOk());
@@ -159,6 +163,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
     void userIdCannotBeSuppliedToTargetAnotherUsersSettings() throws Exception {
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -179,6 +184,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
     void missingBooleanFailsValidation() throws Exception {
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -196,18 +202,18 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            Future<?> first = executor.submit(() -> updateSettingsAfterSignal(
+            Future<Boolean> first = executor.submit(() -> updateSettingsAfterSignal(
                     start,
                     notificationSettingsRequest(false)
             ));
-            Future<?> second = executor.submit(() -> updateSettingsAfterSignal(
+            Future<Boolean> second = executor.submit(() -> updateSettingsAfterSignal(
                     start,
                     notificationSettingsRequest(true)
             ));
 
             start.countDown();
-            first.get(10, TimeUnit.SECONDS);
-            second.get(10, TimeUnit.SECONDS);
+            assertThat(java.util.List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(true, false);
         } finally {
             executor.shutdownNow();
         }
@@ -264,6 +270,7 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
     private void updateStudentSettings(String content) throws Exception {
         mockMvc.perform(put("/api/users/me/notification-settings")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser()))
+                        .header(HttpHeaders.IF_MATCH, com.tttn.jobrecommendation.common.utils.SettingsRevision.etag(notificationSettingsService.getMySettings(student.getUser().getId()).getRevision()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(content))
                 .andExpect(status().isOk());
@@ -278,13 +285,17 @@ class NotificationSettingsApiIT extends AbstractPostgresWebIntegrationTest {
         return request;
     }
 
-    private void updateSettingsAfterSignal(
+    private boolean updateSettingsAfterSignal(
             CountDownLatch start,
             UpdateNotificationSettingsRequest request
     ) {
         try {
             start.await();
-            notificationSettingsService.updateMySettings(student.getUser().getId(), request);
+            notificationSettingsService.updateMySettings(student.getUser().getId(), request, 0L);
+            return true;
+        } catch (com.tttn.jobrecommendation.common.exception.AppException exception) {
+            assertThat(exception.getErrorCode()).isEqualTo(com.tttn.jobrecommendation.common.exception.ErrorCode.SETTINGS_REVISION_CONFLICT);
+            return false;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(exception);

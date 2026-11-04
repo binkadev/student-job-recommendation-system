@@ -52,6 +52,10 @@ Constraints:
 
 ### `companies`
 
+V21 adds `account_revision BIGINT NOT NULL DEFAULT 0 CHECK (account_revision >= 0)`.
+Account PUT checks/advances it under the existing Company row lock. It is not a
+Hibernate entity version and does not change moderation or cascade rules.
+
 Purpose: company profile linked one-to-one to `users`.
 
 Columns: `id`, `user_id`, `company_name`, `tax_code`, `website_url`, `logo_url`, `industry`, `company_size`, `description`, `address`, `phone`, `status`, `created_at`, `updated_at`.
@@ -241,6 +245,10 @@ V20 adds `revision BIGINT NOT NULL DEFAULT 0`, used as the Hibernate optimistic 
 All three FK columns are BIGINT NOT NULL, referencing `companies`, `students`, and `applications` respectively. `note` is nullable TEXT. UNIQUE `uk_saved_candidates_company_student` is `(company_id, student_id)`; `application_id` is not unique. No extra indexes or cross-column ownership CHECKs are created by V13.
 
 ### `user_notification_settings` (V13)
+
+V21 adds `revision BIGINT NOT NULL DEFAULT 0 CHECK (revision >= 0)`. Conditional
+SQL updates advance it once; first inserts start at 1. Absent-row GET returns 0
+without inserting. Existing V13 rows migrate to 0 without changing their flags.
 
 Columns: `id`, `user_id`, `application_status_enabled`, `job_status_enabled`, `recommendation_enabled`, `system_enabled`, `created_at`, `updated_at`.
 

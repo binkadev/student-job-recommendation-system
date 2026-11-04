@@ -1,5 +1,6 @@
 import { useEffect, useState, type DependencyList } from "react";
 import { getApiErrorMessage } from "../utils/apiErrors";
+import { AUTH_TOKEN_STORAGE_KEY, sessionVersion } from "../services/auth/sessionVersion";
 
 export function useAsyncData<T>(loader: () => Promise<T>, dependencies: DependencyList = []) {
   const [data, setData] = useState<T | null>(null);
@@ -8,18 +9,20 @@ export function useAsyncData<T>(loader: () => Promise<T>, dependencies: Dependen
 
   useEffect(() => {
     let active = true;
+    const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY), version = sessionVersion();
+    const ownsSession = () => active && token === sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY) && version === sessionVersion();
     setLoading(true);
     setError(null);
 
     loader()
       .then((result) => {
-        if (active) setData(result);
+        if (ownsSession()) setData(result);
       })
       .catch((error) => {
-        if (active) setError(getApiErrorMessage(error, "Không thể tải dữ liệu. Vui lòng thử lại."));
+        if (ownsSession()) setError(getApiErrorMessage(error, "Không thể tải dữ liệu. Vui lòng thử lại."));
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (ownsSession()) setLoading(false);
       });
 
     return () => {
