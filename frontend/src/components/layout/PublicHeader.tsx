@@ -16,7 +16,7 @@ export function PublicHeader() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <header onKeyDown={(event) => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButtonRef.current?.focus(); } }} className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+    <header onKeyDown={(event) => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButtonRef.current?.focus(); } }} className="neo-public-header sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-slate-950">

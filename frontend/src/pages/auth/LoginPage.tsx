@@ -1,8 +1,9 @@
 import { getApiErrorMessage } from "../../utils/apiErrors";
-import { Eye, EyeOff, FileText, LockKeyhole, Mail, Sparkles } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MatchingIllustration } from "../../components/common/AuroraHero";
 import { PageContainer } from "../../components/common/PageContainer";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -73,44 +74,11 @@ export function LoginPage() {
     <PageContainer>
       <Card padding="none" className="mx-auto max-w-5xl overflow-hidden">
         <div className="grid min-h-[430px] lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="flex items-center justify-center border-b border-slate-100 bg-slate-50 px-6 py-10 lg:border-b-0 lg:border-r">
-            <div className="text-center">
-              <div aria-hidden="true" className="relative mx-auto hidden h-52 w-64 lg:block">
-                <div className="absolute bottom-4 left-4 right-4 h-20 rounded-lg border border-brand-200 bg-white shadow-sm" />
-                <div className="absolute bottom-9 left-8 right-8 h-24 rounded-lg border border-brand-300 bg-brand-50 shadow-sm">
-                  <div className="mt-4 grid grid-cols-4 gap-2 px-4">
-                    {Array.from({ length: 12 }).map((_, index) => <span key={index} className="h-3 rounded-sm bg-white" />)}
-                  </div>
-                </div>
-                <div className="absolute left-20 top-4 h-28 w-20 rotate-[-10deg] rounded-md border border-brand-100 bg-white p-3 shadow-md">
-                  <FileText className="text-brand-500" size={28} />
-                  <div className="mt-4 space-y-2">
-                    <span className="block h-2 rounded bg-brand-100" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                  </div>
-                </div>
-                <div className="absolute left-28 top-1 h-32 w-20 rotate-[4deg] rounded-md border border-brand-200 bg-white p-3 shadow-lg">
-                  <FileText className="text-brand-600" size={30} />
-                  <div className="mt-4 space-y-2">
-                    <span className="block h-2 rounded bg-brand-100" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                  </div>
-                </div>
-                <div className="absolute left-36 top-7 h-28 w-20 rotate-[12deg] rounded-md border border-slate-200 bg-white p-3 shadow-md">
-                  <FileText className="text-slate-500" size={28} />
-                  <div className="mt-4 space-y-2">
-                    <span className="block h-2 rounded bg-slate-200" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                    <span className="block h-2 rounded bg-slate-100" />
-                  </div>
-                </div>
-                <div className="absolute bottom-0 left-7 right-7 h-3 rounded-full bg-slate-200" />
-              </div>
-              <h1 className="mt-5 text-2xl font-semibold text-brand-700">JobRecommend</h1>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Kết nối sinh viên IT với công việc phù hợp từ CV và kỹ năng.</p>
-            </div>
+          <section className="neo-auth-visual flex flex-col justify-center overflow-hidden px-6 py-10 sm:px-10">
+            <p className="aurora-eyebrow">JOBRECOMMEND · CƠ HỘI TỪ KỸ NĂNG</p>
+            <h1 className="mt-5 text-3xl font-semibold leading-snug">Bước tiếp theo,<br />bắt đầu từ bạn.</h1>
+            <p className="aurora-description mt-4 text-sm leading-7">Quản lý CV, hiểu kết quả đối sánh và theo dõi hành trình ứng tuyển trong cùng một không gian.</p>
+            <MatchingIllustration />
           </section>
 
           <section className="flex items-center px-6 py-10 sm:px-10">

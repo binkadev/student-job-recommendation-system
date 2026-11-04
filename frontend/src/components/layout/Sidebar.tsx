@@ -10,7 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ items, title, onNavigate }: SidebarProps) {
   return (
-    <aside aria-label={`Thanh bên ${title}`} className="flex h-full w-72 flex-col border-r border-slate-200/80 bg-white">
+    <aside aria-label={`Thanh bên ${title}`} className="neo-sidebar flex h-full w-72 flex-col border-r border-slate-200/80 bg-white">
       <div className="border-b border-slate-100 px-5 py-5">
         <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white p-3.5">
           <div className="flex items-center gap-3">

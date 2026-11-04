@@ -128,7 +128,7 @@ export function CandidatePreferencesView() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {saveError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 lg:col-span-2">{saveError}</p> : null}
-        <main className="space-y-5">
+        <div className="space-y-5">
           <Card>
             <SectionHeader title="Thông tin mong muốn" />
             <fieldset disabled={isSubmitting} className="grid min-w-0 gap-4 md:grid-cols-2">
@@ -149,7 +149,7 @@ export function CandidatePreferencesView() {
               <ReadonlyField label="Dự án" value={profile.projects} />
             </div>
           </Card>
-        </main>
+        </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <Card>

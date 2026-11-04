@@ -132,7 +132,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       <PageContainer>
         <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid min-h-[520px] lg:grid-cols-[1fr_1.05fr]">
-            <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 px-6 py-10 text-slate-950 lg:border-b-0 lg:border-r">
+            <section className="neo-auth-visual relative overflow-hidden border-b border-slate-100 px-6 py-10 text-slate-950 lg:border-b-0 lg:border-r">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
               <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-slate-200/70 blur-2xl" />
               <div className="relative flex h-full flex-col justify-between">
@@ -222,7 +222,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       <PageContainer>
         <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid lg:grid-cols-[360px_1fr]">
-            <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 p-6 lg:border-b-0 lg:border-r lg:p-8">
+            <section className="neo-auth-visual relative overflow-hidden border-b border-slate-100 p-6 lg:border-b-0 lg:border-r lg:p-8">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
               <div className="absolute bottom-10 right-8 h-28 w-28 rounded-full bg-slate-200/70 blur-2xl" />
               <div className="relative">

@@ -1,5 +1,13 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## Neo-Aurora UI/UX — 2026-11-05
+
+- [Thiết kế, kiểm thử thực, phạm vi và bảo toàn dữ liệu](neo-aurora-uiux-redesign-results.md).
+- [Số đo bundle, cold/warm, tương phản và responsive](neo-aurora-uiux-redesign-metrics.json).
+- 246 Frontend / 520 Backend / 887 AI / 115 E2E PASS; 140 ảnh kiểm tra local.
+  Không thay scoring hoặc dữ liệu demo; giới hạn timestamp lịch sử, CLS và
+  historical Admin preservation được giữ rõ trong báo cáo. PR #66 tiếp tục Draft.
+
 ## Company Dashboard / Reports — 2026-11-04
 
 - [Full SQL aggregates, date/rate definitions, filtered CSV và real E2E](company-dashboard-reports-results.md).

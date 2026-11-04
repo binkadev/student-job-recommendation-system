@@ -40,15 +40,15 @@ export function DashboardLayout({ title, menu, extra, variant = "candidate" }: D
   const copy = roleCopy[variant];
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc]">
+    <div className={`${variant === "admin" ? "bg-[#f7f9fc]" : "neo-app"} min-h-screen`}>
       <a href="#main-content" className="skip-link">Đến nội dung chính</a>
-      <MobileSidebar open={sidebarOpen} title={title} items={menu} onClose={() => setSidebarOpen(false)} />
+      <MobileSidebar neoAppearance={variant !== "admin"} open={sidebarOpen} title={title} items={menu} onClose={() => setSidebarOpen(false)} />
       <div className="hidden fixed inset-y-0 left-0 z-30 lg:block">
         <Sidebar title={title} items={menu} />
       </div>
       <div className="min-w-0 lg:pl-72">
-        <DashboardHeader title={title} extra={extra} onOpenSidebar={() => setSidebarOpen(true)} />
-        <section aria-label="Không gian làm việc" className="border-b border-slate-200/80 bg-white">
+        <DashboardHeader titleAsHeading={variant === "admin"} title={title} extra={extra} onOpenSidebar={() => setSidebarOpen(true)} />
+        <section aria-label="Không gian làm việc" className="neo-workspace border-b border-slate-200/80 bg-white">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{copy.icon}</div>

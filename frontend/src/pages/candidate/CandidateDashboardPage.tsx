@@ -2,6 +2,7 @@ import { BriefcaseBusiness, CheckCircle2, FileText, Send, Star } from "lucide-re
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -66,6 +67,10 @@ export function CandidateDashboardPage() {
         </div>
       </div>
 
+      <AuroraHero eyebrow="BƯỚC TIẾP THEO CỦA BẠN" title="Một CV. Những cơ hội có cơ sở." description="Chọn CV đã phân tích để khám phá việc làm gợi ý. Xem kỹ năng khớp và còn thiếu trước khi quyết định ứng tuyển.">
+        <Link to="/candidate/jobs/recommended"><Button>Xem gợi ý việc làm</Button></Link>
+        <Link to="/candidate/cvs"><Button variant="secondary">Quản lý CV</Button></Link>
+      </AuroraHero>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatLink icon={<Star size={20} />} label="Việc đang tuyển" value={`${data.stats.activeJobs} việc`} to="/candidate/jobs" />
         <StatLink icon={<BriefcaseBusiness size={20} />} label="Việc đã lưu" value={`${data.stats.savedJobs} việc`} to="/candidate/jobs/saved" />
@@ -82,7 +87,7 @@ export function CandidateDashboardPage() {
             </div>
           </Card>
           <Card>
-            <SectionHeader title="Việc làm đang tuyển" description="Các công việc mới nhất phù hợp để bạn xem và ứng tuyển." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
+            <SectionHeader title="Việc làm đang tuyển" description="Tin tuyển dụng mới nhất. Gợi ý dựa trên CV nằm trong mục Gợi ý việc làm." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
             {data.jobs.length ? (
               <div className="grid gap-4">
                 {data.jobs.map((job) => (
@@ -167,11 +172,6 @@ export function CandidateDashboardPage() {
           </Card>
 
           <Card>
-            <SectionHeader title="Lịch hẹn" />
-            <EmptyState message="Chưa có lịch hẹn mới." />
-          </Card>
-
-          <Card>
             <SectionHeader title="Thông báo gần đây" description={`${data.unreadNotifications} thông báo chưa đọc`} />
             {data.notifications.length ? (
               <div className="space-y-3">
@@ -200,7 +200,7 @@ export function CandidateDashboardPage() {
 
 function StatLink({ icon, label, value, to }: { icon: ReactNode; label: string; value: string; to: string }) {
   return (
-    <Link to={to} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-brand-200 hover:shadow-md">
+    <Link to={to} className="neo-metric min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-center gap-3">
         <span className="rounded-lg bg-brand-50 p-2 text-brand-700">{icon}</span>
         <div>

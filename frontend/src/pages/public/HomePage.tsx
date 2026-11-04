@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { PageContainer } from "../../components/common/PageContainer";
+import { MatchingIllustration } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -19,7 +20,6 @@ import type { HomeData } from "../../features/public/home/homeTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useSavedJobs } from "../../hooks/useSavedJobs";
 import { useToast } from "../../hooks/useToast";
-import SplitText from "../../components/animations/SplitText";
 
 const locationOptions = [
   { label: "Tất cả địa điểm", value: "" },
@@ -94,31 +94,29 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <section className="grid items-center gap-8 rounded-3xl border border-brand-100 bg-brand-50/70 px-5 py-8 sm:px-8 sm:py-12 lg:grid-cols-[1.4fr_0.8fr] lg:px-10">
+      <section className="aurora-panel neo-home-hero">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-medium text-brand-700 shadow-sm"><FileText size={16} /> Nền tảng gợi ý việc làm dựa trên CV</p>
-          <SplitText className="mt-5 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl xl:text-5xl" text="Bước tiếp theo cho sự nghiệp IT của bạn" />
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-            Khám phá việc làm, tải CV và nhận gợi ý từ nội dung CV cùng kỹ năng. Xem rõ lý do gợi ý để chủ động chọn cơ hội tiếp theo.
+          <p className="aurora-eyebrow"><FileText size={16} aria-hidden="true" /> DÀNH CHO SINH VIÊN CÔNG NGHỆ THÔNG TIN</p>
+          <h1 className="mt-5">Kỹ năng của bạn.<br /><span className="neo-gradient-text">Khởi đầu xứng đáng.</span></h1>
+          <p className="aurora-description mt-5 max-w-xl text-base leading-7">
+            Biến nội dung CV thành gợi ý việc làm. Khám phá kỹ năng phù hợp, hiểu lý do đối sánh và chủ động chọn bước tiếp theo cho sự nghiệp IT.
           </p>
-
-          <form onSubmit={handleSearch} className="mt-6 grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 text-slate-900 shadow-soft sm:p-5">
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input label="Từ khóa" name="keyword" placeholder="Frontend, Java, Data..." />
-              <Select label="Địa điểm" name="location" options={locationOptions} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button type="submit" className="h-10 w-full whitespace-nowrap" icon={<Search size={16} />}>Tìm việc</Button>
-              <Button type="button" variant="secondary" className="h-10 w-full whitespace-nowrap px-3" icon={<FileUp size={16} />} onClick={handleUploadCv}>
-                Tải CV
-              </Button>
-            </div>
-          </form>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to={isAuthenticated && currentRole === "candidate" ? "/candidate/jobs/recommended" : "/register/candidate"} className="neo-role-link neo-role-primary">Tôi là sinh viên <ArrowRight size={17} aria-hidden="true" /></Link>
+            <Link to={isAuthenticated && currentRole === "recruiter" ? "/recruiter/dashboard" : "/register/recruiter"} className="neo-role-link neo-role-secondary"><Building2 size={17} aria-hidden="true" /> Tôi là doanh nghiệp</Link>
+          </div>
+          <p className="aurora-description mt-5 text-xs">CV tiếng Việt & tiếng Anh · TF-IDF · Cosine Similarity</p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <MatchingIllustration />
+      </section>
+      <form onSubmit={handleSearch} className="mt-5 grid items-end gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft md:grid-cols-[1fr_1fr_auto]">
+        <Input label="Bạn muốn tìm công việc nào?" name="keyword" placeholder="Frontend, Java, Data..." />
+        <Select label="Địa điểm" name="location" options={locationOptions} />
+        <div className="flex gap-2"><Button type="submit" icon={<Search size={16} />}>Tìm việc</Button><Button type="button" variant="secondary" icon={<FileUp size={16} />} onClick={handleUploadCv}>Tải CV</Button></div>
+      </form>
+      <section aria-label="Thống kê công khai" className="neo-public-metrics">
           {statistics.map((item, index) => (
-            <Card key={item.id} className="border-brand-100 bg-white">
+            <Card key={item.id} className="neo-metric">
               <div className="flex items-center gap-2 text-brand-700">
                 {index === 0 ? <BriefcaseBusiness size={18} /> : index === 1 ? <Users size={18} /> : index === 2 ? <Building2 size={18} /> : <FileText size={18} />}
                 <p className="text-sm font-medium">{item.label}</p>
@@ -128,7 +126,6 @@ export function HomePage() {
                   : <span className="mt-2 block text-sm text-slate-600">{homeQuery.error ? "Không tải được số liệu" : item.unavailableReason ?? "Chưa có số liệu"}</span>}
             </Card>
           ))}
-        </div>
         {statisticsUnavailable ? (
           <div role="status" className="text-sm text-amber-800 lg:col-span-2">Không tải được thống kê công khai. Số liệu hiện chưa xác định. <Button variant="ghost" onClick={() => setReloadKey((value) => value + 1)}>Thử lại thống kê</Button></div>
         ) : null}
@@ -203,7 +200,11 @@ export function HomePage() {
               </Link>
             ))
           ) : (
-            ["Viết CV", "Phỏng vấn", "Định hướng nghề nghiệp"].map((title) => <ArticlePlaceholderCard key={title} title={title} />)
+            [
+              { title: "Viết CV IT rõ ràng", description: "Trình bày kỹ năng, dự án và vai trò của bạn bằng những ví dụ cụ thể.", path: "/career-resources/cv-it-sinh-vien" },
+              { title: "Chuẩn bị phỏng vấn Frontend", description: "Ôn kiến thức nền tảng và chuẩn bị một dự án để giải thích cách bạn làm việc.", path: "/career-resources/phong-van-frontend" },
+              { title: "Lộ trình Backend Java", description: "Từ Java core đến REST API, cơ sở dữ liệu và triển khai ứng dụng.", path: "/career-resources/lo-trinh-java" },
+            ].map(article => <Link key={article.path} to={article.path} className="neo-card rounded-2xl border border-slate-200 bg-white p-5 hover:border-brand-300"><h3 className="font-semibold text-slate-900">{article.title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{article.description}</p><span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700">Đọc hướng dẫn <ArrowRight size={15} aria-hidden="true" /></span></Link>)
           )}
         </div>
       </section>
@@ -216,14 +217,5 @@ export function HomePage() {
         </div>
       </Modal>
     </PageContainer>
-  );
-}
-
-function ArticlePlaceholderCard({ title }: { title: string }) {
-  return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">Nội dung sẽ được cập nhật sau.</p>
-    </article>
   );
 }

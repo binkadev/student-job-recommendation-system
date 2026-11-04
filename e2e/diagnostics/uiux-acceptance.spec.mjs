@@ -66,7 +66,9 @@ test('U05 ranking tier tables have distinguishable accessible names and long con
   await signIn(page, 'company'); await page.goto(`/recruiter/jobs/${manifest.jobs[1].id}/candidate-ranking`);
   await expect(page.getByRole('region', { name: 'Ứng viên: Phù hợp tổng thể', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Ứng viên: Đối sánh kỹ năng', exact: true })).toBeVisible();
-  const axe = await new AxeBuilder({ page }).analyze(); expect(axe.violations.map(v => v.id)).toEqual([]);
+  const axe = await new AxeBuilder({ page }).analyze();
+  writeLocal('neo-aurora-ranking-axe.json', axe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, failureSummary: n.failureSummary })) })));
+  expect(axe.violations.map(v => v.id)).toEqual([]);
   evidence.cases.rankingTables = { namedTiers: true, violations: 0 };
 });
 

@@ -34,6 +34,22 @@ it("Dashboard counts all 130 owned jobs rather than the first 100 returned jobs"
   expect(await screen.findByRole("link", { name: /Tin đang tuyển.*130/ })).toBeVisible();
   expect(screen.getByRole("link", { name: "Tạo tin tuyển dụng" })).toHaveAttribute("href", "/recruiter/jobs/create");
 });
+it("distinguishes a genuine empty selected-period trend from nonzero all-time totals", async () => {
+  vi.mocked(httpClient.get).mockResolvedValue(envelope({ ...dashboardFixture, trend: [{ bucket: "2026-11-04", applications: 0 }] }));
+  mount(<RecruiterDashboardPage />);
+  expect(await screen.findByText("0 lượt trong kỳ biểu đồ")).toBeVisible();
+  expect(screen.getByText(/360 lượt trong toàn bộ lịch sử/)).toBeVisible();
+  expect(screen.getByText(/Không có lượt ứng tuyển trong kỳ biểu đồ/)).toBeVisible();
+  expect(screen.getByText(/dữ liệu lịch sử không lưu múi giờ gốc/)).toBeVisible();
+});
+it("preserves the accessible UTC table with actual nonzero date buckets", async () => {
+  vi.mocked(httpClient.get).mockResolvedValue(envelope({ ...dashboardFixture, trend: [{ bucket: "2026-11-04", applications: 13 }] }));
+  mount(<RecruiterDashboardPage />);
+  expect(await screen.findByText("13 lượt trong kỳ biểu đồ")).toBeVisible();
+  expect(screen.getByRole("region", { name: "Dữ liệu xu hướng theo kỳ UTC" })).toHaveAttribute("tabindex", "0");
+  expect(screen.getByRole("rowheader", { name: "2026-11-04" })).toBeVisible();
+  expect(screen.queryByText(/Không có lượt ứng tuyển trong kỳ biểu đồ/)).not.toBeInTheDocument();
+});
 it("Reports uses all 360 filtered histories rather than 100 loaded applications", async () => {
   mount(<RecruiterReportsPage />);
   const label = await screen.findByText("Đơn trong phạm vi lọc");

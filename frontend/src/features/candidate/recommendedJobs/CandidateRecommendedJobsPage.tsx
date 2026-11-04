@@ -3,6 +3,8 @@ import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
+import { AuroraHero } from "../../../components/common/AuroraHero";
+import { ScoreMeter } from "../../shared/ranking/ScoreMeter";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { ErrorState } from "../../../components/feedback/ErrorState";
 import { LoadingState } from "../../../components/feedback/LoadingState";
@@ -197,6 +199,7 @@ export function CandidateRecommendedJobsPage() {
   return (
     <PageContainer>
       <PageHeader title="Việc làm gợi ý" description="Khám phá cơ hội từ CV của bạn, hiểu kỹ năng phù hợp và những điểm cần bổ sung." />
+      <AuroraHero eyebrow="GỢI Ý VIỆC LÀM · CONTENT-BASED FILTERING" title="Hiểu vì sao một công việc phù hợp với bạn." description="Kết quả dựa trên nội dung CV và kỹ năng đã phân tích. Hai nhóm đối sánh có ý nghĩa riêng; điểm không phải xác suất trúng tuyển." />
       <GenerationRecovery recovery={recovery} />
       {applications?.some(item => item.status === "WITHDRAWN") ? <p className="mb-4 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
 
@@ -495,6 +498,7 @@ function RecommendedJobCard({
           <div>
             <p className="text-xs font-semibold">{job.displayScoreLabel}</p>
             <p className="mt-2 text-3xl font-bold tabular-nums">{formatNormalizedScore(job.displayScore)}</p>
+            <ScoreMeter value={job.displayScore} label={job.displayScoreLabel} tier={job.rankingTier} />
             {fallback ? <p className="mt-2 text-xs leading-5">Mức đáp ứng kỹ năng</p> : null}
           </div>
           <div className="text-right text-xs leading-5 xl:mt-4 xl:border-t xl:border-current/10 xl:pt-3 xl:text-center">

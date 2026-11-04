@@ -5,6 +5,7 @@ import { Avatar } from "../../../components/ui/Avatar";
 import { Button } from "../../../components/ui/Button";
 import { RecruiterDataTable } from "../RecruiterDataTable";
 import { getScorePresentation } from "../../shared/ranking/rankingScoreTypes";
+import { ScoreMeter } from "../../shared/ranking/ScoreMeter";
 import { formatScore } from "./candidateRankingMappers";
 import type { CandidateRankingApplicationStatus, CandidateRankingResult } from "./candidateRankingTypes";
 
@@ -64,11 +65,12 @@ function ScoreCell({ result }: { result: CandidateRankingResult }) {
     <div className={`min-w-28 rounded-xl border p-3 ${result.rankingTier === "FALLBACK" ? "border-amber-200 bg-amber-50/60" : "border-brand-100 bg-brand-50/60"}`}>
       <p className={`text-xs font-semibold ${result.rankingTier === "FALLBACK" ? "text-amber-900" : "text-brand-700"}`}>{presentation.label}</p>
       <p className="mt-1 text-xl font-bold tabular-nums text-slate-950">{formatScore(presentation.value)}</p>
+      <ScoreMeter value={presentation.value} label={presentation.label} tier={result.rankingTier} />
       {result.rankingTier === "FALLBACK" ? <p className="mt-1 text-xs text-amber-900">Chỉ đối sánh kỹ năng</p> : null}
       <div className="mt-1 space-y-0.5 text-xs leading-5 text-slate-500">
-        <p>Final Score: {formatScore(result.overallScore)}</p>
-        <p>Text Score: {formatScore(result.textScore)}</p>
-        <p>Skill Score: {formatScore(result.skillScore)}</p>
+        <p>Điểm tổng thể: {formatScore(result.overallScore)}</p>
+        <p>Điểm nội dung: {formatScore(result.textScore)}</p>
+        <p>Điểm kỹ năng: {formatScore(result.skillScore)}</p>
       </div>
     </div>
   );

@@ -505,7 +505,7 @@ function CvAnalysisView({
               <Card>
                 <SectionHeader title="Văn bản đã xử lý" />
                 {analysis?.processedText ? (
-                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
+                  <pre role="region" aria-label="Nội dung CV đã xử lý, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
                 ) : (
                   <EmptyState message="Chưa có văn bản đã xử lý cho CV này." />
                 )}
@@ -525,7 +525,7 @@ function CvAnalysisView({
               <Card>
                 <SectionHeader title="Dữ liệu trích xuất" />
                 {analysis?.extractedText ? (
-                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
+                  <pre role="region" aria-label="Nội dung CV trích xuất, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
                 ) : (
                   <EmptyState message="Chưa có extractedText cho CV này." />
                 )}

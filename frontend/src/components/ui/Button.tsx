@@ -28,7 +28,7 @@ export function Button({ variant = "primary", size = "md", icon, loading = false
     <button
       type={props.type ?? "button"}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 focus-visible:ring-4 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`neo-button neo-button-${variant} inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 focus-visible:ring-4 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

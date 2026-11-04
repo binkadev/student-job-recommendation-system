@@ -10,9 +10,10 @@ interface MobileSidebarProps {
   title: string;
   items: MenuItem[];
   onClose: () => void;
+  neoAppearance?: boolean;
 }
 
-export function MobileSidebar({ open, title, items, onClose }: MobileSidebarProps) {
+export function MobileSidebar({ open, title, items, onClose, neoAppearance = false }: MobileSidebarProps) {
   const dialogRef = useDialogFocus(open, onClose);
   useEffect(() => {
     if (!open) return;
@@ -24,7 +25,7 @@ export function MobileSidebar({ open, title, items, onClose }: MobileSidebarProp
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm lg:hidden" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className={`${neoAppearance ? "neo-mobile " : ""}fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm lg:hidden`} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="relative h-full w-72 max-w-[90vw] bg-white shadow-xl [&>aside]:w-full">
         <button type="button" aria-label="Đóng menu" className="absolute right-3 top-3 z-10 rounded-xl border border-slate-200 bg-white p-2.5" onClick={onClose}>
           <X size={18} />

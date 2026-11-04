@@ -6,6 +6,7 @@ import { useSessionAlive } from "../../features/account/useSessionAlive";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -146,6 +147,7 @@ export function RecruiterCandidateRankingPage() {
     <PageContainer>
       <GenerationRecovery recovery={recovery} />
       <PageHeader title="Ứng viên phù hợp" description="Xếp hạng ứng viên đã ứng tuyển theo từng tin tuyển dụng." />
+      <AuroraHero eyebrow="XẾP HẠNG ỨNG VIÊN · V3" title="Thêm bằng chứng cho quyết định tuyển dụng." description="Đối chiếu CV đã phân tích với yêu cầu của tin tuyển dụng. PRIMARY và FALLBACK được xếp hạng độc lập; điểm đối sánh không thay thế đánh giá của nhà tuyển dụng." />
       <Card>
         <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
           <div className="min-w-0 break-words">

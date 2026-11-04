@@ -5,7 +5,9 @@ import { randomBytes } from 'node:crypto';
 import { accounts, namespace } from './dataset.mjs';
 
 export const root = path.dirname(fileURLToPath(import.meta.url));
-export const local = path.join(root, '.local');
+const privateRoot = path.join(root, '.local');
+export const local = process.env.E2E_LOCAL_DIR ? path.resolve(process.env.E2E_LOCAL_DIR) : privateRoot;
+if (local !== privateRoot && (!local.startsWith(privateRoot + path.sep))) throw new Error('E2E evidence must remain under ignored e2e/.local');
 fs.mkdirSync(local, { recursive: true });
 export const apiBase = process.env.E2E_BACKEND_URL || 'http://localhost:8080';
 // This runner creates durable data; never silently target a remote deployment.
