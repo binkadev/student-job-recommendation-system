@@ -3,8 +3,13 @@ package com.tttn.jobrecommendation.common.exception;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
+    REPORT_EXPORT_LIMIT_EXCEEDED("REPORT_EXPORT_LIMIT_EXCEEDED", "Report exceeds export row limit; narrow filters", HttpStatus.UNPROCESSABLE_ENTITY),
+    SAVED_CANDIDATE_REVISION_CONFLICT("SAVED_CANDIDATE_REVISION_CONFLICT", "Note changed; reload and compare before saving", HttpStatus.CONFLICT),
     BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),
     VALIDATION_ERROR("VALIDATION_ERROR", "Validation error", HttpStatus.BAD_REQUEST),
+    PROFILE_REVISION_CONFLICT("PROFILE_REVISION_CONFLICT", "Profile changed; reload and compare before saving", HttpStatus.CONFLICT),
+    PROFILE_REVISION_REQUIRED("PROFILE_REVISION_REQUIRED", "A profile revision precondition is required", HttpStatus.PRECONDITION_REQUIRED),
+    UPLOAD_TOO_LARGE("UPLOAD_TOO_LARGE", "Uploaded file or request exceeds the size limit", HttpStatus.PAYLOAD_TOO_LARGE),
     UNAUTHORIZED("UNAUTHORIZED", "Authentication is required", HttpStatus.UNAUTHORIZED),
     INVALID_CREDENTIALS("INVALID_CREDENTIALS", "Invalid email or password", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED("ACCESS_DENIED", "Access denied", HttpStatus.FORBIDDEN),
@@ -101,6 +106,8 @@ public enum ErrorCode {
             "Current password is incorrect",
             HttpStatus.BAD_REQUEST
     ),
+    SETTINGS_REVISION_REQUIRED("SETTINGS_REVISION_REQUIRED", "A captured settings If-Match ETag is required", HttpStatus.PRECONDITION_REQUIRED),
+    SETTINGS_REVISION_CONFLICT("SETTINGS_REVISION_CONFLICT", "Settings changed; read the current values and review your draft", HttpStatus.CONFLICT),
     RESOURCE_NOT_FOUND("RESOURCE_NOT_FOUND", "Resource not found", HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
 

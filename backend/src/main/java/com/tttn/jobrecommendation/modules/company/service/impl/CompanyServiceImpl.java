@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.company.service.impl;
 
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.common.utils.SettingsRevision;
 import com.tttn.jobrecommendation.modules.company.dto.request.CompanyUpdateRequest;
 import com.tttn.jobrecommendation.modules.company.dto.response.CompanyResponse;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
@@ -28,8 +29,15 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyResponse updateMe(Long userId, CompanyUpdateRequest request) {
-        Company company = getCompanyByUserId(userId);
+    public CompanyResponse updateMe(Long userId, CompanyUpdateRequest request, Long revision) {
+        SettingsRevision.require(revision);
+        // Profile writes must not overwrite a concurrent Admin verification/block
+        // with the status from an earlier Hibernate snapshot.
+        Company company = companyRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+
+        SettingsRevision.match(company.getAccountRevision(), revision);
+        company.setAccountRevision(company.getAccountRevision() + 1);
 
         if (StringUtils.hasText(request.getCompanyName())) {
             company.setCompanyName(request.getCompanyName().trim());

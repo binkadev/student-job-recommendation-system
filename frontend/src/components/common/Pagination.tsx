@@ -9,26 +9,26 @@ export function Pagination({ page = 1, totalPages = 1, onPageChange }: Paginatio
   const canGoNext = page < totalPages;
 
   return (
-    <div className="flex items-center justify-end gap-2 text-sm">
+    <nav aria-label="Phân trang" className="flex flex-wrap items-center justify-end gap-2 text-sm">
       <button
         type="button"
-        className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={!canGoPrevious}
         onClick={() => onPageChange?.(page - 1)}
       >
         Trước
       </button>
-      <span className="rounded-md bg-brand-600 px-3 py-1.5 text-white">
-        {page}/{totalPages}
+      <span aria-live="polite" aria-atomic="true" className="rounded-xl bg-brand-50 px-3 py-2 font-medium text-brand-700">
+        Trang {page}/{Math.max(1, totalPages)}
       </span>
       <button
         type="button"
-        className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={!canGoNext}
         onClick={() => onPageChange?.(page + 1)}
       >
         Sau
       </button>
-    </div>
+    </nav>
   );
 }

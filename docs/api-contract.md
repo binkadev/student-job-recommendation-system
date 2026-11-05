@@ -1,5 +1,12 @@
 # API Contract
 
+Multipart requests exceeding the servlet file/request size limits return `413`
+with the normal error envelope and `errorCode: "UPLOAD_TOO_LARGE"`. The message
+does not expose multipart parser exceptions or storage details. Limits remain
+configurable; the default file and total multipart request limits are both 10 MB,
+so multipart framing also counts toward the request limit. This does not change
+CV type validation or the AI parsing/scoring contracts.
+
 Backend base URL: `http://localhost:8080`
 
 JSON responses use `ApiResponse<T>`.
@@ -78,7 +85,7 @@ Common protected-endpoint errors:
 - `CV_ANALYSIS_NOT_READY`: recommendation generation selected a CV whose persisted analysis status is not `READY`, or whose processed text or required language/version metadata is absent or incompatible (`409 Conflict`).
 - `CV_ANALYSIS_FAILED`: an unexpected CV-analysis integration failure occurred (`502 Bad Gateway`).
 - `FEATURE_NOT_SUPPORTED`: an authenticated owner requested a compatibility endpoint that is intentionally unavailable in the MVP (`501 Not Implemented`).
-- `AI_SERVICE_UNAVAILABLE`: the AI service connection failed or the service returned a server error (`503 Service Unavailable`).
+- `AI_SERVICE_UNAVAILABLE`: the AI service connection failed (including a socket reset during response-body reading) or the service returned a server error (`503 Service Unavailable`).
 - `AI_SERVICE_TIMEOUT`: the AI service exceeded the configured read/connect timeout (`504 Gateway Timeout`).
 - `AI_SERVICE_INVALID_RESPONSE`: the AI service rejected the request, returned malformed JSON, or violated its typed response contract (`502 Bad Gateway`).
 - `RECOMMENDATION_RUN_NOT_FOUND`: a recommendation run is absent or not owned by the current student (`404 Not Found`).
@@ -130,6 +137,8 @@ Request:
 ```
 
 Response data: `AuthUserResponse` with `id`, `email`, `fullName`, `phone`, `role`, `status`, `lastLoginAt`, `createdAt`. `passwordHash` is never returned.
+
+Registering `COMPANY` creates a `PENDING` Company profile and an `ACTIVE` User account. Login/profile completion/DRAFT jobs are allowed; only Admin can verify the Company. User status and Company verification status are separate.
 
 ### POST `/api/auth/login`
 
@@ -266,6 +275,42 @@ Applies the exact list visibility rules. Response data contains all public list 
 
 ## Student
 
+### GET / PUT `/api/students/me/profile-aggregate`
+
+Role: `STUDENT`; ownership always comes from JWT, never from request IDs. GET returns one PostgreSQL repeatable-read snapshot in `ApiResponse<StudentProfileAggregateResponse>`: `{revision, student, profile, skills}`. `student`/`profile` reuse the legacy response fields below; `skills` contains the full confirmed skill list, including non-MANUAL sources. Response header `ETag: "N"` identifies the shared profile revision. CORS exposes ETag.
+
+PUT example (one atomic mutation):
+
+```json
+{
+  "revision": 7,
+  "student": {"fullName": "Synthetic Student", "phone": "", "major": "Software"},
+  "profile": {"summary": "Updated summary", "education": "Line one\nLine two"},
+  "manualSkills": [{"skillId": 1, "proficiencyLevel": "INTERMEDIATE", "yearsOfExperience": 1, "source": "MANUAL"}],
+  "clearFields": ["graduationYear"]
+}
+```
+
+- `revision` is required, a nonnegative JSON integer. Missing/null/negative/fractional/string versions return 400. Successful PUT returns the complete committed snapshot at `N+1`, HTTP 200, ETag `"N+1"`.
+- PUT uses the body revision as its precondition. PostgreSQL compares and increments it as the first write in the same transaction as all User/Student/Profile/skills/catalog changes. Competing aggregate **or legacy** requests cannot both claim N; stale → **409 PROFILE_REVISION_CONFLICT**. Any failure rolls back business rows and revision, including newly created catalog skills.
+- Optional `student` fields: `fullName`, `phone`, `major`, `university`, `graduationYear`, `location`, `headline`. Optional `profile` fields: `summary`, `education`, `experience`, `projects`, `targetPosition`, `preferredLocation`, `preferredJobType`. Existing Jakarta length/year/enum validation applies. IDs, email, GPA, certificates, links, languages and other unsupported top-level/basic/profile properties are rejected (400).
+- Omitted/null groups or scalar values mean **keep**. Blank/empty optional text means **clear to null**, preserving legacy trim semantics. Blank fullName means keep (cannot clear the required stored name).
+- `clearFields` explicitly clears nullable `graduationYear` and/or `preferredJobType`; null/omitted means no clears. Unknown clear fields or simultaneously setting a non-null value and clearing it return 400. Existing unsupported columns remain unchanged. Empty groups/revision-only saves do not rewrite profile fields/timestamps.
+- `manualSkills` omitted/null means keep all skill rows. A supplied list replaces **only MANUAL** rows; `[]` removes only MANUAL rows. Items use the legacy skill-item format (ID or normalized custom name, level, optional years, source MANUAL). Non-MANUAL rows are retained unchanged; attempting to replace one by a MANUAL item with the same catalog ID/name returns 400. This API cannot assign CV_EXTRACTED/ADMIN_SEEDED provenance. Actual CV analysis remains separate in `cv_files` and is never modified.
+- Every successful mutation, including no-op/revision-only, advances the owned profile revision exactly once. GET does not. Profile search text/completeness retain their existing derived-field rules. Shared catalog metadata is read for display; profile revision covers owned profile state, not administrative catalog-edit history.
+
+### Legacy profile preconditions — breaking precondition, unchanged bodies
+
+The following three GET/PUT URLs and JSON request/response bodies remain available: `/api/students/me`, `/api/students/me/profile`, `/api/students/me/skills`. **All three legacy PUTs now require `If-Match: "N"` from the snapshot the consumer edited.** GET and successful PUT return the shared ETag without adding a revision field to legacy JSON bodies.
+
+- Missing If-Match → **428 PROFILE_REVISION_REQUIRED**.
+- Well-formed stale revision → **409 PROFILE_REVISION_CONFLICT** (application concurrency contract; this API uses 409 consistently rather than 412).
+- Malformed, weak, wildcard, multiple or out-of-range ETags → 400 BAD_REQUEST. No unconditional overwrite is supported.
+- Success → 200 with original body shape, ETag N+1. Legacy writes use the same transactional PostgreSQL compare-and-swap as aggregate PUT; subsequent stale aggregate/legacy writes fail. Validation/authorization may reject a request before precondition evaluation.
+- This is an intentional breaking **precondition** for external clients without If-Match. All repository consumers are updated: main editor uses aggregate PUT; Preferences/Settings retain their captured ETag; setup uses aggregate; regression callers supply explicit revisions. No external consumer is identified in this repository; external deployment clients require coordination before rollout. Never fetch a new ETag automatically immediately before overwriting an old draft or silently retry a conflict with a new revision.
+
+See [design, rollback/concurrency evidence and limitations](datn/student-profile-atomic-save-results.md).
+
 ### GET `/api/students/me`
 
 Role: `STUDENT`.
@@ -278,6 +323,8 @@ Role: `STUDENT`.
 
 Request fields: `fullName`, `major`, `university`, `phone`, `graduationYear`, `location`, `headline`.
 
+If-Match is required as above. Omitted/null values keep existing data. Optional text empty/blank clears to null; fullName blank keeps existing. graduationYear null keeps existing; use aggregate clearFields for an explicit clear.
+
 ### GET `/api/students/me/profile`
 
 Role: `STUDENT`.
@@ -289,6 +336,8 @@ Returns confirmed structured student profile fields, including `preferredJobType
 Role: `STUDENT`.
 
 Request fields: `summary`, `education`, `experience`, `projects`, `targetPosition`, `preferredLocation`, `preferredJobType`.
+
+If-Match is required as above. Omitted/null values keep existing data; empty/blank text clears to null. preferredJobType null keeps existing; aggregate clearFields supports explicit clearing.
 
 ## Student Skills
 
@@ -318,6 +367,8 @@ Response item:
 Role: `STUDENT`.
 
 Replace semantics: the request is the student's complete confirmed current skill list. Existing skills are updated, new skills are created, and omitted skills are removed.
+
+If-Match is required. These existing legacy replace semantics include all confirmed provenance labels; `[]` clears the confirmed list. They do **not** modify a CV's extractedSkills/READY analysis snapshot. The aggregate/manual editor has the narrower MANUAL-only replacement described above; no legacy provenance restriction is silently introduced.
 
 Request:
 
@@ -410,17 +461,103 @@ Deletes only the authenticated student's saved-search record. A foreign or absen
 
 ## Company
 
+### GET `/api/companies/me/dashboard-summary?days=30`
+
+COMPANY only, JWT-derived owner, including internal management for PENDING/BLOCKED
+Companies. No client ownership/sort parameters; unsupported/duplicate query keys
+return400. `days` must be7/30/90 (default30), invalid400. `ApiResponse<Dashboard>`:
+
+- `jobCounts` for all six persisted Job statuses and `totalJobs`: all owned Jobs,
+  independent of public visibility and the trend period.
+- `summary.totalApplications`, `uniqueStudents`, five `statusCounts`, `acceptedRate`:
+  all owned application **history rows**. Reapplications count separately; unique
+  students are DISTINCT student_id. Rate is current ACCEPTED/all histories×100,
+  including WITHDRAWN, HALF_UP2 decimals; zero denominator returns null.
+- `trendFrom`,`trendTo`,`timeZone="UTC"`,`trend[{bucket,applications}]`: exactly
+  N UTC calendar dates ending today inclusive, filled zero dates.
+- `topJobs`: top10 owned Jobs by history count DESC, jobId ASC, including count,
+  accepted and rate; this is an explicitly limited leaderboard, not all Jobs.
+- `recentApplications`: PageResponse with page1/size5/full all-time total and
+  latest5 rows ordered appliedAt DESC,id DESC. `expiringJobCount` counts owned
+  ACTIVE Jobs with deadline in [today,today+14] inclusive; `expiringJobs` contains
+  first5 by deadline ASC,id ASC. Null/past deadlines excluded.
+
+### GET `/api/companies/me/recruitment-report`
+
+COMPANY only. Optional `from`,`to` ISO calendar dates (years1–9998, from≤to),
+positive `jobId`, `status` PENDING/REVIEWED/ACCEPTED/REJECTED/WITHDRAWN, literal
+case-insensitive `keyword`≤255 (Student name/email, Job title, original CV filename),
+page≥1/size1–100 default1/10. All filters combine before database aggregation/count/
+LIMIT/OFFSET. `%`, `_`, backslash are literal keyword characters. Missing/foreign
+Job filter404; role403; unauth401; invalid/unknown/duplicate parameters400.
+
+Response `ApiResponse<Report>` includes normalized `scope` (from/to/jobId/status/
+keyword/timeZone), `summary` with the definitions above applied to the **full filtered
+set**, monthly nonempty `trend`, `topJobs`+`topJobLimit=10`, `applications` PageResponse.
+Application rows contain IDs, name/email, Job title/status, applied/reviewed timestamps,
+original CV filename; never hashes, stored filenames or internal paths. Empty result:
+five status zeros, total/unique0, rate null, empty trend/items. Out-of-range page may
+have empty items with unchanged filtered total. No dataset snapshot across page requests.
+
+Dates explicitly use UTC stored-calendar convention, `[from 00:00,to+1 00:00)` on
+applied_at. TIMESTAMP WITHOUT TIME ZONE columns have no historical source offset;
+analytics does not reinterpret/rewrite legacy rows or assume host timezone. Historical
+non-UTC producers require a separate reviewed migration to recover/standardize offsets.
+All queries for a single response execute in one read-only REPEATABLE_READ transaction.
+Current statuses are reported; there is no accepted-at audit cohort metric.
+
+### GET `/api/companies/me/recruitment-report/export`
+
+Same authenticated scope/filters as report, excluding page/size. JSON
+`ApiResponse<{scope,rowCount,encoding:"UTF-8",maxRows:10000,csv}>`, preserving the
+JSON API envelope; browser downloads the CSV string. **Full filtered dataset**,
+appliedAt DESC,id DESC. Count>10000 returns422 `REPORT_EXPORT_LIMIT_EXCEEDED`,
+without truncation. Count/export share one read-only transaction snapshot. A separate
+export request can observe changes since the previous report; rowCount is authoritative
+for that export. No background export job.
+
+CSV columns: applicationId,studentId,studentName,studentEmail,jobId,jobTitle,status,
+appliedAt,reviewedAt,cvFileName. UTF-8 BOM, CRLF, double-quoted/escaped cells and
+embedded newlines. Text starting with =,+,-,@ after leading whitespace, or starting
+tab/CR/LF, is prefixed with apostrophe for spreadsheet safety. CSV contains owned
+PII, requires authentication and Company authorization; never commit real downloads.
+No Job/Application state mutation, migration, scoring or notification change.
+
+Runtime/SQL evidence: [Company Dashboard & Reports](datn/company-dashboard-reports-results.md).
+
+### GET `/api/companies/me/jobs`
+
+Role: `COMPANY`. Management list scoped exclusively to the authenticated User's Company, including PENDING/BLOCKED Companies. Company ownership is resolved by Backend; client `companyId`, `userId`, `sort`, and other unknown query parameters return 400 `BAD_REQUEST`.
+
+Optional query parameters: `page` (1-based, default 1, minimum 1), `size` (default 10, range 1–100), `keyword` (case-insensitive substring of title, description or requirements), `status`, `jobType`, `workingModel`, `location` (case-insensitive substring). Enum values follow the shared Job enums. Invalid pagination/enums return 400. Filters combine with AND and run in PostgreSQL before pagination and counting.
+
+Response: `ApiResponse<PageResponse<JobResponse>>`, ordered by `createdAt DESC, id DESC`. No total-result limit of 100. All six own Job statuses are readable. `totalItems` counts all matching own Jobs and `totalPages = ceil(totalItems / size)`. Empty matches return `items: []`, `totalItems: 0`, `totalPages: 0`; out-of-range pages return 200 with empty items, the requested page and accurate totals. Offset pages have deterministic ordering for an unchanged dataset; they do not provide a cross-request snapshot during concurrent inserts/deletes.
+
+Student/Admin receive 403; unauthenticated requests follow the existing security entry point. This endpoint grants no foreign Job detail or write access and no publishing rights. Existing generic `/api/jobs`, public discovery, moderation, Recommendation V3 and Candidate Ranking V3 semantics remain unchanged.
+
 ### GET `/api/companies/me`
 
 Role: `COMPANY`.
 
-Returns current company profile.
+Returns current company profile, numeric `revision`, and strong numeric `ETag`
+(for example `"0"`). This is the account draft revision, independent of Student
+profile and Saved Candidate revisions.
 
 ### PUT `/api/companies/me`
 
 Role: `COMPANY`.
 
 Request fields: `companyName`, `taxCode`, `description`, `website`, `address`, `phone`, `industry`.
+
+V21 requires `If-Match` with the ETag captured when loading this draft. Missing:
+428 `SETTINGS_REVISION_REQUIRED`; malformed/weak/wildcard/multiple/negative or
+overflowing ETag: 400 `BAD_REQUEST`; stale: 409 `SETTINGS_REVISION_CONFLICT`.
+Each successful write increments the account revision once, including no-op
+field values, and returns the new `revision` and ETag. The existing Company row
+lock still serializes profile writes with verification/status changes. Conflicts
+do not mutate fields or revision. The client keeps its draft and must explicitly
+review/replace it before using a newly fetched revision; never GET-and-retry an
+old draft automatically. No Company verification authority is added.
 
 ## Recruiter Candidate Ranking
 
@@ -446,12 +583,14 @@ Returns `ApiResponse<PageResponse<SavedCandidateResponse>>`.
 
 Query parameters:
 
-- `keyword`: optional case-insensitive partial match against student full name, student email, university, major, headline, or the saved application's job title; maximum length 255.
+- `keyword`: optional case-insensitive literal partial match against student full name, student email, university, major, headline, the saved application's job title, or the Company's private note; maximum length 255. `%`, `_` and backslash are literal characters.
+- `studentId`, `jobId`: optional positive IDs, applied inside the authenticated Company's scope before count/pagination. A foreign/nonexistent filter yields an empty list.
+- `applicationStatus`: optional `PENDING`, `REVIEWED`, `ACCEPTED`, `REJECTED`, `WITHDRAWN`, read directly from the saved **source application**. A bookmark remains tied to its original source after a later reapplication; this is not a candidate-wide lifecycle status.
 - `page`: 1-based page number, default `1`.
 - `size`: page size from 1 through 100, default `10`.
 - `sort`: accepts `field,asc`, `field,desc`, `field:asc`, or `field:desc`; maximum length 100.
 
-Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`. Unsupported fields or directions return `400 BAD_REQUEST`.
+Allowed sort fields: `id`, `createdAt`, `updatedAt`. Default sort: `createdAt,desc`, with `id DESC` as a deterministic tie-breaker. Unsupported fields or directions return `400 BAD_REQUEST`.
 
 Each response item contains:
 
@@ -459,6 +598,8 @@ Each response item contains:
 {
   "id": 42,
   "applicationId": 123,
+  "applicationStatus": "PENDING",
+  "revision": 0,
   "studentId": 15,
   "studentName": "Nguyen Van A",
   "studentEmail": "student@example.com",
@@ -495,6 +636,14 @@ The backend derives the student from the application and creates no application 
 Withdrawn applications remain saveable because the current application domain does not prohibit recruiter bookmarking after withdrawal.
 
 Response data: the created `SavedCandidateResponse`.
+
+### PATCH `/api/companies/me/saved-candidates/{id}/note`
+
+Role `COMPANY`. Body: `{ "note": "Internal assessment", "revision": 0 }`. `revision` is required, nonnegative and must equal the revision captured with the draft. `note` is nullable/optional, trimmed, maximum 2,000 characters; null/blank clears it. Unknown fields return `400 BAD_REQUEST`. Success is `200` with the updated `SavedCandidateResponse`. A changed note increments the persisted revision; an unchanged note may retain it.
+
+Missing/foreign bookmark: `404 SAVED_CANDIDATE_NOT_FOUND`. Stale draft: `409 SAVED_CANDIDATE_REVISION_CONFLICT`, with no mutation. Frontend retains the draft, offers explicit read-back/compare and never automatically retries with a freshly fetched revision. Notes are Company-internal; Student and other Companies cannot read or write them. No application status, CV analysis or ranking changes occur.
+
+Existing policy permits PENDING/BLOCKED Companies to manage their own existing applicants/bookmarks; verification gates Job publication/public visibility, not these internal operations. An inactive/blocked **User** remains subject to authentication policy. Missing/invalid authentication is 401, wrong role is 403. Simultaneous duplicate saves return one 200/one 409; simultaneous deletes of the same bookmark return one 200/one 404.
 
 ### DELETE `/api/companies/me/saved-candidates/{id}`
 
@@ -605,6 +754,8 @@ Rules:
 - Returns updated `AdminCompanyResponse`.
 - Does not automatically modify the associated `User.status`.
 - Does not create notifications or a separate approval workflow.
+- All transitions between `PENDING`, `VERIFIED`, `BLOCKED` are Admin-only; same-state requests return 200. Company cannot verify/unblock itself.
+- No Job rows are rewritten. Removing verification immediately hides existing ACTIVE jobs through visibility filters; reverifying restores still-ACTIVE, unexpired jobs. Applications/CVs/history remain intact.
 
 ## Skills
 
@@ -640,15 +791,15 @@ Filters: `keyword`, `location`, `jobType`, `workingModel`, `status`, `page`, `si
 
 Visibility:
 
-- `STUDENT` sees active jobs.
-- `COMPANY` sees active jobs plus its own jobs.
+- `STUDENT` sees ACTIVE jobs from VERIFIED Companies.
+- `COMPANY` sees ACTIVE jobs from VERIFIED Companies plus its own jobs in all states.
 - `ADMIN` sees active jobs by default unless `status` is provided.
 
 ### GET `/api/jobs/{id}`
 
 Roles: `STUDENT`, `COMPANY`, `ADMIN`.
 
-Students can view active jobs. Companies can view active jobs and their own jobs. Admin can view all jobs.
+Students can view ACTIVE jobs from VERIFIED Companies. Companies can view those jobs and their own jobs in all states. Admin can view all jobs. Generic authenticated job APIs retain their existing deadline semantics; public search/detail additionally require deadline null/today/future.
 
 ### POST `/api/jobs`
 
@@ -662,11 +813,15 @@ Job skill item fields: `skillId`, `importance`, `minLevel`.
 
 Validation: `salaryMin <= salaryMax`, duplicate job skill IDs are rejected, and `jobType=REMOTE` is invalid.
 
+Creation permits only DRAFT (default) or PENDING_APPROVAL. Any Company verification state can save DRAFT; PENDING_APPROVAL requires VERIFIED (otherwise 403). Company targets ACTIVE/REJECTED/EXPIRED return 403; other unsupported creation statuses return 400. Admin must also create DRAFT/PENDING_APPROVAL and review an existing pending Job before activation.
+
 ### PUT `/api/jobs/{id}`
 
 Roles: `COMPANY`, `ADMIN`.
 
 Company users can update only their own jobs. Admin can update all jobs.
+
+Content updates require DRAFT for both roles (other states: 400). `status` is not a content field; unknown fields, including `status`, return 400. Explicitly withdraw/close/return to DRAFT before editing; saving content never implicitly unpublishes a Job.
 
 ### PATCH `/api/jobs/{id}/status`
 
@@ -679,6 +834,15 @@ Request:
   "status": "ACTIVE"
 }
 ```
+
+The example is Admin-only for a PENDING_APPROVAL Job owned by a VERIFIED Company. State machine:
+
+- COMPANY owner / ADMIN: DRAFT → PENDING_APPROVAL (VERIFIED only), PENDING_APPROVAL → DRAFT, REJECTED/CLOSED/EXPIRED → DRAFT, any state → CLOSED.
+- ADMIN only: PENDING_APPROVAL → ACTIVE (VERIFIED only), PENDING_APPROVAL → REJECTED, ACTIVE → EXPIRED.
+- Allowed same-state calls are idempotent. Company can never target ACTIVE/REJECTED/EXPIRED, including no-ops (403). ACTIVE/PENDING_APPROVAL targets always require VERIFIED (403).
+- All other edges return 400; wrong role/ownership returns 403. CLOSED cannot reopen directly to ACTIVE; it must return to DRAFT and be reviewed again. Competing review/verification writes are serialized with database row locks.
+
+See the complete [moderation policy and transition table](datn/company-job-moderation-policy.md). `publishedAt` remains first publication; `closedAt` is set on entering CLOSED and cleared on leaving it; no-ops do not rewrite timestamps.
 
 ### DELETE `/api/jobs/{id}`
 
@@ -694,7 +858,7 @@ Role: `STUDENT`.
 
 Request fields: `cvFileId`, `coverLetter`.
 
-Rules: Job must be ACTIVE, deadline null/today/future; supplied CV must belong to the authenticated Student. CV is optional and apply does not require READY analysis.
+Rules: Job must be ACTIVE with a VERIFIED Company, deadline null/today/future (otherwise 400); supplied CV must belong to the authenticated Student. CV is optional and apply does not require READY analysis.
 
 An existing PENDING/REVIEWED/ACCEPTED row for the pair returns `409 APPLICATION_ALREADY_ACTIVE`. If none exists, first apply is allowed; reapply requires latest history by appliedAt DESC, id DESC to be REJECTED. Latest WITHDRAWN returns `400 BAD_REQUEST` with message `Reapplication is only allowed after the latest application was rejected`. Reapply inserts a new PENDING record and preserves old rejected history. V18 enforces active-pair uniqueness with a partial index, not lifetime uniqueness; the latest-REJECTED rule is enforced by Backend. [Service](../backend/src/main/java/com/tttn/jobrecommendation/modules/application/service/ApplicationServiceImpl.java), [V18](../backend/src/main/resources/db/migration/V18__allow_reapplication_after_rejection.sql), and [API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/ApplicationReapplyApiIT.java) establish this behavior.
 
@@ -805,6 +969,12 @@ Request field: `status`.
 Company/Admin transitions: `PENDING -> REVIEWED`, `PENDING|REVIEWED -> ACCEPTED|REJECTED`.
 
 Student transition: `PENDING -> WITHDRAWN`.
+
+Status mutation acquires a PostgreSQL pessimistic lock on the application row before ownership/state validation, and holds it through status write and notification persistence in the same transaction. Concurrent withdraw/review cannot both validate an old PENDING state: one succeeds (200), the other rechecks the committed state and returns 400 `BAD_REQUEST`. This is state-machine serialization, not a new revision/ETag contract. Duplicate withdrawal returns 400; no terminal status can be reopened. Foreign Student/Company mutation returns 403; Student targeting ACCEPTED/REJECTED returns 403, other unsupported transitions return 400.
+
+Company/Admin successful status changes notify the owning Student only when their application-status notification preference is enabled. Student withdrawal and apply/reapply do not create that notification; rejected/foreign/duplicate operations create none. Existing notification settings and transaction rollback behavior remain authoritative.
+
+Frontend withdrawal is available on Student list/detail/status only for PENDING, with explicit confirmation that WITHDRAWN blocks future reapply. Network failure retains confirmed data; a GET read-back reconciles ambiguous results before an explicit retry. No automatic mutation retry. Application state is scoped to authenticated User; focus/cross-tab invalidations refetch Backend, and unverified history never means NEVER_APPLIED. Apply UI offers READY CVs (or the existing optional no-CV choice); Backend apply still accepts an owned CV without a READY requirement as documented above.
 
 ## CV
 
@@ -1216,11 +1386,14 @@ Returns only the authenticated user's settings:
   "jobStatusEnabled": true,
   "recommendationEnabled": true,
   "systemEnabled": true,
+  "revision": 0,
   "updatedAt": null
 }
 ```
 
-When the user has no persisted row, every setting defaults to `true` and `updatedAt` is `null`. GET is read-only and does not create a row.
+When the user has no persisted row, every setting defaults to `true`, `revision`
+is 0 and `updatedAt` is `null`. GET is read-only and does not create a row. GET
+and successful PUT return a strong numeric ETag matching `data.revision`.
 
 ### PUT `/api/users/me/notification-settings`
 
@@ -1239,7 +1412,15 @@ Full replacement request:
 
 Every boolean is required. Unknown fields, including `userId`, are rejected. The authenticated user is always derived from the JWT.
 
-The first PUT atomically creates the user's row; later PUT requests update that same row. Concurrent first writes use the database unique key and atomic upsert, so duplicate rows are not created. Response data has the same fields as GET with a non-null `updatedAt`.
+V21 requires `If-Match` captured with the draft. The same 428/400/409 contract as
+Company account applies. `revision` is response metadata, not a PUT body field.
+An absent row accepts only revision 0 and inserts revision 1 using the existing
+unique key and `ON CONFLICT DO NOTHING`; existing rows use conditional SQL
+`WHERE user_id = JWT user AND revision = captured`, advancing once. Two writers
+at revision N have exactly one winner and one 409, including concurrent first
+inserts. Response data has the same fields as GET with non-null `updatedAt`.
+Reading current values after a conflict does not authorize attaching their
+revision to the old draft. Clients require explicit draft replacement/review.
 
 Disabling a preference suppresses only future automatic notifications of that type. It does not delete, hide, or mark existing notifications. A missing settings row always means enabled. Currently only `APPLICATION_STATUS_CHANGED` has an automatic producer.
 
@@ -1247,7 +1428,18 @@ Disabling a preference suppresses only future automatic notifications of that ty
 
 Roles: any authenticated active user.
 
-Returns newest notifications first. Users only see their own notifications.
+Returns only the JWT user's notifications, ordered by `createdAt DESC, id DESC`.
+Optional `unread=true` selects unread records, `unread=false` selects read records;
+omitting it selects both. Optional `type` is one of `APPLICATION_STATUS_CHANGED`,
+`JOB_STATUS_CHANGED`, `SYSTEM`, `RECOMMENDATION`. Both filters combine with AND.
+Filtering and count execute in PostgreSQL before LIMIT/OFFSET; the existing
+`PageResponse` envelope has filtered `totalItems`/`totalPages`, 1-based page and
+size 1–100 (defaults 1/20). Invalid non-empty boolean/enum values return 400
+`BAD_REQUEST`; invalid page/size returns 400 `VALIDATION_ERROR`.
+Omitted filters retain existing behavior. Out-of-range pages contain no items,
+with the filtered total unchanged. Offset pagination is not a snapshot across
+concurrent writes. `/unread-count` always counts all unread records for the JWT
+user, independently of filters or the current page.
 
 Response item:
 

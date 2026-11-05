@@ -17,6 +17,11 @@ import java.util.Set;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
 
+    // Lock only the application table (optional CV joins cannot be FOR UPDATE in PostgreSQL).
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select application from JobApplication application where application.id = :id")
+    Optional<JobApplication> findByIdForStatusUpdate(@Param("id") Long id);
+
     boolean existsByStudentIdAndJobIdAndStatusIn(Long studentId, Long jobId, Set<ApplicationStatus> statuses);
 
     boolean existsByCvFileId(Long cvFileId);

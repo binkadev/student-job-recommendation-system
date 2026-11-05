@@ -2,6 +2,7 @@ package com.tttn.jobrecommendation.modules.company.service;
 
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.modules.company.dto.request.SaveCandidateRequest;
+import com.tttn.jobrecommendation.modules.company.dto.request.UpdateSavedCandidateNoteRequest;
 import com.tttn.jobrecommendation.modules.company.dto.request.SavedCandidateFilterRequest;
 import com.tttn.jobrecommendation.modules.company.dto.response.SavedCandidateResponse;
 
@@ -12,4 +13,6 @@ public interface SavedCandidateService {
     SavedCandidateResponse saveCandidate(Long userId, SaveCandidateRequest request);
 
     void deleteSavedCandidate(Long userId, Long savedCandidateId);
+
+    SavedCandidateResponse updateNote(Long userId, Long savedCandidateId, UpdateSavedCandidateNoteRequest request);
 }

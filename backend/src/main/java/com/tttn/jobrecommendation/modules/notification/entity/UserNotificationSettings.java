@@ -49,6 +49,9 @@ public class UserNotificationSettings {
     @Column(name = "system_enabled", nullable = false)
     private boolean systemEnabled;
 
+    @Column(name = "revision", nullable = false)
+    private long revision;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

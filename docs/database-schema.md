@@ -2,11 +2,11 @@
 
 The implemented database is PostgreSQL managed by Flyway migrations under `backend/src/main/resources/db/migration`.
 
-Old migrations must not be edited after being applied. This document describes the released schema from `V1` through `V18` at source SHA `131a4b869a3248dd08475c5da84989be23ce8ac9`; it does not certify which migrations a deployed environment has applied.
+Old migrations must not be edited after being applied. Released `V1`–`V19` remain unchanged; V20 adds the Saved Candidate note revision. The schema below includes V20; verify actual deployed Flyway history separately.
 
 All 19 business tables use `BIGSERIAL` primary key `id` and non-null `created_at`/`updated_at` timestamps defaulting to `CURRENT_TIMESTAMP`. All released foreign keys use `ON DELETE RESTRICT`. Types, defaults and column nullability are also shown in [the DBML](database-erd.dbml); omitted `not null` means nullable. VARCHAR enum values in application code are not automatically database CHECK constraints.
 
-Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness. See [released migrations](../backend/src/main/resources/db/migration/).
+Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision; V20 Saved Candidate revision. See [released migrations](../backend/src/main/resources/db/migration/).
 
 ## Tables
 
@@ -26,7 +26,9 @@ Constraints and indexes:
 
 Purpose: student account profile root linked one-to-one to `users`.
 
-Columns: `id`, `user_id`, `student_code`, `university`, `major`, `graduation_year`, `location`, `created_at`, `updated_at`.
+Columns: `id`, `user_id`, `student_code`, `university`, `major`, `graduation_year`, `location`, `profile_revision`, `created_at`, `updated_at`.
+
+V19 adds `profile_revision BIGINT NOT NULL DEFAULT 0`, CHECK `profile_revision >= 0`. Existing content/IDs are untouched. Aggregate and all legacy profile mutations claim this revision with one transactional compare-and-swap; failed mutations also roll it back. See [atomic API/version contract](api-contract.md#student) and [verification](datn/student-profile-atomic-save-results.md). Hibernate does not write this column through ordinary entity updates.
 
 Constraints and indexes:
 
@@ -49,6 +51,10 @@ Constraints:
 - Foreign key: `student_id -> students.id`
 
 ### `companies`
+
+V21 adds `account_revision BIGINT NOT NULL DEFAULT 0 CHECK (account_revision >= 0)`.
+Account PUT checks/advances it under the existing Company row lock. It is not a
+Hibernate entity version and does not change moderation or cascade rules.
 
 Purpose: company profile linked one-to-one to `users`.
 
@@ -171,7 +177,7 @@ Constraints and indexes:
 - Foreign keys: `student_id -> students.id`, `job_id -> jobs.id`, `cv_file_id -> cv_files.id`
 - Indexes: `student_id`, `job_id`, `status`
 
-Service lifecycle: an existing PENDING/REVIEWED/ACCEPTED row blocks apply (`409 APPLICATION_ALREADY_ACTIVE`). Otherwise a first application is allowed; reapplication requires the latest row by `applied_at DESC, id DESC` to be REJECTED. Latest WITHDRAWN still blocks reapply (`400 BAD_REQUEST`). Reapply inserts a new PENDING row and preserves rejected history. Job must be ACTIVE with no past deadline; a supplied CV must belong to the Student. The index does not enforce the latest-REJECTED rule or cross-row CV ownership; those are Backend checks. Evidence: [service](../backend/src/main/java/com/tttn/jobrecommendation/modules/application/service/ApplicationServiceImpl.java), [reapply API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/ApplicationReapplyApiIT.java), [constraint tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/DatabaseConstraintIT.java).
+Service lifecycle: an existing PENDING/REVIEWED/ACCEPTED row blocks apply (`409 APPLICATION_ALREADY_ACTIVE`). Otherwise a first application is allowed; reapplication requires the latest row by `applied_at DESC, id DESC` to be REJECTED. Latest WITHDRAWN still blocks reapply (`400 BAD_REQUEST`). Reapply inserts a new PENDING row and preserves rejected history. Job must be ACTIVE, its Company VERIFIED, with no past deadline; a supplied CV must belong to the Student. The index does not enforce the latest-REJECTED rule, Company verification or cross-row CV ownership; those are Backend checks. Evidence: [service](../backend/src/main/java/com/tttn/jobrecommendation/modules/application/service/ApplicationServiceImpl.java), [reapply API tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/ApplicationReapplyApiIT.java), [constraint tests](../backend/src/test/java/com/tttn/jobrecommendation/integration/DatabaseConstraintIT.java), [moderation policy](datn/company-job-moderation-policy.md). Moderation requires no schema migration/backfill: the existing Company PENDING default and Job status columns remain unchanged.
 
 ### `recommendation_runs`
 
@@ -228,15 +234,21 @@ Not implemented:
 - Recommendation matching-job notifications
 - Account-blocked persistent notifications
 
-### `saved_candidates` (V13)
+### `saved_candidates` (V13/V20)
 
 Purpose: Company bookmark of a Student, with the source Application.
 
-Columns: `id`, `company_id`, `student_id`, `application_id`, `note`, `created_at`, `updated_at`.
+Columns: `id`, `company_id`, `student_id`, `application_id`, `note`, `revision`, `created_at`, `updated_at`.
+
+V20 adds `revision BIGINT NOT NULL DEFAULT 0`, used as the Hibernate optimistic version for note edits. Existing bookmarks and notes retain their values; stale edits return `409 SAVED_CANDIDATE_REVISION_CONFLICT`. Company-scoped mutations lock the Company row to serialize save/delete/note races. Notes are private to that Company; they never enter Student/Application/ranking responses. Note edits and bookmark deletion do not mutate the source Application.
 
 All three FK columns are BIGINT NOT NULL, referencing `companies`, `students`, and `applications` respectively. `note` is nullable TEXT. UNIQUE `uk_saved_candidates_company_student` is `(company_id, student_id)`; `application_id` is not unique. No extra indexes or cross-column ownership CHECKs are created by V13.
 
 ### `user_notification_settings` (V13)
+
+V21 adds `revision BIGINT NOT NULL DEFAULT 0 CHECK (revision >= 0)`. Conditional
+SQL updates advance it once; first inserts start at 1. Absent-row GET returns 0
+without inserting. Existing V13 rows migrate to 0 without changing their flags.
 
 Columns: `id`, `user_id`, `application_status_enabled`, `job_status_enabled`, `recommendation_enabled`, `system_enabled`, `created_at`, `updated_at`.
 

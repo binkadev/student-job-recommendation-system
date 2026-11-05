@@ -11,9 +11,11 @@ interface JobCardProps {
   saved?: boolean;
   onToggleSave?: (jobId: string) => void;
   detailPath?: string;
+  detailLabel?: string;
+  applicationNote?: string;
 }
 
-export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/${job.id}` }: JobCardProps) {
+export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/${job.id}`, detailLabel = "Xem chi tiết", applicationNote }: JobCardProps) {
   const openDetail = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!detailPath.startsWith("/candidate/")) return;
     event.preventDefault();
@@ -21,9 +23,9 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
   };
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex gap-3">
+        <div className="flex min-w-0 gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-50 font-semibold text-brand-700">
             {job.companyName
               .split(" ")
@@ -31,8 +33,8 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
               .join("")
               .slice(0, 2)}
           </div>
-          <div>
-            <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail} className="text-base font-semibold text-slate-950 hover:text-brand-700">
+          <div className="min-w-0 break-words">
+            <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail} className="text-base font-semibold leading-6 text-slate-950 hover:text-brand-700">
               {job.title}
             </Link>
             <p className="mt-1 text-sm text-slate-600">{job.companyName}</p>
@@ -41,8 +43,9 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
         <button
           type="button"
           aria-label={saved ? "Bỏ lưu việc làm" : "Lưu việc làm"}
+          aria-pressed={saved}
           onClick={() => onToggleSave?.(job.id)}
-          className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-brand-700"
+          className="shrink-0 rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 hover:text-brand-700"
         >
           {saved ? <BookmarkCheck size={20} className="text-brand-600" /> : <Bookmark size={20} />}
         </button>
@@ -76,10 +79,11 @@ export function JobCard({ job, saved = false, onToggleSave, detailPath = `/jobs/
         <p className="text-sm text-slate-500">Hạn ứng tuyển: {job.deadline}</p>
         <Link to={detailPath} target="_blank" rel="noreferrer" onClick={openDetail}>
           <Button variant="secondary" size="sm">
-            Xem chi tiết
+            {detailLabel}
           </Button>
         </Link>
       </div>
+      {applicationNote ? <p className="mt-3 text-sm text-slate-600">{applicationNote}</p> : null}
     </article>
   );
 }

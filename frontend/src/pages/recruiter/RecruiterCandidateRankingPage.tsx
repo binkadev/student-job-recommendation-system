@@ -1,8 +1,12 @@
 import { ArrowLeft, History, RefreshCw, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GenerationRecovery } from "../../features/shared/ranking/GenerationRecovery";
+import { useGenerationRecovery } from "../../features/shared/ranking/useGenerationRecovery";
+import { useSessionAlive } from "../../features/account/useSessionAlive";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -38,6 +42,9 @@ export function RecruiterCandidateRankingPage() {
   const [primaryLimit, setPrimaryLimit] = useState("30");
   const [fallbackLimit, setFallbackLimit] = useState("30");
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
+  const alive = useSessionAlive();
+  const recovery = useGenerationRecovery(() => getCandidateRankingRuns(jobId), () => setReloadKey(current => current + 1));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState("");
   const [analysisResult, setAnalysisResult] = useState<CandidateRankingResult | null>(null);
@@ -59,7 +66,7 @@ export function RecruiterCandidateRankingPage() {
   const fallbackResults = useMemo(() => results.filter((result) => result.rankingTier === "FALLBACK").sort(compareTierRank), [results]);
   const legacyResults = useMemo(() => results.filter((result) => result.rankingTier == null), [results]);
   const isProcessing = run?.status === "PROCESSING" || run?.status === "PENDING";
-  const canCreateRun = !creating && !isProcessing && Boolean(jobId);
+  const canCreateRun = !creating && !recovery.blocked && !isProcessing && Boolean(jobId);
   useEffect(() => {
     if (!isProcessing || selectedRunId) return;
     const timer = window.setTimeout(() => setReloadKey((current) => current + 1), 5000);
@@ -69,6 +76,7 @@ export function RecruiterCandidateRankingPage() {
   const filteredRuns = useMemo(() => runsQuery.data ?? [], [runsQuery.data]);
 
   async function createRun() {
+    if (creatingRef.current || recovery.blocked || !alive()) return;
     const thresholdValue = Number(threshold);
     const primaryLimitValue = Number(primaryLimit);
     const fallbackLimitValue = Number(fallbackLimit);
@@ -81,16 +89,19 @@ export function RecruiterCandidateRankingPage() {
       return;
     }
 
-    setCreating(true);
+    creatingRef.current = true; setCreating(true);
     try {
       const detail = await createCandidateRankingRun(jobId, { threshold: thresholdValue, primaryLimit: primaryLimitValue, fallbackLimit: fallbackLimitValue });
+      if (!alive()) return;
       setSelectedRunId(detail.run.id);
       setReloadKey((current) => current + 1);
       showToast({ type: "success", title: "Đã chạy xếp hạng ứng viên", message: `Lần chạy #${detail.run.id}` });
     } catch (error) {
+      if (!alive()) return;
+      recovery.requireReadBack();
       showToast({ type: "error", title: "Không thể chạy xếp hạng", message: getCreateRunErrorMessage(error) });
     } finally {
-      setCreating(false);
+      creatingRef.current = false; if (alive()) setCreating(false);
     }
   }
 
@@ -134,10 +145,12 @@ export function RecruiterCandidateRankingPage() {
 
   return (
     <PageContainer>
+      <GenerationRecovery recovery={recovery} />
       <PageHeader title="Ứng viên phù hợp" description="Xếp hạng ứng viên đã ứng tuyển theo từng tin tuyển dụng." />
+      <AuroraHero eyebrow="XẾP HẠNG ỨNG VIÊN · V3" title="Thêm bằng chứng cho quyết định tuyển dụng." description="Đối chiếu CV đã phân tích với yêu cầu của tin tuyển dụng. PRIMARY và FALLBACK được xếp hạng độc lập; điểm đối sánh không thay thế đánh giá của nhà tuyển dụng." />
       <Card>
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div>
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
+          <div className="min-w-0 break-words">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold text-slate-950">{jobQuery.data.title}</h2>
               <StatusBadge label={jobStatusLabel(jobQuery.data.status)} tone={jobStatusTone(jobQuery.data.status)} />
@@ -146,12 +159,12 @@ export function RecruiterCandidateRankingPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to={`/recruiter/jobs/${jobId}`}><Button variant="secondary" icon={<ArrowLeft size={16} />}>Quay lại việc làm</Button></Link>
-            <Button variant="secondary" icon={<History size={16} />} onClick={() => setHistoryOpen((current) => !current)}>Xem lịch sử</Button>
+            <Button variant="secondary" icon={<History size={16} />} aria-expanded={historyOpen} aria-controls="ranking-run-history" onClick={() => setHistoryOpen((current) => !current)}>Xem lịch sử</Button>
             <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => setReloadKey((current) => current + 1)}>Tải lại</Button>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[160px_190px_190px_auto]">
+        <div className="mt-5 grid items-end gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 2xl:grid-cols-4">
           <Input label="Ngưỡng điểm" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
           <Input label="Top phù hợp tổng thể" type="number" min="0" max="100" step="1" value={primaryLimit} onChange={(event) => setPrimaryLimit(event.target.value)} />
           <Input label="Top đối sánh kỹ năng" type="number" min="0" max="100" step="1" value={fallbackLimit} onChange={(event) => setFallbackLimit(event.target.value)} />
@@ -161,11 +174,12 @@ export function RecruiterCandidateRankingPage() {
             </Button>
           </div>
         </div>
+        <p className="mt-4 text-xs leading-5 text-slate-500">Mỗi nhóm có giới hạn và thứ hạng riêng. Tổng số kết quả của hai nhóm từ 1 đến 100; điểm giữa hai nhóm không cùng thang đo.</p>
       </Card>
 
       {historyOpen ? (
-        <div className="mt-5">
-          {runsQuery.loading ? <LoadingState /> : <CandidateRankingRunHistory runs={filteredRuns} selectedRunId={selectedRunId} onSelect={setSelectedRunId} />}
+        <div id="ranking-run-history" className="mt-5">
+          {runsQuery.loading ? <LoadingState /> : !runsQuery.error ? <CandidateRankingRunHistory runs={filteredRuns} selectedRunId={selectedRunId} onSelect={setSelectedRunId} /> : null}
           {runsQuery.error ? <ErrorState message={getRankingErrorMessage(runsQuery.error)} /> : null}
         </div>
       ) : null}
@@ -193,6 +207,7 @@ export function RecruiterCandidateRankingPage() {
             </Card>
           ) : null}
           <CandidateRankingSummary run={run} />
+          {run.status === "SUCCESS" && selectedRunId && selectedRunId !== latestRunId ? <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">Đang xem kết quả lịch sử của lần chạy #{selectedRunId}. Chọn “Dùng lần chạy mới nhất” trong lịch sử để quay lại kết quả hiện tại.</p> : null}
           {run.status === "SUCCESS" && results.length === 0 ? (
             <Card><EmptyState message="Chưa có ứng viên đủ điều kiện hoặc chưa vượt ngưỡng xếp hạng." /></Card>
           ) : null}
@@ -262,6 +277,7 @@ function RankingTierSection({
     <Card>
       <SectionHeader title={`${title} · ${results.length}`} description={description} />
       <CandidateRankingTable
+        label={`Ứng viên: ${title}`}
         results={results}
         savedApplicationIds={savedApplicationIds}
         onAnalyze={onAnalyze}

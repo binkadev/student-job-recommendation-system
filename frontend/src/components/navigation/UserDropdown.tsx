@@ -1,23 +1,15 @@
 import { ChevronDown, LogOut, UserRound } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useMenuKeyboard } from "../../hooks/useMenuKeyboard";
 
 export function UserDropdown() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const menuId = useId();
+  const { containerRef, onKeyDown } = useMenuKeyboard(open, setOpen);
 
   function handleLogout() {
     logout();
@@ -26,13 +18,15 @@ export function UserDropdown() {
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} onKeyDown={onKeyDown} className="relative">
       <button
         type="button"
         className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="Menu tài khoản"
+        aria-controls={open ? menuId : undefined}
       >
         <span className="h-7 w-7 rounded-full bg-brand-100 text-center text-xs font-semibold leading-7 text-brand-700">
           {currentUser?.name.charAt(0) ?? "G"}
@@ -42,7 +36,7 @@ export function UserDropdown() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-2 shadow-lg" role="menu">
+        <div id={menuId} className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-2 shadow-lg" role="menu">
           <div className="border-b border-slate-100 px-4 pb-2 pt-1">
             <p className="text-sm font-medium text-slate-900">{currentUser?.name ?? "Guest"}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">{currentUser?.email ?? "guest@example.com"}</p>

@@ -1,4 +1,6 @@
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../api/httpClient";
+import { CanceledError } from "axios";
+import { advanceSession, sessionVersion } from "./sessionVersion";
 import type {
   AuthUserResponse,
   BackendUserRole,
@@ -49,6 +51,7 @@ export function getStoredToken() {
 }
 
 export function storeToken(token: string) {
+  advanceSession();
   window.sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
 }
@@ -102,18 +105,21 @@ function createTransferId() {
 }
 
 export function clearToken() {
+  advanceSession();
   window.sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export async function loginRequest(payload: LoginRequest): Promise<CurrentUser> {
+  const attempt = advanceSession();
   try {
     const response = await httpClient.post<ApiResponse<LoginResponse>>("/auth/login", payload);
+    if (sessionVersion() !== attempt) throw new CanceledError("Session changed during login");
     const user = mapAuthUser(response.data.data.user);
     storeToken(response.data.data.token);
     return user;
   } catch (error) {
-    clearToken();
+    if (sessionVersion() === attempt) clearToken();
     throw error;
   }
 }

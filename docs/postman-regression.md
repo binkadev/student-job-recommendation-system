@@ -34,7 +34,7 @@ Common assertions:
 ## Company
 
 14. Get Company Me: company token, `GET /api/companies/me`; expect `200`.
-15. Update Company Me: company token, `PUT /api/companies/me`; expect changed fields.
+15. Update Company Me: capture GET ETag with the draft; company token, `PUT /api/companies/me` with captured `If-Match`; expect changed fields and revision N+1. Missing 428, stale 409; never auto-refresh a stale draft revision.
 16. Student cannot access Company API: student token, `GET /api/companies/me`; expect `403`.
 
 ## Skills
@@ -208,7 +208,7 @@ Use two company accounts, at least two student accounts with profiles, jobs owne
 143. Delete preserves domain records: after case 142, verify the application, student, CV, job, and application status are unchanged.
 144. Delete foreign saved candidate: company A deletes company B's saved-candidate id; expect `404 SAVED_CANDIDATE_NOT_FOUND`, identical to an absent id, and the row remains.
 145. Notification defaults: each supported role calls `GET /api/users/me/notification-settings` without a row; expect all booleans `true`, `updatedAt: null`, and no inserted row.
-146. Notification PUT create: send all four required booleans to `PUT /api/users/me/notification-settings`; expect the returned values and non-null `updatedAt`.
+146. Notification PUT create: capture GET ETag with the draft, send all four required booleans with `If-Match` to `PUT /api/users/me/notification-settings`; expect returned values, revision N+1, non-null `updatedAt`. Missing 428, stale 409; concurrent first insert has one winner.
 147. Notification PUT replace: send a second full body; expect the same database row id with every value replaced.
 148. Notification validation: omit each boolean in turn; expect `400 VALIDATION_ERROR`.
 149. Notification identity protection: add `userId` to PUT or attempt an id-based path; expect rejection or no matching route, and another user's row remains unchanged.

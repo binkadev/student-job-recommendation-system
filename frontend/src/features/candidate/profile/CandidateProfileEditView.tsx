@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Plus, Save, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
@@ -14,280 +14,187 @@ import { Modal } from "../../../components/ui/Modal";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
 import { useToast } from "../../../hooks/useToast";
-import { updateCandidateProfileData } from "./candidateProfileService";
-import type { CandidateEducation, CandidateExperience, CandidateProfileData, CandidateProject, CandidateSkill } from "./candidateProfileTypes";
+import { getApiErrorMessage } from "../../../utils/apiErrors";
+import { getCandidateProfileData, isProfileConflict, updateCandidateProfileData } from "./candidateProfileService";
+import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
 
 type EditTab = "personal" | "about" | "experience" | "education" | "skills" | "projects";
-
 const tabs: Array<{ label: string; value: EditTab }> = [
-  { label: "Thông tin cá nhân", value: "personal" },
-  { label: "Giới thiệu", value: "about" },
-  { label: "Kinh nghiệm", value: "experience" },
-  { label: "Học vấn", value: "education" },
-  { label: "Kỹ năng", value: "skills" },
-  { label: "Dự án", value: "projects" },
+  { label: "Thông tin cá nhân", value: "personal" }, { label: "Giới thiệu", value: "about" },
+  { label: "Kinh nghiệm", value: "experience" }, { label: "Học vấn", value: "education" },
+  { label: "Kỹ năng", value: "skills" }, { label: "Dự án", value: "projects" },
 ];
-
 const availabilityOptions = [
-  { label: "Chọn trạng thái", value: "" },
-  { label: "Toàn thời gian", value: "FULL_TIME" },
-  { label: "Bán thời gian", value: "PART_TIME" },
-  { label: "Thực tập", value: "INTERNSHIP" },
+  { label: "Chưa thiết lập", value: "" }, { label: "Toàn thời gian", value: "FULL_TIME" },
+  { label: "Bán thời gian", value: "PART_TIME" }, { label: "Thực tập", value: "INTERNSHIP" },
   { label: "Hợp đồng", value: "CONTRACT" },
 ];
-
-const availabilityLabels: Record<string, string> = {
-  FULL_TIME: "Toàn thời gian",
-  PART_TIME: "Bán thời gian",
-  INTERNSHIP: "Thực tập",
-  CONTRACT: "Hợp đồng",
+const shortText = z.string().max(255, "Tối đa 255 ký tự.");
+const sectionText = z.string().max(5000, "Tối đa 5.000 ký tự.");
+const editSchema = z.object({
+  name: shortText.trim().min(2, "Vui lòng nhập họ tên."),
+  phone: z.string().max(50, "Số điện thoại tối đa 50 ký tự."),
+  location: shortText, currentTitle: shortText,
+  availability: z.enum(["", "FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"]),
+  summary: sectionText, careerGoal: shortText, preferredLocation: shortText,
+  education: sectionText, experience: sectionText, projects: sectionText,
+  major: shortText, university: shortText,
+  graduationYear: z.string().refine((value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100), "Năm tốt nghiệp từ 1900 đến 2100."),
+});
+type EditFormValues = z.infer<typeof editSchema>;
+const fieldTabs: Record<string, EditTab> = {
+  summary: "about", careerGoal: "about", preferredLocation: "about", experience: "experience",
+  education: "education", major: "education", university: "education", graduationYear: "education", projects: "projects",
 };
 
-const phoneRegex = /^$|^(0|\+84)(\d{9})$/;
-const urlSchema = z.string().url("URL không hợp lệ.").or(z.literal(""));
-
-const editSchema = z.object({
-  avatar: z.string(),
-  name: z.string().min(2, "Vui lòng nhập họ tên."),
-  birthDate: z.string(),
-  email: z.string().email("Email không hợp lệ."),
-  phone: z.string().regex(phoneRegex, "Số điện thoại Việt Nam không hợp lệ."),
-  location: z.string(),
-  address: z.string(),
-  currentTitle: z.string(),
-  availability: z.string(),
-  summary: z.string().max(1000, "Giới thiệu tối đa 1.000 ký tự."),
-  careerGoal: z.string().max(800, "Mục tiêu nghề nghiệp tối đa 800 ký tự."),
-  linkedIn: urlSchema,
-  github: urlSchema,
-  portfolio: urlSchema,
-  website: urlSchema,
-});
-
-type EditFormValues = z.infer<typeof editSchema>;
-
-interface EditableExperience extends CandidateExperience {
-  startDate: string;
-  endDate: string;
-  current: boolean;
-}
-
-interface EditableEducation extends CandidateEducation {
-  startDate: string;
-  endDate: string;
-  description: string;
-}
-
 export function CandidateProfileEditView({ profile, onSaved }: { profile: CandidateProfileData; onSaved?: (profile: CandidateProfileData) => void }) {
-  const [searchParams] = useSearchParams();
-  const initialTab = normalizeTab(searchParams.get("section"));
-  const [activeTab, setActiveTab] = useState<EditTab>(initialTab);
-  const [experiences, setExperiences] = useState<EditableExperience[]>(toEditableExperiences(profile));
-  const [education, setEducation] = useState<EditableEducation[]>(toEditableEducation(profile));
-  const [skills, setSkills] = useState(flattenSkills(profile));
-  const [projects, setProjects] = useState(profile.projects);
-  const [deleteTarget, setDeleteTarget] = useState<{ label: string; onConfirm: () => void } | null>(null);
-  const [listError, setListError] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = normalizeTab(searchParams.get("section"));
   const [savedProfile, setSavedProfile] = useState(profile);
+  const [skills, setSkills] = useState(flattenSkills(profile));
+  const [deleteTarget, setDeleteTarget] = useState<{ label: string; onConfirm: () => void } | null>(null);
+  const [saveError, setSaveError] = useState("");
+  const [conflict, setConflict] = useState(false);
+  const [latestProfile, setLatestProfile] = useState<CandidateProfileData | null>(null);
+  const [loadingLatest, setLoadingLatest] = useState(false);
+  const [confirmReload, setConfirmReload] = useState(false);
+  const [focusField, setFocusField] = useState<keyof EditFormValues | null>(null);
+  const saving = useRef(false);
   const { showToast } = useToast();
-  const activeTabIndex = tabs.findIndex((tab) => tab.value === activeTab);
-
-  const defaultValues = useMemo<EditFormValues>(() => toEditFormValues(profile), [profile]);
-
-  const { register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, getValues } = useForm<EditFormValues>({
-    resolver: zodResolver(editSchema),
-    defaultValues,
+  const { register, handleSubmit, formState: { errors, isDirty, isSubmitting }, reset, setFocus, watch } = useForm<EditFormValues>({
+    resolver: zodResolver(editSchema), defaultValues: toEditFormValues(profile),
   });
-
+  const listsDirty = JSON.stringify(skills) !== JSON.stringify(flattenSkills(savedProfile));
+  const dirty = isDirty || listsDirty;
+  const draftValues = watch();
+  function selectTab(tab: EditTab) {
+    setSearchParams((current) => { current.set("section", tab); return current; }, { replace: true });
+  }
   useEffect(() => {
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = "";
+    if (!focusField) return;
+    setFocus(focusField);
+    setFocusField(null);
+  }, [focusField, activeTab, setFocus]);
+  useEffect(() => {
+    function beforeUnload(event: BeforeUnloadEvent) {
+      if (!dirty) return;
+      event.preventDefault(); event.returnValue = "";
     }
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
 
   async function saveAll(values: EditFormValues) {
-    const validation = validateLists();
-    if (validation) {
-      setListError(validation);
+    if (saving.current || conflict) return;
+    setSaveError("");
+    if (!savedProfile.record) {
+      setSaveError("Hãy tải lại hồ sơ trước khi lưu để bảo toàn dữ liệu hiện có.");
       return;
     }
-
-    const nextProfile = buildProfile(values);
-    const updatedProfile = await updateCandidateProfileData(nextProfile);
-    setSavedProfile(updatedProfile);
-    setExperiences(toEditableExperiences(updatedProfile));
-    setEducation(toEditableEducation(updatedProfile));
-    setSkills(flattenSkills(updatedProfile));
-    setProjects(updatedProfile.projects);
-    onSaved?.(updatedProfile);
-    reset(toEditFormValues(updatedProfile));
-    setListError("");
-    showToast({ type: "success", title: "Đã lưu hồ sơ", message: "Dữ liệu hồ sơ đã được cập nhật từ backend." });
-  }
-
-  async function saveCurrentSection() {
-    const values = getValues();
-    await saveAll(values);
-  }
-
-  function cancelChanges() {
-    reset(defaultValues);
-    setExperiences(toEditableExperiences(profile));
-    setEducation(toEditableEducation(profile));
-    setSkills(flattenSkills(profile));
-    setProjects(profile.projects);
-    setListError("");
-    showToast({ type: "success", title: "Đã hủy thay đổi" });
-  }
-
-  function buildProfile(values: EditFormValues): CandidateProfileData {
-    return {
-      ...savedProfile,
-      header: {
-        ...savedProfile.header,
-        avatar: values.avatar,
-        name: values.name,
-        birthDate: values.birthDate,
-        email: values.email,
-        phone: values.phone,
-        location: values.location,
-        address: values.address,
-        currentTitle: values.currentTitle,
-        availability: availabilityLabels[values.availability] ?? "Đang cập nhật",
-        preferredJobType: values.availability || null,
-        completion: calculateCompletion(values),
-      },
-      summary: values.summary,
-      careerGoal: values.careerGoal,
-      experiences: experiences.filter((item) => item.company && item.position).map(({ startDate, endDate, current, ...item }) => ({
-        ...item,
-        period: startDate ? `${startDate} - ${current ? "Hiện tại" : endDate}` : item.period,
-      })),
-      education: education.filter((item) => item.school && item.major).map((item) => ({
-        id: item.id,
-        school: item.school,
-        major: item.major,
-        degree: item.degree,
-        gpa: item.gpa,
-        period: item.startDate || item.endDate ? `${item.startDate} - ${item.endDate}` : item.period,
-      })),
-      skills: groupSkills(skills),
-      certificates: savedProfile.certificates,
-      projects: projects.filter((item) => item.name && item.role),
-      languages: savedProfile.languages,
-      links: savedProfile.links,
-    };
-  }
-
-  function validateLists() {
-    const invalidExperience = experiences.some((item) => item.startDate && item.endDate && !item.current && item.endDate < item.startDate);
-    if (invalidExperience) return "Ngày kết thúc kinh nghiệm không được trước ngày bắt đầu.";
-    const invalidEducation = education.some((item) => item.startDate && item.endDate && item.endDate < item.startDate);
-    if (invalidEducation) return "Ngày kết thúc học vấn không được trước ngày bắt đầu.";
-    const invalidGpa = education.some((item) => {
-      const value = Number(item.gpa);
-      return Number.isNaN(value) || value < 0 || value > 10;
-    });
-    if (invalidGpa) return "GPA phải nằm trong khoảng 0 đến 4 hoặc 0 đến 10.";
-    const skillNames = skills.map((item) => item.name.trim().toLowerCase()).filter(Boolean);
-    if (new Set(skillNames).size !== skillNames.length) return "Không được thêm kỹ năng trùng tên.";
-    return "";
+    const names = skills.map((skill) => skill.name.trim().toLowerCase());
+    if (names.some((name) => !name || name.length > 150) || new Set(names).size !== names.length ||
+        skills.some((skill) => !Number.isFinite(skill.years) || skill.years < 0 || skill.years > 999.9 || Math.abs(skill.years * 10 - Math.round(skill.years * 10)) > 1e-8)) {
+      selectTab("skills");
+      setSaveError("Kỹ năng cần tên riêng biệt (tối đa 150 ký tự) và số năm từ 0 đến 999,9, tối đa một chữ số thập phân.");
+      return;
+    }
+    saving.current = true;
+    try {
+      const updated = await updateCandidateProfileData({
+        ...savedProfile,
+        header: { ...savedProfile.header, name: values.name, phone: values.phone, location: values.location,
+          currentTitle: values.currentTitle, preferredJobType: values.availability || null },
+        summary: values.summary, careerGoal: values.careerGoal,
+        record: { major: values.major, university: values.university, graduationYear: values.graduationYear ? Number(values.graduationYear) : null,
+          education: values.education, experience: values.experience, projects: values.projects, preferredLocation: values.preferredLocation },
+        skills: groupSkills(skills),
+      });
+      setSavedProfile(updated); setSkills(flattenSkills(updated)); reset(toEditFormValues(updated)); onSaved?.(updated);
+      setLatestProfile(null);
+      showToast({ type: "success", title: "Đã lưu hồ sơ", message: "Thông tin cá nhân, hồ sơ và kỹ năng đã được lưu cùng nhau." });
+    } catch (error) {
+      if (isProfileConflict(error)) setConflict(true);
+      setSaveError(getApiErrorMessage(error, "Chưa xác nhận lưu thành công. Bản đang soạn vẫn được giữ; bạn có thể thử lại hoặc tải bản mới để đối chiếu."));
+    } finally { saving.current = false; }
   }
 
   return (
     <PageContainer>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-950">Chỉnh sửa hồ sơ ứng viên</h1>
-          <p className="mt-1 text-sm text-slate-600">Cập nhật thông tin cá nhân, kinh nghiệm, học vấn, kỹ năng và liên kết nghề nghiệp.</p>
-        </div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div><h1 className="text-2xl font-semibold text-slate-950">Chỉnh sửa hồ sơ ứng viên</h1>
+          <p className="mt-1 text-sm text-slate-600">Cập nhật thông tin cá nhân, nội dung hồ sơ và kỹ năng. Các mục học vấn, kinh nghiệm, dự án được lưu dạng văn bản.</p></div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={saveCurrentSection} icon={<Save size={16} />}>Lưu mục hiện tại</Button>
-          <Button type="button" variant="secondary" onClick={cancelChanges} icon={<X size={16} />}>Hủy thay đổi</Button>
-          <Link to="/candidate/profile"><Button type="button" variant="secondary">Xem hồ sơ</Button></Link>
+          <Button type="submit" form="candidate-profile-form" loading={isSubmitting} disabled={conflict || loadingLatest} icon={<Save size={16} />}>Lưu hồ sơ</Button>
+          <Button disabled={isSubmitting} variant="secondary" icon={<X size={16} />} onClick={() => {
+            reset(toEditFormValues(savedProfile)); setSkills(flattenSkills(savedProfile)); if (!conflict) setSaveError("");
+          }}>Hủy thay đổi</Button>
+          <Link to="/candidate/profile" className={isSubmitting ? "pointer-events-none" : ""} aria-disabled={isSubmitting || undefined}><Button disabled={isSubmitting} variant="secondary">Xem hồ sơ</Button></Link>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit(saveAll)} className="grid gap-5 lg:grid-cols-[260px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Card>
-            <div className="grid gap-2">
-              {tabs.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setActiveTab(item.value)}
-                  className={`flex min-h-10 w-full items-center rounded-md border px-3 text-left text-sm font-medium transition ${
-                    activeTab === item.value
-                      ? "border-brand-200 bg-brand-50 text-brand-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div className="mt-5">
-              <Button className="w-full" type="submit" loading={isSubmitting}>Lưu toàn bộ</Button>
-            </div>
-            {isDirty ? <p className="mt-3 text-sm text-amber-700">Bạn có thay đổi chưa lưu.</p> : null}
-            {listError ? <p className="mt-3 text-sm text-red-600">{listError}</p> : null}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button type="button" variant="secondary" disabled={activeTabIndex <= 0} onClick={() => setActiveTab(tabs[Math.max(0, activeTabIndex - 1)].value)}>Trước</Button>
-              <Button type="button" variant="secondary" disabled={activeTabIndex >= tabs.length - 1} onClick={() => setActiveTab(tabs[Math.min(tabs.length - 1, activeTabIndex + 1)].value)}>Sau</Button>
-            </div>
-          </Card>
-        </aside>
-
-        <main className="space-y-5">
-          {activeTab === "personal" ? (
-            <Card>
-              <SectionHeader title="Thông tin cá nhân" />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Họ tên" error={errors.name?.message} {...register("name")} />
-                <Input label="Email" error={errors.email?.message} readOnly {...register("email")} />
-                <Input label="Số điện thoại" error={errors.phone?.message} {...register("phone")} />
-                <Input label="Tỉnh thành" error={errors.location?.message} {...register("location")} />
-                <Input label="Chức danh hiện tại" error={errors.currentTitle?.message} {...register("currentTitle")} />
-                <Select label="Trạng thái sẵn sàng làm việc" options={availabilityOptions} error={errors.availability?.message} {...register("availability")} />
-              </div>
-            </Card>
-          ) : null}
-
-          {activeTab === "about" ? (
-            <Card>
-              <SectionHeader title="Giới thiệu" />
-              <div className="grid gap-4">
-                <Textarea label="Giới thiệu bản thân" rows={6} error={errors.summary?.message} {...register("summary")} />
-                <Textarea label="Mục tiêu nghề nghiệp" rows={5} error={errors.careerGoal?.message} {...register("careerGoal")} />
-              </div>
-            </Card>
-          ) : null}
-
-          {activeTab === "experience" ? <ExperienceEditor items={experiences} setItems={setExperiences} onDelete={setDeleteTarget} /> : null}
-          {activeTab === "education" ? <EducationEditor items={education} setItems={setEducation} onDelete={setDeleteTarget} /> : null}
-          {activeTab === "skills" ? <SkillEditor items={skills} setItems={setSkills} onDelete={setDeleteTarget} /> : null}
-          {activeTab === "projects" ? <ProjectEditor items={projects} setItems={setProjects} onDelete={setDeleteTarget} /> : null}
-        </main>
+      <form id="candidate-profile-form" noValidate onSubmit={handleSubmit(saveAll, (invalid) => {
+        const field = Object.keys(invalid)[0] as keyof EditFormValues;
+        selectTab(fieldTabs[field] ?? "personal"); setFocusField(field); setSaveError("Vui lòng kiểm tra các trường có lỗi trước khi lưu.");
+      })}>
+        {saveError ? <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{saveError}</p> : null}
+        {saveError || conflict ? <Card className="mb-4">
+          <p className="mb-3 text-sm">Tải bản mới chỉ để đối chiếu, không thay bản đang soạn và không tự gửi lại yêu cầu lưu.</p>
+          <Button type="button" variant="secondary" loading={loadingLatest} onClick={async () => {
+            setLoadingLatest(true);
+            try { setLatestProfile(await getCandidateProfileData()); }
+            catch (error) { setSaveError(getApiErrorMessage(error, "Không tải được bản mới. Bản đang soạn vẫn được giữ.")); }
+            finally { setLoadingLatest(false); }
+          }}>Tải bản mới để đối chiếu</Button>
+        </Card> : null}
+        {latestProfile ? <Card className="mb-4">
+          <SectionHeader title="Đối chiếu hồ sơ" description="Kiểm tra các khác biệt trước khi quyết định tải lại. Không có thay đổi nào được tự động ghi đè." />
+          <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Trường</th><th className="p-2">Bản đang soạn</th><th className="p-2">Bản mới</th></tr></thead><tbody>
+            {Object.entries(toEditFormValues(latestProfile)).filter(([key, value]) => draftValues[key as keyof EditFormValues] !== value).map(([key, value]) => <tr key={key}>
+              <th className="p-2">{comparisonLabels[key] ?? key}</th><td className="whitespace-pre-wrap break-words p-2">{draftValues[key as keyof EditFormValues] || "(Trống)"}</td><td className="whitespace-pre-wrap break-words p-2">{value || "(Trống)"}</td>
+            </tr>)}
+            <tr><th className="p-2">Kỹ năng</th><td className="whitespace-pre-wrap p-2">{skillComparison(skills)}</td><td className="whitespace-pre-wrap p-2">{skillComparison(flattenSkills(latestProfile))}</td></tr>
+          </tbody></table></div>
+          <Button type="button" variant="secondary" className="mt-4" onClick={() => setConfirmReload(true)}>Thay bản nháp bằng bản mới</Button>
+        </Card> : null}
+        <fieldset disabled={isSubmitting} className="grid min-w-0 gap-5 lg:grid-cols-[230px_1fr]">
+          <aside className="lg:sticky lg:top-24 lg:self-start"><Card><nav aria-label="Các mục hồ sơ" className="grid gap-2">
+            {tabs.map((tab) => <button key={tab.value} type="button" aria-current={activeTab === tab.value ? "page" : undefined} onClick={() => selectTab(tab.value)}
+              className={`min-h-11 rounded-lg border px-3 text-left text-sm font-medium focus-visible:ring-4 focus-visible:ring-brand-200 ${activeTab === tab.value ? "border-brand-200 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-700"}`}>{tab.label}</button>)}
+          </nav>{dirty ? <p role="status" className="mt-4 text-sm text-amber-800">Bạn có thay đổi chưa lưu.</p> : null}</Card></aside>
+          <div className="min-w-0 space-y-5">
+            {activeTab === "personal" ? <Card><SectionHeader title="Thông tin cá nhân" /><div className="grid gap-4 md:grid-cols-2">
+              <Input label="Họ tên" error={errors.name?.message} {...register("name")} />
+              <Input label="Email" value={profile.header.email} readOnly />
+              <Input label="Số điện thoại" type="tel" error={errors.phone?.message} {...register("phone")} />
+              <Input label="Tỉnh thành hiện tại" error={errors.location?.message} {...register("location")} />
+              <Input label="Chức danh hiện tại" error={errors.currentTitle?.message} {...register("currentTitle")} />
+              <Select label="Loại hình công việc mong muốn" options={availabilityOptions} error={errors.availability?.message} {...register("availability")} />
+            </div><p className="mt-4 text-sm text-slate-500">Email chỉ đọc. Dữ liệu được lưu cùng nhau và kiểm tra phiên bản trước khi cập nhật.</p></Card> : null}
+            {activeTab === "about" ? <Card><SectionHeader title="Giới thiệu và mong muốn nghề nghiệp" /><div className="grid gap-4">
+              <Textarea label="Giới thiệu bản thân" rows={6} error={errors.summary?.message} {...register("summary")} />
+              <Input label="Vị trí mong muốn" error={errors.careerGoal?.message} {...register("careerGoal")} />
+              <Input label="Địa điểm mong muốn" error={errors.preferredLocation?.message} {...register("preferredLocation")} />
+            </div></Card> : null}
+            {activeTab === "education" ? <Card><SectionHeader title="Học vấn" /><div className="grid gap-4 md:grid-cols-2">
+              <Input label="Trường" error={errors.university?.message} {...register("university")} />
+              <Input label="Chuyên ngành" error={errors.major?.message} {...register("major")} />
+              <Input label="Năm tốt nghiệp" inputMode="numeric" error={errors.graduationYear?.message} {...register("graduationYear")} />
+              <div className="md:col-span-2"><Textarea label="Nội dung học vấn" rows={8} error={errors.education?.message} {...register("education")} /></div>
+            </div></Card> : null}
+            {activeTab === "experience" ? <Card><SectionHeader title="Kinh nghiệm" /><Textarea label="Nội dung kinh nghiệm" rows={12} error={errors.experience?.message} {...register("experience")} /></Card> : null}
+            {activeTab === "projects" ? <Card><SectionHeader title="Dự án" /><Textarea label="Nội dung dự án" rows={12} error={errors.projects?.message} {...register("projects")} /></Card> : null}
+            {activeTab === "skills" ? <SkillEditor items={skills} setItems={setSkills} onDelete={setDeleteTarget} /> : null}
+          </div>
+        </fieldset>
       </form>
-
-      <Modal open={Boolean(deleteTarget)} title="Xóa mục" onClose={() => setDeleteTarget(null)}>
-        <ConfirmDialog
-          danger
-          title="Xóa mục này?"
-          description={deleteTarget?.label ?? "Mục này sẽ bị xóa khỏi dữ liệu chỉnh sửa."}
-          confirmLabel="Xóa"
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => {
-            deleteTarget?.onConfirm();
-            setDeleteTarget(null);
-            setListError("");
-          }}
-        />
+      <Modal open={Boolean(deleteTarget)} title="Xóa kỹ năng khỏi bản chỉnh sửa" onClose={() => setDeleteTarget(null)}>
+        <ConfirmDialog danger title="Xóa kỹ năng này?" description="Thay đổi chỉ được lưu vào hệ thống khi bạn chọn Lưu hồ sơ." confirmLabel="Xóa" onCancel={() => setDeleteTarget(null)} onConfirm={() => { deleteTarget?.onConfirm(); setDeleteTarget(null); }} />
+      </Modal>
+      <Modal open={confirmReload} title="Tải lại hồ sơ mới nhất" onClose={() => setConfirmReload(false)}>
+        <ConfirmDialog danger title="Thay bản đang soạn?" description="Bản đang soạn sẽ được thay bằng bản mới từ hệ thống. Hãy đối chiếu hoặc ghi lại nội dung cần giữ trước khi xác nhận." confirmLabel="Xác nhận tải lại" onCancel={() => setConfirmReload(false)} onConfirm={() => {
+          if (!latestProfile) return;
+          setSavedProfile(latestProfile); setSkills(flattenSkills(latestProfile)); reset(toEditFormValues(latestProfile)); onSaved?.(latestProfile);
+          setSaveError(""); setConflict(false); setConfirmReload(false); setLatestProfile(null);
+        }} />
       </Modal>
     </PageContainer>
   );
@@ -295,36 +202,20 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
 
 function normalizeTab(section: string | null): EditTab {
   if (section === "summary" || section === "career-goal") return "about";
-  if (section === "experience" || section === "education" || section === "skills" || section === "projects") return section;
-  return "personal";
+  return tabs.some((tab) => tab.value === section) ? section as EditTab : "personal";
 }
-
 function toEditFormValues(profile: CandidateProfileData): EditFormValues {
   return {
-    avatar: profile.header.avatar,
-    name: profile.header.name,
-    birthDate: profile.header.birthDate,
-    email: profile.header.email,
-    phone: profile.header.phone.replaceAll(" ", ""),
-    location: profile.header.location,
-    address: profile.header.address,
-    currentTitle: profile.header.currentTitle,
-    availability: profile.header.preferredJobType ?? "",
-    summary: profile.summary,
-    careerGoal: profile.careerGoal,
-    linkedIn: profile.links.linkedIn,
-    github: profile.links.github,
-    portfolio: profile.links.portfolio,
-    website: profile.links.website,
+    name: profile.header.name, phone: profile.header.phone, location: profile.header.location,
+    currentTitle: profile.header.currentTitle, availability: (profile.header.preferredJobType ?? "") as EditFormValues["availability"],
+    summary: profile.summary, careerGoal: profile.careerGoal, preferredLocation: profile.record?.preferredLocation ?? "",
+    education: profile.record?.education ?? "", experience: profile.record?.experience ?? "", projects: profile.record?.projects ?? "",
+    university: profile.record?.university ?? "", major: profile.record?.major ?? "", graduationYear: profile.record?.graduationYear?.toString() ?? "",
   };
 }
-
-function toEditableExperiences(profile: CandidateProfileData): EditableExperience[] {
-  return profile.experiences.map((item) => ({ ...item, startDate: "", endDate: "", current: false }));
-}
-
-function toEditableEducation(profile: CandidateProfileData): EditableEducation[] {
-  return profile.education.map((item) => ({ ...item, startDate: "", endDate: "", description: "" }));
+function newId(prefix: string) { return `${prefix}-${crypto.randomUUID()}`; }
+function SectionActions({ onAdd }: { onAdd: () => void }) {
+  return <Button type="button" size="sm" variant="secondary" icon={<Plus size={14} />} onClick={onAdd}>Thêm</Button>;
 }
 
 function flattenSkills(profile: CandidateProfileData) {
@@ -353,105 +244,25 @@ function stripGroup(skill: CandidateSkill & { group: string }) {
     level: skill.level,
     years: skill.years,
     source: skill.source,
+    storedYears: skill.storedYears,
   };
-}
-
-function calculateCompletion(values: EditFormValues) {
-  const filled = Object.values(values).filter(Boolean).length;
-  return Math.min(100, Math.round((filled / Object.values(values).length) * 70) + 25);
-}
-
-function newId(prefix: string) {
-  return `${prefix}-${Date.now()}`;
-}
-
-function SectionActions({ onAdd }: { onAdd: () => void }) {
-  return <Button type="button" size="sm" variant="secondary" icon={<Plus size={14} />} onClick={onAdd}>Thêm</Button>;
-}
-
-function MoveDeleteActions({ onUp, onDown, onDelete }: { onUp: () => void; onDown: () => void; onDelete: () => void }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      <Button type="button" size="sm" variant="secondary" icon={<ArrowUp size={14} />} onClick={onUp}>Lên</Button>
-      <Button type="button" size="sm" variant="secondary" icon={<ArrowDown size={14} />} onClick={onDown}>Xuống</Button>
-      <Button type="button" size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={onDelete}>Xóa</Button>
-    </div>
-  );
-}
-
-function swapItems<T>(items: T[], index: number, direction: -1 | 1) {
-  const nextIndex = index + direction;
-  if (nextIndex < 0 || nextIndex >= items.length) return items;
-  const next = [...items];
-  [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-  return next;
-}
-
-function ExperienceEditor({ items, setItems, onDelete }: { items: EditableExperience[]; setItems: (items: EditableExperience[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Kinh nghiệm" action={<SectionActions onAdd={() => setItems([...items, { id: newId("exp"), company: "", position: "", period: "", startDate: "", endDate: "", current: false, description: "", achievements: [], technologies: [] }])} />} />
-      <div className="space-y-4">
-        {items.map((item, index) => (
-          <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-            <div className="mb-4 flex justify-end">
-              <MoveDeleteActions onUp={() => setItems(swapItems(items, index, -1))} onDown={() => setItems(swapItems(items, index, 1))} onDelete={() => onDelete({ label: "Kinh nghiệm sẽ bị xóa.", onConfirm: () => setItems(items.filter((entry) => entry.id !== item.id)) })} />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input label="Công ty" value={item.company} onChange={(event) => updateItem(items, setItems, item.id, { company: event.target.value })} />
-              <Input label="Vị trí" value={item.position} onChange={(event) => updateItem(items, setItems, item.id, { position: event.target.value })} />
-              <Input label="Ngày bắt đầu" type="date" value={item.startDate} onChange={(event) => updateItem(items, setItems, item.id, { startDate: event.target.value })} />
-              <Input label="Ngày kết thúc" type="date" value={item.endDate} disabled={item.current} onChange={(event) => updateItem(items, setItems, item.id, { endDate: event.target.value })} />
-              <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={item.current} onChange={(event) => updateItem(items, setItems, item.id, { current: event.target.checked })} />Đang làm việc</label>
-              <Input label="Công nghệ" value={item.technologies.join(", ")} onChange={(event) => updateItem(items, setItems, item.id, { technologies: splitList(event.target.value) })} />
-              <div className="md:col-span-2"><Textarea label="Mô tả" value={item.description} onChange={(event) => updateItem(items, setItems, item.id, { description: event.target.value })} /></div>
-              <div className="md:col-span-2"><Textarea label="Thành tựu" value={item.achievements.join("\n")} onChange={(event) => updateItem(items, setItems, item.id, { achievements: splitLines(event.target.value) })} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function EducationEditor({ items, setItems, onDelete }: { items: EditableEducation[]; setItems: (items: EditableEducation[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Học vấn" action={<SectionActions onAdd={() => setItems([...items, { id: newId("edu"), school: "", major: "", degree: "", period: "", startDate: "", endDate: "", gpa: "", description: "" }])} />} />
-      <div className="space-y-4">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-            <div className="mb-4 flex justify-end"><Button type="button" size="sm" variant="danger" onClick={() => onDelete({ label: "Học vấn sẽ bị xóa.", onConfirm: () => setItems(items.filter((entry) => entry.id !== item.id)) })}>Xóa</Button></div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input label="Trường" value={item.school} onChange={(event) => updateItem(items, setItems, item.id, { school: event.target.value })} />
-              <Input label="Chuyên ngành" value={item.major} onChange={(event) => updateItem(items, setItems, item.id, { major: event.target.value })} />
-              <Input label="Bằng cấp" value={item.degree} onChange={(event) => updateItem(items, setItems, item.id, { degree: event.target.value })} />
-              <Input label="GPA" value={item.gpa} onChange={(event) => updateItem(items, setItems, item.id, { gpa: event.target.value })} />
-              <Input label="Ngày bắt đầu" type="date" value={item.startDate} onChange={(event) => updateItem(items, setItems, item.id, { startDate: event.target.value })} />
-              <Input label="Ngày kết thúc" type="date" value={item.endDate} onChange={(event) => updateItem(items, setItems, item.id, { endDate: event.target.value })} />
-              <div className="md:col-span-2"><Textarea label="Mô tả" value={item.description} onChange={(event) => updateItem(items, setItems, item.id, { description: event.target.value })} /></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
 }
 
 function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkill & { group: string }>; setItems: (items: Array<CandidateSkill & { group: string }>) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
   return (
     <Card>
-      <SectionHeader title="Kỹ năng" description="Có thể nhập kỹ năng tự do. Kỹ năng mới sẽ được lưu vào hồ sơ qua API." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0, source: "MANUAL" }])} />} />
+      <SectionHeader title="Kỹ năng" description="Có thể nhập kỹ năng tự do. Nhóm chỉ dùng khi tạo kỹ năng mới; kỹ năng đã có giữ nhóm của danh mục chung." action={<SectionActions onAdd={() => setItems([...items, { id: newId("skill"), name: "", group: "frontend", level: "Cơ bản", years: 0, source: "MANUAL" }])} />} />
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((item) => (
           <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-            <div className="grid gap-3">
+            {item.source && item.source !== "MANUAL" ? <p className="mb-3 text-sm text-slate-600">Nguồn {item.source}: chỉ đọc trong màn hình này, được giữ nguyên khi lưu.</p> : null}
+            <fieldset disabled={Boolean(item.source && item.source !== "MANUAL")} className="grid gap-3">
               <Input label="Tên kỹ năng" value={item.name} onChange={(event) => updateItem(items, setItems, item.id, { name: event.target.value, skillId: undefined })} />
-              <Select label="Nhóm" value={item.group} onChange={(event) => updateItem(items, setItems, item.id, { group: event.target.value })} options={[{ label: "Frontend", value: "frontend" }, { label: "Backend", value: "backend" }, { label: "Công cụ", value: "tools" }, { label: "Kỹ năng mềm", value: "soft" }]} />
-              <Input label="Mức độ" value={item.level} onChange={(event) => updateItem(items, setItems, item.id, { level: event.target.value })} />
-              <Input label="Số năm kinh nghiệm" type="number" value={item.years} onChange={(event) => updateItem(items, setItems, item.id, { years: Number(event.target.value) })} />
+              <Select label="Nhóm" value={item.group} disabled={item.skillId != null} onChange={(event) => updateItem(items, setItems, item.id, { group: event.target.value })} options={[{ label: "Frontend", value: "frontend" }, { label: "Backend", value: "backend" }, { label: "Công cụ", value: "tools" }, { label: "Kỹ năng mềm", value: "soft" }]} />
+              <Select label="Mức độ" options={[{ label: "Cơ bản", value: "Cơ bản" }, { label: "Khá", value: "Khá" }, { label: "Tốt", value: "Tốt" }]} value={item.level} onChange={(event) => updateItem(items, setItems, item.id, { level: event.target.value })} />
+              <Input label="Số năm kinh nghiệm" type="number" min="0" max="999.9" step="0.1" value={item.years} onChange={(event) => updateItem(items, setItems, item.id, { years: Number(event.target.value), storedYears: undefined })} />
               <Button type="button" size="sm" variant="danger" onClick={() => onDelete({ label: "Kỹ năng sẽ bị xóa.", onConfirm: () => setItems(items.filter((entry) => entry.id !== item.id)) })}>Xóa</Button>
-            </div>
+            </fieldset>
           </div>
         ))}
       </div>
@@ -459,66 +270,9 @@ function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkil
   );
 }
 
-function ProjectEditor({ items, setItems, onDelete }: { items: CandidateProject[]; setItems: (items: CandidateProject[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void }) {
-  return (
-    <Card>
-      <SectionHeader title="Dự án" action={<SectionActions onAdd={() => setItems([...items, { id: newId("project"), name: "", role: "", period: "", description: "", technologies: [], url: "" }])} />} />
-      <SimpleGrid items={items} setItems={setItems} onDelete={onDelete} fields={["name", "role", "period", "description", "technologies", "url"]} deleteLabel="Dự án sẽ bị xóa." />
-    </Card>
-  );
-}
-
-function SimpleGrid<T extends { id: string }>({ items, setItems, onDelete, fields, deleteLabel }: { items: T[]; setItems: (items: T[]) => void; onDelete: (target: { label: string; onConfirm: () => void }) => void; fields: string[]; deleteLabel: string }) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {items.map((item) => (
-        <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-          <div className="grid gap-3">
-            {fields.map((field) => {
-              const value = item[field as keyof T];
-              const textValue = Array.isArray(value) ? value.join(", ") : String(value ?? "");
-              return (
-                <Input
-                  key={field}
-                  label={fieldLabels[field] ?? field}
-                  value={textValue}
-                  onChange={(event) => {
-                    const nextValue = field === "technologies" ? splitList(event.target.value) : event.target.value;
-                    updateItem(items, setItems, item.id, { [field]: nextValue } as Partial<T>);
-                  }}
-                />
-              );
-            })}
-            <Button type="button" size="sm" variant="danger" onClick={() => onDelete({ label: deleteLabel, onConfirm: () => setItems(items.filter((entry) => entry.id !== item.id)) })}>Xóa</Button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const fieldLabels: Record<string, string> = {
-  name: "Tên",
-  issuer: "Tổ chức cấp",
-  issuedAt: "Ngày cấp",
-  expiresAt: "Ngày hết hạn",
-  code: "Mã",
-  url: "URL",
-  role: "Vai trò",
-  period: "Thời gian",
-  description: "Mô tả",
-  technologies: "Công nghệ",
-  level: "Mức độ",
-};
+const comparisonLabels: Record<string, string> = { name: "Họ tên", phone: "Số điện thoại", location: "Tỉnh thành", currentTitle: "Chức danh", availability: "Loại hình công việc", summary: "Giới thiệu", careerGoal: "Vị trí mong muốn", preferredLocation: "Địa điểm mong muốn", education: "Học vấn", experience: "Kinh nghiệm", projects: "Dự án", major: "Chuyên ngành", university: "Trường", graduationYear: "Năm tốt nghiệp" };
+function skillComparison(items: CandidateSkill[]) { return items.map(skill => `${skill.name} — ${skill.level}, ${skill.years} năm (${skill.source ?? "MANUAL"})`).join("\n") || "(Trống)"; }
 
 function updateItem<T extends { id: string }>(items: T[], setItems: (items: T[]) => void, id: string, payload: Partial<T>) {
   setItems(items.map((item) => item.id === id ? { ...item, ...payload } : item));
-}
-
-function splitList(value: string) {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
-}
-
-function splitLines(value: string) {
-  return value.split("\n").map((item) => item.trim()).filter(Boolean);
 }

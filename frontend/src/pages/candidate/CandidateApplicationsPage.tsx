@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -14,6 +14,9 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { httpClient } from "../../services/api/httpClient";
+import { useAuth } from "../../hooks/useAuth";
+import { WithdrawApplicationButton } from "../../features/candidate/apply/WithdrawApplicationButton";
+import { appliedJobsChangedEvent, applicationStorageEvent } from "../../features/public/jobs/useAppliedJobs";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -55,19 +58,48 @@ const statusOptions: Array<{ label: string; value: "" | ApplicationStatus }> = [
 ];
 
 export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "detail" | "status" }) {
+  const { currentUser } = useAuth();
+  const userId = currentUser?.role === "candidate" ? currentUser.id : null;
   const { applicationId } = useParams();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ApplicationStatus | "">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
-  const [reloadKey] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
   const detailMode = mode === "detail" || mode === "status";
 
-  const applicationsQuery = useAsyncData(() => detailMode ? Promise.resolve([]) : getMyApplications(), [detailMode, reloadKey]);
-  const applicationDetailQuery = useAsyncData(() => detailMode && applicationId ? getMyApplicationDetail(applicationId) : Promise.resolve(null), [applicationId, detailMode, reloadKey]);
-  const applications = useMemo(() => applicationsQuery.data ?? [], [applicationsQuery.data]);
-  const selectedApplication = detailMode ? applicationDetailQuery.data : applicationId ? applications.find((application) => String(application.id) === applicationId) : applications[0];
+  const applicationsQuery = useAsyncData(async () => ({ userId, items: !detailMode && userId ? await getMyApplications() : [] }), [detailMode, reloadKey, userId]);
+  const applicationDetailQuery = useAsyncData(async () => ({ userId, item: detailMode && applicationId && userId ? await getMyApplicationDetail(applicationId) : null }), [applicationId, detailMode, reloadKey, userId]);
+  const applications = useMemo(() => applicationsQuery.data?.userId === userId ? applicationsQuery.data?.items ?? [] : [], [applicationsQuery.data, userId]);
+  const selectedApplication = detailMode ? applicationDetailQuery.data?.userId === userId && String(applicationDetailQuery.data.item?.id) === applicationId ? applicationDetailQuery.data.item : null : applications[0];
+  const confirmed = userId && (detailMode ? applicationDetailQuery.data?.userId === userId && selectedApplication : applicationsQuery.data?.userId === userId);
+  const loading = applicationsQuery.loading || applicationDetailQuery.loading;
+  const loadError = applicationsQuery.error ?? applicationDetailQuery.error;
+  const reload = () => setReloadKey(key => key + 1);
+  useEffect(() => {
+    function changed(event: Event) {
+      if ((event as CustomEvent<{ userId: string }>).detail?.userId === userId) setReloadKey(key => key + 1);
+    }
+    function focus() { setReloadKey(key => key + 1); }
+    function storage(event: StorageEvent) {
+      if (event.key !== applicationStorageEvent || !event.newValue) return;
+      try { if (JSON.parse(event.newValue).userId === userId) setReloadKey(key => key + 1); } catch { /* Ignore malformed invalidations. */ }
+    }
+    window.addEventListener(appliedJobsChangedEvent, changed);
+    window.addEventListener("focus", focus);
+    window.addEventListener("storage", storage);
+    return () => { window.removeEventListener(appliedJobsChangedEvent, changed); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); };
+  }, [userId]);
+  function changed(application: ApplicationResponse) {
+    applicationsQuery.setData(previous => previous?.userId === userId ? { ...previous, items: previous.items.map(item => item.id === application.id ? application : item) } : previous);
+    applicationDetailQuery.setData(previous => previous?.userId === userId ? { ...previous, item: previous.item?.id === application.id ? application : previous.item } : previous);
+  }
+  const feedback = <div className="mb-5 space-y-3">
+    {loading && confirmed ? <p role="status">Đang cập nhật. Dữ liệu bên dưới là lần xác nhận gần nhất.</p> : null}
+    {loadError ? <ErrorState message={loadError} /> : null}
+    <Button variant="secondary" disabled={loading} onClick={reload}>Tải lại</Button>
+  </div>;
   const dateRangeError = dateFrom && dateTo && dateFrom > dateTo ? "Từ ngày phải nhỏ hơn hoặc bằng đến ngày." : "";
 
   const filteredApplications = useMemo(() => {
@@ -81,18 +113,19 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         const matchTo = !dateTo || appliedDate <= dateTo;
         return matchQuery && matchStatus && matchFrom && matchTo;
       })
-      .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt));
+      .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt) || b.id - a.id);
   }, [applications, dateFrom, dateRangeError, dateTo, query, status]);
 
   const totalPages = Math.max(1, Math.ceil(filteredApplications.length / pageSize));
   const pagedApplications = filteredApplications.slice((page - 1) * pageSize, page * pageSize);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   function updateFilter(callback: () => void) {
     callback();
     setPage(1);
   }
 
-  if (applicationsQuery.loading || applicationDetailQuery.loading) {
+  if (loading && !confirmed) {
     return (
       <PageContainer>
         <LoadingState />
@@ -100,10 +133,10 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
     );
   }
 
-  if (applicationsQuery.error || applicationDetailQuery.error) {
+  if (loadError && !confirmed) {
     return (
       <PageContainer>
-        <ErrorState message={applicationsQuery.error ?? applicationDetailQuery.error ?? "Không thể tải dữ liệu ứng tuyển."} />
+        {feedback}
       </PageContainer>
     );
   }
@@ -125,7 +158,8 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   if ((mode === "detail" || mode === "status") && selectedApplication) {
     return (
       <PageContainer>
-        <ApplicationDetail application={selectedApplication} />
+        {feedback}
+        <ApplicationDetail application={selectedApplication} actions={<WithdrawApplicationButton application={selectedApplication} userId={userId!} disabled={loading || Boolean(loadError)} onChanged={changed} />} />
       </PageContainer>
     );
   }
@@ -133,6 +167,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   return (
     <PageContainer>
       <PageHeader title="Lịch sử ứng tuyển" description="Theo dõi các đơn ứng tuyển của bạn." />
+      {feedback}
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -147,9 +182,9 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         <Card>
           <EmptyState message={dateRangeError} />
         </Card>
-      ) : pagedApplications.length === 0 ? (
+      ) : pagedApplications.length === 0 && !loading && !loadError ? (
         <Card>
-          <EmptyState message="Chưa có đơn ứng tuyển." />
+          <EmptyState message={applications.length ? "Không có đơn ứng tuyển khớp với bộ lọc. Hãy thử đổi từ khóa, trạng thái hoặc khoảng ngày." : "Bạn chưa gửi đơn ứng tuyển nào. Khám phá việc làm để bắt đầu."} />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link to="/candidate/jobs"><Button>Tìm việc</Button></Link>
             <Link to="/candidate/jobs/recommended"><Button variant="secondary">Xem việc làm gợi ý</Button></Link>
@@ -159,7 +194,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
         <>
           <div className="grid gap-4">
             {pagedApplications.map((application) => (
-              <ApplicationCard key={application.id} application={application} />
+              <ApplicationCard key={application.id} application={application} actions={<WithdrawApplicationButton application={application} userId={userId!} disabled={loading || Boolean(loadError)} onChanged={changed} />} />
             ))}
           </div>
           <div className="mt-5">
@@ -172,7 +207,7 @@ export function CandidateApplicationsPage({ mode = "list" }: { mode?: "list" | "
   );
 }
 
-function ApplicationCard({ application }: { application: ApplicationResponse }) {
+function ApplicationCard({ application, actions }: { application: ApplicationResponse; actions: React.ReactNode }) {
   const status = getStatusMeta(application.status);
 
   return (
@@ -194,6 +229,7 @@ function ApplicationCard({ application }: { application: ApplicationResponse }) 
         </div>
 
         <div className="flex flex-wrap justify-end gap-2">
+          {actions}
           <Link to={`/candidate/applications/${application.id}`}><Button variant="secondary" size="sm">Xem chi tiết</Button></Link>
           <Link to={`/candidate/applications/${application.id}/status`}><Button variant="secondary" size="sm">Xem trạng thái</Button></Link>
           <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary" size="sm">Xem việc làm</Button></Link>
@@ -203,7 +239,7 @@ function ApplicationCard({ application }: { application: ApplicationResponse }) 
   );
 }
 
-function ApplicationDetail({ application }: { application: ApplicationResponse }) {
+function ApplicationDetail({ application, actions }: { application: ApplicationResponse; actions: React.ReactNode }) {
   const status = getStatusMeta(application.status);
 
   return (
@@ -220,14 +256,15 @@ function ApplicationDetail({ application }: { application: ApplicationResponse }
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {actions}
             <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary">Xem việc làm</Button></Link>
             {application.cvFileId ? <Link to={`/candidate/cvs/${application.cvFileId}`}><Button variant="secondary">Xem CV</Button></Link> : null}
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin đơn ứng tuyển" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">

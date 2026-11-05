@@ -160,6 +160,41 @@ class RestAiServiceClientV3Test {
                 .rankCandidatesV3(request, "trace"), ErrorCode.AI_SERVICE_UNAVAILABLE);
     }
 
+    @Test
+    void tcpResetWhileReadingResponseBodyIsUnavailable() throws Exception {
+        try (var listener = new ServerSocket(0, 50, java.net.InetAddress.getLoopbackAddress())) {
+            executor.submit(() -> {
+                while (!listener.isClosed()) try (var socket = listener.accept()) {
+                    var input = socket.getInputStream();
+                    int state = 0, value;
+                    byte[] end = {13, 10, 13, 10};
+                    while (state < 4 && (value = input.read()) >= 0) state = value == end[state] ? state + 1 : 0;
+                    socket.getOutputStream().write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{".getBytes(StandardCharsets.US_ASCII));
+                    socket.getOutputStream().flush();
+                    Thread.sleep(30);
+                    socket.setSoLinger(true, 0);
+                } catch (Exception e) { if (!listener.isClosed()) throw new IllegalStateException(e); }
+            });
+            var resetClient = client("http://127.0.0.1:" + listener.getLocalPort(), 5, Long.MAX_VALUE, Duration.ofSeconds(2));
+            assertError(() -> resetClient.recommendV3(studentRequest()), ErrorCode.AI_SERVICE_UNAVAILABLE);
+            assertError(() -> resetClient.rankCandidatesV3(companyRequest(1), "reset-body-test"), ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
+    @Test
+    void tcpResetIsUnavailableForBothV3Transports() throws Exception {
+        try (var listener = new ServerSocket(0, 50, java.net.InetAddress.getLoopbackAddress())) {
+            executor.submit(() -> {
+                while (!listener.isClosed()) try (var socket = listener.accept()) {
+                    socket.setSoLinger(true, 0);
+                } catch (IOException e) { if (!listener.isClosed()) throw new IllegalStateException(e); }
+            });
+            var resetClient = client("http://127.0.0.1:" + listener.getLocalPort(), 5, Long.MAX_VALUE, Duration.ofSeconds(2));
+            assertError(() -> resetClient.recommendV3(studentRequest()), ErrorCode.AI_SERVICE_UNAVAILABLE);
+            assertError(() -> resetClient.rankCandidatesV3(companyRequest(1), "reset-test"), ErrorCode.AI_SERVICE_UNAVAILABLE);
+        }
+    }
+
     private RestAiServiceClient client(int maximumCandidates, long maximumBytes, Duration timeout) {
         return client("http://127.0.0.1:" + server.getAddress().getPort(), maximumCandidates, maximumBytes, timeout);
     }

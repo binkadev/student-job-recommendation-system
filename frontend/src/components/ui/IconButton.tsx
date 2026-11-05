@@ -28,7 +28,8 @@ export function IconButton({ icon, variant = "secondary", size = "md", loading =
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center rounded-md outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      aria-busy={loading || undefined}
+      className={`inline-flex shrink-0 items-center justify-center rounded-xl transition focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

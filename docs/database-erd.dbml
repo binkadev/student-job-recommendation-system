@@ -1,6 +1,6 @@
 Project student_job_recommendation {
   database_type: 'PostgreSQL'
-  Note: 'Released Flyway V1-V18. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
+  Note: 'Flyway V1-V20 source; released V1-V19 unchanged. V20 adds Saved Candidate note revision. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
 }
 
 Table users {
@@ -30,6 +30,7 @@ Table students {
   major varchar(255)
   graduation_year integer
   location varchar(255)
+  profile_revision bigint [not null, default: 0, note: 'V19: CHECK profile_revision >= 0; shared aggregate/legacy profile CAS revision, not Hibernate entity version.']
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
@@ -56,6 +57,7 @@ Table student_profiles {
 }
 
 Table companies {
+  account_revision bigint [not null, default: 0, note: 'V21: nonnegative account draft revision; checked under existing Company row lock.']
   id bigint [pk, increment]
   user_id bigint [not null, unique]
   company_name varchar(255) [not null]
@@ -291,6 +293,7 @@ Table saved_candidates {
   student_id bigint [not null]
   application_id bigint [not null]
   note text
+  revision bigint [not null, default: 0, note: 'V20: optimistic version; stale Company note edits return 409.']
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
@@ -302,6 +305,7 @@ Table saved_candidates {
 }
 
 Table user_notification_settings {
+  revision bigint [not null, default: 0, note: 'V21: nonnegative CAS revision; absent row reads as 0, first insert writes 1.']
   id bigint [pk, increment]
   user_id bigint [not null]
   application_status_enabled boolean [not null, default: true]

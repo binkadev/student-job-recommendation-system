@@ -71,6 +71,9 @@ public class Company {
     @Column(name = "status", nullable = false, length = 50)
     private CompanyStatus status;
 
+    @Column(name = "account_revision", nullable = false)
+    private long accountRevision;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

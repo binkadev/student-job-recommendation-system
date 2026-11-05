@@ -1,4 +1,9 @@
 const apiErrorMessages: Record<string, string> = {
+  INVALID_CURRENT_PASSWORD: "Mật khẩu hiện tại không đúng.",
+  SETTINGS_REVISION_CONFLICT: "Cài đặt đã thay đổi ở phiên khác. Bản nháp vẫn được giữ; hãy đọc lại dữ liệu để đối chiếu trước khi lưu tiếp.",
+  SETTINGS_REVISION_REQUIRED: "Chưa có phiên bản cài đặt để lưu. Hãy đọc lại dữ liệu rồi kiểm tra bản nháp.",
+  PROFILE_REVISION_CONFLICT: "Hồ sơ đã thay đổi ở phiên khác. Bản đang soạn vẫn được giữ; hãy tải bản mới để đối chiếu trước khi lưu tiếp.",
+  PROFILE_REVISION_REQUIRED: "Hãy tải lại hồ sơ để lấy phiên bản trước khi lưu.",
   ACCESS_DENIED: "Bạn không có quyền thực hiện thao tác này.",
   ALREADY_APPLIED: "Bạn đã ứng tuyển công việc này trước đó.",
   APPLICATION_ALREADY_ACTIVE: "Bạn đã có đơn ứng tuyển đang được xử lý cho việc làm này.",
@@ -19,6 +24,8 @@ const apiErrorMessages: Record<string, string> = {
   RECOMMENDATION_GENERATION_FAILED: "Không thể tạo gợi ý việc làm. Vui lòng thử lại sau.",
   RESOURCE_NOT_FOUND: "Không tìm thấy dữ liệu phù hợp.",
   SAVED_CANDIDATE_ALREADY_EXISTS: "Hồ sơ ứng viên này đã được lưu trước đó.",
+  SAVED_CANDIDATE_NOT_FOUND: "Dấu lưu không còn tồn tại hoặc không thuộc công ty bạn. Hãy tải lại danh sách.",
+  SAVED_CANDIDATE_REVISION_CONFLICT: "Ghi chú đã thay đổi ở phiên khác. Bản nháp vẫn được giữ; hãy tải ghi chú hiện tại để đối chiếu.",
   UNAUTHORIZED: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
   VALIDATION_ERROR: "Dữ liệu nhập chưa hợp lệ. Vui lòng kiểm tra lại.",
 };

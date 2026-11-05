@@ -24,6 +24,7 @@ public interface UserNotificationSettingsRepository extends JpaRepository<UserNo
                 job_status_enabled,
                 recommendation_enabled,
                 system_enabled,
+                revision,
                 created_at,
                 updated_at
             )
@@ -33,21 +34,34 @@ public interface UserNotificationSettingsRepository extends JpaRepository<UserNo
                 :jobStatusEnabled,
                 :recommendationEnabled,
                 :systemEnabled,
+                1,
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP
             )
-            ON CONFLICT (user_id) DO UPDATE SET
-                application_status_enabled = EXCLUDED.application_status_enabled,
-                job_status_enabled = EXCLUDED.job_status_enabled,
-                recommendation_enabled = EXCLUDED.recommendation_enabled,
-                system_enabled = EXCLUDED.system_enabled,
-                updated_at = CURRENT_TIMESTAMP
+            ON CONFLICT (user_id) DO NOTHING
             """, nativeQuery = true)
-    int upsert(
+    int insertInitial(
             @Param("userId") Long userId,
             @Param("applicationStatusEnabled") boolean applicationStatusEnabled,
             @Param("jobStatusEnabled") boolean jobStatusEnabled,
             @Param("recommendationEnabled") boolean recommendationEnabled,
             @Param("systemEnabled") boolean systemEnabled
     );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE user_notification_settings SET
+                application_status_enabled = :applicationStatusEnabled,
+                job_status_enabled = :jobStatusEnabled,
+                recommendation_enabled = :recommendationEnabled,
+                system_enabled = :systemEnabled,
+                revision = revision + 1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = :userId AND revision = :revision
+            """, nativeQuery = true)
+    int updateIfRevision(@Param("userId") Long userId,
+            @Param("applicationStatusEnabled") boolean applicationStatusEnabled,
+            @Param("jobStatusEnabled") boolean jobStatusEnabled,
+            @Param("recommendationEnabled") boolean recommendationEnabled,
+            @Param("systemEnabled") boolean systemEnabled, @Param("revision") long revision);
 }

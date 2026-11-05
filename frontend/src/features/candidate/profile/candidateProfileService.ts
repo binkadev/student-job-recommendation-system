@@ -8,14 +8,6 @@ interface ApiResponse<T> {
   errorCode?: string;
 }
 
-interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
-  totalItems: number;
-  totalPages: number;
-}
-
 interface StudentResponse {
   id: number;
   userId: number;
@@ -103,72 +95,84 @@ const LEVEL_VALUES: Record<string, BackendSkillLevel> = {
 };
 
 export async function getCandidateProfileData(): Promise<CandidateProfileData> {
-  const [studentResponse, profileResponse, skillsResponse] = await Promise.all([
-    httpClient.get<ApiResponse<StudentResponse>>("/students/me"),
-    httpClient.get<ApiResponse<StudentProfileResponse>>("/students/me/profile"),
-    httpClient.get<ApiResponse<StudentSkillResponse[]>>("/students/me/skills"),
-  ]);
+  const response = await httpClient.get<ApiResponse<Aggregate>>("/students/me/profile-aggregate");
+  return fromAggregate(response.data.data);
+}
 
-  return mapCandidateProfile(
-    studentResponse.data.data,
-    profileResponse.data.data,
-    skillsResponse.data.data,
-  );
+interface Aggregate { revision: number; student: StudentResponse; profile: StudentProfileResponse; skills: StudentSkillResponse[] }
+function fromAggregate(data: Aggregate) { return mapCandidateProfile(data.student, data.profile, data.skills, data.revision); }
+
+export function isProfileConflict(error: unknown) {
+  return (error as { response?: { status?: number; data?: { errorCode?: string } } })?.response?.data?.errorCode === "PROFILE_REVISION_CONFLICT";
 }
 
 export async function updateCandidateProfileData(profile: CandidateProfileData): Promise<CandidateProfileData> {
+  if (!profile.record || !profile.baseline || !Number.isSafeInteger(profile.revision)) throw new Error("Hãy tải lại hồ sơ trước khi lưu để bảo toàn dữ liệu hiện có.");
   const studentPayload = {
-    fullName: emptyToNull(profile.header.name),
-    phone: emptyToNull(profile.header.phone),
-    location: emptyToNull(profile.header.location),
-    headline: emptyToNull(profile.header.currentTitle),
-    major: firstEducation(profile)?.major ?? null,
-    university: firstEducation(profile)?.school ?? null,
-    graduationYear: extractGraduationYear(firstEducation(profile)?.period),
+    fullName: profile.header.name.trim(),
+    phone: profile.header.phone.trim(),
+    location: profile.header.location.trim(),
+    headline: profile.header.currentTitle.trim(),
+    major: profile.record.major ?? "",
+    university: profile.record.university ?? "",
+    graduationYear: profile.record.graduationYear,
   };
 
   const profilePayload = {
-    summary: emptyToNull(profile.summary),
-    education: profile.education.length ? serializeEducation(profile.education) : null,
-    experience: profile.experiences.length ? serializeExperiences(profile.experiences) : null,
-    projects: profile.projects.length ? serializeProjects(profile.projects) : null,
-    targetPosition: emptyToNull(profile.header.currentTitle || profile.careerGoal.slice(0, 255)),
-    preferredLocation: emptyToNull(profile.header.location),
+    // This API treats null as "keep existing" and an empty string as "clear".
+    summary: profile.summary.trim(),
+    education: profile.record.education ?? "",
+    experience: profile.record.experience ?? "",
+    projects: profile.record.projects ?? "",
+    targetPosition: profile.careerGoal.trim(),
+    preferredLocation: profile.record.preferredLocation ?? "",
     preferredJobType: normalizeJobType(profile.header.preferredJobType),
   };
 
-  await httpClient.put<ApiResponse<StudentResponse>>("/students/me", studentPayload);
-  await httpClient.put<ApiResponse<StudentProfileResponse>>("/students/me/profile", profilePayload);
-  await updateStudentSkills(profile);
-
-  return getCandidateProfileData();
+  const manualSkills = buildStudentSkillsPayload(profile, []);
+  const clearFields = [
+    ...(studentPayload.graduationYear == null && profile.baseline.student.graduationYear != null ? ["graduationYear"] : []),
+    ...(profilePayload.preferredJobType == null && profile.baseline.profile.preferredJobType != null ? ["preferredJobType"] : []),
+  ];
+  const response = await httpClient.put<ApiResponse<Aggregate>>("/students/me/profile-aggregate", {
+    revision: profile.revision,
+    student: changedFields(studentPayload, profile.baseline.student),
+    profile: changedFields(profilePayload, profile.baseline.profile),
+    ...(JSON.stringify(manualSkills) !== profile.baseline.manualSkills ? { manualSkills } : {}),
+    ...(clearFields.length ? { clearFields } : {}),
+  });
+  return fromAggregate(response.data.data);
 }
 
-async function getCandidateSkillCatalog(): Promise<CandidateSkillCatalogItem[]> {
-  const response = await httpClient.get<ApiResponse<PageResponse<SkillResponse>>>("/skills", {
-    params: { page: 1, size: 200 },
-  });
-  return response.data.data.items.map((skill) => ({
-    id: skill.id,
-    name: skill.name,
-    normalizedName: skill.normalizedName,
-    category: skill.category,
-  }));
+function changedFields(values: Record<string, string | number | null>, baseline: Record<string, string | number | null>) {
+  const comparable = (value: string | number | null | undefined) => typeof value === "string" ? value.trim() : value ?? "";
+  return Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== null && comparable(value) !== comparable(baseline[key])));
 }
 
 function mapCandidateProfile(
   student: StudentResponse,
   profile: StudentProfileResponse,
   skills: StudentSkillResponse[],
+  revision: number,
 ): CandidateProfileData {
   const name = student.fullName || student.email || "Ứng viên";
-  const currentTitle = student.headline || profile.targetPosition || profile.headline || "";
-  const location = student.location || profile.preferredLocation || "";
+  const currentTitle = student.headline ?? "";
+  const location = student.location ?? "";
   const educationText = profile.education || "";
   const experienceText = profile.experience || "";
   const projectsText = profile.projects || "";
 
-  return {
+  const mapped: CandidateProfileData = {
+    revision,
+    record: {
+      major: student.major,
+      university: student.university,
+      graduationYear: student.graduationYear,
+      education: profile.education,
+      experience: profile.experience,
+      projects: profile.projects,
+      preferredLocation: profile.preferredLocation,
+    },
     header: {
       avatar: getInitials(name),
       name,
@@ -183,7 +187,7 @@ function mapCandidateProfile(
       completion: profile.profileCompleteness ?? calculateProfileCompleteness(student, profile, skills),
     },
     summary: profile.summary || "",
-    careerGoal: profile.targetPosition || currentTitle,
+    careerGoal: profile.targetPosition ?? "",
     experiences: experienceText ? [{
       id: "experience-backend",
       company: "Thông tin hồ sơ",
@@ -220,28 +224,18 @@ function mapCandidateProfile(
       website: "",
     },
   };
-}
-
-async function updateStudentSkills(profile: CandidateProfileData) {
-  const skills = flattenSkillGroups(profile);
-  if (!skills.length) {
-    await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: [] });
-    return;
-  }
-
-  const catalog = await getCandidateSkillCatalog();
-  const payloadSkills = buildStudentSkillsPayload(profile, catalog);
-
-  await httpClient.put<ApiResponse<StudentSkillResponse[]>>("/students/me/skills", { skills: payloadSkills });
+  mapped.baseline = { student: { ...student }, profile: { ...profile }, manualSkills: JSON.stringify(buildStudentSkillsPayload(mapped, [])) };
+  return mapped;
 }
 
 export function buildStudentSkillsPayload(profile: Pick<CandidateProfileData, "skills">, catalog: CandidateSkillCatalogItem[]) {
   return flattenSkillGroups(profile)
+    .filter((skill) => !skill.source || skill.source === "MANUAL")
     .map((skill) => {
       const skillId = skill.skillId ?? findSkillId(skill, catalog);
       const common = {
         proficiencyLevel: mapSkillLevel(skill.level),
-        yearsOfExperience: Number.isFinite(skill.years) ? skill.years : 0,
+        yearsOfExperience: skill.years === 0 && skill.storedYears === null ? null : Number.isFinite(skill.years) ? skill.years : 0,
         source: (skill.source as BackendSkillSource | undefined) ?? "MANUAL",
       };
       if (skillId) return { skillId, ...common };
@@ -261,6 +255,7 @@ function groupStudentSkills(skills: StudentSkillResponse[]): CandidateProfileDat
       name: skill.skillName,
       level: LEVEL_LABELS[skill.proficiencyLevel] ?? skill.proficiencyLevel,
       years: Number(skill.yearsOfExperience ?? 0),
+      storedYears: skill.yearsOfExperience == null ? null : Number(skill.yearsOfExperience),
       source: skill.source,
     });
     return groups;
@@ -301,34 +296,6 @@ function normalizeJobType(value?: string | null): BackendJobType | null {
   return null;
 }
 
-function serializeExperiences(items: CandidateProfileData["experiences"]) {
-  return items
-    .map((item) => [item.position, item.company, item.period, item.description].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function serializeEducation(items: CandidateProfileData["education"]) {
-  return items
-    .map((item) => [item.school, item.major, item.degree, item.period, item.gpa ? `GPA ${item.gpa}` : ""].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function serializeProjects(items: CandidateProfileData["projects"]) {
-  return items
-    .map((item) => [item.name, item.role, item.period, item.description].filter(Boolean).join(" - "))
-    .join("\n");
-}
-
-function firstEducation(profile: CandidateProfileData) {
-  return profile.education[0];
-}
-
-function extractGraduationYear(period?: string) {
-  const match = period?.match(/\b(19\d{2}|20\d{2}|2100)\b/g);
-  if (!match?.length) return null;
-  return Number(match[match.length - 1]);
-}
-
 function calculateProfileCompleteness(student: StudentResponse, profile: StudentProfileResponse, skills: StudentSkillResponse[]) {
   const values = [
     student.fullName,
@@ -356,11 +323,6 @@ function getInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase() || "UV";
-}
-
-function emptyToNull(value: string | undefined | null) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
 }
 
 function normalize(value: string) {

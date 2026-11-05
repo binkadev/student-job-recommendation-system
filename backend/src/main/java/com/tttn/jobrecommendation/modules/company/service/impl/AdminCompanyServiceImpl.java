@@ -88,7 +88,8 @@ public class AdminCompanyServiceImpl implements AdminCompanyService {
     @Override
     @Transactional
     public AdminCompanyResponse updateStatus(Long id, AdminCompanyStatusUpdateRequest request) {
-        Company company = getCompanyById(id);
+        Company company = companyRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
         company.setStatus(request.getStatus());
         Company savedCompany = companyRepository.save(company);
         return companyMapper.toAdminCompanyResponse(savedCompany, countOpenJobs(savedCompany));

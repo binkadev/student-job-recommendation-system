@@ -17,6 +17,8 @@ public class SavedCandidateMapper {
         return SavedCandidateResponse.builder()
                 .id(savedCandidate.getId())
                 .applicationId(savedCandidate.getApplication().getId())
+                .applicationStatus(savedCandidate.getApplication().getStatus())
+                .revision(savedCandidate.getRevision())
                 .studentId(savedCandidate.getStudent().getId())
                 .studentName(savedCandidate.getStudent().getUser().getFullName())
                 .studentEmail(savedCandidate.getStudent().getUser().getEmail())
@@ -37,6 +39,6 @@ public class SavedCandidateMapper {
         if (cvFile == null) {
             return null;
         }
-        return cvFile.getOriginalFileName() == null ? cvFile.getFileName() : cvFile.getOriginalFileName();
+        return cvFile.getOriginalFileName();
     }
 }

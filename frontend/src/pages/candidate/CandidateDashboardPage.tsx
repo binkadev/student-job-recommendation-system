@@ -2,6 +2,7 @@ import { BriefcaseBusiness, CheckCircle2, FileText, Send, Star } from "lucide-re
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -66,17 +67,27 @@ export function CandidateDashboardPage() {
         </div>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <AuroraHero eyebrow="BƯỚC TIẾP THEO CỦA BẠN" title="Một CV. Những cơ hội có cơ sở." description="Chọn CV đã phân tích để khám phá việc làm gợi ý. Xem kỹ năng khớp và còn thiếu trước khi quyết định ứng tuyển.">
+        <Link to="/candidate/jobs/recommended"><Button>Xem gợi ý việc làm</Button></Link>
+        <Link to="/candidate/cvs"><Button variant="secondary">Quản lý CV</Button></Link>
+      </AuroraHero>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatLink icon={<Star size={20} />} label="Việc đang tuyển" value={`${data.stats.activeJobs} việc`} to="/candidate/jobs" />
         <StatLink icon={<BriefcaseBusiness size={20} />} label="Việc đã lưu" value={`${data.stats.savedJobs} việc`} to="/candidate/jobs/saved" />
         <StatLink icon={<Send size={20} />} label="Đơn ứng tuyển" value={`${data.stats.applications} đơn`} to="/candidate/applications" />
         <StatLink icon={<FileText size={20} />} label="Tổng CV" value={`${data.stats.cvs} CV`} to="/candidate/cvs" />
       </section>
 
-      <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
-        <main className="space-y-5">
+      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
+          <Card className="border-brand-100 bg-brand-50/60">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="max-w-lg"><h2 className="text-lg font-semibold text-slate-900">Tìm cơ hội từ CV của bạn</h2><p className="mt-2 text-sm leading-6 text-slate-600">Chọn CV đã phân tích để xem việc làm gợi ý, kỹ năng khớp và lý do đề xuất.</p></div>
+              <Link to="/candidate/jobs/recommended" className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">Xem gợi ý việc làm</Link>
+            </div>
+          </Card>
           <Card>
-            <SectionHeader title="Việc làm đang tuyển" description="Các công việc mới nhất phù hợp để bạn xem và ứng tuyển." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
+            <SectionHeader title="Việc làm đang tuyển" description="Tin tuyển dụng mới nhất. Gợi ý dựa trên CV nằm trong mục Gợi ý việc làm." action={<Link to="/candidate/jobs" className="text-sm font-medium text-brand-700">Xem tất cả</Link>} />
             {data.jobs.length ? (
               <div className="grid gap-4">
                 {data.jobs.map((job) => (
@@ -101,7 +112,7 @@ export function CandidateDashboardPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge label={applicationLabels[application.status].label} tone={applicationLabels[application.status].tone} />
-                        <Button variant="secondary" size="sm">Xem chi tiết</Button>
+                        <span className="text-sm font-semibold text-brand-700">Xem chi tiết</span>
                       </div>
                     </div>
                   </Link>
@@ -111,9 +122,9 @@ export function CandidateDashboardPage() {
               <EmptyState message="Bạn chưa ứng tuyển công việc nào." />
             )}
           </Card>
-        </main>
+        </div>
 
-        <aside className="space-y-5">
+        <section aria-label="Hồ sơ và thông báo" className="space-y-5">
           <Card>
             <SectionHeader title="Tiến độ hoàn thiện hồ sơ" description="Hoàn thiện thêm thông tin để nhà tuyển dụng đánh giá dễ hơn." />
             <ProgressBar value={data.profile.profileCompletion} label={`${data.profile.profileCompletion}% hoàn thiện`} />
@@ -142,7 +153,7 @@ export function CandidateDashboardPage() {
                 <div className="flex items-start gap-3">
                   <FileText className="mt-1 text-brand-600" size={22} />
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-950">{data.cv.fileName}</p>
+                    <p className="break-words font-medium text-slate-950">{data.cv.fileName}</p>
                     <p className="mt-1 text-sm text-slate-600">Ngày tải lên: {data.cv.uploadedAt}</p>
                     <p className="mt-1 text-sm text-slate-600">Dung lượng: {data.cv.fileSize}</p>
                   </div>
@@ -161,11 +172,6 @@ export function CandidateDashboardPage() {
           </Card>
 
           <Card>
-            <SectionHeader title="Lịch hẹn" />
-            <EmptyState message="Chưa có lịch hẹn mới." />
-          </Card>
-
-          <Card>
             <SectionHeader title="Thông báo gần đây" description={`${data.unreadNotifications} thông báo chưa đọc`} />
             {data.notifications.length ? (
               <div className="space-y-3">
@@ -176,7 +182,7 @@ export function CandidateDashboardPage() {
                       <div>
                         <p className="text-sm font-medium text-slate-950">{notification.title}</p>
                         <p className="mt-1 text-xs text-slate-600">{notification.body}</p>
-                        <p className="mt-1 text-xs text-slate-400">{notification.createdAt}</p>
+                        <p className="mt-1 text-xs text-slate-600">{notification.createdAt}</p>
                       </div>
                     </div>
                   </Link>
@@ -186,7 +192,7 @@ export function CandidateDashboardPage() {
               <EmptyState message="Chưa có thông báo." />
             )}
           </Card>
-        </aside>
+        </section>
       </section>
     </PageContainer>
   );
@@ -194,7 +200,7 @@ export function CandidateDashboardPage() {
 
 function StatLink({ icon, label, value, to }: { icon: ReactNode; label: string; value: string; to: string }) {
   return (
-    <Link to={to} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:shadow-md">
+    <Link to={to} className="neo-metric min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-brand-200 hover:shadow-md">
       <div className="flex items-center gap-3">
         <span className="rounded-lg bg-brand-50 p-2 text-brand-700">{icon}</span>
         <div>

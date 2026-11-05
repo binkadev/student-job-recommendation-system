@@ -19,6 +19,7 @@ public class CompanyMapper {
                 .id(company.getId())
                 .userId(company.getUser().getId())
                 .email(company.getUser().getEmail())
+                .revision(company.getAccountRevision())
                 .companyName(company.getCompanyName())
                 .taxCode(company.getTaxCode())
                 .description(company.getDescription())

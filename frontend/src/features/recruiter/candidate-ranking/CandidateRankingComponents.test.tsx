@@ -28,9 +28,9 @@ describe("CandidateRankingTable", () => {
 
     expect(screen.getByText("#7")).toBeInTheDocument();
     expect(screen.getByText("61%")).toBeInTheDocument();
-    expect(screen.getByText(/Text Score:/)).toBeInTheDocument();
+    expect(screen.getByText(/Điểm nội dung:/)).toBeInTheDocument();
     expect(screen.getByText(/Không áp dụng/)).toBeInTheDocument();
-    expect(screen.getByText(/Skill Score:/)).toBeInTheDocument();
+    expect(screen.getByText(/Điểm kỹ năng:/)).toBeInTheDocument();
     expect(screen.getByText(/0%/)).toBeInTheDocument();
   });
 

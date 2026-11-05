@@ -256,7 +256,15 @@ Roles:
 - `COMPANY`: manage own company profile, jobs, applications, saved candidates, and notification settings
 - `ADMIN`: manage system users, companies, jobs, applications, and skills according to existing endpoint rules
 
+Company verification and Job moderation follow [the policy](docs/datn/company-job-moderation-policy.md): COMPANY registration creates PENDING; only Admin verifies/blocks Company. Any Company can save DRAFT; VERIFIED is required for PENDING_APPROVAL and ACTIVE. Only Admin reviews PENDING_APPROVAL into ACTIVE/REJECTED. Content edits require DRAFT for both Company and Admin; reopening requires draft and review again. Wrong role/ownership is 403, unsupported edges 400. Do not cascade status changes to existing Jobs when Company verification changes; visibility requires VERIFIED. Keep moderation authoritative in Backend and E2E setup on valid Admin APIs.
+
+Application status mutation locks the Application row before ownership/state checks and writes in the same transaction. Preserve STUDENT PENDING→WITHDRAWN only, Company/Admin PENDING→REVIEWED and PENDING/REVIEWED→ACCEPTED/REJECTED, terminal/no-op rejection400 and foreign mutation403. Latest WITHDRAWN must never be reset to make a fixture reusable. Frontend must preserve confirmed application state on failure, treat unknown as unverified and isolate sessions; cross-tab signals only invalidate/refetch. See [lifecycle evidence](docs/datn/student-application-lifecycle-results.md).
+
+Student profile edits use `/api/students/me/profile-aggregate`, one transaction and the persisted Student profile revision (V19). All three legacy PUTs (`/students/me`, `/students/me/profile`, `/students/me/skills`) require the captured `If-Match` ETag: missing 428, stale 409. Every successful aggregate/legacy mutation increments once; rollback also rolls back the revision and new custom skills. Never fetch a fresh revision to overwrite an old draft or auto-retry a conflict. Aggregate manualSkills replaces only MANUAL rows; retain non-MANUAL confirmed rows and all CV analysis snapshots. See [API/design/evidence](docs/datn/student-profile-atomic-save-results.md).
+
 ## Database Rules
+
+Company Job management uses `GET /api/companies/me/jobs`: JWT-derived ownership, database filtering/counting/pagination, fixed `createdAt DESC, id DESC`, page size 1–100 and no total-result cap. Reject client ownership/sort parameters. PENDING/BLOCKED Companies can read their own Jobs; moderation gates still control writes/public visibility. Do not replace management with the mixed-scope generic `/jobs` discovery list or client filtering after LIMIT. See [evidence](docs/datn/company-jobs-pagination-b06-results.md).
 
 - Use PostgreSQL.
 - Use existing BIGSERIAL identifiers and VARCHAR-backed enums unless a new reviewed design changes them.

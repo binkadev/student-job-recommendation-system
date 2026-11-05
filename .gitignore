@@ -44,3 +44,8 @@ ai-service/evaluation/work/
 
 # Vite cache
 frontend/.vite/
+
+# Real E2E credentials, generated CVs and private browser evidence
+e2e/.local/
+e2e/test-results/
+e2e/playwright-report/

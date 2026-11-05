@@ -37,6 +37,8 @@ interface PageResponse<T> {
 }
 
 interface CompanyResponse {
+  etag?: string;
+  revision: number;
   id: number;
   userId: number;
   email: string;
@@ -53,6 +55,8 @@ interface CompanyResponse {
 }
 
 interface CompanyForm {
+  etag?: string;
+  revision: number;
   companyName: string;
   taxCode: string;
   description: string;
@@ -121,21 +125,17 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   const companyQuery = useAsyncData(() => getMyCompany(), [companyReloadKey]);
   const jobsQuery = useAsyncData(() => getCompanyJobs(jobsPage), [jobsPage]);
 
-  function copyText(label: string, value: string | null) {
+  async function copyText(label: string, value: string | null) {
     if (!value) {
       showToast({ type: "info", title: "Chưa có dữ liệu để copy" });
       return;
     }
-    void navigator.clipboard?.writeText(value);
-    showToast({ type: "success", title: `Đã copy ${label}` });
-  }
-
-  function notifyUnsupported(feature: string) {
-    showToast({
-      type: "info",
-      title: "Chức năng chưa sẵn sàng",
-      message: `${feature} hiện chưa thể lưu dữ liệu.`,
-    });
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast({ type: "success", title: `Đã sao chép ${label}` });
+    } catch {
+      showToast({ type: "error", title: "Không thể sao chép", message: "Hãy chọn và sao chép nội dung trực tiếp trên trang." });
+    }
   }
 
   async function saveCompany(form: CompanyForm) {
@@ -168,11 +168,11 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   const company = companyQuery.data;
 
   if (mode === "verification") {
-    return <CompanyVerificationView company={company} onUnsupported={notifyUnsupported} />;
+    return <CompanyVerificationView company={company} />;
   }
 
   if (mode === "edit") {
-    return <RecruiterCompanyEditView company={company} onSave={saveCompany} onUnsupported={notifyUnsupported} />;
+    return <RecruiterCompanyEditView company={company} onSave={saveCompany} />;
   }
 
   return (
@@ -191,8 +191,8 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
 
       <VerificationNotice company={company} />
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-5">
+      <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Giới thiệu" />
             {company.description ? <p className="text-sm leading-6 text-slate-700">{company.description}</p> : <EmptyState message="Công ty chưa có mô tả." />}
@@ -220,17 +220,17 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
 function CompanyHero({ company, onCopyWebsite, onCopyAddress }: { company: CompanyResponse; onCopyWebsite: () => void; onCopyAddress: () => void }) {
   const name = company.companyName || company.email;
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex min-h-48 items-end bg-slate-950 p-6 text-white">
+    <section className="neo-company-hero overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="aurora-panel flex min-h-48 items-end p-6 text-white">
         <div className="max-w-3xl">
           <p className="text-sm text-slate-300">{company.industry || "Chưa cập nhật lĩnh vực"}</p>
-          <h1 className="mt-2 text-3xl font-semibold">{name}</h1>
+          <h2 className="mt-2 text-3xl font-semibold">{name}</h2>
         </div>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-4 p-6">
-        <div className="flex gap-4">
+        <div className="flex min-w-0 flex-1 gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">{getInitials(name)}</div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap gap-2">
               <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
               {company.industry ? <StatusBadge label={company.industry} /> : null}
@@ -334,11 +334,9 @@ function CompanyJobsSection({
 function RecruiterCompanyEditView({
   company,
   onSave,
-  onUnsupported,
 }: {
   company: CompanyResponse;
   onSave: (form: CompanyForm) => Promise<void>;
-  onUnsupported: (feature: string) => void;
 }) {
   const [form, setForm] = useState(() => mapCompanyToForm(company));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -395,7 +393,7 @@ function RecruiterCompanyEditView({
             <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
             <p className="mt-3 text-sm text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p>
           </Card>
-          <UnsupportedSection title="Logo và ảnh bìa" message="Chưa có logo hoặc ảnh bìa công ty." icon={<UploadCloud size={18} />} action={<Button variant="secondary" onClick={() => onUnsupported("Tải logo/ảnh bìa")}>Tải ảnh</Button>} />
+          <UnsupportedSection title="Logo và ảnh bìa" message="Hệ thống chưa hỗ trợ lưu logo và ảnh bìa. Bạn vẫn có thể cập nhật thông tin doanh nghiệp ở bên cạnh." icon={<UploadCloud size={18} />} />
           <UnsupportedSection title="Thông tin bổ sung" message="Chưa có dữ liệu quy mô, chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng." />
         </aside>
       </div>
@@ -403,10 +401,11 @@ function RecruiterCompanyEditView({
   );
 }
 
-function CompanyVerificationView({ company, onUnsupported }: { company: CompanyResponse; onUnsupported: (feature: string) => void }) {
+function CompanyVerificationView({ company }: { company: CompanyResponse }) {
   return (
     <PageContainer>
       <PageHeader title="Xác thực doanh nghiệp" description="Theo dõi trạng thái xác thực công ty." />
+      <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">Doanh nghiệp mới đăng ký ở trạng thái Chờ xác thực. Chỉ Admin được xác thực hoặc chặn công ty. Bạn có thể lưu bản nháp; tin chỉ được công khai khi công ty đã xác thực và tin được Admin duyệt. Việc chặn công ty không xóa jobs hoặc applications đã có.</p>
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title={company.companyName || company.email} description="Trạng thái hiện tại của hồ sơ doanh nghiệp." />
@@ -417,7 +416,7 @@ function CompanyVerificationView({ company, onUnsupported }: { company: CompanyR
             <InfoRow label="Cập nhật gần nhất" value={formatDateTime(company.updatedAt)} />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button icon={<FileCheck2 size={16} />} onClick={() => onUnsupported("Gửi hồ sơ xác thực")}>Gửi hồ sơ xác thực</Button>
+            <p className="text-sm leading-6 text-slate-600">Hệ thống chưa hỗ trợ gửi tài liệu xác thực trực tuyến. Trạng thái xác thực do quản trị viên quản lý.</p>
             <Link to="/recruiter/company"><Button variant="secondary">Quay lại hồ sơ</Button></Link>
           </div>
         </Card>
@@ -450,7 +449,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 
 async function getMyCompany() {
   const response = await httpClient.get<ApiResponse<CompanyResponse>>("/companies/me");
-  return response.data.data;
+  return { ...response.data.data, etag: response.headers?.etag };
 }
 
 async function updateMyCompany(form: CompanyForm) {
@@ -462,7 +461,7 @@ async function updateMyCompany(form: CompanyForm) {
     address: emptyToNull(form.address),
     phone: emptyToNull(form.phone),
     industry: emptyToNull(form.industry),
-  });
+  }, { headers: { "If-Match": form.etag } });
   return response.data.data;
 }
 
@@ -492,6 +491,8 @@ async function getCompanyJobs(page: number) {
 
 function mapCompanyToForm(company: CompanyResponse): CompanyForm {
   return {
+    revision: company.revision,
+    etag: company.etag,
     companyName: company.companyName || "",
     taxCode: company.taxCode || "",
     description: company.description || "",

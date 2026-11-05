@@ -13,5 +13,6 @@ public class NotificationSettingsResponse {
     private boolean jobStatusEnabled;
     private boolean recommendationEnabled;
     private boolean systemEnabled;
+    private long revision;
     private LocalDateTime updatedAt;
 }

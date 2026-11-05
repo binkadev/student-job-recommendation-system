@@ -31,20 +31,9 @@ interface PublicCompanyResponse {
 
 interface PublicStatsResponse {
   totalJobs?: number | null;
-  jobCount?: number | null;
-  jobs?: number | null;
   totalCompanies?: number | null;
-  companyCount?: number | null;
-  companies?: number | null;
-  totalCandidates?: number | null;
-  candidateCount?: number | null;
-  candidates?: number | null;
   totalStudents?: number | null;
-  studentCount?: number | null;
   totalApplications?: number | null;
-  applicationCount?: number | null;
-  applications?: number | null;
-  totalApplicants?: number | null;
 }
 
 export async function getHomeData(): Promise<HomeData> {
@@ -59,10 +48,10 @@ export async function getHomeData(): Promise<HomeData> {
 
   return {
     statistics: [
-      { id: "jobs", label: "Việc làm đang tuyển", value: String(getTotalJobs(publicStats, jobsResult.totalItems)) },
-      { id: "candidates", label: "Ứng viên", value: String(getTotalCandidates(publicStats)) },
-      { id: "companies", label: "Công ty", value: String(getTotalCompanies(publicStats, companiesPage.totalItems)) },
-      { id: "applications", label: "Lượt ứng tuyển", value: String(getTotalApplications(publicStats)) },
+      statistic("jobs", "Việc làm đang tuyển", publicStats?.totalJobs, publicStats),
+      statistic("candidates", "Sinh viên đang hoạt động", publicStats?.totalStudents, publicStats),
+      statistic("companies", "Công ty đã xác thực", publicStats?.totalCompanies, publicStats),
+      statistic("applications", "Đơn ứng tuyển", publicStats?.totalApplications, publicStats),
     ],
     statisticsUnavailable: !publicStats,
     jobs: jobsResult.items.map(mapFeaturedJob),
@@ -81,22 +70,12 @@ async function getPublicStats(): Promise<PublicStatsResponse | null> {
   }
 }
 
-function getTotalJobs(stats: PublicStatsResponse | null, fallback: number) {
-  return Number(stats?.totalJobs ?? stats?.jobCount ?? stats?.jobs ?? fallback);
-}
-
-function getTotalCompanies(stats: PublicStatsResponse | null, fallback: number) {
-  return Number(stats?.totalCompanies ?? stats?.companyCount ?? stats?.companies ?? fallback);
-}
-
-function getTotalCandidates(stats: PublicStatsResponse | null) {
-  return Number(stats?.totalCandidates ?? stats?.candidateCount ?? stats?.candidates ?? stats?.totalStudents ?? stats?.studentCount ?? 0);
-}
-
-function getTotalApplications(stats: PublicStatsResponse | null) {
-  const statsValue = stats?.totalApplications ?? stats?.applicationCount ?? stats?.applications ?? stats?.totalApplicants;
-  if (statsValue != null) return Number(statsValue);
-  return 0;
+function statistic(id: string, label: string, value: number | null | undefined, stats: PublicStatsResponse | null) {
+  return {
+    id, label,
+    value: typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? String(value) : null,
+    unavailableReason: stats ? "Chưa có số liệu hợp lệ" : "Không tải được số liệu",
+  };
 }
 
 function mapFeaturedJob(job: PublicJobListItem): FeaturedHomeJob {
@@ -124,7 +103,7 @@ function mapFeaturedCompany(company: PublicCompanyResponse): FeaturedHomeCompany
     industry: company.industry || "Chưa cập nhật",
     size: company.companySize || "Chưa cập nhật",
     location: company.address || "Chưa cập nhật",
-    openJobs: Number(company.openJobs ?? 0),
+    openJobs: company.openJobs ?? null,
     verified: company.status === "VERIFIED",
   };
 }

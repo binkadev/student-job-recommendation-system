@@ -1,5 +1,54 @@
 # ĐATN Backend Baseline & Gap Audit
 
+## Neo-Aurora UI/UX — 2026-11-05
+
+- [Thiết kế, kiểm thử thực, phạm vi và bảo toàn dữ liệu](neo-aurora-uiux-redesign-results.md).
+- [Số đo bundle, cold/warm, tương phản và responsive](neo-aurora-uiux-redesign-metrics.json).
+- 246 Frontend / 520 Backend / 887 AI / 115 E2E PASS; 140 ảnh kiểm tra local.
+  Không thay scoring hoặc dữ liệu demo; giới hạn timestamp lịch sử, CLS và
+  historical Admin preservation được giữ rõ trong báo cáo. PR #66 tiếp tục Draft.
+
+## Company Dashboard / Reports — 2026-11-04
+
+- [Full SQL aggregates, date/rate definitions, filtered CSV và real E2E](company-dashboard-reports-results.md).
+- Loại bỏ analytics từ100 sampled rows; full JWT-owner scope, histories/distinct Students tách biệt, explicit UTC và CSV row limit/safety. Không thay moderation/lifecycle/scoring. PR #66 giữ Draft; B06 UNRESOLVED / NOT REPRODUCED.
+
+## Student / Company Settings và Notifications — 2026-11-04
+
+- [API/DB contract, filtering, settings recovery và real browser evidence](student-company-settings-notifications-results.md).
+- Notification filtering/count trước database pagination; account/preferences có read-back và giữ draft khi lỗi; legacy Student If-Match tiếp tục 428/409. Password/unsupported capabilities và giới hạn producer được báo rõ. B06 vẫn **UNRESOLVED / NOT REPRODUCED**, PR #66 giữ Draft.
+
+## P1 Student application lifecycle — 2026-11-04
+
+- [Transition matrix, PostgreSQL race, withdrawal/reapply UI và browser evidence](student-application-lifecycle-results.md).
+- Rút PENDING có confirmation/read-back; rejected reapply tạo history mới, WITHDRAWN vẫn chặn. G04 được xử lý trong phạm vi các entry points đã kiểm thử; không thay business rules hoặc V3. B06 vẫn UNRESOLVED / NOT REPRODUCED.
+
+## P1 Own-company Job pagination / B06 — 2026-11-03
+
+- [API, PostgreSQL 260-fixture tests, browser và bảo toàn dữ liệu](company-jobs-pagination-b06-results.md).
+- Danh sách quản lý dùng owner scope/filter/count/page trong Backend, sort có ID tie-break. G03 được xử lý cho trang quản lý; Dashboard/Reports còn giới hạn riêng. B06 giữ **UNRESOLVED / NOT REPRODUCED**; không tuyên bố đã sửa lỗi reload application.
+
+## P0 Student profile atomic save — 2026-11-03
+
+- [Thiết kế API/DB/versioning, rollback, hai tab và data preservation](student-profile-atomic-save-results.md).
+- Aggregate một transaction; V19 additive revision; legacy PUT giữ URL/body nhưng bắt buộc If-Match (428 thiếu / 409 stale). G02 trong audit cũ được xử lý; PR #66 giữ Draft.
+
+## P0 Company verification / Job moderation — 2026-11-03
+
+- [Chính sách, đối chiếu source và state transitions](company-job-moderation-policy.md).
+- [Kết quả kiểm chứng, HTTP evidence và bảo toàn dữ liệu](company-job-moderation-results.md).
+- Bổ sung Backend state machine/authorization, Company register PENDING và UI phản ánh action hợp lệ. G01 trong audit trước được xử lý theo yêu cầu P0 này; các gap khác vẫn giữ phạm vi cũ. PR #66 tiếp tục Draft, không merge.
+
+## Full-stack real E2E — 2026-11-03
+
+- [Kế hoạch và chiến lược dữ liệu](real-world-e2e-test-plan.md).
+- [Kết quả, defects, verification và giới hạn](real-world-e2e-results.md): 32/32 real E2E; 138 Frontend tests; 457 Backend tests; 887 AI tests. Không đồng nghĩa nghiệm thu toàn bộ sản phẩm.
+- [Matrix 79 route và các action/gap](student-company-functional-gaps.md): phân biệt action đã kiểm chứng với navigation smoke/unsupported.
+- [Manifest dữ liệu demo bền vững](e2e-test-data-manifest.md), [nguồn tham khảo](e2e-external-data-sources.md), [login local](e2e-local-login.md).
+- [Runner và hướng dẫn chạy lại](../../e2e/README.md). Credentials/raw browser artifacts không commit. PR #66 giữ Draft.
+
+## Baseline lịch sử — 2026-10-13
+
 Đề tài: **Thiết kế và xây dựng Hệ thống Gợi ý Việc làm cho Sinh viên Công nghệ Thông tin sử dụng Content-Based Filtering.**
 
 Audit ngày **2026-10-13**, trên latest `master` sau `git pull --ff-only origin master`, commit **`e1335d5e0177b35647dd12e841df9b693be71682`**. Đây là baseline của hệ thống phát triển tiếp từ TTTN; không phải thiết kế lại hệ thống.

@@ -11,7 +11,7 @@ public interface NotificationSettingsService {
 
     NotificationSettingsResponse getMySettings(Long userId);
 
-    NotificationSettingsResponse updateMySettings(Long userId, UpdateNotificationSettingsRequest request);
+    NotificationSettingsResponse updateMySettings(Long userId, UpdateNotificationSettingsRequest request, Long revision);
 
     boolean isEnabled(Long userId, NotificationType type);
 

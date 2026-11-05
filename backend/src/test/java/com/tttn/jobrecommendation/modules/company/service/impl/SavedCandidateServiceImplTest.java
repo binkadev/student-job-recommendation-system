@@ -75,7 +75,7 @@ class SavedCandidateServiceImplTest {
     void saveDerivesStudentFromOwnedApplication() {
         SaveCandidateRequest request = request(7L, "  recruiter note  ");
         SavedCandidateResponse response = SavedCandidateResponse.builder().id(11L).build();
-        when(companyRepository.findByUserId(2L)).thenReturn(Optional.of(company));
+        when(companyRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(company));
         when(applicationRepository.findDetailedById(7L)).thenReturn(Optional.of(application));
         when(savedCandidateRepository.existsByCompanyIdAndStudentId(3L, 5L)).thenReturn(false);
         when(savedCandidateRepository.saveAndFlush(org.mockito.ArgumentMatchers.any()))
@@ -102,7 +102,7 @@ class SavedCandidateServiceImplTest {
     void foreignCompanyApplicationIsDeniedBeforeSave() {
         Company foreignCompany = Company.builder().id(99L).build();
         application.getJob().setCompany(foreignCompany);
-        when(companyRepository.findByUserId(2L)).thenReturn(Optional.of(company));
+        when(companyRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(company));
         when(applicationRepository.findDetailedById(7L)).thenReturn(Optional.of(application));
 
         assertThatThrownBy(() -> savedCandidateService.saveCandidate(2L, request(7L, null)))
@@ -114,7 +114,7 @@ class SavedCandidateServiceImplTest {
 
     @Test
     void duplicateCompanyStudentReturnsStableConflictCode() {
-        when(companyRepository.findByUserId(2L)).thenReturn(Optional.of(company));
+        when(companyRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(company));
         when(applicationRepository.findDetailedById(7L)).thenReturn(Optional.of(application));
         when(savedCandidateRepository.existsByCompanyIdAndStudentId(3L, 5L)).thenReturn(true);
 

@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, useId, type InputHTMLAttributes } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -6,18 +6,21 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ label, error, id, className = "", ...props }, ref) {
-  const inputId = id ?? props.name ?? label;
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = error ? `${inputId}-error` : undefined;
   return (
-    <label className="block text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+    <div className="text-sm">
+      <label htmlFor={inputId} className="block font-medium text-slate-700">{label}</label>
       <input
-        id={inputId}
-        className={`mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 ${className}`}
-        aria-invalid={Boolean(error)}
-        ref={ref}
         {...props}
+        id={inputId}
+        className={`mt-2 h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-100 ${error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-brand-500 focus:ring-brand-100"} ${className}`}
+        aria-invalid={error ? true : props["aria-invalid"]}
+        aria-describedby={[props["aria-describedby"], errorId].filter(Boolean).join(" ") || undefined}
+        ref={ref}
       />
-      {error ? <span className="mt-1 block text-xs text-red-600">{error}</span> : null}
-    </label>
+      {error ? <span id={errorId} role="alert" className="mt-1.5 block text-xs text-red-700">{error}</span> : null}
+    </div>
   );
 });

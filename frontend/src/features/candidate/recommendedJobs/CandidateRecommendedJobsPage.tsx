@@ -3,7 +3,10 @@ import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
+import { AuroraHero } from "../../../components/common/AuroraHero";
+import { ScoreMeter } from "../../shared/ranking/ScoreMeter";
 import { EmptyState } from "../../../components/feedback/EmptyState";
+import { ErrorState } from "../../../components/feedback/ErrorState";
 import { LoadingState } from "../../../components/feedback/LoadingState";
 import { StatusBadge } from "../../../components/feedback/StatusBadge";
 import { Button } from "../../../components/ui/Button";
@@ -17,6 +20,9 @@ import { useToast } from "../../../hooks/useToast";
 import { createAuthenticatedTabUrl } from "../../../services/auth/authService";
 import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { formatNormalizedScore } from "../../shared/ranking/rankingScoreTypes";
+import { GenerationRecovery } from "../../shared/ranking/GenerationRecovery";
+import { useGenerationRecovery } from "../../shared/ranking/useGenerationRecovery";
+import { useSessionAlive } from "../../account/useSessionAlive";
 import { useAppliedJobs } from "../../public/jobs/useAppliedJobs";
 import { formatExperience } from "../../public/jobs/experienceDisplay";
 import { CandidateApplyFlowModal, type ApplyFlowJob } from "../apply/CandidateApplyFlowModal";
@@ -64,13 +70,15 @@ export function CandidateRecommendedJobsPage() {
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const { isSaved, toggleSavedJob } = useSavedJobs();
-  const { canApply, getApplyButtonLabel } = useAppliedJobs();
+  const { canApply, getApplyButtonLabel, applications, syncError: appliedSyncError, refreshAppliedJobs } = useAppliedJobs();
   const { showToast } = useToast();
 
   const cvsQuery = useAsyncData(() => getCandidateCvOptions(), [reloadKey]);
   const runsQuery = useAsyncData(() => getRecommendationRuns(), [reloadKey]);
   const runDetailQuery = useAsyncData(() => (selectedRunId ? getRecommendationRun(selectedRunId) : Promise.resolve(null)), [selectedRunId, reloadKey]);
   const latestRun = runsQuery.data?.[0];
+  const alive = useSessionAlive();
+  const recovery = useGenerationRecovery(getRecommendationRuns, () => setReloadKey(current => current + 1));
   const latestRunSuccess = latestRun?.status === "SUCCESS";
   const selectedRunSuccess = runDetailQuery.data?.run.status === "SUCCESS";
   const showingHistoricalRun = Boolean(selectedRunId && selectedRunSuccess);
@@ -91,7 +99,7 @@ export function CandidateRecommendedJobsPage() {
   const notReadyCvs = useMemo(() => (cvsQuery.data ?? []).filter((cv) => !cv.ready), [cvsQuery.data]);
   const selectedCv = useMemo(() => cvsQuery.data?.find((cv) => cv.id === selectedCvId), [cvsQuery.data, selectedCvId]);
   const selectedCvReady = Boolean(selectedCv?.ready);
-  const generateDisabled = generating || cvsQuery.loading || !selectedCvId || !selectedCvReady;
+  const generateDisabled = generating || recovery.blocked || latestRun?.status === "PROCESSING" || cvsQuery.loading || !selectedCvId || !selectedCvReady;
 
   useEffect(() => {
     if (selectedCvId || !readyCvs.length) return;
@@ -136,7 +144,7 @@ export function CandidateRecommendedJobsPage() {
   }
 
   async function refreshRecommendations() {
-    if (generatingRef.current) return;
+    if (generatingRef.current || recovery.blocked || !alive()) return;
     if (!selectedCvId) {
       showToast({ type: "error", title: "Chưa có CV sẵn sàng", message: "Vui lòng phân tích CV đến trạng thái READY trước khi tạo gợi ý." });
       return;
@@ -159,14 +167,17 @@ export function CandidateRecommendedJobsPage() {
     setGenerating(true);
     try {
       await generateRecommendations({ cvId: selectedCvId, threshold: thresholdValue, limit: limitValue });
+      if (!alive()) return;
       setSelectedRunId("");
       showToast({ type: "success", title: "Đã gửi yêu cầu cập nhật gợi ý", message: "Danh sách sẽ được tải lại khi có kết quả mới." });
       setReloadKey((current) => current + 1);
     } catch (error) {
+      if (!alive()) return;
+      recovery.requireReadBack();
       showToast({ type: "error", title: "Không thể cập nhật gợi ý", message: getApiErrorMessage(error) });
     } finally {
       generatingRef.current = false;
-      setGenerating(false);
+      if (alive()) setGenerating(false);
     }
   }
 
@@ -187,10 +198,33 @@ export function CandidateRecommendedJobsPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Việc làm gợi ý" description="Kết quả gợi ý theo CV READY và trạng thái recommendation run mới nhất." />
+      <PageHeader title="Việc làm gợi ý" description="Khám phá cơ hội từ CV của bạn, hiểu kỹ năng phù hợp và những điểm cần bổ sung." />
+      <AuroraHero eyebrow="GỢI Ý VIỆC LÀM · CONTENT-BASED FILTERING" title="Hiểu vì sao một công việc phù hợp với bạn." description="Kết quả dựa trên nội dung CV và kỹ năng đã phân tích. Hai nhóm đối sánh có ý nghĩa riêng; điểm không phải xác suất trúng tuyển." />
+      <GenerationRecovery recovery={recovery} />
+      {applications?.some(item => item.status === "WITHDRAWN") ? <p className="mb-4 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
+
+      {appliedSyncError ? <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <p>{appliedSyncError}</p>
+        <Button className="mt-3" variant="secondary" onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button>
+      </div> : null}
+
+      <div className="mb-5 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
+          <p className="text-sm font-semibold text-brand-800">PRIMARY · Phù hợp tổng thể</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Đối sánh nội dung và kỹ năng cho CV và việc làm đủ điều kiện cùng ngôn ngữ. Nhóm này được ưu tiên hiển thị trước.</p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5">
+          <p className="text-sm font-semibold text-amber-900">FALLBACK · Đối sánh kỹ năng</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Điểm thể hiện mức đáp ứng kỹ năng, không phải độ phù hợp tổng thể. Không so sánh trực tiếp điểm giữa hai nhóm.</p>
+        </div>
+      </div>
 
       <Card className="mb-5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_150px_170px_190px_150px]">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="font-semibold text-slate-900">Tạo gợi ý từ CV</h2><p className="mt-1 text-sm leading-6 text-slate-500">Chọn CV đã phân tích sẵn sàng (READY) để bắt đầu.</p></div>
+          <Link to="/candidate/cvs" className="text-sm font-semibold text-brand-700 hover:underline">Quản lý CV</Link>
+        </div>
+        <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <Select
             label="CV dùng để gợi ý"
             value={selectedCvId}
@@ -202,13 +236,15 @@ export function CandidateRecommendedJobsPage() {
           />
           <Input label="Ngưỡng xếp hạng" type="number" min="0" max="1" step="0.01" value={threshold} onChange={(event) => setThreshold(event.target.value)} />
           <Input label="Số kết quả tối đa" type="number" min="1" max="100" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} />
-          <Button className="mt-6 w-full" loading={generating} disabled={generateDisabled} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
+          <Button className="w-full sm:w-auto" loading={generating} disabled={generateDisabled} onClick={() => void refreshRecommendations()} icon={<RefreshCw size={16} />}>
             Cập nhật gợi ý
           </Button>
-          <Button className="mt-6 w-full" variant="secondary" disabled={jobsQuery.loading || runsQuery.loading} onClick={() => setReloadKey((current) => current + 1)}>
+          <Button className="w-full sm:w-auto" variant="secondary" disabled={jobsQuery.loading || runsQuery.loading} onClick={() => setReloadKey((current) => current + 1)}>
             Tải lại
           </Button>
         </div>
+        {cvsQuery.error ? <div className="mt-4"><ErrorState message="Không tải được danh sách CV. Vui lòng tải lại để thử lại." /></div> : null}
+        {!cvsQuery.loading && !cvsQuery.error && !cvsQuery.data?.length ? <p className="mt-4 text-sm leading-6 text-slate-600">Bạn chưa có CV. <Link to="/candidate/cvs/upload" className="font-semibold text-brand-700 underline">Tải CV đầu tiên</Link> để phân tích và nhận gợi ý.</p> : null}
         <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-700 md:grid-cols-4">
           <InfoPill label="Run mới nhất" value={latestRun ? `#${latestRun.id}` : "Chưa có"} />
           <InfoPill label="Trạng thái" value={latestRun?.status ?? "Chưa có"} />
@@ -301,8 +337,8 @@ export function CandidateRecommendedJobsPage() {
 
       {jobsQuery.loading || runDetailQuery.loading ? (
         <LoadingState />
-      ) : jobsQuery.error && !selectedRunId ? (
-        <EmptyState message={jobsQuery.error} />
+      ) : (jobsQuery.error && !selectedRunId) || (runDetailQuery.error && selectedRunId) ? (
+        <ErrorState message={selectedRunId ? runDetailQuery.error ?? "Không thể tải kết quả lịch sử." : jobsQuery.error ?? "Không thể tải gợi ý."} />
       ) : filteredJobs.length === 0 ? (
         <EmptyState message={showHidden ? "Chưa có việc làm nào bị ẩn." : "Chưa có kết quả gợi ý phù hợp với bộ lọc hiện tại."} />
       ) : (
@@ -452,15 +488,23 @@ function RecommendedJobCard({
   onApply: () => void;
 }) {
   const unavailable = job.status === "unavailable";
+  const fallback = job.rankingTier === "FALLBACK";
   const detailPath = `/candidate/jobs/${job.id}`;
 
   return (
     <Card>
-      <div className="grid gap-4 lg:grid-cols-[116px_1fr]">
-        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center">
-          <p className="text-xs font-semibold uppercase text-emerald-700">{job.displayScoreLabel}</p>
-          <p className="mt-2 text-4xl font-bold text-emerald-700">{formatNormalizedScore(job.displayScore)}</p>
-          <p className="mt-1 text-xs text-emerald-700">{job.tierRankPosition ? `Hạng #${job.tierRankPosition}` : job.displayTierLabel}</p>
+      <div className="grid gap-5 xl:grid-cols-[160px_minmax(0,1fr)]">
+        <div className={`flex items-center justify-between gap-4 rounded-2xl border p-4 xl:block xl:self-start xl:text-center ${fallback ? "border-amber-200 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-50 text-brand-800"}`}>
+          <div>
+            <p className="text-xs font-semibold">{job.displayScoreLabel}</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums">{formatNormalizedScore(job.displayScore)}</p>
+            <ScoreMeter value={job.displayScore} label={job.displayScoreLabel} tier={job.rankingTier} />
+            {fallback ? <p className="mt-2 text-xs leading-5">Mức đáp ứng kỹ năng</p> : null}
+          </div>
+          <div className="text-right text-xs leading-5 xl:mt-4 xl:border-t xl:border-current/10 xl:pt-3 xl:text-center">
+            <p className="font-semibold">{job.rankPosition ? `Thứ hạng #${job.rankPosition}` : "Kết quả lịch sử"}</p>
+            <p>{job.tierRankPosition ? `#${job.tierRankPosition} trong nhóm ${job.rankingTier}` : job.displayTierLabel}</p>
+          </div>
         </div>
 
         <div className="min-w-0">
@@ -485,8 +529,8 @@ function RecommendedJobCard({
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SkillGroup title="Keyword phù hợp" skills={job.matchedSkills} tone="success" emptyLabel="Chưa cập nhật" />
-            <SkillGroup title="Keyword còn thiếu" skills={job.missingSkills} tone="warning" emptyLabel="Không thiếu kỹ năng" />
+            <SkillGroup title="Kỹ năng khớp" skills={job.matchedSkills} tone="success" emptyLabel="Chưa có kỹ năng khớp" />
+            <SkillGroup title="Kỹ năng còn thiếu" skills={job.missingSkills} tone="warning" emptyLabel="Không có kỹ năng thiếu được ghi nhận" />
           </div>
 
           <div className="mt-4 rounded-md bg-slate-50 p-3">
@@ -498,7 +542,7 @@ function RecommendedJobCard({
             </ul>
           </div>
 
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <Button variant="secondary" size="sm" icon={<BarChart3 size={16} />} onClick={onOpenAnalysis}>Xem phân tích</Button>
             <Button variant={saved ? "primary" : "secondary"} size="sm" icon={saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />} onClick={onToggleSave}>
               {saved ? "Bỏ lưu" : "Lưu"}
@@ -562,19 +606,21 @@ function MatchAnalysisModal({ job, onClose }: { job: CandidateRecommendedJob | n
         <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <InfoPill label="Hạng gợi ý" value={job?.rankPosition ? `#${job.rankPosition}` : "Chưa cập nhật"} />
           <InfoPill label={job?.displayScoreLabel ?? "Điểm hiển thị"} value={formatNormalizedScore(job?.displayScore)} />
-          <InfoPill label="Final Score" value={formatNormalizedScore(job?.overallScore)} />
-          <InfoPill label="Text Score" value={formatNormalizedScore(job?.textScore)} />
+          <InfoPill label="Điểm tổng thể" value={formatNormalizedScore(job?.overallScore)} />
+          <InfoPill label="Điểm nội dung" value={formatNormalizedScore(job?.textScore)} />
           <InfoPill label="Skill Score" value={formatNormalizedScore(job?.skillScore)} />
           <InfoPill label="Chiến lược" value={job?.scoringStrategyLabel ?? "Chưa cập nhật"} />
           <InfoPill label="Ngày tạo kết quả" value={job?.postedAt ?? "Chưa cập nhật"} />
-          <InfoPill label="Số keyword khớp" value={String(job?.matchedSkills.length ?? 0)} />
+          <InfoPill label="Số kỹ năng khớp" value={String(job?.matchedSkills.length ?? 0)} />
         </div>
         <div className="rounded-md border border-slate-100 p-3">
-          <p className="text-sm font-semibold text-slate-800">Keyword khớp</p>
+          <p className="text-sm font-semibold text-slate-800">Kỹ năng khớp</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {(job?.matchedSkills.length ? job.matchedSkills : ["Chưa cập nhật"]).map((skill) => <StatusBadge key={skill} label={skill} tone={job?.matchedSkills.length ? "success" : undefined} />)}
           </div>
         </div>
+        <SkillGroup title="Kỹ năng còn thiếu" skills={job?.missingSkills ?? []} tone="warning" emptyLabel="Không có kỹ năng thiếu được ghi nhận" />
+        {job?.rankingTier === "FALLBACK" ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">FALLBACK chỉ đối sánh kỹ năng. Điểm nội dung và điểm tổng thể không áp dụng; điểm này không cùng thang đo với PRIMARY.</p> : null}
         <div className="rounded-md border border-slate-100 p-3">
           <p className="text-sm font-semibold text-slate-800">Lý do gợi ý</p>
           <div className="mt-2 space-y-1 text-sm text-slate-600">

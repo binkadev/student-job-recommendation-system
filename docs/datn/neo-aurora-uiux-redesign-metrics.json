@@ -1,0 +1,421 @@
+{
+  "browser": "141.0.7390.37",
+  "environment": "Windows, headless Chromium, loopback real Backend; no throttling; 3 cold/warm pairs per route and build. Settled time includes networkidle (500ms); not INP or an SLA.",
+  "assets": {
+    "before": {
+      "entry": {
+        "name": "index-DbyR0Lwx.js",
+        "bytes": 365584,
+        "gzipBytes": 113810
+      },
+      "totalJsBytes": 1412564,
+      "totalJsGzip": 461064,
+      "charts": [
+        {
+          "name": "BarChart-C_i51dWN.js",
+          "bytes": 363405,
+          "gzipBytes": 106502
+        }
+      ],
+      "css": [
+        {
+          "name": "index-CX9DP1J1.css",
+          "bytes": 49230,
+          "gzipBytes": 8563
+        }
+      ]
+    },
+    "after": {
+      "entry": {
+        "name": "index-BXCFysE5.js",
+        "bytes": 365923,
+        "gzipBytes": 113978
+      },
+      "totalJsBytes": 1341703,
+      "totalJsGzip": 432621,
+      "charts": [
+        {
+          "name": "BarChart-DFWIfPVB.js",
+          "bytes": 363405,
+          "gzipBytes": 106503
+        }
+      ],
+      "css": [
+        {
+          "name": "index-ggV5ApWK.css",
+          "bytes": 62716,
+          "gzipBytes": 11702
+        }
+      ]
+    }
+  },
+  "rows": [
+    {
+      "route": "/",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 974,
+        "medianRequests": 22,
+        "medianApiRequests": 3,
+        "medianJsRequests": 17,
+        "maxCls": 0.2159091131667149,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 638,
+        "medianRequests": 23,
+        "medianApiRequests": 3,
+        "medianJsRequests": 19,
+        "maxCls": 0.10426401620370372,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 558,
+        "medianRequests": 34,
+        "medianApiRequests": 3,
+        "medianJsRequests": 17,
+        "maxCls": 0.2267149074074074,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 569,
+        "medianRequests": 23,
+        "medianApiRequests": 3,
+        "medianJsRequests": 19,
+        "maxCls": 0.10426401620370372,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/login",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 958,
+        "medianRequests": 10,
+        "medianApiRequests": 0,
+        "medianJsRequests": 8,
+        "maxCls": 0.002558086713626061,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 590,
+        "medianRequests": 10,
+        "medianApiRequests": 0,
+        "medianJsRequests": 9,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/login",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 541,
+        "medianRequests": 20,
+        "medianApiRequests": 0,
+        "medianJsRequests": 8,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 539,
+        "medianRequests": 10,
+        "medianApiRequests": 0,
+        "medianJsRequests": 9,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/candidate/dashboard",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 723,
+        "medianRequests": 26,
+        "medianApiRequests": 11,
+        "medianJsRequests": 13,
+        "maxCls": 0.01574611225646219,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 598,
+        "medianRequests": 27,
+        "medianApiRequests": 11,
+        "medianJsRequests": 15,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/candidate/dashboard",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 584,
+        "medianRequests": 38,
+        "medianApiRequests": 11,
+        "medianJsRequests": 13,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 577,
+        "medianRequests": 27,
+        "medianApiRequests": 11,
+        "medianJsRequests": 15,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/candidate/jobs/recommended",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 731,
+        "medianRequests": 69,
+        "medianApiRequests": 41,
+        "medianJsRequests": 26,
+        "maxCls": 0.055885929783950614,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 673,
+        "medianRequests": 69,
+        "medianApiRequests": 41,
+        "medianJsRequests": 27,
+        "maxCls": 0.03731060185185185,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/candidate/jobs/recommended",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 658,
+        "medianRequests": 80,
+        "medianApiRequests": 41,
+        "medianJsRequests": 26,
+        "maxCls": 0.028283310185185186,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 668,
+        "medianRequests": 69,
+        "medianApiRequests": 41,
+        "medianJsRequests": 27,
+        "maxCls": 0.009928773148148148,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/recruiter/dashboard",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 703,
+        "medianRequests": 13,
+        "medianApiRequests": 3,
+        "medianJsRequests": 8,
+        "maxCls": 0.0009099092761381173,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 601,
+        "medianRequests": 14,
+        "medianApiRequests": 3,
+        "medianJsRequests": 10,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/recruiter/dashboard",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 570,
+        "medianRequests": 25,
+        "medianApiRequests": 3,
+        "medianJsRequests": 8,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 572,
+        "medianRequests": 14,
+        "medianApiRequests": 3,
+        "medianJsRequests": 10,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/recruiter/reports",
+      "cache": "cold",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 705,
+        "medianRequests": 13,
+        "medianApiRequests": 3,
+        "medianJsRequests": 8,
+        "maxCls": 0.0013022889539930557,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 582,
+        "medianRequests": 14,
+        "medianApiRequests": 3,
+        "medianJsRequests": 10,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    },
+    {
+      "route": "/recruiter/reports",
+      "cache": "warm",
+      "before": {
+        "samples": 3,
+        "medianSettledMs": 573,
+        "medianRequests": 25,
+        "medianApiRequests": 3,
+        "medianJsRequests": 8,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      },
+      "after": {
+        "samples": 3,
+        "medianSettledMs": 573,
+        "medianRequests": 14,
+        "medianApiRequests": 3,
+        "medianJsRequests": 10,
+        "maxCls": 0,
+        "maxLongTasks": 0,
+        "maxLongTaskMs": 0
+      }
+    }
+  ],
+  "contrast": [
+    {
+      "name": "action",
+      "foreground": "#ffffff",
+      "background": "#5946d9",
+      "ratio": 6.36
+    },
+    {
+      "name": "action hover",
+      "foreground": "#ffffff",
+      "background": "#4934b8",
+      "ratio": 8.51
+    },
+    {
+      "name": "body",
+      "foreground": "#17213a",
+      "background": "#ffffff",
+      "ratio": 15.97
+    },
+    {
+      "name": "muted light",
+      "foreground": "#52617b",
+      "background": "#f5f8ff",
+      "ratio": 5.89
+    },
+    {
+      "name": "body dark",
+      "foreground": "#f5f8ff",
+      "background": "#111b30",
+      "ratio": 16.15
+    },
+    {
+      "name": "muted dark",
+      "foreground": "#b9c6e0",
+      "background": "#111b30",
+      "ratio": 9.99
+    }
+  ],
+  "visual": {
+    "routes": 28,
+    "widths": [
+      375,
+      430,
+      768,
+      1024,
+      1440
+    ],
+    "screenshots": 140,
+    "overflowingScreens": 0,
+    "axeViolatingScreens": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "interactions": [
+      {
+        "alias": "public",
+        "mobileMenuEscapeFocus": true
+      },
+      {
+        "alias": "public",
+        "reducedMotionDisablesRouteEntrance": true
+      },
+      {
+        "alias": "student",
+        "mobileMenuEscapeFocus": true
+      },
+      {
+        "alias": "student",
+        "reducedMotionDisablesRouteEntrance": true
+      },
+      {
+        "alias": "company",
+        "mobileMenuEscapeFocus": true
+      },
+      {
+        "alias": "company",
+        "reducedMotionDisablesRouteEntrance": true
+      }
+    ]
+  }
+}

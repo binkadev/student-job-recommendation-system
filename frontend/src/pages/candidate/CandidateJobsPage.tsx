@@ -20,6 +20,7 @@ import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { httpClient } from "../../services/api/httpClient";
 import type { Job } from "../../types/domain";
+import { getLatestApplication, useAppliedJobs } from "../../features/public/jobs/useAppliedJobs";
 
 interface CandidateJobsPageProps {
   mode?: "list" | "recommended" | "saved" | "saved-searches" | "detail";
@@ -53,12 +54,6 @@ interface JobSkillResponse {
 interface SavedJobResponse {
   savedJobId: number;
   jobId: number;
-}
-
-interface ApplicationResponse {
-  id: number;
-  jobId: number;
-  status: ApplicationStatus;
 }
 
 interface SavedSearchResponse {
@@ -101,7 +96,6 @@ interface BackendJobDetailResponse extends BackendJobResponse {
 type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type WorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
 type JobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
-type ApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 type CandidateJobsContentMode = "list" | "saved-searches" | "detail";
 
 const pageSize = 6;
@@ -174,6 +168,7 @@ export function CandidateJobsPage({ mode = "list" }: CandidateJobsPageProps) {
 }
 
 function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
+  const { getApplicationState } = useAppliedJobs();
   const { jobId } = useParams();
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
@@ -247,7 +242,7 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
 
       <div className="grid gap-4">
         {jobs.map((job) => (
-          <JobCard key={job.id} job={job} detailPath={`/candidate/jobs/${job.id}`} saved={savedJobIds.has(job.id)} onToggleSave={() => void toggleSavedJob(job)} />
+          <JobCard key={job.id} job={job} detailPath={`/candidate/jobs/${job.id}`} detailLabel={getApplicationState(job.id) === "REJECTED_CAN_REAPPLY" ? "Ứng tuyển lại" : "Xem chi tiết"} applicationNote={getApplicationState(job.id) === "WITHDRAWN_BLOCKED" ? "Đơn đã rút không thể ứng tuyển lại theo chính sách hiện tại." : undefined} saved={savedJobIds.has(job.id)} onToggleSave={() => void toggleSavedJob(job)} />
         ))}
       </div>
 
@@ -264,11 +259,10 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
   const selectedJob = detailQuery.data;
   const [savedReloadKey, setSavedReloadKey] = useState(0);
   const savedJobsQuery = useAsyncData(() => getSavedJobs(), [savedReloadKey]);
-  const [applicationsReloadKey, setApplicationsReloadKey] = useState(0);
-  const applicationsQuery = useAsyncData(() => getMyApplications(), [applicationsReloadKey]);
+  const { applications, canApply, getApplyButtonLabel, getApplicationState, syncError, syncing, refreshAppliedJobs } = useAppliedJobs();
   const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const isSaved = Boolean(savedJobsQuery.data?.items.some((item) => String(item.jobId) === jobId));
-  const appliedApplication = applicationsQuery.data?.find((application) => String(application.jobId) === jobId);
+  const appliedApplication = getLatestApplication(applications, jobId);
 
   if (detailQuery.loading) {
     return (
@@ -327,11 +321,6 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
               <InfoRow label="Ngày đăng" value={formatDateTime(selectedJob.publishedAt || selectedJob.createdAt)} />
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              {appliedApplication ? (
-                <Link to={`/candidate/applications/${appliedApplication.id}`}>
-                  <Button>Đã ứng tuyển</Button>
-                </Link>
-              ) : (
                 <Button
                   onClick={() => setApplyJob({
                     id: String(selectedJob.id),
@@ -341,15 +330,17 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
                     location: selectedJob.location || "Chưa cập nhật",
                     workMode: getWorkingModelLabel(selectedJob.workingModel),
                   })}
-                  disabled={selectedJob.status !== "ACTIVE"}
+                  disabled={selectedJob.status !== "ACTIVE" || Boolean(selectedJob.deadline && selectedJob.deadline < new Date().toLocaleDateString("en-CA")) || !canApply(jobId)}
                 >
-                  Ứng tuyển
+                  {getApplyButtonLabel(jobId)}
                 </Button>
-              )}
+              {appliedApplication ? <Link to={`/candidate/applications/${appliedApplication.id}`}><Button variant="secondary">Xem đơn gần nhất</Button></Link> : null}
               <Button variant="secondary" onClick={() => void toggleDetailSavedJob(selectedJob, isSaved, setSavedReloadKey, showToast)}>
                 {isSaved ? "Bỏ lưu việc làm" : "Lưu việc làm"}
               </Button>
             </div>
+            {getApplicationState(jobId) === "WITHDRAWN_BLOCKED" ? <p className="mt-3 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
+            {syncError ? <div className="mt-3 space-y-2"><ErrorState message={syncError} /><Button variant="secondary" disabled={syncing} onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button></div> : null}
           </Card>
 
           <Card>
@@ -373,7 +364,7 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
         job={applyJob}
         onClose={() => {
           setApplyJob(null);
-          setApplicationsReloadKey((current) => current + 1);
+          void refreshAppliedJobs();
         }}
       />
     </PageContainer>
@@ -523,11 +514,6 @@ async function getJobs(params: {
 
 async function getJobDetail(jobId: string) {
   const response = await httpClient.get<ApiResponse<BackendJobDetailResponse>>(`/jobs/${jobId}`);
-  return response.data.data;
-}
-
-async function getMyApplications() {
-  const response = await httpClient.get<ApiResponse<ApplicationResponse[]>>("/students/me/applications");
   return response.data.data;
 }
 

@@ -11,6 +11,13 @@ import com.tttn.jobrecommendation.modules.student.mapper.StudentMapper;
 import com.tttn.jobrecommendation.modules.student.repository.StudentProfileRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
 import com.tttn.jobrecommendation.modules.student.service.StudentService;
+import com.tttn.jobrecommendation.modules.student.service.StudentProfileRevision;
+import com.tttn.jobrecommendation.modules.student.dto.request.StudentProfileAggregateUpdateRequest;
+import com.tttn.jobrecommendation.modules.student.dto.response.StudentProfileAggregateResponse;
+import com.tttn.jobrecommendation.modules.skill.service.StudentSkillService;
+import com.tttn.jobrecommendation.common.exception.AppException;
+import com.tttn.jobrecommendation.common.exception.ErrorCode;
+import org.springframework.transaction.annotation.Isolation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +34,8 @@ public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final StudentMapper studentMapper;
+    private final StudentProfileRevision profileRevision;
+    private final StudentSkillService studentSkillService;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,9 +47,17 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional
-    public StudentResponse updateMe(Long userId, StudentUpdateRequest request) {
+    public StudentResponse updateMe(Long userId, StudentUpdateRequest request, Long revision) {
+        profileRevision.claim(userId, revision);
         Student student = getStudentByUserId(userId);
         StudentProfile profile = getOrCreateProfile(student);
+
+        applyBasic(student, profile, request);
+        studentRepository.flush();
+        return studentMapper.toStudentResponse(student, profile);
+    }
+
+    private void applyBasic(Student student, StudentProfile profile, StudentUpdateRequest request) {
 
         if (StringUtils.hasText(request.getFullName())) {
             student.getUser().setFullName(request.getFullName().trim());
@@ -71,10 +88,6 @@ public class StudentServiceImpl implements StudentService {
             updateProfileCompleteness(profile);
         }
 
-        Student savedStudent = studentRepository.save(student);
-        StudentProfile savedProfile = studentProfileRepository.save(profile);
-
-        return studentMapper.toStudentResponse(savedStudent, savedProfile);
     }
 
     @Override
@@ -87,9 +100,17 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional
-    public StudentProfileResponse updateMyProfile(Long userId, StudentProfileUpdateRequest request) {
+    public StudentProfileResponse updateMyProfile(Long userId, StudentProfileUpdateRequest request, Long revision) {
+        profileRevision.claim(userId, revision);
         Student student = getStudentByUserId(userId);
         StudentProfile profile = getOrCreateProfile(student);
+
+        applyProfile(profile, request);
+        studentRepository.flush();
+        return studentMapper.toStudentProfileResponse(profile);
+    }
+
+    private void applyProfile(StudentProfile profile, StudentProfileUpdateRequest request) {
 
         if (request.getSummary() != null) {
             profile.setSummary(trimToNull(request.getSummary()));
@@ -122,8 +143,53 @@ public class StudentServiceImpl implements StudentService {
         updateSearchText(profile);
         updateProfileCompleteness(profile);
 
-        StudentProfile savedProfile = studentProfileRepository.save(profile);
-        return studentMapper.toStudentProfileResponse(savedProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public StudentProfileAggregateResponse getAggregate(Long userId) {
+        return aggregateSnapshot(getStudentByUserId(userId));
+    }
+
+    @Override
+    @Transactional
+    public StudentProfileAggregateResponse updateAggregate(Long userId, StudentProfileAggregateUpdateRequest request) {
+        profileRevision.claim(userId, request.getRevision());
+        Student student = getStudentByUserId(userId);
+        StudentProfile profile = getOrCreateProfile(student);
+        if (request.getStudent() != null) applyBasic(student, profile, request.getStudent());
+        if (request.getProfile() != null && hasProfileChanges(request.getProfile())) applyProfile(profile, request.getProfile());
+        if (request.getClearFields() != null) {
+            for (var field : request.getClearFields()) {
+                switch (field) {
+                    case graduationYear -> {
+                        if (request.getStudent() != null && request.getStudent().getGraduationYear() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear graduationYear together");
+                        student.setGraduationYear(null);
+                    }
+                    case preferredJobType -> {
+                        if (request.getProfile() != null && request.getProfile().getPreferredJobType() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear preferredJobType together");
+                        profile.setPreferredJobType(null);
+                        updateProfileCompleteness(profile);
+                    }
+                }
+            }
+        }
+        if (request.getManualSkills() != null) studentSkillService.updateManualSkills(userId, request.getManualSkills());
+        studentRepository.flush();
+        return aggregateSnapshot(student);
+    }
+
+    private StudentProfileAggregateResponse aggregateSnapshot(Student student) {
+        StudentProfile profile = getProfileByStudent(student);
+        return new StudentProfileAggregateResponse(student.getProfileRevision(), studentMapper.toStudentResponse(student, profile),
+                studentMapper.toStudentProfileResponse(profile), studentSkillService.getMySkills(student.getUser().getId()));
+    }
+
+    private boolean hasProfileChanges(StudentProfileUpdateRequest request) {
+        return Stream.of(request.getSummary(), request.getEducation(), request.getExperience(), request.getProjects(),
+                request.getTargetPosition(), request.getPreferredLocation(), request.getPreferredJobType()).anyMatch(value -> value != null);
     }
 
     private Student getStudentByUserId(Long userId) {

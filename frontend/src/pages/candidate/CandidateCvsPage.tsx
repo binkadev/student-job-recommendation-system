@@ -1,5 +1,5 @@
 import { FileText, RefreshCw, UploadCloud, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -69,6 +69,8 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<CvFileResponse | null>(null);
+  const [activatingCvId, setActivatingCvId] = useState<number | null>(null);
+  const activationPending = useRef(false);
   const cvsQuery = useAsyncData(() => getCandidateCvs(), [reloadKey]);
   const cvs = useMemo(() => cvsQuery.data ?? [], [cvsQuery.data]);
   const selectedCv = useMemo(() => {
@@ -107,9 +109,19 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   }
 
   async function activateCv(cv: CvFileResponse) {
-    const updatedCv = await activateCandidateCv(cv.id);
-    showToast({ type: "success", title: "Đã đặt CV đang dùng", message: `${updatedCv.originalFileName} đang là CV được dùng.` });
-    setReloadKey((current) => current + 1);
+    if (activationPending.current) return;
+    activationPending.current = true;
+    setActivatingCvId(cv.id);
+    try {
+      const updatedCv = await activateCandidateCv(cv.id);
+      showToast({ type: "success", title: "Đã đặt CV đang dùng", message: `${updatedCv.originalFileName} đang là CV được dùng.` });
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      showToast({ type: "error", title: "Không thể đặt CV đang dùng", message: getApiErrorMessage(error) });
+    } finally {
+      activationPending.current = false;
+      setActivatingCvId(null);
+    }
   }
 
   async function deleteCv(cv: CvFileResponse) {
@@ -161,17 +173,17 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
         <PageHeader title="Tải CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
         <div className="max-w-5xl">
           <Card>
-            <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF/DOCX. Giao diện chỉ kiểm tra định dạng file, backend là nơi quyết định giới hạn dung lượng cuối cùng." />
-            <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} />
+            <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF và DOCX. Sau khi tải lên, bạn có thể phân tích CV để nhận gợi ý việc làm." />
+            <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} disabled={uploading} />
 
             {selectedFile ? (
-              <div className="mt-5 rounded-lg border border-red-200 bg-red-50/40 p-4">
+              <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="font-semibold text-slate-950">File đã chọn</h2>
                     <p className="mt-2 break-words text-sm font-medium text-slate-800" title={selectedFile.name}>{selectedFile.name}</p>
                   </div>
-                  <button type="button" className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-red-600" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
+                  <button type="button" disabled={uploading} className="rounded-xl p-2 text-slate-500 hover:bg-white hover:text-red-600 disabled:opacity-50" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
                     <X size={16} />
                   </button>
                 </div>
@@ -182,14 +194,14 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               </div>
             ) : null}
 
-            {uploadError ? <p className="mt-4 text-sm text-red-600">{uploadError}</p> : null}
+            {uploadError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{uploadError}</p> : null}
 
             <div className="mt-5">
               <Switch label="Đặt làm CV đang dùng" checked={active} onChange={setActive} disabled={uploading} />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading} onClick={() => void uploadCv()}>Tải lên</Button>
+              <Button type="button" loading={uploading} disabled={uploading || !selectedFile} onClick={() => void uploadCv()}>Tải lên</Button>
               <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
             </div>
           </Card>
@@ -272,7 +284,7 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
               <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">{hasCvAnalysis(cv) ? "Phân tích lại" : "Phân tích"}</Button></Link>
-              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
+              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" loading={activatingCvId === cv.id} disabled={activatingCvId !== null} onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
         ))}
@@ -307,8 +319,8 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
   return (
     <PageContainer>
       <PageHeader title="Chi tiết CV" description="Thông tin file CV và trạng thái sử dụng hiện tại." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <main className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin file" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -320,8 +332,8 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
             </div>
           </Card>
-        </main>
-        <aside className="space-y-5">
+        </div>
+        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
@@ -331,7 +343,7 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt làm CV đang dùng</Button> : null}
             </div>
           </Card>
-        </aside>
+        </section>
       </div>
     </PageContainer>
   );
@@ -341,7 +353,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
   return (
     <Modal open={Boolean(cv)} title="Xóa CV" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-700">
+        <p className="break-words text-sm text-slate-700 [overflow-wrap:anywhere]">
           Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> không?
         </p>
         {cv && isActiveCv(cv) ? <p className="text-sm text-amber-700">Đây là CV đang dùng. Bạn có chắc muốn xóa?</p> : null}
@@ -454,8 +466,8 @@ function CvAnalysisView({
   return (
     <PageContainer>
       <PageHeader title={title} description="Xem trạng thái phân tích CV và dữ liệu chỉ hiển thị khi phân tích đã sẵn sàng." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <main className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Thông tin CV" />
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
@@ -493,7 +505,7 @@ function CvAnalysisView({
               <Card>
                 <SectionHeader title="Văn bản đã xử lý" />
                 {analysis?.processedText ? (
-                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
+                  <pre role="region" aria-label="Nội dung CV đã xử lý, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
                 ) : (
                   <EmptyState message="Chưa có văn bản đã xử lý cho CV này." />
                 )}
@@ -513,16 +525,16 @@ function CvAnalysisView({
               <Card>
                 <SectionHeader title="Dữ liệu trích xuất" />
                 {analysis?.extractedText ? (
-                  <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
+                  <pre role="region" aria-label="Nội dung CV trích xuất, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
                 ) : (
                   <EmptyState message="Chưa có extractedText cho CV này." />
                 )}
               </Card>
             </>
           ) : null}
-        </main>
+        </div>
 
-        <aside className="space-y-5">
+        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
           <Card>
             <SectionHeader title="Trạng thái" />
             <div className="flex flex-wrap gap-2">
@@ -539,7 +551,7 @@ function CvAnalysisView({
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
           </Card>
-        </aside>
+        </section>
       </div>
     </PageContainer>
   );
@@ -605,7 +617,7 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-slate-500">{label}</p>
-      <p className="mt-1 break-words font-medium text-slate-900">{value}</p>
+      <p className="mt-1 break-words font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
     </div>
   );
 }

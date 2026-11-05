@@ -1,10 +1,11 @@
-import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 import { BriefcaseBusiness, Building2, CheckCircle2, FileText, GraduationCap, Sparkles, UserRoundSearch } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { UnsupportedFeature } from "../../components/feedback/UnsupportedFeature";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
@@ -42,10 +43,7 @@ const copy = {
 };
 
 function getErrorMessage(error: unknown) {
-  if (isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? "Không thể xử lý yêu cầu. Vui lòng kiểm tra lại thông tin.";
-  }
-  return "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+  return getApiErrorMessage(error, "Không thể xử lý yêu cầu. Vui lòng kiểm tra lại thông tin.");
 }
 
 export function AuthFlowPage({ type }: AuthFlowPageProps) {
@@ -54,6 +52,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
   const { logout } = useAuth();
   const page = copy[type];
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,9 +76,12 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
         return;
       }
       if (password !== confirmPassword) {
+        setPasswordError("Xác nhận mật khẩu không khớp.");
         showToast({ type: "error", title: "Xác nhận mật khẩu không khớp" });
         return;
       }
+
+      setPasswordError("");
 
       const payload: RegisterRequest = {
         email,
@@ -94,7 +96,8 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       try {
         await registerRequest(payload);
         const successTitle = type === "recruiter" ? "Đăng ký doanh nghiệp thành công" : "Đăng ký ứng viên thành công";
-        window.sessionStorage.setItem("registrationSuccessMessage", "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.");
+        const successMessage = type === "recruiter" ? "Doanh nghiệp đang chờ xác thực. Bạn có thể đăng nhập, hoàn thiện hồ sơ và lưu tin nháp; gửi duyệt sau khi Admin xác thực." : "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.";
+        window.sessionStorage.setItem("registrationSuccessMessage", successMessage);
         window.sessionStorage.setItem("registrationSuccessTitle", successTitle);
         logout();
         navigate("/login", {
@@ -102,7 +105,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
           state: {
             registrationSuccess: true,
             title: successTitle,
-            message: "Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký.",
+            message: successMessage,
           },
         });
       } catch (error) {
@@ -113,24 +116,23 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
       return;
     }
 
-    if (type === "reset") {
-      const password = String(formData.get("password") ?? "");
-      const confirmPassword = String(formData.get("confirmPassword") ?? "");
-      if (!password || password !== confirmPassword) {
-        showToast({ type: "error", title: "Vui lòng kiểm tra lại mật khẩu" });
-        return;
-      }
-    }
+  }
 
-    showToast({ type: "success", title: "Đã ghi nhận thông tin", message: "Chức năng sẽ được xử lý khi sẵn sàng." });
+  if (type === "forgot" || type === "reset") {
+    return <PageContainer>
+      <PageHeader title={page.title} description="Thông tin về khả năng khôi phục mật khẩu của hệ thống." />
+      <UnsupportedFeature title="Chưa hỗ trợ khôi phục mật khẩu qua email"
+        description="Hệ thống hiện chưa hỗ trợ gửi email hoặc xác thực liên kết đặt lại mật khẩu. Trang này không gửi yêu cầu khôi phục và không thay đổi mật khẩu. Nếu còn đăng nhập, bạn có thể đổi mật khẩu trong phần Bảo mật bằng mật khẩu hiện tại."
+        to="/login" action="Quay lại đăng nhập" />
+    </PageContainer>;
   }
 
   if (type === "register") {
     return (
       <PageContainer>
-        <Card className="mx-auto max-w-6xl overflow-hidden p-0">
+        <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid min-h-[520px] lg:grid-cols-[1fr_1.05fr]">
-            <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 px-6 py-10 text-slate-950 lg:border-b-0 lg:border-r">
+            <section className="neo-auth-visual relative overflow-hidden border-b border-slate-100 px-6 py-10 text-slate-950 lg:border-b-0 lg:border-r">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
               <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-slate-200/70 blur-2xl" />
               <div className="relative flex h-full flex-col justify-between">
@@ -218,9 +220,9 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
 
     return (
       <PageContainer>
-        <Card className="mx-auto max-w-6xl overflow-hidden p-0">
+        <Card padding="none" className="mx-auto max-w-6xl overflow-hidden">
           <div className="grid lg:grid-cols-[360px_1fr]">
-            <section className="relative overflow-hidden border-b border-slate-100 bg-brand-50 p-6 lg:border-b-0 lg:border-r lg:p-8">
+            <section className="neo-auth-visual relative overflow-hidden border-b border-slate-100 p-6 lg:border-b-0 lg:border-r lg:p-8">
               <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-brand-200/60 blur-2xl" />
               <div className="absolute bottom-10 right-8 h-28 w-28 rounded-full bg-slate-200/70 blur-2xl" />
               <div className="relative">
@@ -231,7 +233,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                 <h1 className="mt-5 text-2xl font-semibold leading-tight text-slate-950">{page.title}</h1>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{page.description}</p>
 
-                <div className="mt-8">
+                <div aria-hidden="true" className="mt-8 hidden lg:block">
                   <div className="relative mx-auto h-52 w-72 max-w-full">
                     <div className="absolute bottom-3 left-6 right-6 h-20 rounded-lg bg-white shadow-sm" />
                     <div className="absolute bottom-8 left-10 right-10 rounded-lg border border-brand-100 bg-white p-3 shadow-sm">
@@ -266,7 +268,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                     <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
                     <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
                     <div className="md:col-span-2">
-                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
+                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" autoComplete="new-password" minLength={6} error={passwordError} onChange={() => setPasswordError("")} required />
                     </div>
                   </div>
                 ) : (
@@ -281,7 +283,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
                       <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Cập nhật thông tin này trong hồ sơ công ty sau khi đăng nhập." disabled />
                     </div>
                     <div className="md:col-span-2">
-                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
+                      <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" autoComplete="new-password" minLength={6} error={passwordError} onChange={() => setPasswordError("")} required />
                     </div>
                   </div>
                 )}
@@ -303,52 +305,7 @@ export function AuthFlowPage({ type }: AuthFlowPageProps) {
     );
   }
 
-  const fallbackType = type as AuthFlowPageProps["type"];
-
-  return (
-    <PageContainer>
-      <PageHeader title={page.title} description={page.description} />
-      <Card className="max-w-2xl">
-        <form className="space-y-4" onSubmit={submit}>
-            {fallbackType === "candidate" ? (
-              <>
-                <Input name="email" label="Email" type="email" placeholder="ungvien@example.com" required />
-                <Input name="fullName" label="Họ và tên" placeholder="Nguyễn Văn An" required />
-                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
-                <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            {fallbackType === "recruiter" ? (
-              <>
-                <Input name="email" label="Email doanh nghiệp" type="email" placeholder="hr@congty.vn" required />
-                <Input name="companyName" label="Tên công ty" placeholder="Công ty TNHH Công nghệ NovaTech" required />
-                <Input name="contactName" label="Tên người đại diện" placeholder="Trần Thị Bình" />
-                <Input name="phone" label="Số điện thoại" placeholder="0901234567" />
-                <Input name="taxCode" label="Mã số thuế" placeholder="0312345678" disabled />
-                <Textarea name="companyIntro" label="Giới thiệu ngắn" placeholder="Cập nhật thông tin này trong hồ sơ công ty sau khi đăng nhập." disabled />
-                <Input name="password" label="Mật khẩu" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            {fallbackType === "forgot" ? <Input name="email" label="Email" type="email" placeholder="you@example.com" required /> : null}
-
-            {fallbackType === "reset" ? (
-              <>
-                <Input name="password" label="Mật khẩu mới" type="password" minLength={6} required />
-                <Input name="confirmPassword" label="Xác nhận mật khẩu" type="password" minLength={6} required />
-              </>
-            ) : null}
-
-            <Button type="submit" className={fallbackType === "candidate" || fallbackType === "recruiter" ? "w-full" : ""} loading={loading}>
-              {fallbackType === "forgot" ? "Gửi hướng dẫn" : fallbackType === "candidate" || fallbackType === "recruiter" ? "Đăng ký" : "Lưu thông tin"}
-            </Button>
-        </form>
-      </Card>
-    </PageContainer>
-  );
+  return null;
 }
 
 function CvSheet({ className, icon, title, tone }: { className: string; icon: ReactNode; title: string; tone: string }) {

@@ -20,8 +20,12 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
   const presentation = getScorePresentation(result);
   return (
     <Modal open={Boolean(result)} title={`Phân tích ${result.studentName}`} size="lg" onClose={onClose}>
-      <div className="max-h-[72vh] overflow-y-auto pr-1">
-        <div className="grid gap-3 md:grid-cols-4">
+      <div>
+        <div className={`mb-4 rounded-2xl border p-4 text-sm leading-6 ${result.rankingTier === "FALLBACK" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-brand-100 bg-brand-50 text-brand-900"}`}>
+          <p className="font-semibold">{result.rankingTier ?? "Lịch sử"} · {presentation.tierLabel}</p>
+          <p className="mt-1">{result.rankingTier === "FALLBACK" ? "Skill Score thể hiện mức đáp ứng kỹ năng. Điểm nội dung và tổng thể không áp dụng; không so sánh điểm này với PRIMARY." : result.rankingTier === "PRIMARY" ? "Điểm tổng thể kết hợp nội dung và kỹ năng cho cặp CV và tin tuyển dụng đủ điều kiện cùng ngôn ngữ." : "Kết quả lịch sử chưa có đầy đủ ngữ nghĩa V3."}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Card><Score label={presentation.label} value={formatScore(presentation.value)} /></Card>
           <Card><Score label="Final Score" value={formatScore(result.overallScore)} /></Card>
           <Card><Score label="Text Score" value={formatScore(result.textScore)} /></Card>
@@ -37,14 +41,10 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
             <Info label="Mã ứng tuyển" value={`#${result.applicationId}`} />
           </div>
         </Card>
-        <Card className="mt-4">
-          <SectionHeader title="Kỹ năng phù hợp" />
-          <SkillList skills={result.matchedSkills} />
-        </Card>
-        <Card className="mt-4">
-          <SectionHeader title="Kỹ năng thiếu" />
-          <SkillList skills={result.missingSkills} tone="warning" />
-        </Card>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Card><SectionHeader title="Kỹ năng phù hợp" description={`${result.matchedSkills.length} kỹ năng khớp`} /><SkillList skills={result.matchedSkills} /></Card>
+          <Card><SectionHeader title="Kỹ năng thiếu" description={`${result.missingSkills.length} kỹ năng cần bổ sung`} /><SkillList skills={result.missingSkills} tone="warning" /></Card>
+        </div>
         <Card className="mt-4">
           <SectionHeader title="Giải thích từ hệ thống" />
           <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{formatSystemExplanation(result)}</p>
@@ -60,7 +60,7 @@ export function CandidateRankingAnalysisModal({ result, run, onClose, onOpenCv }
 
 function Score({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0 break-words">
       <p className="text-sm text-slate-500">{label}</p>
       <strong className="mt-1 block text-2xl text-slate-950">{value}</strong>
     </div>
@@ -69,7 +69,7 @@ function Score({ label, value }: { label: string; value: string }) {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0 break-words">
       <p className="text-slate-500">{label}</p>
       <p className="mt-1 font-medium text-slate-900">{value}</p>
     </div>

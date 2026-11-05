@@ -21,7 +21,7 @@ export function FeaturedHomeCompanyCard({ company }: { company: FeaturedHomeComp
       <div className="mt-4 grid gap-2 text-sm text-slate-600">
         <span className="inline-flex items-center gap-2"><Users size={16} />{company.size}</span>
         <span className="inline-flex items-center gap-2"><MapPin size={16} />{company.location}</span>
-        <span className="inline-flex items-center gap-2"><Building2 size={16} />{company.openJobs} tin đang tuyển</span>
+        <span className="inline-flex items-center gap-2"><Building2 size={16} />{company.openJobs == null ? "Chưa có số liệu tin đang tuyển" : `${company.openJobs} tin đang tuyển`}</span>
       </div>
       <div className="mt-4">
         <StatusBadge label={company.verified ? "Đã xác thực" : "Chờ xác thực"} tone={company.verified ? "success" : "warning"} />

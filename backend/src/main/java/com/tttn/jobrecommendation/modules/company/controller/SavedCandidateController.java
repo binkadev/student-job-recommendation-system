@@ -4,6 +4,8 @@ import com.tttn.jobrecommendation.common.response.ApiResponse;
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.common.utils.SecurityUtils;
 import com.tttn.jobrecommendation.modules.company.dto.request.SaveCandidateRequest;
+import com.tttn.jobrecommendation.modules.company.dto.request.UpdateSavedCandidateNoteRequest;
+import org.springframework.web.bind.annotation.PatchMapping;
 import com.tttn.jobrecommendation.modules.company.dto.request.SavedCandidateFilterRequest;
 import com.tttn.jobrecommendation.modules.company.dto.response.SavedCandidateResponse;
 import com.tttn.jobrecommendation.modules.company.service.SavedCandidateService;
@@ -50,5 +52,12 @@ public class SavedCandidateController {
     public ApiResponse<Void> deleteSavedCandidate(@PathVariable Long id) {
         savedCandidateService.deleteSavedCandidate(securityUtils.getCurrentUserId(), id);
         return ApiResponse.success("Saved candidate deleted successfully", null);
+    }
+
+    @PatchMapping("/{id}/note")
+    public ApiResponse<SavedCandidateResponse> updateNote(
+            @PathVariable Long id, @Valid @RequestBody UpdateSavedCandidateNoteRequest request
+    ) {
+        return ApiResponse.success(savedCandidateService.updateNote(securityUtils.getCurrentUserId(), id, request));
     }
 }

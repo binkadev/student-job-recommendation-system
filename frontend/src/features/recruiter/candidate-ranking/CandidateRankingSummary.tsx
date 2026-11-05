@@ -13,7 +13,7 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
       <Card>
         <p className="text-sm font-medium text-slate-500">Trạng thái lần chạy</p>
         <div className="mt-2"><StatusBadge label={runStatusLabel(run.status)} tone={statusTone(run.status)} /></div>
@@ -26,7 +26,7 @@ export function CandidateRankingSummary({ run }: { run: CandidateRankingRun }) {
               <Icon size={18} />
               <p className="text-sm font-medium">{item.label}</p>
             </div>
-            <strong className="mt-2 block text-2xl text-slate-950">{item.value}</strong>
+            <strong className="mt-2 block text-2xl tabular-nums text-slate-950">{item.value}</strong>
           </Card>
         );
       })}

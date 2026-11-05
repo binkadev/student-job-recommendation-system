@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,14 +38,22 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<NotificationResponse> getMyNotifications(Long userId, Integer page, Integer size) {
+    public PageResponse<NotificationResponse> getMyNotifications(Long userId, Integer page, Integer size,
+                                                              Boolean unread, NotificationType type) {
         Pageable pageable = PageRequest.of(
                 Math.max(page == null ? 1 : page, 1) - 1,
                 Math.min(Math.max(size == null ? 20 : size, 1), 100),
-                Sort.by(Sort.Direction.DESC, "createdAt")
+                Sort.by(Sort.Direction.DESC, "createdAt", "id")
         );
 
-        Page<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        Specification<Notification> filter = (root, query, cb) -> cb.equal(root.get("user").get("id"), userId);
+        if (unread != null) {
+            filter = filter.and((root, query, cb) -> cb.equal(root.get("read"), !unread));
+        }
+        if (type != null) {
+            filter = filter.and((root, query, cb) -> cb.equal(root.get("type"), type));
+        }
+        Page<Notification> notifications = notificationRepository.findAll(filter, pageable);
         List<NotificationResponse> items = notifications.getContent()
                 .stream()
                 .map(notificationMapper::toNotificationResponse)

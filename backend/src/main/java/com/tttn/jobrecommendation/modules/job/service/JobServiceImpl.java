@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.modules.job.service;
 
 import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.SkillImportance;
 import com.tttn.jobrecommendation.common.enums.UserRole;
 import com.tttn.jobrecommendation.common.exception.AppException;
@@ -53,20 +54,31 @@ public class JobServiceImpl implements JobService {
     private final SkillRepository skillRepository;
     private final CompanyRepository companyRepository;
     private final JobMapper jobMapper;
+    private final JobModerationPolicy moderationPolicy;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<JobResponse> getJobs(JobFilterRequest request, Long userId, UserRole role) {
+        return getJobsPage(request, userId, role, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<JobResponse> getMyJobs(JobFilterRequest request, Long userId) {
+        return getJobsPage(request, userId, UserRole.COMPANY, true);
+    }
+
+    private PageResponse<JobResponse> getJobsPage(JobFilterRequest request, Long userId, UserRole role, boolean ownCompanyOnly) {
         int pageNumber = request.getPage() == null ? 1 : request.getPage();
         int pageSize = request.getSize() == null ? 10 : request.getSize();
         Pageable pageable = PageRequest.of(
                 Math.max(pageNumber, 1) - 1,
                 Math.min(Math.max(pageSize, 1), 100),
-                Sort.by(Sort.Direction.DESC, "createdAt")
+                ownCompanyOnly ? Sort.by(Sort.Direction.DESC, "createdAt", "id") : Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
         Company currentCompany = role == UserRole.COMPANY ? getCompanyByUserId(userId) : null;
-        Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany), pageable);
+        Page<Job> page = jobRepository.findAll(buildJobSpecification(request, role, currentCompany, ownCompanyOnly), pageable);
         Map<Long, List<JobSkill>> skillsByJobId = getSkillsByJobId(page.getContent());
         List<JobResponse> items = page.getContent().stream()
                 .map(job -> jobMapper.toJobResponse(
@@ -101,9 +113,7 @@ public class JobServiceImpl implements JobService {
         Company company = resolveCompanyForCreate(request, userId, role);
         JobStatus status = request.getStatus() == null ? JobStatus.DRAFT : request.getStatus();
 
-        if (role == UserRole.COMPANY && status == JobStatus.ACTIVE && !StringUtils.hasText(company.getCompanyName())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Company name is required to create an active job");
-        }
+        moderationPolicy.assertCreation(role, company.getStatus(), status);
 
         LocalDateTime now = LocalDateTime.now();
         Job job = Job.builder()
@@ -133,8 +143,9 @@ public class JobServiceImpl implements JobService {
     @Transactional
     public JobDetailResponse updateJob(Long id, UpdateJobRequest request, Long userId, UserRole role) {
         assertCompanyOrAdmin(role);
-        Job job = getJobById(id);
+        Job job = getJobForMutation(id);
         assertCanManage(job, userId, role);
+        moderationPolicy.assertEditable(job.getStatus());
 
         BigDecimal salaryMin = request.getSalaryMin() == null ? job.getSalaryMin() : request.getSalaryMin();
         BigDecimal salaryMax = request.getSalaryMax() == null ? job.getSalaryMax() : request.getSalaryMax();
@@ -183,8 +194,10 @@ public class JobServiceImpl implements JobService {
     @Transactional
     public JobDetailResponse updateJobStatus(Long id, UpdateJobStatusRequest request, Long userId, UserRole role) {
         assertCompanyOrAdmin(role);
-        Job job = getJobById(id);
+        Job job = getJobForMutation(id);
         assertCanManage(job, userId, role);
+        moderationPolicy.assertTransition(role, job.getCompany().getStatus(), job.getStatus(), request.getStatus());
+        if (job.getStatus() == request.getStatus()) return jobMapper.toJobDetailResponse(job, getJobSkills(job));
         applyStatus(job, request.getStatus());
         Job savedJob = jobRepository.save(job);
         return jobMapper.toJobDetailResponse(savedJob, getJobSkills(savedJob));
@@ -194,8 +207,10 @@ public class JobServiceImpl implements JobService {
     @Transactional
     public JobDetailResponse closeJob(Long id, Long userId, UserRole role) {
         assertCompanyOrAdmin(role);
-        Job job = getJobById(id);
+        Job job = getJobForMutation(id);
         assertCanManage(job, userId, role);
+        moderationPolicy.assertTransition(role, job.getCompany().getStatus(), job.getStatus(), JobStatus.CLOSED);
+        if (job.getStatus() == JobStatus.CLOSED) return jobMapper.toJobDetailResponse(job, getJobSkills(job));
         applyStatus(job, JobStatus.CLOSED);
         Job savedJob = jobRepository.save(job);
         return jobMapper.toJobDetailResponse(savedJob, getJobSkills(savedJob));
@@ -265,14 +280,19 @@ public class JobServiceImpl implements JobService {
                 ));
     }
 
-    private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany) {
+    private Specification<Job> buildJobSpecification(JobFilterRequest request, UserRole role, Company currentCompany, boolean ownCompanyOnly) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (role == UserRole.STUDENT) {
+            if (ownCompanyOnly) {
+                predicates.add(criteriaBuilder.equal(root.get("company").get("id"), currentCompany.getId()));
+            } else if (role == UserRole.STUDENT) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE));
+                predicates.add(criteriaBuilder.equal(root.get("company").get("status"), CompanyStatus.VERIFIED));
             } else if (role == UserRole.COMPANY) {
-                Predicate activeJobs = criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE);
+                Predicate activeJobs = criteriaBuilder.and(
+                        criteriaBuilder.equal(root.get("status"), JobStatus.ACTIVE),
+                        criteriaBuilder.equal(root.get("company").get("status"), CompanyStatus.VERIFIED));
                 Predicate ownJobs = criteriaBuilder.equal(root.get("company").get("id"), currentCompany.getId());
                 predicates.add(criteriaBuilder.or(activeJobs, ownJobs));
             } else if (role == UserRole.ADMIN && request.getStatus() == null) {
@@ -327,19 +347,31 @@ public class JobServiceImpl implements JobService {
 
     private Company resolveCompanyForCreate(CreateJobRequest request, Long userId, UserRole role) {
         if (role == UserRole.COMPANY) {
-            return getCompanyByUserId(userId);
+            return companyRepository.findByUserIdForUpdate(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
         }
 
         if (request.getCompanyId() == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "companyId is required for admin job creation");
         }
 
-        return companyRepository.findById(request.getCompanyId())
+        return companyRepository.findByIdForUpdate(request.getCompanyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
     }
 
     private Job getJobById(Long id) {
         return jobRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found"));
+    }
+
+    private Job getJobForMutation(Long id) {
+        // All moderation writes lock Company before Job, including verification
+        // changes, so competing reviews cannot authorize against stale state.
+        Long companyId = jobRepository.findCompanyIdById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found"));
+        companyRepository.findByIdForUpdate(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        return jobRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found"));
     }
 
@@ -349,7 +381,7 @@ public class JobServiceImpl implements JobService {
     }
 
     private void assertCanView(Job job, Long userId, UserRole role) {
-        if (role == UserRole.ADMIN || job.getStatus() == JobStatus.ACTIVE) {
+        if (role == UserRole.ADMIN || (job.getStatus() == JobStatus.ACTIVE && job.getCompany().getStatus() == CompanyStatus.VERIFIED)) {
             return;
         }
 
