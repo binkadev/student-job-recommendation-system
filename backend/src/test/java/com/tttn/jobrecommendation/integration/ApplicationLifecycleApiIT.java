@@ -42,8 +42,9 @@ class ApplicationLifecycleApiIT extends AbstractPostgresWebIntegrationTest {
                 .contentType("application/json").content(mapper.writeValueAsString(java.util.Map.of("coverLetter", letter)))).andReturn();
     }
     private int code(MvcResult result) { return result.getResponse().getStatus(); }
+    /** Notifications delivered to the Student for an application (Company-bound W1-C notices are covered by AutomaticNotificationsApiIT). */
     private long notifications(long id) {
-        return jdbcTemplate.queryForObject("SELECT count(*) FROM notifications WHERE reference_type='APPLICATION' AND reference_id=?", Long.class, id);
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM notifications WHERE reference_type='APPLICATION' AND reference_id=? AND user_id=?", Long.class, id, student.getUser().getId());
     }
 
     @Test void pendingWithdrawalPersistsAndDuplicateIsRejectedWithoutNotification() throws Exception {
@@ -136,7 +137,7 @@ class ApplicationLifecycleApiIT extends AbstractPostgresWebIntegrationTest {
         var history = jobApplicationRepository.findByStudentIdAndJobIdOrderByAppliedAtDescIdDesc(student.getId(), job.getId());
         assertThat(history).hasSize(2); assertThat(history.getFirst().getStatus()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(jobApplicationRepository.findById(rejected.getId()).orElseThrow().getCoverLetter()).isEqualTo("original rejected letter");
-        assertThat(notifications(history.getFirst().getId())).isZero(); // Apply has no status-change notification contract.
+        assertThat(notifications(history.getFirst().getId())).isZero(); // Apply never sends a Student status-change notification (the owning Company is notified instead).
 
         var tieJob = createJob(company, "Ordering", JobStatus.ACTIVE);
         var old = createApplication(student, tieJob, null, ApplicationStatus.REJECTED);

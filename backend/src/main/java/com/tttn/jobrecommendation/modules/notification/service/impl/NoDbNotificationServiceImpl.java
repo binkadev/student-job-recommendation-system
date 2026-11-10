@@ -43,4 +43,27 @@ public class NoDbNotificationServiceImpl implements NotificationService {
     @Override
     public void createApplicationStatusChangedNotification(JobApplication application) {
     }
+
+    @Override
+    public void createApplicationSubmittedNotification(JobApplication application) {
+    }
+
+    @Override
+    public void createApplicationWithdrawnNotification(JobApplication application) {
+    }
+
+    @Override
+    public void createJobModerationNotification(com.tttn.jobrecommendation.modules.job.entity.Job job,
+                                                com.tttn.jobrecommendation.common.enums.JobStatus newStatus) {
+    }
+
+    @Override
+    public void createCompanyVerificationNotification(com.tttn.jobrecommendation.modules.company.entity.Company company,
+                                                      com.tttn.jobrecommendation.common.enums.CompanyStatus newStatus) {
+    }
+
+    @Override
+    public void createRecommendationReadyNotification(
+            com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun run, int resultCount) {
+    }
 }
