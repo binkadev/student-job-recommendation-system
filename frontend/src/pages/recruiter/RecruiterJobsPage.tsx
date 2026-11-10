@@ -87,6 +87,13 @@ interface SkillResponse {
 interface CompanyResponse {
   id: number;
   companyName?: string | null;
+  taxCode?: string | null;
+  description?: string | null;
+  website?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  industry?: string | null;
   status: CompanyStatus;
 }
 
@@ -244,7 +251,7 @@ export function RecruiterJobsPage({ mode = "list" }: RecruiterJobsPageProps) {
   }
 
   if (mode === "create") return <JobFormView mode="create" company={company} />;
-  if ((mode === "detail" || mode === "edit" || mode === "preview" || mode === "statistics") && jobId) {
+  if (mode === "detail" || mode === "edit" || mode === "preview" || mode === "statistics") {
     return <JobDetailRouter mode={mode} jobId={Number(jobId)} company={company} />;
   }
 
@@ -374,19 +381,37 @@ function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "
   }
 
   if (detailQuery.error || !detailQuery.data) {
+    const headerTitle =
+      mode === "preview"
+        ? "Xem trước tin tuyển dụng"
+        : mode === "statistics"
+          ? "Thống kê tin tuyển dụng"
+          : mode === "edit"
+            ? "Chỉnh sửa tin tuyển dụng"
+            : "Chi tiết tin tuyển dụng";
     return (
       <PageContainer>
-        <PageHeader title="Chi tiết tin tuyển dụng" description="Không thể tải dữ liệu tin tuyển dụng." />
+        <PageHeader title={headerTitle} description="Không thể tải dữ liệu tin tuyển dụng." />
         <ErrorState message={detailQuery.error ?? "Không tìm thấy tin tuyển dụng."} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="secondary" icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((key) => key + 1)}>
+            Thử lại
+          </Button>
+          <Link to="/recruiter/jobs">
+            <Button variant="secondary">Quay lại danh sách</Button>
+          </Link>
+        </div>
       </PageContainer>
     );
   }
 
-  if (mode === "edit" && detailQuery.data.status !== "DRAFT") return <PrepareJobDraft job={detailQuery.data} onChanged={() => setReloadKey(key => key + 1)} />;
-  if (mode === "edit") return <JobFormView mode="edit" job={detailQuery.data} company={company} onSaved={() => setReloadKey(key => key + 1)} />;
-  if (mode === "preview") return <UnsupportedJobView job={detailQuery.data} title="Xem trước tin tuyển dụng" message="Bạn có thể xem nội dung tin ở trang chi tiết." />;
-  if (mode === "statistics") return <UnsupportedJobView job={detailQuery.data} title="Thống kê tin tuyển dụng" message="Chưa có dữ liệu thống kê cho tin tuyển dụng này." />;
-  return <JobDetailView job={detailQuery.data} />;
+  const { job: resolvedJob, company: resolvedCompany } = detailQuery.data;
+
+  if (mode === "edit" && resolvedJob.status !== "DRAFT") return <PrepareJobDraft job={resolvedJob} onChanged={() => setReloadKey(key => key + 1)} />;
+  if (mode === "edit") return <JobFormView mode="edit" job={resolvedJob} company={resolvedCompany ?? company} onSaved={() => setReloadKey(key => key + 1)} />;
+  if (mode === "preview") return <JobPreviewView job={resolvedJob} company={resolvedCompany ?? company} />;
+  if (mode === "statistics") return <UnsupportedJobView job={resolvedJob} title="Thống kê tin tuyển dụng" message="Chưa có dữ liệu thống kê cho tin tuyển dụng này." />;
+  return <JobDetailView job={resolvedJob} />;
 }
 
 function PrepareJobDraft({ job, onChanged }: { job: JobDetailResponse; onChanged: () => void }) {
@@ -427,6 +452,7 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
     <PageContainer>
       <PageHeader title={job.title} description={`${job.companyName} • ${job.location || "Chưa cập nhật địa điểm"}`} />
       <div className="mb-5 flex flex-wrap gap-2">
+        <Link to={`/recruiter/jobs/${job.id}/preview`}><Button variant="secondary" icon={<Eye size={16} />}>Xem trước tin</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}><Button icon={<Users size={16} />}>Ứng viên phù hợp</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>{job.status === "DRAFT" ? "Sửa tin" : "Chuẩn bị chỉnh sửa"}</Button></Link>
         <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
@@ -457,6 +483,163 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
               <InfoRow label="Ngày tạo" value={formatDateTime(job.createdAt)} />
               <InfoRow label="Cập nhật" value={formatDateTime(job.updatedAt)} />
             </div>
+          </Card>
+        </aside>
+      </div>
+    </PageContainer>
+  );
+}
+
+function JobPreviewView({ job, company }: { job: JobDetailResponse; company: CompanyResponse | null }) {
+  const companyName = company?.companyName || job.companyName || "Chưa cập nhật tên công ty";
+  const companyStatus = company?.status;
+  const isPubliclyVisible = job.status === "ACTIVE" && companyStatus === "VERIFIED";
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Xem trước tin tuyển dụng"
+        description={`Bản xem trước tin tuyển dụng của ${companyName} • ${job.location || "Chưa cập nhật địa điểm"}`}
+      />
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Link to={`/recruiter/jobs/${job.id}`}>
+          <Button variant="secondary">Chi tiết quản lý</Button>
+        </Link>
+        <Link to={`/recruiter/jobs/${job.id}/edit`}>
+          <Button icon={<Pencil size={16} />}>{job.status === "DRAFT" ? "Sửa tin" : "Chuẩn bị chỉnh sửa"}</Button>
+        </Link>
+        <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}>
+          <Button variant="secondary" icon={<Users size={16} />}>Ứng viên phù hợp</Button>
+        </Link>
+        <Link to="/recruiter/jobs">
+          <Button variant="secondary">Quay lại danh sách</Button>
+        </Link>
+      </div>
+
+      <Card className={`mb-5 ${isPubliclyVisible ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              {isPubliclyVisible
+                ? "Tin đang hiển thị công khai cho ứng viên"
+                : "Tin chưa hiển thị công khai trên cổng tìm việc"}
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              Trạng thái tin: <strong>{JOB_STATUS_LABELS[job.status]}</strong>
+              {companyStatus ? (
+                <>
+                  {" "}• Trạng thái công ty: <strong>{COMPANY_STATUS_LABELS[companyStatus]}</strong>
+                </>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} />
+            {companyStatus ? (
+              <StatusBadge
+                label={COMPANY_STATUS_LABELS[companyStatus]}
+                tone={companyStatus === "VERIFIED" ? "success" : companyStatus === "BLOCKED" ? "danger" : "warning"}
+              />
+            ) : null}
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
+          <Card className="border-brand-100 bg-brand-50">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white text-lg font-semibold text-brand-700 shadow-sm">
+                  {getCompanyInitials(companyName)}
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-semibold text-slate-950">{job.title}</h2>
+                    <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} />
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{companyName}</p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {formatJobMeta(job)} • {job.location || "Chưa cập nhật địa điểm"} • Mức lương: {formatSalary(job)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <TextBlock title="Mô tả công việc" value={job.description} />
+          <TextBlock title="Yêu cầu" value={job.requirements} />
+          <TextBlock title="Quyền lợi" value={job.benefits} />
+
+          <Card>
+            <SectionHeader
+              title="Kỹ năng yêu cầu"
+              description={job.skills?.length ? `${job.skills.length} kỹ năng kèm mức độ quan trọng và trình độ tối thiểu.` : undefined}
+            />
+            {job.skills?.length ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {job.skills.map((skill) => (
+                  <div key={skill.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong className="text-slate-900">{skill.skillName}</strong>
+                      {skill.category ? <span className="text-xs text-slate-500">{skill.category}</span> : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <StatusBadge
+                        label={`Mức độ: ${skill.importance ? SKILL_IMPORTANCE_LABELS[skill.importance] : "Chưa xác định"}`}
+                        tone={skill.importance === "REQUIRED" ? "warning" : "neutral"}
+                      />
+                      <StatusBadge
+                        label={`Trình độ: ${skill.minLevel ? SKILL_LEVEL_LABELS[skill.minLevel] : "Chưa xác định"}`}
+                        tone="neutral"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="Tin chưa có kỹ năng yêu cầu." />
+            )}
+          </Card>
+        </div>
+
+        <aside className="min-w-0 space-y-5">
+          <Card>
+            <SectionHeader title="Thông tin tin tuyển dụng" />
+            <div className="space-y-3 text-sm text-slate-700">
+              <InfoRow label="Mã tin" value={`#${job.id}`} />
+              <InfoRow label="Trạng thái" value={JOB_STATUS_LABELS[job.status]} />
+              <InfoRow label="Địa điểm" value={job.location} />
+              <InfoRow label="Loại việc" value={job.jobType ? JOB_TYPE_LABELS[job.jobType] : null} />
+              <InfoRow label="Hình thức" value={job.workingModel ? WORKING_MODEL_LABELS[job.workingModel] : null} />
+              <InfoRow label="Mức lương" value={formatSalary(job)} />
+              <InfoRow label="Hạn nộp" value={formatDate(job.deadline)} />
+              <InfoRow label="Ngày đăng" value={formatDateTime(job.publishedAt)} />
+              <InfoRow label="Ngày đóng" value={formatDateTime(job.closedAt)} />
+              <InfoRow label="Ngày tạo" value={formatDateTime(job.createdAt)} />
+              <InfoRow label="Cập nhật" value={formatDateTime(job.updatedAt)} />
+            </div>
+          </Card>
+
+          <Card>
+            <SectionHeader title="Thông tin công ty" />
+            <div className="space-y-3 text-sm text-slate-700">
+              <InfoRow label="Tên công ty" value={companyName} />
+              <InfoRow label="Xác thực" value={companyStatus ? COMPANY_STATUS_LABELS[companyStatus] : null} />
+              <InfoRow label="Lĩnh vực" value={company?.industry} />
+              <InfoRow label="Mã số thuế" value={company?.taxCode} />
+              <InfoRow label="Địa chỉ" value={company?.address || job.location} />
+              <InfoRow label="Website" value={company?.website} />
+              <InfoRow label="Điện thoại" value={company?.phone} />
+              <InfoRow label="Email" value={company?.email} />
+            </div>
+            {company?.description ? (
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Giới thiệu công ty</p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{company.description}</p>
+              </div>
+            ) : null}
           </Card>
         </aside>
       </div>
@@ -787,16 +970,40 @@ async function getMyCompany() {
   return response.data.data;
 }
 
+function createJobAccessError(status: number, message: string) {
+  return Object.assign(new Error(message), {
+    response: { status, data: { message } },
+  });
+}
+
+function getCompanyInitials(companyName: string) {
+  const letters = companyName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+  return letters || "CT";
+}
+
 async function getJobDetail(jobId: number) {
+  if (!Number.isInteger(jobId) || jobId <= 0) {
+    throw createJobAccessError(404, "Không tìm thấy tin tuyển dụng.");
+  }
   const [companyResponse, jobResponse] = await Promise.all([
     httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
     httpClient.get<ApiResponse<JobDetailResponse>>(`/jobs/${jobId}`),
   ]);
-  const job = jobResponse.data.data;
-  if (job.companyId !== companyResponse.data.data.id) {
-    throw new Error("Bạn không có quyền xem hoặc thao tác tin tuyển dụng của công ty khác.");
+  const company = companyResponse.data?.data;
+  const job = jobResponse.data?.data;
+  if (!job) {
+    throw createJobAccessError(404, "Không tìm thấy tin tuyển dụng.");
   }
-  return job;
+  if (!company || job.companyId !== company.id) {
+    throw createJobAccessError(403, "Bạn không có quyền xem hoặc thao tác tin tuyển dụng của công ty khác.");
+  }
+  return { job, company };
 }
 
 function isCompanyVerified(company: CompanyResponse) {
