@@ -309,7 +309,7 @@ function CompanyJobsSection({
       </div>
       {jobsQuery.loading ? <LoadingState /> : null}
       {!jobsQuery.loading && jobsQuery.error ? <EmptyState message={jobsQuery.error} /> : null}
-      {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Công ty chưa có tin tuyển dụng." /> : null}
+      {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Công ty chưa có tin đang tuyển." /> : null}
       {!jobsQuery.loading && jobs.length > 0 ? (
         <div className="space-y-4">
           <Table
@@ -465,28 +465,13 @@ async function updateMyCompany(form: CompanyForm) {
   return response.data.data;
 }
 
-async function getCompanyJobs(page: number) {
-  const [companyResponse, jobsResponse] = await Promise.all([
-    httpClient.get<ApiResponse<CompanyResponse>>("/companies/me"),
-    httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/jobs", {
-      params: { page: 1, size: 100 },
-    }),
-  ]);
-  const companyId = companyResponse.data.data.id;
-  const pageSize = 5;
-  const ownActiveJobs = jobsResponse.data.data.items.filter((job) => job.companyId === companyId && job.status === "ACTIVE");
-  const totalItems = ownActiveJobs.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const start = (currentPage - 1) * pageSize;
+const COMPANY_JOBS_PAGE_SIZE = 5;
 
-  return {
-    items: ownActiveJobs.slice(start, start + pageSize),
-    page: currentPage,
-    size: pageSize,
-    totalItems,
-    totalPages,
-  };
+async function getCompanyJobs(page: number) {
+  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/companies/me/jobs", {
+    params: { page, size: COMPANY_JOBS_PAGE_SIZE, status: "ACTIVE" },
+  });
+  return response.data.data;
 }
 
 function mapCompanyToForm(company: CompanyResponse): CompanyForm {

@@ -559,28 +559,15 @@ async function saveCandidateByApplication(applicationId: number) {
   return response.data.data;
 }
 
-async function getCompanyJobs() {
-  const applications = await getCompanyApplicationJobSources();
-  const jobsById = new Map<number, JobResponse>();
-  applications.forEach((application) => {
-    if (!jobsById.has(application.jobId)) {
-      jobsById.set(application.jobId, {
-        id: application.jobId,
-        companyId: application.companyId,
-        title: application.jobTitle,
-      });
-    }
-  });
-  return Array.from(jobsById.values());
-}
+const COMPANY_JOBS_PAGE_SIZE = 100;
 
-async function getCompanyApplicationJobSources(page = 1, items: ApplicationResponse[] = []): Promise<ApplicationResponse[]> {
-  const response = await httpClient.get<ApiResponse<PageResponse<ApplicationResponse>>>("/companies/me/applications", {
-    params: { page, size: 100, sort: "appliedAt,desc" },
+async function getCompanyJobs(page = 1, items: JobResponse[] = []): Promise<JobResponse[]> {
+  const response = await httpClient.get<ApiResponse<PageResponse<JobResponse>>>("/companies/me/jobs", {
+    params: { page, size: COMPANY_JOBS_PAGE_SIZE },
   });
   const data = response.data.data;
   const nextItems = [...items, ...data.items];
-  if (data.page < data.totalPages) return getCompanyApplicationJobSources(page + 1, nextItems);
+  if (data.items.length > 0 && data.page < data.totalPages) return getCompanyJobs(page + 1, nextItems);
   return nextItems;
 }
 

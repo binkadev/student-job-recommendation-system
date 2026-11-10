@@ -104,6 +104,7 @@ interface JobFormState {
   currency: string;
   deadline: string;
   skillIds: string[];
+  skillConfig: Record<string, SkillConfig>;
 }
 
 type JobStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "CLOSED" | "REJECTED" | "EXPIRED";
@@ -112,6 +113,10 @@ type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type WorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
 type SkillImportance = "REQUIRED" | "PREFERRED" | "NICE_TO_HAVE";
 type SkillLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+interface SkillConfig { importance: SkillImportance | null; minLevel: SkillLevel | null }
+const DEFAULT_SKILL_CONFIG: SkillConfig = { importance: "REQUIRED", minLevel: "BEGINNER" };
+const SKILL_IMPORTANCE_LABELS: Record<SkillImportance, string> = { REQUIRED: "Bắt buộc", PREFERRED: "Ưu tiên", NICE_TO_HAVE: "Là điểm cộng" };
+const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = { BEGINNER: "Cơ bản", INTERMEDIATE: "Trung bình", ADVANCED: "Nâng cao" };
 
 const DEFAULT_FORM: JobFormState = {
   title: "",
@@ -127,6 +132,7 @@ const DEFAULT_FORM: JobFormState = {
   currency: "đồng",
   deadline: "",
   skillIds: [],
+  skillConfig: {},
 };
 
 const JOB_STATUS_LABELS: Record<JobStatus, string> = {
@@ -157,8 +163,8 @@ const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   BLOCKED: "Bị khóa",
 };
 
-const maxJobTitleLength = 50;
-const maxJobContentLength = 150;
+const maxJobTitleLength = 255; // CreateJobRequest/UpdateJobRequest @Size(max = 255)
+const maxJobContentLength = 10000; // description/requirements/benefits @Size(max = 10000)
 const maxSalaryAmount = 1_000_000_000;
 
 const VIETNAM_PROVINCES = [
@@ -487,9 +493,23 @@ function JobFormView({ mode, job, company, onSaved }: { mode: "create" | "edit";
 
   function toggleSkill(skillId: number, checked: boolean) {
     const value = String(skillId);
+    setForm((current) => {
+      const skillConfig = { ...current.skillConfig };
+      if (checked) skillConfig[value] = skillConfig[value] ?? { ...DEFAULT_SKILL_CONFIG };
+      else delete skillConfig[value];
+      return {
+        ...current,
+        skillIds: checked ? Array.from(new Set([...current.skillIds, value])) : current.skillIds.filter((item) => item !== value),
+        skillConfig,
+      };
+    });
+  }
+
+  function updateSkillConfig(skillId: number, patch: Partial<SkillConfig>) {
+    const key = String(skillId);
     setForm((current) => ({
       ...current,
-      skillIds: checked ? Array.from(new Set([...current.skillIds, value])) : current.skillIds.filter((item) => item !== value),
+      skillConfig: { ...current.skillConfig, [key]: { ...(current.skillConfig[key] ?? DEFAULT_SKILL_CONFIG), ...patch } },
     }));
   }
 
@@ -582,13 +602,31 @@ function JobFormView({ mode, job, company, onSaved }: { mode: "create" | "edit";
             {!skillsQuery.loading && skillsQuery.data?.length === 0 ? <EmptyState message="Chưa có danh mục kỹ năng." /> : null}
             <div className="grid gap-2 md:grid-cols-2">
               {(skillsQuery.data ?? []).map((skill) => (
-                <label key={skill.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm transition-colors focus-within:ring-2 focus-within:ring-brand-200 ${selectedSkillIds.has(String(skill.id)) ? "border-brand-300 bg-brand-50" : "border-slate-200 hover:border-brand-200"}`}>
+                <div key={skill.id} className="space-y-2">
+                <label className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm transition-colors focus-within:ring-2 focus-within:ring-brand-200 ${selectedSkillIds.has(String(skill.id)) ? "border-brand-300 bg-brand-50" : "border-slate-200 hover:border-brand-200"}`}>
                   <input className="h-4 w-4 shrink-0 accent-brand-600" type="checkbox" checked={selectedSkillIds.has(String(skill.id))} onChange={(event) => toggleSkill(skill.id, event.target.checked)} />
                   <span>
                     <strong className="block text-slate-900">{skill.name}</strong>
                     <span className="text-xs text-slate-500">{skill.category || "Chưa phân loại"}</span>
                   </span>
                 </label>
+                {selectedSkillIds.has(String(skill.id)) ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select
+                      label={`Mức độ quan trọng - ${skill.name}`}
+                      value={form.skillConfig[String(skill.id)]?.importance ?? ""}
+                      onChange={(event) => updateSkillConfig(skill.id, { importance: (event.target.value || null) as SkillImportance | null })}
+                      options={[...(form.skillConfig[String(skill.id)]?.importance ? [] : [{ label: "Chưa xác định", value: "" }]), ...Object.entries(SKILL_IMPORTANCE_LABELS).map(([value, label]) => ({ value, label }))]}
+                    />
+                    <Select
+                      label={`Trình độ tối thiểu - ${skill.name}`}
+                      value={form.skillConfig[String(skill.id)]?.minLevel ?? ""}
+                      onChange={(event) => updateSkillConfig(skill.id, { minLevel: (event.target.value || null) as SkillLevel | null })}
+                      options={[...(form.skillConfig[String(skill.id)]?.minLevel ? [] : [{ label: "Chưa xác định", value: "" }]), ...Object.entries(SKILL_LEVEL_LABELS).map(([value, label]) => ({ value, label }))]}
+                    />
+                  </div>
+                ) : null}
+                </div>
               ))}
             </div>
           </Card>
@@ -810,6 +848,7 @@ function mapJobToForm(job: JobDetailResponse): JobFormState {
     currency: "đồng",
     deadline: job.deadline ? job.deadline.slice(0, 10) : "",
     skillIds: job.skills?.map((skill) => String(skill.skillId)) ?? [],
+    skillConfig: Object.fromEntries((job.skills ?? []).map((skill) => [String(skill.skillId), { importance: skill.importance ?? null, minLevel: skill.minLevel ?? null }])),
   };
 }
 
@@ -825,6 +864,7 @@ function areJobFormsEqual(left: JobFormState, right: JobFormState) {
     salaryMax: form.salaryMax.trim(),
     deadline: form.deadline.trim(),
     skillIds: [...form.skillIds].sort(),
+    skillConfig: form.skillIds.slice().sort().map((id) => [id, form.skillConfig[id]?.importance ?? null, form.skillConfig[id]?.minLevel ?? null]),
   });
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 }
@@ -845,8 +885,8 @@ function buildJobPayload(form: JobFormState) {
     deadline: emptyToNull(form.deadline),
     skills: form.skillIds.map((skillId) => ({
       skillId: Number(skillId),
-      importance: "REQUIRED" as SkillImportance,
-      minLevel: "BEGINNER" as SkillLevel,
+      importance: (form.skillConfig[skillId] ?? DEFAULT_SKILL_CONFIG).importance,
+      minLevel: (form.skillConfig[skillId] ?? DEFAULT_SKILL_CONFIG).minLevel,
     })),
   };
 }
