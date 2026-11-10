@@ -84,6 +84,8 @@ function candidateRouteElement(route: AppRoute) {
       return <CandidateJobsPage mode="recommended" />;
     case "/candidate/jobs/saved":
       return <CandidateJobsPage mode="saved" />;
+    case "/candidate/jobs/saved-searches":
+      return <CandidateJobsPage mode="saved-searches" />;
     case "/candidate/profile":
       return <CandidateProfilePage />;
     case "/candidate/profile/edit":

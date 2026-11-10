@@ -29,6 +29,7 @@ export const candidateRoutes: AppRoute[] = [
   { path: "/candidate/jobs/:jobId", title: "Chi tiết việc làm", description: "Chi tiết công việc và mức độ phù hợp với hồ sơ.", role: "candidate", nextPath: "/candidate/applications", nextLabel: "Ứng tuyển" },
   { path: "/candidate/jobs/recommended", title: "Việc làm gợi ý", description: "Danh sách công việc phù hợp với CV và hồ sơ cá nhân.", role: "candidate", nextPath: "/candidate/jobs/1", nextLabel: "Xem chi tiết" },
   { path: "/candidate/jobs/saved", title: "Việc làm đã lưu", description: "Các công việc ứng viên đã lưu.", role: "candidate" },
+  { path: "/candidate/jobs/saved-searches", title: "Tìm kiếm đã lưu", description: "Quản lý các bộ lọc tìm việc bạn đã lưu.", role: "candidate", nextPath: "/candidate/jobs", nextLabel: "Tìm việc làm" },
   { path: "/candidate/profile", title: "Hồ sơ cá nhân", description: "Thông tin cá nhân, mục tiêu nghề nghiệp, học vấn và kỹ năng.", role: "candidate", nextPath: "/candidate/profile/edit", nextLabel: "Cập nhật hồ sơ" },
   { path: "/candidate/profile/edit", title: "Chỉnh sửa hồ sơ", description: "Cập nhật thông tin hồ sơ cá nhân.", role: "candidate", nextPath: "/candidate/profile/preferences", nextLabel: "Thiết lập mong muốn" },
   { path: "/candidate/profile/preferences", title: "Mong muốn nghề nghiệp", description: "Thiết lập vị trí, địa điểm và mức lương mong muốn.", role: "candidate", nextPath: "/candidate/cvs", nextLabel: "Quản lý CV" },

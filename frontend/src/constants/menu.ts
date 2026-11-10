@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bell,
+  Bookmark,
   BriefcaseBusiness,
   Building2,
   FileText,
@@ -23,6 +24,7 @@ export const candidateMenu: MenuItem[] = [
       { label: "Tìm việc", path: "/candidate/jobs", icon: Search },
       { label: "Việc làm gợi ý", path: "/candidate/jobs/recommended", icon: BriefcaseBusiness },
       { label: "Việc làm đã lưu", path: "/candidate/jobs/saved", icon: Inbox },
+      { label: "Tìm kiếm đã lưu", path: "/candidate/jobs/saved-searches", icon: Bookmark },
     ],
   },
   {
