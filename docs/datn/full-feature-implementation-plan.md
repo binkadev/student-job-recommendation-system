@@ -235,3 +235,16 @@ To preserve architectural integrity and V3 AI contracts, the following routes re
 2. **`/candidate/cvs/templates` & `/candidate/cvs/builder` (`STU-10`):** Out of product scope (system ingests real PDF/DOCX files via `pdfplumber` and `python-docx`).
 3. **`/verify-email` & `/two-factor` (`AUTH-07`):** Out of scope for local demo environment (no external SMTP/SMS gateway required).
 4. **`/recruiter/members` (`COM-21`) & `/recruiter/settings/recruitment-process` (`COM-22`):** Single-account-per-company model (`companies.user_id UNIQUE`) and fixed deterministic Application state machine (`AGENTS.md`).
+
+---
+
+## Integration-review addendum (2026-11-11)
+
+This document is a **planning baseline**, not a mandate to implement every proposed schema or API as written. Before each later Wave, verify actual class names, current endpoints, released migrations, business rules, data access policy and integration status against latest `master`. In particular:
+
+- The V3 recommendation success path is `modules/recommendation/service/impl/RecommendationTransactionService.java`, not `RecommendationServiceImpl.java`; do not change AI V3 scoring.
+- Notification UI is shared under `frontend/src/features/account/NotificationsPanel.tsx` and `notificationsApi.ts`; do not assume a `RecruiterNotificationsPage.tsx` file exists.
+- Job creation/update DTOs are `CreateJobRequest.java` and `UpdateJobRequest.java`; verify field constraints directly rather than relying on proposed values in this plan.
+- `V22`–`V26` are **proposed reservations only**, not committed migration versions. Confirm against latest merged migration history before adding any migration.
+- Completed Wave 1 changes were submitted separately as draft PRs #69 (Student), #68 (Company), and #70 (notifications), on top of the Wave 0 documentation PR #67. Check their actual merged heads and tests before planning further work.
+- Claims of isolated/browser test success come from each task's handoff evidence; Wave 0 itself was a source-only audit. Rerun integrated checks after merging, without touching the preserved manual demo data.
