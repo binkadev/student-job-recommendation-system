@@ -105,7 +105,8 @@ class RecommendationTransactionServiceV3Test {
         });
         RecommendationTransactionService service = new RecommendationTransactionService(students, cvs, jobs, runs, results,
                 v2Corpus, mock(AiRecommendationRequestMapper.class), v3Corpus, new AiRecommendationV3RequestMapper(),
-                new SkillCatalogCanonicalizer(), mock(RecommendationFailureMessageSanitizer.class));
+                new SkillCatalogCanonicalizer(), mock(RecommendationFailureMessageSanitizer.class),
+                mock(com.tttn.jobrecommendation.modules.notification.service.NotificationService.class));
         return new Fixture(service, cvs, v2Corpus, v3Corpus);
     }
 

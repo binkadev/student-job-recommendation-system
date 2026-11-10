@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,6 +51,7 @@ public class RecommendationTransactionService {
     private final AiRecommendationV3RequestMapper v3RequestMapper;
     private final SkillCatalogCanonicalizer skillCatalogCanonicalizer;
     private final RecommendationFailureMessageSanitizer failureMessageSanitizer;
+    private final NotificationService notificationService;
 
     @Transactional
     public RecommendationGenerationContext createProcessingRun(
@@ -191,7 +193,8 @@ public class RecommendationTransactionService {
         run.setStatus(RecommendationRunStatus.SUCCESS);
         run.setFinishedAt(LocalDateTime.now());
         run.setErrorMessage(null);
-        recommendationRunRepository.save(run);
+        RecommendationRun savedRun = recommendationRunRepository.save(run);
+        notificationService.createRecommendationReadyNotification(savedRun, results.size());
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

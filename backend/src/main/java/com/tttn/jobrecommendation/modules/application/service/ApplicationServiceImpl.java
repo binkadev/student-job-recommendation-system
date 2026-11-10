@@ -101,6 +101,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 job.getId()
         );
         if (latestApplication.isPresent() && latestApplication.get().getStatus() != ApplicationStatus.REJECTED) {
+            if (latestApplication.get().getStatus() != ApplicationStatus.WITHDRAWN) {
+                // A concurrent duplicate committed between the two reads above: still a duplicate active application.
+                throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
+            }
             throw new AppException(
                     ErrorCode.BAD_REQUEST,
                     "Reapplication is only allowed after the latest application was rejected"
@@ -116,14 +120,18 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .coverLetter(trimToNull(request.getCoverLetter()))
                 .build();
 
+        JobApplication savedApplication;
         try {
-            return applicationMapper.toApplicationResponse(applicationRepository.saveAndFlush(application));
+            savedApplication = applicationRepository.saveAndFlush(application);
         } catch (DataIntegrityViolationException exception) {
             if (isActiveApplicationConstraintViolation(exception)) {
                 throw new AppException(ErrorCode.APPLICATION_ALREADY_ACTIVE);
             }
             throw exception;
         }
+        // Same transaction as the application row: a rolled-back apply never leaves a notification.
+        notificationService.createApplicationSubmittedNotification(savedApplication);
+        return applicationMapper.toApplicationResponse(savedApplication);
     }
 
     @Override
@@ -284,6 +292,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobApplication savedApplication = applicationRepository.save(application);
         if (role == UserRole.COMPANY || role == UserRole.ADMIN) {
             notificationService.createApplicationStatusChangedNotification(savedApplication);
+        } else if (role == UserRole.STUDENT && savedApplication.getStatus() == ApplicationStatus.WITHDRAWN) {
+            notificationService.createApplicationWithdrawnNotification(savedApplication);
         }
 
         return applicationMapper.toApplicationResponse(savedApplication);

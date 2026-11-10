@@ -11,7 +11,7 @@ import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { useToast } from "../../hooks/useToast";
 import { getApiErrorMessage } from "../../utils/apiErrors";
-import { listNotifications, markRead, notificationPath, notificationTypes, NOTIFICATIONS_CHANGED, type Notification, type NotificationPage } from "./notificationsApi";
+import { listNotifications, markRead, notificationMessage, notificationPath, notificationTitle, notificationTypes, NOTIFICATIONS_CHANGED, type Notification, type NotificationPage } from "./notificationsApi";
 import { useSessionAlive } from "./useSessionAlive";
 import { useUnreadCount } from "./useUnreadCount";
 
@@ -91,9 +91,9 @@ export function NotificationsPanel({ role }: { role: "candidate" | "recruiter" }
       {result.items.length === 0 ? <EmptyState message="Không có thông báo phù hợp." /> : <div className="grid gap-3">
         {result.items.map(item => <Card key={item.id} className={item.isRead ? "" : "border-brand-200 bg-brand-50/40"}>
           <article className="space-y-3 break-words" aria-label={item.title}>
-            <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-slate-950">{title(item)}</h2>
+            <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-slate-950">{notificationTitle(item.title)}</h2>
               <StatusBadge label={notificationTypes[item.type] ?? item.type} /><StatusBadge label={item.isRead ? "Đã đọc" : "Chưa đọc"} tone={item.isRead ? "neutral" : "warning"} /></div>
-            <p className="text-sm leading-6 text-slate-600">{message(item.message)}</p>
+            <p className="text-sm leading-6 text-slate-600">{notificationMessage(item.message)}</p>
             <p className="text-xs text-slate-500">{new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" disabled={pending || unverified} onClick={() => void read(item, true)}>Mở</Button>
@@ -105,14 +105,4 @@ export function NotificationsPanel({ role }: { role: "candidate" | "recruiter" }
       <Pagination page={result.page} totalPages={result.totalPages} onPageChange={page => { if (!pending && !loading) setFilter(current => ({ ...current, page })); }} />
     </> : null}
   </section>;
-}
-
-function title(item: Notification) {
-  return item.title === "Application status updated" ? "Trạng thái ứng tuyển đã cập nhật" : item.title;
-}
-function message(value: string) {
-  const states: Record<string, string> = { PENDING: "Chờ xử lý", REVIEWED: "Đã xem xét", ACCEPTED: "Được chấp nhận", REJECTED: "Bị từ chối", WITHDRAWN: "Đã rút đơn" };
-  const match = value.match(/^Your application for (.+) has been updated to ([A-Z_]+)\.?$/i);
-  if (match) return `Đơn ứng tuyển cho ${match[1]} đã được cập nhật sang trạng thái ${states[match[2]] ?? match[2]}.`;
-  return value;
 }

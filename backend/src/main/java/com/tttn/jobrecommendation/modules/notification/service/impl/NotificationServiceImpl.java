@@ -1,10 +1,16 @@
 package com.tttn.jobrecommendation.modules.notification.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.CompanyStatus;
+import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.enums.NotificationType;
 import com.tttn.jobrecommendation.common.enums.ReferenceType;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.common.response.PageResponse;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
+import com.tttn.jobrecommendation.modules.company.entity.Company;
+import com.tttn.jobrecommendation.modules.job.entity.Job;
+import com.tttn.jobrecommendation.modules.recommendation.entity.RecommendationRun;
+import com.tttn.jobrecommendation.modules.user.entity.User;
 import com.tttn.jobrecommendation.modules.notification.dto.response.NotificationResponse;
 import com.tttn.jobrecommendation.modules.notification.dto.response.UnreadNotificationCountResponse;
 import com.tttn.jobrecommendation.modules.notification.entity.Notification;
@@ -119,5 +125,103 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
 
         notificationRepository.save(notification);
+    }
+
+    @Override
+    @Transactional
+    public void createApplicationSubmittedNotification(JobApplication application) {
+        deliver(
+                application.getJob().getCompany().getUser(),
+                NotificationType.APPLICATION_STATUS_CHANGED,
+                "New application received",
+                displayName(application.getStudent().getUser()) + " applied for " + application.getJob().getTitle() + ".",
+                ReferenceType.APPLICATION,
+                application.getId()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createApplicationWithdrawnNotification(JobApplication application) {
+        deliver(
+                application.getJob().getCompany().getUser(),
+                NotificationType.APPLICATION_STATUS_CHANGED,
+                "Application withdrawn",
+                displayName(application.getStudent().getUser()) + " withdrew the application for "
+                        + application.getJob().getTitle() + ".",
+                ReferenceType.APPLICATION,
+                application.getId()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void createJobModerationNotification(Job job, JobStatus newStatus) {
+        String title;
+        String message;
+        if (newStatus == JobStatus.ACTIVE) {
+            title = "Job approved";
+            message = "Your job \"" + job.getTitle() + "\" was approved and is now active.";
+        } else if (newStatus == JobStatus.REJECTED) {
+            title = "Job rejected";
+            message = "Your job \"" + job.getTitle() + "\" was rejected by an administrator.";
+        } else {
+            return;
+        }
+        deliver(job.getCompany().getUser(), NotificationType.JOB_STATUS_CHANGED, title, message,
+                ReferenceType.JOB, job.getId());
+    }
+
+    @Override
+    @Transactional
+    public void createCompanyVerificationNotification(Company company, CompanyStatus newStatus) {
+        String title;
+        String message;
+        if (newStatus == CompanyStatus.VERIFIED) {
+            title = "Company verified";
+            message = "Your company account has been verified. You can now submit and publish jobs.";
+        } else if (newStatus == CompanyStatus.BLOCKED) {
+            title = "Company blocked";
+            message = "Your company account has been blocked by an administrator.";
+        } else {
+            return;
+        }
+        deliver(company.getUser(), NotificationType.SYSTEM, title, message, null, null);
+    }
+
+    @Override
+    @Transactional
+    public void createRecommendationReadyNotification(RecommendationRun run, int resultCount) {
+        deliver(
+                run.getStudent().getUser(),
+                NotificationType.RECOMMENDATION,
+                "Job recommendations are ready",
+                resultCount == 0
+                        ? "Your recommendation run finished, but no jobs met the matching threshold."
+                        : "Your recommendation run finished with " + resultCount + " matching job"
+                                + (resultCount == 1 ? "" : "s") + ".",
+                ReferenceType.RECOMMENDATION_RUN,
+                run.getId()
+        );
+    }
+
+    private void deliver(User recipient, NotificationType type, String title, String message,
+                         ReferenceType referenceType, Long referenceId) {
+        if (!notificationSettingsService.isEnabled(recipient.getId(), type)) {
+            return;
+        }
+        notificationRepository.save(Notification.builder()
+                .user(recipient)
+                .type(type)
+                .title(title)
+                .message(message)
+                .referenceType(referenceType)
+                .referenceId(referenceId)
+                .read(false)
+                .build());
+    }
+
+    private String displayName(User user) {
+        return user.getFullName() == null || user.getFullName().isBlank() ? "A student" : user.getFullName().trim();
     }
 }

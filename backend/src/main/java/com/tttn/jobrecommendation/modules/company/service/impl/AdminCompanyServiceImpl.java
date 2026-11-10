@@ -1,8 +1,10 @@
 package com.tttn.jobrecommendation.modules.company.service.impl;
 
+import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.common.response.PageResponse;
+import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
 import com.tttn.jobrecommendation.common.utils.PageableUtils;
 import com.tttn.jobrecommendation.modules.company.dto.request.AdminCompanyFilterRequest;
 import com.tttn.jobrecommendation.modules.company.dto.request.AdminCompanyStatusUpdateRequest;
@@ -46,6 +48,7 @@ public class AdminCompanyServiceImpl implements AdminCompanyService {
     private final CompanyRepository companyRepository;
     private final JobRepository jobRepository;
     private final CompanyMapper companyMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -90,8 +93,13 @@ public class AdminCompanyServiceImpl implements AdminCompanyService {
     public AdminCompanyResponse updateStatus(Long id, AdminCompanyStatusUpdateRequest request) {
         Company company = companyRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+        CompanyStatus previousStatus = company.getStatus();
         company.setStatus(request.getStatus());
         Company savedCompany = companyRepository.save(company);
+        if (previousStatus != request.getStatus()
+                && (request.getStatus() == CompanyStatus.VERIFIED || request.getStatus() == CompanyStatus.BLOCKED)) {
+            notificationService.createCompanyVerificationNotification(savedCompany, request.getStatus());
+        }
         return companyMapper.toAdminCompanyResponse(savedCompany, countOpenJobs(savedCompany));
     }
 

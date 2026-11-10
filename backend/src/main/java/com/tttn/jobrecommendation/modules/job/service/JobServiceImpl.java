@@ -15,6 +15,7 @@ import com.tttn.jobrecommendation.modules.job.dto.request.JobFilterRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.JobSkillRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.UpdateJobRequest;
 import com.tttn.jobrecommendation.modules.job.dto.request.UpdateJobStatusRequest;
+import com.tttn.jobrecommendation.modules.notification.service.NotificationService;
 import com.tttn.jobrecommendation.modules.job.dto.response.JobDetailResponse;
 import com.tttn.jobrecommendation.modules.job.dto.response.JobResponse;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
@@ -55,6 +56,7 @@ public class JobServiceImpl implements JobService {
     private final CompanyRepository companyRepository;
     private final JobMapper jobMapper;
     private final JobModerationPolicy moderationPolicy;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -198,8 +200,13 @@ public class JobServiceImpl implements JobService {
         assertCanManage(job, userId, role);
         moderationPolicy.assertTransition(role, job.getCompany().getStatus(), job.getStatus(), request.getStatus());
         if (job.getStatus() == request.getStatus()) return jobMapper.toJobDetailResponse(job, getJobSkills(job));
+        JobStatus previousStatus = job.getStatus();
         applyStatus(job, request.getStatus());
         Job savedJob = jobRepository.save(job);
+        if (role == UserRole.ADMIN && previousStatus == JobStatus.PENDING_APPROVAL
+                && (request.getStatus() == JobStatus.ACTIVE || request.getStatus() == JobStatus.REJECTED)) {
+            notificationService.createJobModerationNotification(savedJob, request.getStatus());
+        }
         return jobMapper.toJobDetailResponse(savedJob, getJobSkills(savedJob));
     }
 
