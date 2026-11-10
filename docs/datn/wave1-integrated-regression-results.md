@@ -6,7 +6,7 @@
 - **Merged Wave 1 PRs:**
   - **W1-B1 (`1124f3ed`, PR #68):** Company workspace fixes (`/companies/me/jobs` pagination & `ACTIVE` scope in `RecruiterCompanyPage`, owner-scoped job filter >100 jobs & zero-applicant jobs in `RecruiterCandidatesPage`, Backend DTO limits `255`/`10000` and skill `importanceLevel`/`minimumLevel` persistence in `RecruiterJobsPage`).
   - **W1-A (`3e19bc25`, PR #69):** Student workspace fixes (Saved Searches route `/candidate/jobs/saved-searches` & CRUD/apply-filter integration, CV V2 analysis metadata display, deterministic CV review route `/candidate/cvs/:cvId/review`).
-  - **W1-C (`082cba27`, PR #70):** Real automatic notifications (`NotificationServiceImpl` post-commit delivery, Student apply/withdraw notifications to owning Company, Admin Job moderation and Company verification/block notifications, Student Recommendation V3 generation notification, notification preference & RBAC enforcement, Vietnamese inbox rendering and safe navigation).
+  - **W1-C (`082cba27`, PR #70):** Real automatic notifications (`NotificationServiceImpl` transactional notification persistence, Student apply/withdraw notifications to owning Company, Admin Job moderation and Company verification/block notifications, Student Recommendation V3 generation notification, notification preference & RBAC enforcement, Vietnamese inbox rendering and safe navigation).
 
 ## 2. Test Execution Summary
 
@@ -41,7 +41,7 @@
 
 1. **Route Navigation (`routes.spec.mjs`, `w1a-student-workspace.spec.mjs`):** All 80 non-Admin routes (105 total declared routes including `/candidate/cvs/:cvId/review` and `/candidate/jobs/saved-searches`) render without uncaught page errors and enforce role guards (`/403` / `/login`).
 2. **API Compatibility & Authentication (`api.spec.mjs`, `settings-notifications.spec.mjs`):** JWT login, session isolation, ETag concurrency (`If-Match` `428`/`409` on profile and settings), and owner-scoped `/api/companies/me/jobs` pagination (`size` up to `100`, >100 rows across pages) work together without conflict.
-3. **Automatic Notifications (`AutomaticNotificationsApiIT`, `automatic-notifications-isolated.spec.mjs`):** Student apply/withdraw, Admin Job moderation/Company verification, and Student V3 recommendation generation emit post-commit notifications, respect `user_notification_settings`, block duplicates/invalid transitions, and navigate safely from Student and Company inboxes.
+3. **Automatic Notifications (`AutomaticNotificationsApiIT`, `automatic-notifications-isolated.spec.mjs`):** Student apply/withdraw, Admin Job moderation/Company verification, and Student V3 recommendation generation persist notifications as part of the relevant business transactions, respect `user_notification_settings`, block duplicates/invalid transitions, and navigate safely from Student and Company inboxes.
 4. **Recommendation & Candidate Ranking V3 (`api.spec.mjs` `A04`/`A10`, `browser.spec.mjs` `B05`/`B07`, `automatic-notifications-isolated.spec.mjs` `N05`):** Persisted CV V2 `READY` snapshots drive V3 `PRIMARY` (`SAME_LANGUAGE_HYBRID`) and `FALLBACK` (`CROSS_LANGUAGE_SKILL_BASED`) scoring and trigger Student recommendation notifications upon completion.
 
 ## 5. Manual-Demo Database Preservation
@@ -51,3 +51,16 @@ Read-only row-level MD5 verification (`BEGIN READ ONLY; ... md5(row_to_json(r)::
 - **Pre-verification snapshot:** `2026-11-10T19:05:58.295Z` (`19` tables, `3,181` rows)
 - **Post-verification snapshot:** `2026-11-10T19:20:32.808Z` (`19` tables, `3,181` rows)
 - **Comparison result:** `identical = true` (`users: 45`, `students: 33`, `companies: 11`, `jobs: 196`, `applications: 210`, `cv_files: 20`, `recommendation_runs: 93`, `recommendation_results: 1906`, `candidate_ranking_runs: 56`, `candidate_ranking_results: 165`, `notifications: 222`)
+
+---
+
+## 6. Follow-up Fix and Build Verification (2026-11-10)
+
+The original integrated regression result above remains a **historical test snapshot** for `master` at `082cba27`. Its reported `tsc -b` failure is retained intentionally rather than retroactively changed to PASS.
+
+- **Fix:** PR #72, commit `ae7d8ec5`, added an explicit nullable mock-item type to `frontend/src/pages/candidate/CandidateW1AWorkspace.test.tsx`. Only this test file changed; no production logic, AI service, database or migrations were modified.
+- **Focused post-fix verification reported by the implementing agent:** `npm run build` (`tsc -b && vite build`) **PASS**, 2,456 modules bundled; `npx vitest run src/pages/candidate/CandidateW1AWorkspace.test.tsx` **6/6 PASS**.
+- **Merge:** PR #72 was merged into `master` as `352838bf4b52ad50ff4dc6ee73cfda224b3023d2`.
+- **Result:** The previously documented typecheck failure was resolved and the production build passed in the focused follow-up. The original full-suite and demo-data-preservation results remain those from the earlier `082cba27` integrated regression run; **they were not all rerun after the fix**.
+
+This follow-up closes the build blocker without implying a new full integrated regression run.
