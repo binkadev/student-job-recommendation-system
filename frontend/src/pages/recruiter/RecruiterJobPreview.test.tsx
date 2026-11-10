@@ -208,15 +208,4 @@ describe("DATN W1-B2.1 — Recruiter Job Preview (/recruiter/jobs/:jobId/preview
     await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "Backend Java Spring Boot Engineer" })).toBeInTheDocument());
   });
-
-  it("keeps /recruiter/jobs/:jobId/statistics on UnsupportedJobView as scoped", async () => {
-    vi.mocked(httpClient.get).mockImplementation(async (url) => {
-      if (url === "/companies/me") return envelope(mockCompany);
-      if (url === "/jobs/42") return envelope(mockJob);
-      throw new Error(`Unexpected GET ${url}`);
-    });
-
-    renderPreview("/recruiter/jobs/42/statistics", "statistics");
-    expect(await screen.findByText("Chưa có dữ liệu thống kê cho tin tuyển dụng này.")).toBeInTheDocument();
-  });
 });

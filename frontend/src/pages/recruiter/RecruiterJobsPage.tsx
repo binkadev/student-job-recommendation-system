@@ -120,6 +120,48 @@ type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 type WorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
 type SkillImportance = "REQUIRED" | "PREFERRED" | "NICE_TO_HAVE";
 type SkillLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+type ApplicationStatus = "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+
+interface JobRecruitmentSummary {
+  totalApplications: number;
+  uniqueStudents: number;
+  statusCounts?: Partial<Record<ApplicationStatus, number>> | null;
+  acceptedRate: number | null;
+}
+
+interface JobRecruitmentTrendRow {
+  bucket: string;
+  applications: number;
+}
+
+interface JobRecruitmentApplicationItem {
+  id: number;
+  studentId?: number;
+  studentName: string | null;
+  studentEmail: string | null;
+  jobId: number;
+  jobTitle: string;
+  status: ApplicationStatus;
+  appliedAt: string;
+  reviewedAt?: string | null;
+  cvFileName?: string | null;
+}
+
+interface JobRecruitmentScope {
+  from: string | null;
+  to: string | null;
+  jobId: number | null;
+  status: string | null;
+  keyword: string | null;
+  timeZone: string;
+}
+
+interface JobRecruitmentReportResponse {
+  scope?: JobRecruitmentScope | null;
+  summary: JobRecruitmentSummary;
+  trend?: JobRecruitmentTrendRow[] | null;
+  applications?: PageResponse<JobRecruitmentApplicationItem> | null;
+}
 interface SkillConfig { importance: SkillImportance | null; minLevel: SkillLevel | null }
 const DEFAULT_SKILL_CONFIG: SkillConfig = { importance: "REQUIRED", minLevel: "BEGINNER" };
 const SKILL_IMPORTANCE_LABELS: Record<SkillImportance, string> = { REQUIRED: "Bắt buộc", PREFERRED: "Ưu tiên", NICE_TO_HAVE: "Là điểm cộng" };
@@ -169,6 +211,22 @@ const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
   VERIFIED: "Đã xác thực",
   BLOCKED: "Bị khóa",
 };
+
+const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  PENDING: "Chờ xử lý",
+  REVIEWED: "Đã xem",
+  ACCEPTED: "Đã nhận",
+  REJECTED: "Từ chối",
+  WITHDRAWN: "Ứng viên rút đơn",
+};
+
+const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [
+  "PENDING",
+  "REVIEWED",
+  "ACCEPTED",
+  "REJECTED",
+  "WITHDRAWN",
+];
 
 const maxJobTitleLength = 255; // CreateJobRequest/UpdateJobRequest @Size(max = 255)
 const maxJobContentLength = 10000; // description/requirements/benefits @Size(max = 10000)
@@ -410,7 +468,7 @@ function JobDetailRouter({ mode, jobId, company }: { mode: "detail" | "edit" | "
   if (mode === "edit" && resolvedJob.status !== "DRAFT") return <PrepareJobDraft job={resolvedJob} onChanged={() => setReloadKey(key => key + 1)} />;
   if (mode === "edit") return <JobFormView mode="edit" job={resolvedJob} company={resolvedCompany ?? company} onSaved={() => setReloadKey(key => key + 1)} />;
   if (mode === "preview") return <JobPreviewView job={resolvedJob} company={resolvedCompany ?? company} />;
-  if (mode === "statistics") return <UnsupportedJobView job={resolvedJob} title="Thống kê tin tuyển dụng" message="Chưa có dữ liệu thống kê cho tin tuyển dụng này." />;
+  if (mode === "statistics") return <JobStatisticsView job={resolvedJob} company={resolvedCompany ?? company} />;
   return <JobDetailView job={resolvedJob} />;
 }
 
@@ -453,6 +511,7 @@ function JobDetailView({ job }: { job: JobDetailResponse }) {
       <PageHeader title={job.title} description={`${job.companyName} • ${job.location || "Chưa cập nhật địa điểm"}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to={`/recruiter/jobs/${job.id}/preview`}><Button variant="secondary" icon={<Eye size={16} />}>Xem trước tin</Button></Link>
+        <Link to={`/recruiter/jobs/${job.id}/statistics`}><Button variant="secondary">Thống kê tin</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}><Button icon={<Users size={16} />}>Ứng viên phù hợp</Button></Link>
         <Link to={`/recruiter/jobs/${job.id}/edit`}><Button icon={<Pencil size={16} />}>{job.status === "DRAFT" ? "Sửa tin" : "Chuẩn bị chỉnh sửa"}</Button></Link>
         <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
@@ -832,18 +891,256 @@ function JobFormView({ mode, job, company, onSaved }: { mode: "create" | "edit";
   );
 }
 
-function UnsupportedJobView({ job, title, message }: { job: JobDetailResponse; title: string; message: string }) {
+function JobStatisticsView({ job, company }: { job: JobDetailResponse; company: CompanyResponse | null }) {
+  const [reloadKey, setReloadKey] = useState(0);
+  const reportQuery = useAsyncData(() => getJobRecruitmentReport(job.id), [job.id, reloadKey]);
+  const companyName = company?.companyName || job.companyName || "Chưa cập nhật tên công ty";
+
   return (
     <PageContainer>
-      <PageHeader title={title} description={job.title} />
-      <Card>
-        <EmptyState message={message} />
-        <div className="mt-4 flex gap-2">
-          <Link to={`/recruiter/jobs/${job.id}`}><Button>Xem chi tiết tin</Button></Link>
-          <Link to="/recruiter/jobs"><Button variant="secondary">Quay lại danh sách</Button></Link>
+      <PageHeader
+        title="Thống kê tin tuyển dụng"
+        description={`${job.title} • ${companyName} • Mã tin #${job.id}`}
+      />
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Button
+          variant="secondary"
+          icon={<RefreshCcw size={16} />}
+          disabled={reportQuery.loading}
+          onClick={() => setReloadKey((key) => key + 1)}
+        >
+          {reportQuery.error && !reportQuery.data ? "Thử lại" : "Tải lại thống kê"}
+        </Button>
+        <Link to={`/recruiter/jobs/${job.id}`}>
+          <Button variant="secondary">Chi tiết quản lý</Button>
+        </Link>
+        <Link to={`/recruiter/jobs/${job.id}/preview`}>
+          <Button variant="secondary" icon={<Eye size={16} />}>Xem trước tin</Button>
+        </Link>
+        <Link to={`/recruiter/jobs/${job.id}/candidate-ranking`}>
+          <Button variant="secondary" icon={<Users size={16} />}>Ứng viên phù hợp</Button>
+        </Link>
+        <Link to="/recruiter/jobs">
+          <Button variant="secondary">Quay lại danh sách</Button>
+        </Link>
+      </div>
+
+      <Card className="mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{job.title}</p>
+            <p className="mt-1 text-xs text-slate-600">
+              {formatJobMeta(job)} • {job.location || "Chưa cập nhật địa điểm"} • Hạn nộp: {formatDate(job.deadline)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Số liệu tổng hợp trực tiếp từ máy chủ cho toàn bộ lịch sử ứng tuyển của tin này (múi giờ báo cáo: {reportQuery.data?.scope?.timeZone || "UTC"}).
+            </p>
+          </div>
+          <StatusBadge label={JOB_STATUS_LABELS[job.status]} tone={jobStatusTone(job.status)} />
         </div>
       </Card>
+
+      {reportQuery.loading ? <LoadingState /> : null}
+
+      {!reportQuery.loading && (reportQuery.error || !reportQuery.data) ? (
+        <div className="space-y-3">
+          <ErrorState message={reportQuery.error ?? "Không thể tải dữ liệu thống kê cho tin tuyển dụng này."} />
+          <Button variant="secondary" icon={<RefreshCcw size={16} />} onClick={() => setReloadKey((key) => key + 1)}>
+            Thử lại
+          </Button>
+        </div>
+      ) : null}
+
+      {!reportQuery.loading && !reportQuery.error && reportQuery.data ? (
+        <JobStatisticsContent job={job} report={reportQuery.data} />
+      ) : null}
     </PageContainer>
+  );
+}
+
+function JobStatisticsContent({ job, report }: { job: JobDetailResponse; report: JobRecruitmentReportResponse }) {
+  const summary = report.summary;
+  const totalApplications = summary?.totalApplications ?? 0;
+  const uniqueStudents = summary?.uniqueStudents ?? 0;
+  const acceptedRateText =
+    summary?.acceptedRate == null
+      ? "Không áp dụng (0 đơn)"
+      : `${Number(summary.acceptedRate).toFixed(2)}%`;
+  const statusCounts = summary?.statusCounts ?? {};
+  const trendRows = report.trend ?? [];
+  const totalTrendApplications = trendRows.reduce((sum, row) => sum + (row.applications ?? 0), 0);
+  const maxTrendApplications = Math.max(0, ...trendRows.map((row) => row.applications ?? 0));
+  const applicationsPage = report.applications;
+  const recentApplications = applicationsPage?.items ?? [];
+
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Chỉ số tổng hợp tin tuyển dụng">
+        <Card className="neo-metric">
+          <p className="text-sm text-slate-500">Tổng lượt ứng tuyển</p>
+          <p data-testid="job-stat-total-applications" className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-slate-900">
+            {totalApplications.toLocaleString("vi-VN")}
+          </p>
+        </Card>
+        <Card className="neo-metric">
+          <p className="text-sm text-slate-500">Sinh viên duy nhất</p>
+          <p data-testid="job-stat-unique-students" className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-slate-900">
+            {uniqueStudents.toLocaleString("vi-VN")}
+          </p>
+        </Card>
+        <Card className="neo-metric">
+          <p className="text-sm text-slate-500">Tỷ lệ chấp nhận</p>
+          <p data-testid="job-stat-accepted-rate" className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-slate-900">
+            {acceptedRateText}
+          </p>
+        </Card>
+        <Card className="neo-metric">
+          <p className="text-sm text-slate-500">Trạng thái tin</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+            {JOB_STATUS_LABELS[job.status]}
+          </p>
+        </Card>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Card>
+          <SectionHeader
+            title="Phân bố hồ sơ theo trạng thái"
+            description="Số lượng tính trên toàn bộ hồ sơ ứng tuyển của vị trí này."
+          />
+          {totalApplications === 0 ? (
+            <p role="status" className="mb-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+              Tin tuyển dụng này chưa có hồ sơ ứng tuyển nào.
+            </p>
+          ) : null}
+          <ul className="space-y-3" aria-label="Số lượng hồ sơ theo trạng thái">
+            {APPLICATION_STATUS_ORDER.map((statusKey) => {
+              const count = statusCounts[statusKey] ?? 0;
+              const widthPercent = totalApplications > 0 ? Math.round((count / totalApplications) * 100) : 0;
+              return (
+                <li key={statusKey} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-slate-800">{APPLICATION_STATUS_LABELS[statusKey]}</span>
+                    <strong data-testid={`job-status-count-${statusKey}`} className="tabular-nums text-slate-900">
+                      {count.toLocaleString("vi-VN")}
+                    </strong>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+                    <div className="h-full rounded-full bg-brand-600" style={{ width: `${widthPercent}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+
+        <Card>
+          <SectionHeader
+            title="Xu hướng ứng tuyển theo kỳ UTC"
+            description={
+              trendRows.length
+                ? `Tổng ${totalTrendApplications.toLocaleString("vi-VN")} lượt ứng tuyển trong các kỳ được ghi nhận.`
+                : "Thống kê số lượt nộp đơn theo từng kỳ thời gian UTC."
+            }
+          />
+          {trendRows.length > 0 ? (
+            <div className="space-y-3">
+              {trendRows.every((row) => row.applications === 0) ? (
+                <p role="status" className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                  Không có lượt ứng tuyển phát sinh trong các kỳ biểu đồ gần đây.
+                </p>
+              ) : null}
+              <div className="max-h-72 overflow-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th scope="col" className="p-3">Kỳ UTC</th>
+                      <th scope="col" className="p-3">Biểu đồ</th>
+                      <th scope="col" className="p-3 text-right">Số đơn</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {trendRows.map((row) => {
+                      const pct = maxTrendApplications > 0 ? Math.round((row.applications / maxTrendApplications) * 100) : 0;
+                      return (
+                        <tr key={row.bucket}>
+                          <th scope="row" className="whitespace-nowrap p-3 font-medium text-slate-800">{row.bucket}</th>
+                          <td className="w-full p-3">
+                            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                              <div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} />
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap p-3 text-right font-semibold tabular-nums text-slate-900">
+                            {row.applications.toLocaleString("vi-VN")}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <EmptyState message="Chưa có dữ liệu xu hướng ứng tuyển theo kỳ cho tin này." />
+          )}
+        </Card>
+      </div>
+
+      <Card>
+        <SectionHeader
+          title="Hồ sơ ứng tuyển gần đây"
+          description={
+            applicationsPage
+              ? `Hiển thị ${recentApplications.length}/${applicationsPage.totalItems.toLocaleString("vi-VN")} hồ sơ của tin này (Trang ${applicationsPage.page}/${Math.max(1, applicationsPage.totalPages)})`
+              : "Danh sách 10 hồ sơ ứng tuyển mới nhất của vị trí này."
+          }
+        />
+        {recentApplications.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+                <tr>
+                  <th scope="col" className="p-3">Mã đơn</th>
+                  <th scope="col" className="p-3">Ứng viên</th>
+                  <th scope="col" className="p-3">Email</th>
+                  <th scope="col" className="p-3">Trạng thái</th>
+                  <th scope="col" className="p-3">Ngày nộp (UTC)</th>
+                  <th scope="col" className="p-3 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentApplications.map((item) => (
+                  <tr key={item.id}>
+                    <td className="p-3 font-medium">
+                      <Link className="text-brand-700 underline" to={`/recruiter/candidates/${item.id}`}>
+                        #{item.id}
+                      </Link>
+                    </td>
+                    <td className="p-3 font-medium text-slate-900">{item.studentName || item.studentEmail || "Chưa cập nhật"}</td>
+                    <td className="p-3 text-slate-600">{item.studentEmail || "Chưa cập nhật"}</td>
+                    <td className="p-3">
+                      <StatusBadge
+                        label={APPLICATION_STATUS_LABELS[item.status] ?? item.status}
+                        tone={applicationStatusTone(item.status)}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap p-3 text-slate-600">{formatDateTime(item.appliedAt)}</td>
+                    <td className="p-3 text-right">
+                      <Link to={`/recruiter/candidates/${item.id}`}>
+                        <Button size="sm" variant="secondary">Chi tiết hồ sơ</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState message="Chưa có hồ sơ ứng tuyển nào cho tin tuyển dụng này." />
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -1004,6 +1301,28 @@ async function getJobDetail(jobId: number) {
     throw createJobAccessError(403, "Bạn không có quyền xem hoặc thao tác tin tuyển dụng của công ty khác.");
   }
   return { job, company };
+}
+
+async function getJobRecruitmentReport(jobId: number) {
+  const response = await httpClient.get<ApiResponse<JobRecruitmentReportResponse>>("/companies/me/recruitment-report", {
+    params: {
+      jobId,
+      page: 1,
+      size: 10,
+    },
+  });
+  const report = response.data?.data;
+  if (!report || !report.summary) {
+    throw createJobAccessError(404, "Chưa có dữ liệu thống kê cho tin tuyển dụng này.");
+  }
+  return report;
+}
+
+function applicationStatusTone(status: ApplicationStatus) {
+  if (status === "ACCEPTED") return "success" as const;
+  if (status === "REJECTED" || status === "WITHDRAWN") return "danger" as const;
+  if (status === "REVIEWED") return "neutral" as const;
+  return "warning" as const;
 }
 
 function isCompanyVerified(company: CompanyResponse) {
