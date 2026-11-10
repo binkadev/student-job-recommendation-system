@@ -38,6 +38,7 @@ beforeEach(() => {
     if (url === "/companies/me/dashboard-summary") return envelope({ summary: { totalApplications: 120, uniqueStudents: 100, statusCounts: { PENDING: 120, REVIEWED: 0, ACCEPTED: 0, REJECTED: 0, WITHDRAWN: 0 }, acceptedRate: 0 }, jobCounts: { ACTIVE: 130 }, totalJobs: 130, trendFrom: "2026-10-06", trendTo: "2026-11-04", trend: [], topJobs: [], expiringJobs: [], expiringJobCount: 0, recentApplications: { ...page([application]), size: 5, totalItems: 120 } });
     if (url === "/companies/me/recruitment-report") return envelope({ scope: { from: null, to: null, jobId: null, status: null, keyword: null, timeZone: "UTC" }, summary: { totalApplications: 120, uniqueStudents: 100, statusCounts: { PENDING: 120, REVIEWED: 0, ACCEPTED: 0, REJECTED: 0, WITHDRAWN: 0 }, acceptedRate: 0 }, trend: [], topJobs: [], applications: { ...page([application]), totalItems: 120, totalPages: 12 } });
     if (url === "/jobs") return envelope(page([job]));
+    if (url === "/companies/me/jobs") return envelope(page([job]));
     if (url === "/skills") return envelope(page([{ id: 5, name: "React", category: "Frontend" }]));
     if (url === "/companies/me/applications") return envelope(page([application]));
     if (url === "/companies/me/saved-candidates") return envelope(page([]));
