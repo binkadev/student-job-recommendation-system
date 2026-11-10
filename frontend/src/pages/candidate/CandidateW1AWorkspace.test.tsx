@@ -146,7 +146,18 @@ describe("DATN W1-A — Student Workspace Completion", () => {
     });
 
     it("supports creating, updating, and deleting saved searches via existing Backend CRUD endpoints", async () => {
-      const items = [
+      type MockSavedSearchItem = {
+        id: number;
+        name: string;
+        keyword: string | null;
+        location: string | null;
+        jobType: string | null;
+        workingModel: string | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+
+      const items: MockSavedSearchItem[] = [
         {
           id: 9,
           name: "React Internship",
