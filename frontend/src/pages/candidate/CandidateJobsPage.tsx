@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
@@ -164,19 +164,34 @@ export function CandidateJobsPage({ mode = "list" }: CandidateJobsPageProps) {
     return <CandidateSavedJobsPage />;
   }
 
+  if (mode === "saved-searches") {
+    return <SavedSearchesPage />;
+  }
+
   return <CandidateJobsContent mode={mode} />;
 }
 
 function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
   const { getApplicationState } = useAppliedJobs();
   const { jobId } = useParams();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState("");
-  const [location, setLocation] = useState("");
-  const [jobType, setJobType] = useState<JobType | "">("");
-  const [workingModel, setWorkingModel] = useState<WorkingModel | "">("");
+  const [keyword, setKeyword] = useState(() => searchParams.get("keyword") ?? "");
+  const [location, setLocation] = useState(() => searchParams.get("location") ?? "");
+  const [jobType, setJobType] = useState<JobType | "">(() => parseJobTypeParam(searchParams.get("jobType")));
+  const [workingModel, setWorkingModel] = useState<WorkingModel | "">(() => parseWorkingModelParam(searchParams.get("workingModel")));
   const [savedReloadKey, setSavedReloadKey] = useState(0);
+  const searchParamsKey = searchParams.toString();
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsKey);
+    setKeyword(params.get("keyword") ?? "");
+    setLocation(params.get("location") ?? "");
+    setJobType(parseJobTypeParam(params.get("jobType")));
+    setWorkingModel(parseWorkingModelParam(params.get("workingModel")));
+    setPage(1);
+  }, [searchParamsKey]);
 
   const jobsQuery = useAsyncData(() => getJobs({
     page,
@@ -200,8 +215,12 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
   const result = jobsQuery.data;
   const jobs = (result?.items ?? []).map(mapJobListItem);
   const totalResults = result?.totalItems ?? 0;
-  const locations = vietnamProvinceOptions;
+  const locations = location && !vietnamProvinceOptions.some((option) => option.value === location)
+    ? [{ label: location, value: location }, ...vietnamProvinceOptions]
+    : vietnamProvinceOptions;
   const savedJobIds = new Set((savedJobsQuery.data?.items ?? []).map((item) => String(item.jobId)));
+  const hasActiveFilter = Boolean(keyword.trim() || location.trim() || jobType || workingModel);
+  const saveCurrentSearchPath = buildSavedSearchCreatePath({ keyword, location, jobType, workingModel });
 
   async function toggleSavedJob(job: Job) {
     const saved = savedJobIds.has(job.id);
@@ -225,6 +244,17 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
         title="Tìm việc"
         description="Danh sách việc làm đang tuyển phù hợp với bộ lọc của bạn."
       />
+
+      <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
+        {hasActiveFilter ? (
+          <Link to={saveCurrentSearchPath}>
+            <Button variant="secondary" size="sm">Lưu bộ lọc hiện tại</Button>
+          </Link>
+        ) : null}
+        <Link to="/candidate/jobs/saved-searches">
+          <Button variant="secondary" size="sm">Tìm kiếm đã lưu</Button>
+        </Link>
+      </div>
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_120px]">
@@ -373,11 +403,23 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
 
 function SavedSearchesPage() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [reloadKey, setReloadKey] = useState(0);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: "", keyword: "", location: "", jobType: "" as JobType | "", workingModel: "" as WorkingModel | "" });
+  const [form, setForm] = useState(() => ({
+    name: "",
+    keyword: searchParams.get("keyword") ?? "",
+    location: searchParams.get("location") ?? "",
+    jobType: parseJobTypeParam(searchParams.get("jobType")),
+    workingModel: parseWorkingModelParam(searchParams.get("workingModel")),
+  }));
   const savedSearchesQuery = useAsyncData(() => getSavedSearches(), [reloadKey]);
   const savedSearches = savedSearchesQuery.data ?? [];
+
+  function applySavedSearch(search: SavedSearchResponse) {
+    navigate(buildSavedSearchJobPath(search));
+  }
 
   function editSavedSearch(search: SavedSearchResponse) {
     setEditingId(search.id);
@@ -444,6 +486,7 @@ function SavedSearchesPage() {
                     <p className="mt-1 text-xs text-slate-500">Cập nhật: {formatDateTime(search.updatedAt)}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => applySavedSearch(search)}>Áp dụng bộ lọc</Button>
                     <Button size="sm" variant="secondary" onClick={() => editSavedSearch(search)}>Sửa</Button>
                     <Button size="sm" variant="danger" onClick={() => void deleteSearch(search.id)}>Xóa</Button>
                   </div>
@@ -474,19 +517,38 @@ function SavedSearchesPage() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function LegacySavedSearchesPage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý các bộ lọc tìm việc bạn đã lưu." />
-      <Card>
-        <EmptyState message="Chưa có tìm kiếm đã lưu." />
-        <Link to="/candidate/jobs" className="mt-4 inline-flex">
-          <Button variant="secondary">Quay lại tìm việc</Button>
-        </Link>
-      </Card>
-    </PageContainer>
-  );
+function buildSavedSearchJobPath(search: Pick<SavedSearchResponse, "keyword" | "location" | "jobType" | "workingModel">) {
+  const params = new URLSearchParams();
+  if (search.keyword?.trim()) params.set("keyword", search.keyword.trim());
+  if (search.location?.trim()) params.set("location", search.location.trim());
+  if (search.jobType) params.set("jobType", search.jobType);
+  if (search.workingModel) params.set("workingModel", search.workingModel);
+  const query = params.toString();
+  return query ? `/candidate/jobs?${query}` : "/candidate/jobs";
+}
+
+function buildSavedSearchCreatePath(filters: { keyword: string; location: string; jobType: JobType | ""; workingModel: WorkingModel | "" }) {
+  const params = new URLSearchParams();
+  if (filters.keyword.trim()) params.set("keyword", filters.keyword.trim());
+  if (filters.location.trim()) params.set("location", filters.location.trim());
+  if (filters.jobType) params.set("jobType", filters.jobType);
+  if (filters.workingModel) params.set("workingModel", filters.workingModel);
+  const query = params.toString();
+  return query ? `/candidate/jobs/saved-searches?${query}` : "/candidate/jobs/saved-searches";
+}
+
+function parseJobTypeParam(value: string | null): JobType | "" {
+  if (value === "FULL_TIME" || value === "PART_TIME" || value === "INTERNSHIP" || value === "CONTRACT") {
+    return value;
+  }
+  return "";
+}
+
+function parseWorkingModelParam(value: string | null): WorkingModel | "" {
+  if (value === "ONSITE" || value === "HYBRID" || value === "REMOTE") {
+    return value;
+  }
+  return "";
 }
 
 async function getJobs(params: {

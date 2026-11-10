@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(root, '../frontend/src/constants/routes
 const groups = [...source.matchAll(/export const (\w+)Routes: AppRoute\[\] = \[([\s\S]*?)\n\];/g)].map(([, group, body]) => ({ group, paths: [...body.matchAll(/\{ path: "([^"]+)"/g)].map(m => m[1]) }));
 const manifest = readLocal('manifest.json');
 
-test('R01 all 79 Public/Auth/Student/Company declared routes — navigation/control inventory only', async ({ browser }) => {
+test('R01 all 80 Public/Auth/Student/Company declared routes — navigation/control inventory only', async ({ browser }) => {
   test.setTimeout(240_000);
   fs.mkdirSync(path.join(local, 'routes'), { recursive: true });
   const application = (await ok('GET', `/students/me/applications?jobId=${manifest.jobs[0].id}`, await login('student')))[0];
@@ -20,7 +20,7 @@ test('R01 all 79 Public/Auth/Student/Company declared routes — navigation/cont
   let context;
   let page;
   const declarations = groups.reduce((sum, g) => sum + g.paths.length, 0);
-  expect(declarations).toBe(104);
+  expect(declarations).toBe(105);
   try {
     for (const { group, paths } of groups.filter(g => g.group !== 'admin')) {
       for (const [routeIndex, route] of paths.entries()) {
@@ -67,11 +67,11 @@ test('R01 all 79 Public/Auth/Student/Company declared routes — navigation/cont
       const id = `${group}-${String(rows.length + 1).padStart(2, '0')}`;
       await page.screenshot({ path: path.join(local, 'routes', `${id}.png`) });
       rows.push({ id, role: group, route, actualUrl: new URL(page.url()).pathname, navigationOnly: true, settled, durationMs: Date.now() - start, actions, inputs, requests, unsupportedCopy: /chưa (hỗ trợ|sẵn sàng|có API)|không hỗ trợ/i.test(text) });
-      writeLocal('route-evidence.json', { declarations, expected: 79, rows });
+      writeLocal('route-evidence.json', { declarations, expected: 80, rows });
       }
     }
   } finally {
     await context?.close();
   }
-  expect(rows).toHaveLength(79);
+  expect(rows).toHaveLength(80);
 });
