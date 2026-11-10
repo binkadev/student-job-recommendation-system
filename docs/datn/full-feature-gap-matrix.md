@@ -147,3 +147,13 @@
    - Password Recovery (`POST /api/auth/forgot-password`, `POST /api/auth/reset-password` + `V24__password_reset_tokens.sql`) and `AuthFlowPage.tsx` integration (**AUTH-06**).
    - Interview Scheduling & Candidate Invitations (`V25__interviews_and_invitations.sql`) across Student and Company workspaces (**STU-19**, **STU-20**, **COM-18**, **COM-19**).
    - Application-Scoped In-App Messaging (`V26__application_messaging.sql`) for `/candidate/messages` and `/recruiter/messages` (**STU-21**, **COM-20**).
+
+---
+
+## Integration-review addendum (2026-11-11)
+
+This is a **Wave 0 snapshot**, not a fresh execution of all 67 capabilities. `VERIFIED` classifications above summarize evidence from earlier committed tests/reports; they do **not** mean every action was re-executed in Wave 0. Actual deployed readiness requires the subsequent integrated regression.
+
+Before implementing any future work, resolve referenced source paths against executable code. For example, Recommendation V3 success persistence is implemented in `modules/recommendation/service/impl/RecommendationTransactionService.java`; the account notification UI is in `frontend/src/features/account/NotificationsPanel.tsx`, not a standalone `RecruiterNotificationsPage.tsx`. Job validation is defined in `CreateJobRequest.java` and `UpdateJobRequest.java` rather than a generic `JobRequest.java`.
+
+Work tracked after this snapshot: W1-A PR #69, W1-B1 PR #68, and W1-C PR #70. Their merge status and regression results must be checked separately. Do not re-open a resolved gap merely because it appears here.
