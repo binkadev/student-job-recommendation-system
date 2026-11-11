@@ -1,3 +1,4 @@
+import { InvitationLauncher } from "../../recruiting/InvitationLauncher";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
@@ -82,6 +83,7 @@ export function SavedCandidatesPage({ embedded = false }: { embedded?: boolean }
           { key: "status", header: "Trạng thái đơn nguồn", render: row => applicationStatusLabels[row.applicationStatus] ?? "Chưa xác minh" },
           { key: "note", header: "Ghi chú nội bộ", render: row => <p className="max-w-sm whitespace-pre-wrap break-words text-sm">{row.note || "Chưa có ghi chú"}</p> },
           { key: "actions", header: "Thao tác", render: row => <div className="flex flex-wrap gap-2">
+            <InvitationLauncher applicationId={row.applicationId} />
             <Link to={`/recruiter/candidates/${row.applicationId}`}><Button size="sm" variant="secondary">Chi tiết</Button></Link>
             <Link to={`/recruiter/candidates/${row.applicationId}/evaluation`}><Button size="sm" variant="secondary">Đánh giá</Button></Link>
             <Button size="sm" variant="secondary" disabled={mutation.pending} onClick={() => edit(row)}>Sửa ghi chú</Button>

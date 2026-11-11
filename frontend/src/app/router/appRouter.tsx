@@ -48,6 +48,7 @@ const RecruiterCompanyPage = lazy(() => import("../../pages/recruiter/RecruiterC
 const RecruiterDashboardPage = lazy(() => import("../../pages/recruiter/RecruiterDashboardPage").then(module => ({ default: module.RecruiterDashboardPage })));
 const RecruiterJobsPage = lazy(() => import("../../pages/recruiter/RecruiterJobsPage").then(module => ({ default: module.RecruiterJobsPage })));
 const RecruiterMembersPage = lazy(() => import("../../pages/recruiter/RecruiterMembersPage").then(module => ({ default: module.RecruiterMembersPage })));
+const RecruiterInvitationsPage = lazy(() => import("../../pages/recruiter/RecruiterInvitationsPage").then(module => ({ default: module.RecruiterInvitationsPage })));
 const RecruiterInterviewsPage = lazy(() => import("../../pages/recruiter/RecruiterInterviewsPage").then(module => ({ default: module.RecruiterInterviewsPage })));
 const RecruiterReportsPage = lazy(() => import("../../pages/recruiter/RecruiterReportsPage").then(module => ({ default: module.RecruiterReportsPage })));
 const RecruiterSettingsPage = lazy(() => import("../../pages/recruiter/RecruiterSettingsPage").then(module => ({ default: module.RecruiterSettingsPage })));
@@ -177,6 +178,12 @@ function recruiterRouteElement(route: AppRoute) {
       return <RecruiterCandidatesPage mode="saved" />;
     case "/recruiter/candidate-search":
       return <RecruiterCandidatesPage mode="search" />;
+    case "/recruiter/invitations":
+      return <RecruiterInvitationsPage />;
+    case "/recruiter/invitations/create":
+      return <RecruiterInvitationsPage mode="create" />;
+    case "/recruiter/invitations/:invitationId":
+      return <RecruiterInvitationsPage mode="detail" />;
     case "/recruiter/interviews":
       return <RecruiterInterviewsPage />;
     case "/recruiter/interviews/create":

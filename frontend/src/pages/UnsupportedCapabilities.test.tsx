@@ -1,10 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { CandidateInterviewsPage } from "./candidate/CandidateInterviewsPage";
-import { CandidateInvitationsPage } from "./candidate/CandidateInvitationsPage";
 import { CandidateMessagesPage } from "./candidate/CandidateMessagesPage";
-import { RecruiterInterviewsPage } from "./recruiter/RecruiterInterviewsPage";
 import { RecruiterMembersPage } from "./recruiter/RecruiterMembersPage";
 import { RecruiterSettingsPage } from "./recruiter/RecruiterSettingsPage";
 import { CandidateSettingsPage } from "./candidate/CandidateSettingsPage";
@@ -16,9 +13,6 @@ vi.mock("../services/api/httpClient", async original => ({ ...await original<typ
 
 describe("unsupported capabilities remain explicit", () => {
   it.each([
-    <CandidateInterviewsPage />, <CandidateInterviewsPage mode="detail" />,
-    <CandidateInvitationsPage />, <CandidateInvitationsPage mode="detail" />,
-    <RecruiterInterviewsPage />, <RecruiterInterviewsPage mode="create" />, <RecruiterInterviewsPage mode="detail" />,
     <RecruiterMembersPage />, <RecruiterMembersPage mode="invite" />,
   ])("explains the missing capability without claiming a successfully empty query (%#)", (page) => {
     render(<MemoryRouter>{page}</MemoryRouter>);
