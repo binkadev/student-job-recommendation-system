@@ -22,11 +22,12 @@ describe("unsupported capabilities remain explicit", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Mời thành viên|Gửi lời mời/ })).not.toBeInTheDocument();
   });
-  it.each(["candidate", "recruiter"] as const)("keeps the %s message recovery link inside its role", (role) => {
+  it.each(["candidate", "recruiter"] as const)("keeps the %s message recovery link role-scoped and denies an unverified session", (role) => {
     render(<MemoryRouter><CandidateMessagesPage role={role} /></MemoryRouter>);
     expect(screen.getByRole("link", { name: "Xem đơn ứng tuyển" })).toHaveAttribute("href", role === "recruiter" ? "/recruiter/candidates" : "/candidate/applications");
-    expect(screen.getByText("Chức năng chưa được hỗ trợ")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Bạn không có quyền truy cập chức năng tin nhắn.");
     expect(screen.queryByText("Chưa có tin nhắn.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
   it("does not imply that privacy settings have been applied", () => {
     render(<MemoryRouter><CandidateSettingsPage section="privacy" /></MemoryRouter>);

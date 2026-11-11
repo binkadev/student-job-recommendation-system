@@ -1,5 +1,6 @@
+import { MessageLauncher } from "../../features/messaging/MessageLauncher";
 import { InvitationLauncher } from "../../features/recruiting/InvitationLauncher";
-import { BookmarkCheck, BookmarkPlus, CheckCircle2, Clock3, FileText, Mail, Search, Sparkles, UserCheck } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, CheckCircle2, Clock3, FileText, Search, Sparkles, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -421,7 +422,7 @@ function ApplicationDetailPage({
         <Button variant="secondary" loading={saveMutation.pending} disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error) || savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
           {savedStudentIds.has(application.studentId) ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
         </Button>
-        <Button variant="secondary" icon={<Mail size={16} />} onClick={() => unsupportedToast(showToast, "Gửi email/nhắn tin")}>Liên hệ</Button>
+        <MessageLauncher applicationId={application.id} role="recruiter" />
       </div>
       {saveMutation.error ? <ErrorState message={saveMutation.error} /> : null}
       {savedCandidatesQuery.error ? <ErrorState message={savedCandidatesQuery.error} /> : null}
@@ -1183,12 +1184,4 @@ async function openApplicationCv(application: ApplicationResponse, showToast: Re
       message: getApiErrorMessage(error),
     });
   }
-}
-
-function unsupportedToast(showToast: ReturnType<typeof useToast>["showToast"], feature: string) {
-  showToast({
-    type: "info",
-    title: "Chức năng chưa sẵn sàng",
-    message: `${feature} hiện chưa thể xử lý.`,
-  });
 }
