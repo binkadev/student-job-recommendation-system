@@ -69,6 +69,14 @@ public class CompanyServiceImpl implements CompanyService {
             company.setIndustry(trimToNull(request.getIndustry()));
         }
 
+        if (request.getCompanySize() != null) {
+            company.setCompanySize(trimToNull(request.getCompanySize()));
+        }
+
+        if (request.getLogoUrl() != null) {
+            company.setLogoUrl(trimToNull(request.getLogoUrl()));
+        }
+
         Company savedCompany = companyRepository.save(company);
         return companyMapper.toCompanyResponse(savedCompany);
     }

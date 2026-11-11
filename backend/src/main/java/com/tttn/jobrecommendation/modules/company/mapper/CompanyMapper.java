@@ -27,6 +27,8 @@ public class CompanyMapper {
                 .address(company.getAddress())
                 .phone(company.getPhone())
                 .industry(company.getIndustry())
+                .companySize(company.getCompanySize())
+                .logoUrl(company.getLogoUrl())
                 .status(company.getStatus())
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
@@ -45,8 +47,8 @@ public class CompanyMapper {
                 .openJobs(openJobs)
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
-                .companySize(null)
-                .logoUrl(null)
+                .companySize(company.getCompanySize())
+                .logoUrl(company.getLogoUrl())
                 .build();
     }
 
@@ -66,8 +68,8 @@ public class CompanyMapper {
                 .openJobs(openJobs)
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
-                .companySize(null)
-                .logoUrl(null)
+                .companySize(company.getCompanySize())
+                .logoUrl(company.getLogoUrl())
                 .jobs(jobs)
                 .build();
     }
@@ -88,8 +90,8 @@ public class CompanyMapper {
                 .openJobs(openJobs)
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
-                .companySize(null)
-                .logoUrl(null)
+                .companySize(company.getCompanySize())
+                .logoUrl(company.getLogoUrl())
                 .build();
     }
 
