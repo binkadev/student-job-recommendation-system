@@ -16,6 +16,7 @@ import { Textarea } from "../../../components/ui/Textarea";
 import { useToast } from "../../../hooks/useToast";
 import { getApiErrorMessage } from "../../../utils/apiErrors";
 import { getCandidateProfileData, isProfileConflict, updateCandidateProfileData } from "./candidateProfileService";
+import { WORKING_MODEL_LABELS } from "./candidateProfileTypes";
 import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
 
 type EditTab = "personal" | "about" | "experience" | "education" | "skills" | "projects";
@@ -29,6 +30,10 @@ const availabilityOptions = [
   { label: "Bán thời gian", value: "PART_TIME" }, { label: "Thực tập", value: "INTERNSHIP" },
   { label: "Hợp đồng", value: "CONTRACT" },
 ];
+const workingModelOptions = [
+  { label: "Chưa thiết lập", value: "" },
+  ...Object.entries(WORKING_MODEL_LABELS).map(([value, label]) => ({ value, label })),
+];
 const shortText = z.string().max(255, "Tối đa 255 ký tự.");
 const sectionText = z.string().max(5000, "Tối đa 5.000 ký tự.");
 const editSchema = z.object({
@@ -39,11 +44,15 @@ const editSchema = z.object({
   summary: sectionText, careerGoal: shortText, preferredLocation: shortText,
   education: sectionText, experience: sectionText, projects: sectionText,
   major: shortText, university: shortText,
+  educationLevel: z.string().trim().max(100, "Trình độ học vấn tối đa 100 ký tự."),
+  gpa: z.string().refine((value) => value === "" || (/^\d(?:\.\d{1,2})?$/.test(value) && Number(value) <= 4), "GPA từ 0.00 đến 4.00, tối đa hai chữ số thập phân."),
+  preferredWorkingModel: z.enum(["", "ONSITE", "HYBRID", "REMOTE"]),
   graduationYear: z.string().refine((value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100), "Năm tốt nghiệp từ 1900 đến 2100."),
 });
 type EditFormValues = z.infer<typeof editSchema>;
 const fieldTabs: Record<string, EditTab> = {
   summary: "about", careerGoal: "about", preferredLocation: "about", experience: "experience",
+  gpa: "education", educationLevel: "education",
   education: "education", major: "education", university: "education", graduationYear: "education", projects: "projects",
 };
 
@@ -105,7 +114,10 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
         header: { ...savedProfile.header, name: values.name, phone: values.phone, location: values.location,
           currentTitle: values.currentTitle, preferredJobType: values.availability || null },
         summary: values.summary, careerGoal: values.careerGoal,
-        record: { major: values.major, university: values.university, graduationYear: values.graduationYear ? Number(values.graduationYear) : null,
+        record: { ...savedProfile.record,
+          gpa: values.gpa === "" ? null : Number(values.gpa), educationLevel: values.educationLevel || null,
+          preferredWorkingModel: values.preferredWorkingModel || null,
+          major: values.major, university: values.university, graduationYear: values.graduationYear ? Number(values.graduationYear) : null,
           education: values.education, experience: values.experience, projects: values.projects, preferredLocation: values.preferredLocation },
         skills: groupSkills(skills),
       });
@@ -149,7 +161,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
           <SectionHeader title="Đối chiếu hồ sơ" description="Kiểm tra các khác biệt trước khi quyết định tải lại. Không có thay đổi nào được tự động ghi đè." />
           <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Trường</th><th className="p-2">Bản đang soạn</th><th className="p-2">Bản mới</th></tr></thead><tbody>
             {Object.entries(toEditFormValues(latestProfile)).filter(([key, value]) => draftValues[key as keyof EditFormValues] !== value).map(([key, value]) => <tr key={key}>
-              <th className="p-2">{comparisonLabels[key] ?? key}</th><td className="whitespace-pre-wrap break-words p-2">{draftValues[key as keyof EditFormValues] || "(Trống)"}</td><td className="whitespace-pre-wrap break-words p-2">{value || "(Trống)"}</td>
+              <th className="p-2">{comparisonLabels[key] ?? key}</th><td className="whitespace-pre-wrap break-words p-2">{comparisonValue(key, draftValues[key as keyof EditFormValues])}</td><td className="whitespace-pre-wrap break-words p-2">{comparisonValue(key, value)}</td>
             </tr>)}
             <tr><th className="p-2">Kỹ năng</th><td className="whitespace-pre-wrap p-2">{skillComparison(skills)}</td><td className="whitespace-pre-wrap p-2">{skillComparison(flattenSkills(latestProfile))}</td></tr>
           </tbody></table></div>
@@ -167,6 +179,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
               <Input label="Số điện thoại" type="tel" error={errors.phone?.message} {...register("phone")} />
               <Input label="Tỉnh thành hiện tại" error={errors.location?.message} {...register("location")} />
               <Input label="Chức danh hiện tại" error={errors.currentTitle?.message} {...register("currentTitle")} />
+              <Select label="Hình thức làm việc mong muốn" options={workingModelOptions} error={errors.preferredWorkingModel?.message} {...register("preferredWorkingModel")} />
               <Select label="Loại hình công việc mong muốn" options={availabilityOptions} error={errors.availability?.message} {...register("availability")} />
             </div><p className="mt-4 text-sm text-slate-500">Email chỉ đọc. Dữ liệu được lưu cùng nhau và kiểm tra phiên bản trước khi cập nhật.</p></Card> : null}
             {activeTab === "about" ? <Card><SectionHeader title="Giới thiệu và mong muốn nghề nghiệp" /><div className="grid gap-4">
@@ -177,6 +190,8 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
             {activeTab === "education" ? <Card><SectionHeader title="Học vấn" /><div className="grid gap-4 md:grid-cols-2">
               <Input label="Trường" error={errors.university?.message} {...register("university")} />
               <Input label="Chuyên ngành" error={errors.major?.message} {...register("major")} />
+              <Input label="Trình độ học vấn" error={errors.educationLevel?.message} {...register("educationLevel")} />
+              <div><Input label="GPA (thang 4)" inputMode="decimal" aria-describedby="gpa-hint" error={errors.gpa?.message} {...register("gpa")} /><p id="gpa-hint" className="mt-1.5 text-xs text-slate-500">Từ 0.00 đến 4.00, dùng dấu chấm, tối đa hai chữ số thập phân. Để trống để xóa.</p></div>
               <Input label="Năm tốt nghiệp" inputMode="numeric" error={errors.graduationYear?.message} {...register("graduationYear")} />
               <div className="md:col-span-2"><Textarea label="Nội dung học vấn" rows={8} error={errors.education?.message} {...register("education")} /></div>
             </div></Card> : null}
@@ -206,6 +221,8 @@ function normalizeTab(section: string | null): EditTab {
 }
 function toEditFormValues(profile: CandidateProfileData): EditFormValues {
   return {
+    gpa: profile.record?.gpa?.toFixed(2) ?? "", educationLevel: profile.record?.educationLevel ?? "",
+    preferredWorkingModel: profile.record?.preferredWorkingModel ?? "",
     name: profile.header.name, phone: profile.header.phone, location: profile.header.location,
     currentTitle: profile.header.currentTitle, availability: (profile.header.preferredJobType ?? "") as EditFormValues["availability"],
     summary: profile.summary, careerGoal: profile.careerGoal, preferredLocation: profile.record?.preferredLocation ?? "",
@@ -270,9 +287,14 @@ function SkillEditor({ items, setItems, onDelete }: { items: Array<CandidateSkil
   );
 }
 
-const comparisonLabels: Record<string, string> = { name: "Họ tên", phone: "Số điện thoại", location: "Tỉnh thành", currentTitle: "Chức danh", availability: "Loại hình công việc", summary: "Giới thiệu", careerGoal: "Vị trí mong muốn", preferredLocation: "Địa điểm mong muốn", education: "Học vấn", experience: "Kinh nghiệm", projects: "Dự án", major: "Chuyên ngành", university: "Trường", graduationYear: "Năm tốt nghiệp" };
+const comparisonLabels: Record<string, string> = { gpa: "GPA (thang 4)", educationLevel: "Trình độ học vấn", preferredWorkingModel: "Hình thức làm việc mong muốn", name: "Họ tên", phone: "Số điện thoại", location: "Tỉnh thành", currentTitle: "Chức danh", availability: "Loại hình công việc", summary: "Giới thiệu", careerGoal: "Vị trí mong muốn", preferredLocation: "Địa điểm mong muốn", education: "Học vấn", experience: "Kinh nghiệm", projects: "Dự án", major: "Chuyên ngành", university: "Trường", graduationYear: "Năm tốt nghiệp" };
 function skillComparison(items: CandidateSkill[]) { return items.map(skill => `${skill.name} — ${skill.level}, ${skill.years} năm (${skill.source ?? "MANUAL"})`).join("\n") || "(Trống)"; }
 
 function updateItem<T extends { id: string }>(items: T[], setItems: (items: T[]) => void, id: string, payload: Partial<T>) {
   setItems(items.map((item) => item.id === id ? { ...item, ...payload } : item));
+}
+
+function comparisonValue(key: string, value: string) {
+  if (key === "preferredWorkingModel" && value in WORKING_MODEL_LABELS) return WORKING_MODEL_LABELS[value as keyof typeof WORKING_MODEL_LABELS];
+  return value || "(Trống)";
 }

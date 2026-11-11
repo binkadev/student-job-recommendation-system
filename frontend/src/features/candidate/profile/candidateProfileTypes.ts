@@ -1,3 +1,11 @@
+export type PreferredWorkingModel = "ONSITE" | "HYBRID" | "REMOTE";
+
+export const WORKING_MODEL_LABELS: Record<PreferredWorkingModel, string> = {
+  ONSITE: "Tại văn phòng",
+  HYBRID: "Kết hợp",
+  REMOTE: "Từ xa",
+};
+
 export interface CandidateProfileHeader {
   avatar: string;
   name: string;
@@ -79,6 +87,9 @@ export interface CandidateProfileData {
   baseline?: { student: Record<string, string | number | null>; profile: Record<string, string | number | null>; manualSkills: string };
   /** Exact editable scalar fields; Backend stores these sections as plain text. */
   record?: {
+    gpa?: number | null;
+    educationLevel?: string | null;
+    preferredWorkingModel?: PreferredWorkingModel | null;
     major: string | null;
     university: string | null;
     graduationYear: number | null;
