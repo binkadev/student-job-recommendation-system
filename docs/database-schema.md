@@ -315,3 +315,14 @@ Final job domain:
 - `jobs.working_model`: `ONSITE`, `HYBRID`, `REMOTE`
 
 `REMOTE` is a working model only.
+
+
+## V24: Interview scheduling and job invitations
+
+Latest migration for W3-C1A is `V24__interviews_and_invitations.sql`. The older table catalog above is historical; this additive section describes the two new tables, bringing the executable schema to 21 business tables. V21–V23 profile/settings extensions remain governed by their released migrations and [private document contract](datn/company-private-verification-documents.md); no previous migration is changed.
+
+`interviews`: id BIGSERIAL PK; application_id/company_id/student_id/job_id BIGINT NOT NULL with restrictive FKs to Applications/Companies/Students/Jobs; title VARCHAR(255) NOT NULL/nonblank; scheduled_at TIMESTAMP NOT NULL; duration_minutes INTEGER NOT NULL CHECK15–480; meeting_type VARCHAR(20) NOT NULL CHECK ONLINE/ONSITE; location_or_link VARCHAR(1000) NOT NULL/nonblank; notes TEXT nullable; status VARCHAR(30) NOT NULL CHECK SCHEDULED/CONFIRMED/DECLINED/COMPLETED/CANCELLED; created_at/updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP.
+
+`job_invitations`: id BIGSERIAL PK; company_id/student_id/job_id BIGINT NOT NULL with restrictive FKs; message TEXT nullable; status VARCHAR(30) NOT NULL CHECK PENDING/ACCEPTED/DECLINED/CANCELLED; created_at/updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP.
+
+Both tables index `(company_id, created_at DESC, id DESC)` and `(student_id, created_at DESC, id DESC)` for their bounded owner lists. Interviews additionally index application_id. `uk_job_invitations_pending` uniquely indexes `(company_id,student_id,job_id)` only WHERE status='PENDING'; terminal history is not globally unique. Relationship tuple consistency, future meeting time/HTTP(S) details, role-specific transitions, Company/Job visibility/eligibility and captured-state concurrency are enforced by [Backend services](datn/interviews-invitations-backend.md), not represented as stronger cross-table DB CHECKs. No cascade changes to existing records or Application lifecycle are introduced.

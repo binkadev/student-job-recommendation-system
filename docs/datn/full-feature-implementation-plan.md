@@ -1,5 +1,8 @@
 # DATN Wave 0 — Full Feature Implementation Plan
 
+> W3-C1A task decision (2026-11-11): W2-C password recovery is removed from the active roadmap. V24 is allocated to Interview Scheduling and Job Invitations; the old V25 reservation and password-recovery dependencies below are superseded. See [the Backend implementation contract](interviews-invitations-backend.md). Remaining sections retain the historical Wave 0 planning baseline.
+
+
 - **Repository:** `binkadev/student-job-recommendation-system`
 - **Baseline Branch & Commit:** `master` @ `f3b0e75f`
 - **Latest Released Flyway Migration:** `V21__settings_optimistic_concurrency.sql`
