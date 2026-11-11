@@ -1,5 +1,6 @@
 package com.tttn.jobrecommendation.modules.company.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.modules.user.entity.User;
 import jakarta.persistence.Column;
@@ -54,6 +55,11 @@ public class Company {
 
     @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;
+
+    /** Private opaque storage key, never a public URL or a profile response field. */
+    @JsonIgnore
+    @Column(name = "verification_document_url", length = 500)
+    private String verificationDocumentKey;
 
     @Column(name = "industry", length = 150)
     private String industry;
