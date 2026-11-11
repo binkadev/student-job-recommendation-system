@@ -15,6 +15,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
+import { Tabs } from "../../components/ui/Tabs";
 import { Textarea } from "../../components/ui/Textarea";
 import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
 import { useAsyncData } from "../../hooks/useAsyncData";
@@ -107,7 +108,18 @@ function RecruiterCandidateWorkspace({ mode = "list" }: RecruiterCandidatesPageP
     return <SavedCandidatesPage />;
   }
 
-  if (mode === "recommended" || mode === "search") {
+  if (mode === "search") {
+    return (
+      <CandidateSearchPage
+        jobs={jobsQuery.data ?? []}
+        jobsLoading={jobsQuery.loading}
+        jobsError={jobsQuery.error}
+        showToast={showToast}
+      />
+    );
+  }
+
+  if (mode === "recommended") {
     return <UnsupportedCandidateMode mode={mode} />;
   }
 
@@ -142,14 +154,66 @@ function RecruiterCandidateWorkspace({ mode = "list" }: RecruiterCandidatesPageP
   );
 }
 
+function CandidateSearchPage({
+  jobs,
+  jobsLoading,
+  jobsError,
+  showToast,
+}: {
+  jobs: JobResponse[];
+  jobsLoading: boolean;
+  jobsError: string | null;
+  showToast: ReturnType<typeof useToast>["showToast"];
+}) {
+  const [activeView, setActiveView] = useState<"applicants" | "saved">("applicants");
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Tìm kiếm ứng viên"
+        description="Tra cứu ứng viên thuộc phạm vi đơn ứng tuyển và hồ sơ đã lưu của công ty bạn."
+      />
+      <Card className="mb-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Tabs
+            items={[
+              { label: "Ứng viên ứng tuyển", value: "applicants" },
+              { label: "Hồ sơ đã lưu", value: "saved" },
+            ]}
+            value={activeView}
+            onChange={(value) => setActiveView(value as "applicants" | "saved")}
+          />
+          <p className="text-xs text-slate-600" data-testid="candidate-search-scope-notice">
+            Chỉ tra cứu ứng viên đã ứng tuyển hoặc đã lưu thuộc công ty hiện tại (không có danh bạ sinh viên công khai).
+          </p>
+        </div>
+      </Card>
+      {activeView === "applicants" ? (
+        <ApplicationsListPage
+          mode="list"
+          embedded
+          jobs={jobs}
+          jobsLoading={jobsLoading}
+          jobsError={jobsError}
+          showToast={showToast}
+        />
+      ) : (
+        <SavedCandidatesPage embedded />
+      )}
+    </PageContainer>
+  );
+}
+
 function ApplicationsListPage({
   mode,
+  embedded = false,
   jobs,
   jobsLoading,
   jobsError,
   showToast,
 }: {
   mode: RecruiterCandidatesPageProps["mode"];
+  embedded?: boolean;
   jobs: JobResponse[];
   jobsLoading: boolean;
   jobsError: string | null;
@@ -212,12 +276,8 @@ function ApplicationsListPage({
     });
   }
 
-  return (
-    <PageContainer>
-      <PageHeader
-        title={mode === "pipeline" ? "Pipeline ứng tuyển" : "Ứng viên ứng tuyển"}
-        description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
-      />
+  const content = (
+    <>
       <Card>
         <div className="grid items-end gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <Input label="Tìm kiếm" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tên, email, vị trí..." />
@@ -267,6 +327,18 @@ function ApplicationsListPage({
         onClose={() => setSelectedApplication(null)}
         onConfirm={() => selectedApplication ? void changeStatus(selectedApplication, nextStatus) : undefined}
       />
+    </>
+  );
+
+  if (embedded) return <div>{content}</div>;
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title={mode === "pipeline" ? "Pipeline ứng tuyển" : "Ứng viên ứng tuyển"}
+        description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
+      />
+      {content}
     </PageContainer>
   );
 }
@@ -916,6 +988,7 @@ function ApplicationActions({
   return (
     <div className="flex flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
+      <Link to={`/recruiter/candidates/${application.id}/evaluation`}><Button variant="secondary" size="sm">Đánh giá</Button></Link>
       <Button variant="secondary" size="sm" loading={saving} disabled={saved || saveDisabled} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
         {saved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
       </Button>
