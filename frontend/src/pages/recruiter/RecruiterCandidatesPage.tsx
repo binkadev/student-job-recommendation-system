@@ -1,4 +1,4 @@
-import { BookmarkCheck, BookmarkPlus, FileText, Mail, Search, UserCheck } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, CheckCircle2, Clock3, FileText, Mail, Search, Sparkles, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -15,11 +15,13 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
 import { RecruiterDataTable } from "../../features/recruiter/RecruiterDataTable";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
 import { AUTH_TOKEN_STORAGE_KEY, httpClient } from "../../services/api/httpClient";
 import { SavedCandidatesPage } from "../../features/recruiter/saved-candidates/SavedCandidatesPage";
+import { updateSavedNote, type SavedCandidate } from "../../features/recruiter/saved-candidates/savedCandidatesApi";
 import { useCandidateMutation } from "../../features/recruiter/saved-candidates/useCandidateMutation";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 
@@ -67,23 +69,7 @@ interface JobResponse {
   title: string;
 }
 
-interface SavedCandidateResponse {
-  id: number;
-  applicationId: number;
-  studentId: number;
-  studentName: string | null;
-  studentEmail: string | null;
-  university: string | null;
-  major: string | null;
-  headline: string | null;
-  jobId: number;
-  jobTitle: string;
-  cvFileId: number | null;
-  cvFileName: string | null;
-  note: string | null;
-  savedAt: string;
-  updatedAt: string;
-}
+type SavedCandidateResponse = SavedCandidate;
 
 interface ApplicationListQuery {
   page: number;
@@ -125,7 +111,17 @@ function RecruiterCandidateWorkspace({ mode = "list" }: RecruiterCandidatesPageP
     return <UnsupportedCandidateMode mode={mode} />;
   }
 
-  if ((mode === "detail" || mode === "evaluation") && candidateId) {
+  if (mode === "evaluation" && candidateId) {
+    return (
+      <CandidateEvaluationPage
+        applicationId={Number(candidateId)}
+        reloadKey={reloadKey}
+        onReload={() => setReloadKey((current) => current + 1)}
+      />
+    );
+  }
+
+  if (mode === "detail" && candidateId) {
     return (
       <ApplicationDetailPage
         applicationId={Number(candidateId)}
@@ -347,6 +343,7 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
+        <Link to={`/recruiter/candidates/${application.id}/evaluation`}><Button variant="secondary">Đánh giá hồ sơ</Button></Link>
         <Button variant="secondary" loading={saveMutation.pending} disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error) || savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
           {savedStudentIds.has(application.studentId) ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
         </Button>
@@ -395,6 +392,478 @@ function ApplicationDetailPage({
               <Select label="Chuyển trạng thái" value={nextStatus} disabled={!hasAllowedStatusTransition(application.status)} onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)} options={getAllowedStatusOptions(application.status)} />
               <Button loading={updating} disabled={!hasAllowedStatusTransition(application.status)} onClick={() => void changeStatus()}>Cập nhật trạng thái</Button>
               {!hasAllowedStatusTransition(application.status) ? <p className="text-xs text-slate-500">Trạng thái hiện tại không còn bước chuyển hợp lệ cho nhà tuyển dụng.</p> : null}
+            </div>
+          </Card>
+        </aside>
+      </div>
+    </PageContainer>
+  );
+}
+
+function CandidateEvaluationPage({
+  applicationId,
+  reloadKey,
+  onReload,
+}: {
+  applicationId: number;
+  reloadKey: number;
+  onReload: () => void;
+}) {
+  const { showToast } = useToast();
+  const validApplicationId = Number.isInteger(applicationId) && applicationId > 0;
+  const applicationQuery = useAsyncData(
+    () => (validApplicationId ? getCompanyApplicationDetail(applicationId) : Promise.resolve(null)),
+    [applicationId, reloadKey],
+  );
+  const application = applicationQuery.data;
+  const [nextStatus, setNextStatus] = useState<ApplicationStatus>("REVIEWED");
+  const [updating, setUpdating] = useState(false);
+  const [savedReloadKey, setSavedReloadKey] = useState(0);
+  const saveMutation = useCandidateMutation();
+  const noteMutation = useCandidateMutation();
+  const savedCandidatesQuery = useAsyncData(
+    () => (validApplicationId ? getAllSavedCandidates() : Promise.resolve([])),
+    [savedReloadKey],
+  );
+  const [savedRecord, setSavedRecord] = useState<SavedCandidateResponse | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteDirty, setNoteDirty] = useState(false);
+  const [draftStale, setDraftStale] = useState(false);
+
+  const matchedSaved = useMemo(() => {
+    if (!application || !savedCandidatesQuery.data) return null;
+    return savedCandidatesQuery.data.find((candidate) => candidate.studentId === application.studentId) ?? null;
+  }, [application, savedCandidatesQuery.data]);
+
+  const activeSaved = savedRecord && application && savedRecord.studentId === application.studentId ? savedRecord : matchedSaved;
+
+  useEffect(() => {
+    if (application) setNextStatus(getDefaultNextStatus(application.status));
+  }, [application]);
+
+  useEffect(() => {
+    if (!application || !savedCandidatesQuery.data || noteDirty || draftStale) return;
+    const matched = savedCandidatesQuery.data.find((candidate) => candidate.studentId === application.studentId) ?? null;
+    if (savedRecord && matched && savedRecord.studentId === matched.studentId && savedRecord.revision > matched.revision) {
+      return;
+    }
+    setSavedRecord(matched);
+    setNoteDraft(matched?.note ?? "");
+  }, [application, savedCandidatesQuery.data, noteDirty, draftStale, savedRecord]);
+
+  useEffect(() => {
+    const refresh = () => setSavedReloadKey((current) => current + 1);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "job-system:saved-candidates-changed") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  async function changeStatus() {
+    if (!application) return;
+    if (!canChangeApplicationStatus(application.status, nextStatus)) {
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: "Trạng thái này không được phép chuyển theo quy trình hiện tại." });
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await updateApplicationStatus(application.id, nextStatus);
+      showToast({ type: "success", title: "Đã cập nhật trạng thái ứng tuyển", message: APPLICATION_STATUS_LABELS[nextStatus] });
+      onReload();
+    } catch (updateError) {
+      showToast({ type: "error", title: "Không thể cập nhật trạng thái", message: getApiErrorMessage(updateError) });
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function saveCandidate(targetApplication: ApplicationResponse) {
+    if (savedCandidatesQuery.loading || savedCandidatesQuery.error) return;
+    await saveMutation.run(
+      () => saveCandidateByApplication(targetApplication.id),
+      (createdSaved) => {
+        setSavedRecord(createdSaved);
+        setNoteDraft(createdSaved.note ?? "");
+        setNoteDirty(false);
+        setDraftStale(false);
+        noteMutation.clearError();
+        setSavedReloadKey((current) => current + 1);
+        localStorage.setItem("job-system:saved-candidates-changed", String(Date.now()));
+        showToast({ type: "success", title: "Đã lưu hồ sơ ứng viên", message: targetApplication.studentName || targetApplication.studentEmail || targetApplication.jobTitle });
+      },
+    );
+  }
+
+  function saveNote() {
+    if (!activeSaved || noteDraft.length > 2000 || draftStale || savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error)) return;
+    void noteMutation.run(
+      () => updateSavedNote(activeSaved, noteDraft),
+      (updatedSaved) => {
+        setSavedRecord(updatedSaved);
+        setNoteDraft(updatedSaved.note ?? "");
+        setNoteDirty(false);
+        setDraftStale(false);
+        setSavedReloadKey((current) => current + 1);
+        localStorage.setItem("job-system:saved-candidates-changed", String(Date.now()));
+        showToast({ type: "success", title: "Đã lưu ghi chú nội bộ" });
+      },
+      () => setDraftStale(true),
+    );
+  }
+
+  function readBackSavedNote() {
+    if (!application) return;
+    void noteMutation.run(
+      () => getAllSavedCandidates(),
+      (candidates) => {
+        const current = candidates.find((row) => row.studentId === application.studentId) ?? null;
+        if (!current) {
+          setSavedRecord(null);
+          setDraftStale(true);
+          setSavedReloadKey((value) => value + 1);
+          return;
+        }
+        setSavedRecord(current);
+        setNoteDraft(current.note ?? "");
+        setNoteDirty(false);
+        setDraftStale(false);
+        setSavedReloadKey((value) => value + 1);
+      },
+    );
+  }
+
+  if (!validApplicationId) {
+    return (
+      <PageContainer>
+        <PageHeader title="Đánh giá hồ sơ ứng viên" description="Không thể tải dữ liệu đánh giá." />
+        <ErrorState message="Mã đơn ứng tuyển không hợp lệ." />
+        <div className="mt-4">
+          <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (applicationQuery.loading) {
+    return (
+      <PageContainer>
+        <LoadingState />
+      </PageContainer>
+    );
+  }
+
+  if (applicationQuery.error || !application) {
+    return (
+      <PageContainer>
+        <PageHeader title="Đánh giá hồ sơ ứng viên" description="Không thể tải dữ liệu ứng tuyển." />
+        <ErrorState message={applicationQuery.error ?? "Không tìm thấy hồ sơ ứng tuyển."} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={onReload}>Thử lại</Button>
+          <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const hasContactInfo = Boolean(application.studentName?.trim() && application.studentEmail?.trim());
+  const hasCvAttachment = Boolean(application.cvFileId);
+  const hasCoverLetter = Boolean(application.coverLetter?.trim());
+  const hasProfileDetails = Boolean(activeSaved && (activeSaved.university || activeSaved.major || activeSaved.headline));
+  const hasReviewedStatus = application.status !== "PENDING";
+
+  const factualItems = [
+    {
+      key: "contact",
+      label: "Thông tin định danh & liên hệ",
+      available: hasContactInfo,
+      statusLabel: hasContactInfo ? "Đã đầy đủ" : "Còn thiếu",
+      detail: hasContactInfo
+        ? `${application.studentName} (${application.studentEmail})`
+        : "Thiếu họ tên hoặc địa chỉ email liên hệ của ứng viên.",
+    },
+    {
+      key: "cv",
+      label: "Tệp CV đính kèm",
+      available: hasCvAttachment,
+      statusLabel: hasCvAttachment ? "Đã đính kèm" : "Chưa đính kèm",
+      detail: hasCvAttachment
+        ? application.cvFileName || `Tệp CV #${application.cvFileId}`
+        : "Đơn ứng tuyển chưa có tệp CV đính kèm.",
+    },
+    {
+      key: "coverLetter",
+      label: "Thư giới thiệu (Cover Letter)",
+      available: hasCoverLetter,
+      statusLabel: hasCoverLetter ? "Đã cung cấp" : "Chưa cung cấp",
+      detail: hasCoverLetter
+        ? `Đã cung cấp thư giới thiệu (${application.coverLetter!.trim().length} ký tự).`
+        : "Ứng viên không nhập thư giới thiệu cho đơn ứng tuyển này.",
+    },
+    {
+      key: "profile",
+      label: "Thông tin học vấn & tiêu đề hồ sơ",
+      available: hasProfileDetails,
+      statusLabel: !activeSaved ? "Chưa lưu hồ sơ" : hasProfileDetails ? "Đã có thông tin" : "Chưa cập nhật",
+      detail: !activeSaved
+        ? "Lưu hồ sơ ứng viên để đồng bộ thông tin trường đào tạo, chuyên ngành và tiêu đề hồ sơ."
+        : hasProfileDetails
+          ? [activeSaved.university, activeSaved.major, activeSaved.headline].filter(Boolean).join(" · ")
+          : "Hồ sơ ứng viên chưa cập nhật trường đào tạo, chuyên ngành hoặc tiêu đề hồ sơ.",
+    },
+    {
+      key: "reviewStatus",
+      label: "Tiến độ xét duyệt đơn",
+      available: hasReviewedStatus,
+      statusLabel: APPLICATION_STATUS_LABELS[application.status],
+      detail: application.reviewedAt
+        ? `Đã xem xét lúc ${formatDateTime(application.reviewedAt)}.`
+        : "Đơn ứng tuyển đang chờ nhà tuyển dụng xem xét.",
+    },
+  ];
+
+  const availableCount = factualItems.filter((item) => item.available).length;
+  const missingCount = factualItems.length - availableCount;
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Đánh giá hồ sơ ứng viên"
+        description={`Đơn ứng tuyển #${application.id} · ${application.studentName || application.studentEmail || "Ứng viên"} · ${application.jobTitle}`}
+      />
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
+        <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary">Xem chi tiết đơn</Button></Link>
+        <Button
+          variant="secondary"
+          loading={saveMutation.pending}
+          disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error) || Boolean(activeSaved)}
+          icon={activeSaved ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />}
+          onClick={() => void saveCandidate(application)}
+        >
+          {activeSaved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
+        </Button>
+      </div>
+      {saveMutation.error ? <ErrorState message={saveMutation.error} /> : null}
+      {savedCandidatesQuery.error ? (
+        <div className="mb-5 space-y-2">
+          <ErrorState message={savedCandidatesQuery.error} />
+          <Button variant="secondary" size="sm" onClick={() => setSavedReloadKey((current) => current + 1)}>
+            Tải lại trạng thái lưu
+          </Button>
+        </div>
+      ) : null}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5">
+          <Card>
+            <SectionHeader
+              title="Thông tin ứng viên & đơn ứng tuyển"
+              description="Dữ liệu thực tế từ đơn ứng tuyển và hồ sơ sinh viên đã xác thực."
+            />
+            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+              <InfoRow label="Mã đơn ứng tuyển" value={`#${application.id}`} />
+              <InfoRow label="Mã ứng viên" value={`#${application.studentId}`} />
+              <InfoRow label="Ứng viên" value={application.studentName} />
+              <InfoRow label="Email" value={application.studentEmail} />
+              <InfoRow label="Tin tuyển dụng" value={`${application.jobTitle} (#${application.jobId})`} />
+              <InfoRow label="Công ty" value={application.companyName} />
+              <InfoRow label="Ngày ứng tuyển" value={formatDateTime(application.appliedAt)} />
+              <InfoRow label="Ngày xem xét" value={formatDateTime(application.reviewedAt)} />
+              <InfoRow label="Trường đào tạo" value={activeSaved?.university ?? (activeSaved ? "Chưa cập nhật" : "Lưu hồ sơ để đồng bộ")} />
+              <InfoRow label="Chuyên ngành" value={activeSaved?.major ?? (activeSaved ? "Chưa cập nhật" : "Lưu hồ sơ để đồng bộ")} />
+              <InfoRow label="Tiêu đề hồ sơ" value={activeSaved?.headline ?? (activeSaved ? "Chưa cập nhật" : "Lưu hồ sơ để đồng bộ")} />
+            </div>
+          </Card>
+
+          <Card>
+            <div data-testid="factual-review-card">
+              <SectionHeader
+                title="Đánh giá thực tế thông tin hồ sơ"
+                description="Tổng hợp khách quan các hạng mục đã có và còn thiếu trong hồ sơ ứng tuyển."
+              />
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <span data-testid="factual-available-summary" className="font-medium text-slate-900">
+                  Đã xác nhận {availableCount}/{factualItems.length} nhóm thông tin
+                </span>
+                <span data-testid="factual-missing-summary" className="text-slate-600">
+                  {missingCount === 0 ? "Đầy đủ các nhóm thông tin cơ bản" : `Còn thiếu hoặc chờ bổ sung ${missingCount} mục`}
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100" data-testid="factual-review-list">
+                {factualItems.map((item) => (
+                  <div key={item.key} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {item.available ? (
+                          <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                        ) : (
+                          <Clock3 size={16} className="shrink-0 text-amber-600" />
+                        )}
+                        <p className="font-medium text-slate-900">{item.label}</p>
+                      </div>
+                      <p className="mt-1 pl-6 text-xs text-slate-600">{item.detail}</p>
+                    </div>
+                    <div className="shrink-0 pl-6 sm:pl-0">
+                      <StatusBadge label={item.statusLabel} tone={item.available ? "success" : "warning"} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionHeader title="Thư giới thiệu" />
+            {application.coverLetter ? (
+              <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{application.coverLetter}</p>
+            ) : (
+              <EmptyState message="Ứng viên chưa nhập thư giới thiệu." />
+            )}
+          </Card>
+
+          <Card>
+            <SectionHeader title="CV ứng tuyển" />
+            {application.cvFileId ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <FileText className="shrink-0 text-brand-600" size={20} />
+                  <div className="min-w-0">
+                    <p className="break-words font-medium text-slate-900">{application.cvFileName || "CV ứng tuyển"}</p>
+                    <p className="text-xs text-slate-500">Tệp đính kèm hồ sơ ứng tuyển</p>
+                  </div>
+                </div>
+                <Button variant="secondary" onClick={() => void openApplicationCv(application, showToast)}>Xem CV</Button>
+              </div>
+            ) : (
+              <EmptyState message="Hồ sơ ứng tuyển chưa có CV." />
+            )}
+          </Card>
+        </div>
+
+        <aside className="min-w-0 space-y-5">
+          <Card>
+            <SectionHeader title="Trạng thái ứng tuyển" />
+            <StatusBadge label={APPLICATION_STATUS_LABELS[application.status]} tone={applicationStatusTone(application.status)} />
+            <div className="mt-4 grid gap-3">
+              <Select
+                label="Chuyển trạng thái"
+                value={nextStatus}
+                disabled={!hasAllowedStatusTransition(application.status)}
+                onChange={(event) => setNextStatus(event.target.value as ApplicationStatus)}
+                options={getAllowedStatusOptions(application.status)}
+              />
+              <Button loading={updating} disabled={!hasAllowedStatusTransition(application.status)} onClick={() => void changeStatus()}>
+                Cập nhật trạng thái
+              </Button>
+              {!hasAllowedStatusTransition(application.status) ? (
+                <p className="text-xs text-slate-500">Trạng thái hiện tại không còn bước chuyển hợp lệ cho nhà tuyển dụng.</p>
+              ) : null}
+            </div>
+          </Card>
+
+          <Card>
+            <div data-testid="saved-candidate-note-card">
+              <SectionHeader
+                title="Ghi chú đánh giá nội bộ"
+                description="Chỉ công ty bạn được đọc và cập nhật ghi chú trên hồ sơ ứng viên đã lưu."
+              />
+              {!activeSaved ? (
+                <div className="space-y-3" data-testid="unsaved-note-lock">
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                    Chưa thể chỉnh sửa ghi chú vì ứng viên chưa được lưu vào danh sách của công ty. Lưu hồ sơ ứng viên để mở khóa ghi chú đánh giá nội bộ.
+                  </p>
+                  <Textarea
+                    label="Ghi chú đánh giá"
+                    value=""
+                    disabled
+                    placeholder="Lưu hồ sơ ứng viên trước khi nhập ghi chú đánh giá..."
+                    onChange={() => undefined}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      loading={saveMutation.pending}
+                      disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error)}
+                      icon={<BookmarkPlus size={16} />}
+                      onClick={() => void saveCandidate(application)}
+                    >
+                      Lưu hồ sơ để ghi chú
+                    </Button>
+                    <Button disabled>Lưu ghi chú</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3" data-testid="saved-note-editor">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <p className="font-medium text-slate-800">
+                      Hồ sơ đã lưu #{activeSaved.id} · Phiên bản v{activeSaved.revision}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap break-words text-slate-700" data-testid="saved-note-current">
+                      {activeSaved.note ? `Ghi chú đã lưu: ${activeSaved.note}` : "Chưa có ghi chú đã lưu."}
+                    </p>
+                  </div>
+                  <Textarea
+                    label="Ghi chú đánh giá"
+                    value={noteDraft}
+                    maxLength={2000}
+                    disabled={noteMutation.pending || savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error)}
+                    onChange={(event) => {
+                      setNoteDraft(event.target.value);
+                      setNoteDirty(true);
+                    }}
+                  />
+                  <p className="text-xs text-slate-500">{noteDraft.length}/2000</p>
+                  {noteMutation.error ? <ErrorState message={noteMutation.error} /> : null}
+                  {draftStale ? (
+                    <p role="alert" className="text-sm text-amber-800">
+                      Chưa lưu bản nháp. Hãy sao chép nội dung cần giữ rồi tải ghi chú hiện tại để đối chiếu trước khi lưu lại.
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {draftStale ? (
+                      <Button variant="secondary" disabled={noteMutation.pending} onClick={readBackSavedNote}>
+                        Tải ghi chú hiện tại
+                      </Button>
+                    ) : null}
+                    <Button
+                      loading={noteMutation.pending}
+                      disabled={draftStale || noteDraft.length > 2000 || savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error)}
+                      onClick={saveNote}
+                    >
+                      Lưu ghi chú
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card>
+            <div data-testid="v3-ranking-link-card">
+              <SectionHeader
+                title="Xếp hạng ứng viên AI (V3)"
+                description="Đối chiếu mức độ phù hợp kỹ năng và nội dung CV từ hệ thống xếp hạng chính thức."
+              />
+              <p className="text-xs leading-5 text-slate-600">
+                Trang đánh giá hồ sơ chỉ tổng hợp thông tin thực tế của đơn ứng tuyển và không tự suy diễn điểm số AI. Để xem xếp hạng ứng viên V3 chính thức (PRIMARY / FALLBACK) của tin tuyển dụng này, vui lòng mở bảng xếp hạng ứng viên.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link to={`/recruiter/jobs/${application.jobId}/candidate-ranking`}>
+                  <Button variant="secondary" icon={<Sparkles size={16} />} className="w-full justify-center">
+                    Mở xếp hạng ứng viên AI (V3)
+                  </Button>
+                </Link>
+                <Link to={`/recruiter/jobs/${application.jobId}/preview`}>
+                  <Button variant="secondary" className="w-full justify-center">
+                    Xem tin tuyển dụng
+                  </Button>
+                </Link>
+              </div>
             </div>
           </Card>
         </aside>
