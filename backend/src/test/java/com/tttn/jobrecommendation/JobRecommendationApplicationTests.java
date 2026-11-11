@@ -95,6 +95,12 @@ class JobRecommendationApplicationTests {
     @MockitoBean
     private com.tttn.jobrecommendation.modules.invitation.repository.JobInvitationRepository jobInvitationRepository;
 
+    @MockitoBean
+    private com.tttn.jobrecommendation.modules.message.repository.ConversationRepository conversationRepository;
+
+    @MockitoBean
+    private com.tttn.jobrecommendation.modules.message.repository.MessageRepository messageRepository;
+
     @Test
     void contextLoads() {
     }
