@@ -49,6 +49,8 @@ interface CompanyResponse {
   address: string | null;
   phone: string | null;
   industry: string | null;
+  companySize: string | null;
+  logoUrl: string | null;
   status: CompanyStatus;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +66,8 @@ interface CompanyForm {
   address: string;
   phone: string;
   industry: string;
+  companySize: string;
+  logoUrl: string;
 }
 
 interface JobResponse {
@@ -145,6 +149,7 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
       showToast({ type: "success", title: "Đã lưu hồ sơ công ty" });
     } catch (error) {
       showToast({ type: "error", title: "Không thể lưu hồ sơ công ty", message: getErrorMessage(error) });
+      throw error;
     }
   }
 
@@ -229,13 +234,14 @@ function CompanyHero({ company, onCopyWebsite, onCopyAddress }: { company: Compa
       </div>
       <div className="flex flex-wrap items-start justify-between gap-4 p-6">
         <div className="flex min-w-0 flex-1 gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">{getInitials(name)}</div>
+          <CompanyLogo key={company.logoUrl ?? ""} name={name} url={company.logoUrl} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap gap-2">
               <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
               {company.industry ? <StatusBadge label={company.industry} /> : null}
             </div>
             <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+              <span className="break-words">Quy mô: <strong>{company.companySize || "Chưa cập nhật"}</strong></span>
               <span>Website: <strong>{company.website || "Chưa cập nhật"}</strong></span>
               <span>Địa chỉ: <strong>{company.address || "Chưa cập nhật"}</strong></span>
               <span>Email: <strong>{company.email}</strong></span>
@@ -280,6 +286,7 @@ function CompanyInfoCard({ company }: { company: CompanyResponse }) {
         <InfoRow label="Tên công ty" value={company.companyName} />
         <InfoRow label="Mã số thuế" value={company.taxCode} />
         <InfoRow label="Lĩnh vực" value={company.industry} />
+        <InfoRow label="Quy mô công ty" value={company.companySize} />
         <InfoRow label="Website" value={company.website} />
         <InfoRow label="Email" value={company.email} />
         <InfoRow label="Số điện thoại" value={company.phone} />
@@ -341,6 +348,8 @@ function RecruiterCompanyEditView({
   const [form, setForm] = useState(() => mapCompanyToForm(company));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [conflict, setConflict] = useState(false);
 
   useEffect(() => setForm(mapCompanyToForm(company)), [company]);
 
@@ -353,15 +362,24 @@ function RecruiterCompanyEditView({
     if (!form.companyName.trim()) nextErrors.companyName = "Vui lòng nhập tên công ty.";
     if (form.website && form.website.length > 500) nextErrors.website = "Website tối đa 500 ký tự.";
     if (form.phone && form.phone.length > 50) nextErrors.phone = "Số điện thoại tối đa 50 ký tự.";
+    if (form.companySize.length > 100) nextErrors.companySize = "Quy mô công ty tối đa 100 ký tự.";
+    if (form.logoUrl.length > 500) nextErrors.logoUrl = "URL logo tối đa 500 ký tự.";
+    else if (!isValidCompanyLogoUrl(form.logoUrl)) nextErrors.logoUrl = "Nhập URL HTTP/HTTPS có host hợp lệ, không chứa khoảng trắng hoặc thông tin đăng nhập.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   async function save() {
-    if (!validate()) return;
+    if (saving || conflict || !validate()) return;
+    setSaveError("");
     setSaving(true);
-    await onSave(form);
-    setSaving(false);
+    try { await onSave(form); }
+    catch (error) {
+      if ((error as { response?: { status?: number } })?.response?.status === 409) {
+        setConflict(true);
+        setSaveError("Hồ sơ đã thay đổi ở phiên khác. Bản đang soạn vẫn được giữ và chưa được lưu. Hãy ghi lại nội dung cần giữ trước khi tải lại trang để đối chiếu; hệ thống không tự gửi lại yêu cầu.");
+      } else setSaveError(getErrorMessage(error));
+    } finally { setSaving(false); }
   }
 
   return (
@@ -370,20 +388,26 @@ function RecruiterCompanyEditView({
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <SectionHeader title="Thông tin chính" />
+          {saveError ? <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{saveError}</p> : null}
+          <fieldset disabled={saving}>
           <div className="grid gap-4 md:grid-cols-2">
             <Input label="Tên công ty" value={form.companyName} error={errors.companyName} onChange={(event) => update("companyName", event.target.value)} />
             <Input label="Mã số thuế" value={form.taxCode} onChange={(event) => update("taxCode", event.target.value)} />
             <Input label="Lĩnh vực" value={form.industry} onChange={(event) => update("industry", event.target.value)} />
+            <Input label="Quy mô công ty" value={form.companySize} error={errors.companySize} onChange={(event) => update("companySize", event.target.value)} />
+            <Input label="URL logo" inputMode="url" value={form.logoUrl} aria-describedby="company-logo-hint" error={errors.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} />
             <Input label="Website" value={form.website} error={errors.website} onChange={(event) => update("website", event.target.value)} />
             <Input label="Email đăng nhập" value={company.email} disabled />
             <Input label="Số điện thoại" value={form.phone} error={errors.phone} onChange={(event) => update("phone", event.target.value)} />
           </div>
+          <p id="company-logo-hint" className="mt-3 text-sm text-slate-500">Quy mô tối đa 100 ký tự. URL logo HTTP/HTTPS tối đa 500 ký tự; để trống để xóa. Logo được tải từ URL, không có chức năng tải ảnh lên.</p>
           <div className="mt-4 grid gap-4">
             <Textarea label="Địa chỉ" value={form.address} onChange={(event) => update("address", event.target.value)} />
             <Textarea label="Giới thiệu công ty" value={form.description} onChange={(event) => update("description", event.target.value)} />
           </div>
+          </fieldset>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button loading={saving} onClick={save}>Lưu hồ sơ</Button>
+            <Button loading={saving} disabled={conflict} onClick={save}>Lưu hồ sơ</Button>
             <Link to="/recruiter/company"><Button variant="secondary">Quay lại</Button></Link>
           </div>
         </Card>
@@ -393,8 +417,8 @@ function RecruiterCompanyEditView({
             <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
             <p className="mt-3 text-sm text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p>
           </Card>
-          <UnsupportedSection title="Logo và ảnh bìa" message="Hệ thống chưa hỗ trợ lưu logo và ảnh bìa. Bạn vẫn có thể cập nhật thông tin doanh nghiệp ở bên cạnh." icon={<UploadCloud size={18} />} />
-          <UnsupportedSection title="Thông tin bổ sung" message="Chưa có dữ liệu quy mô, chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng." />
+          <UnsupportedSection title="Ảnh bìa" message="Hệ thống chưa hỗ trợ lưu ảnh bìa." icon={<UploadCloud size={18} />} />
+          <UnsupportedSection title="Thông tin bổ sung" message="Chưa có dữ liệu chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng." />
         </aside>
       </div>
     </PageContainer>
@@ -461,6 +485,8 @@ async function updateMyCompany(form: CompanyForm) {
     address: emptyToNull(form.address),
     phone: emptyToNull(form.phone),
     industry: emptyToNull(form.industry),
+    companySize: form.companySize.trim(),
+    logoUrl: form.logoUrl,
   }, { headers: { "If-Match": form.etag } });
   return response.data.data;
 }
@@ -485,6 +511,8 @@ function mapCompanyToForm(company: CompanyResponse): CompanyForm {
     address: company.address || "",
     phone: company.phone || "",
     industry: company.industry || "",
+    companySize: company.companySize ?? "",
+    logoUrl: company.logoUrl ?? "",
   };
 }
 
@@ -555,4 +583,31 @@ function getErrorMessage(error: unknown) {
     return response?.data?.message ?? "Vui lòng thử lại.";
   }
   return "Vui lòng thử lại.";
+}
+
+/** Matches the company logo contract: optional absolute HTTP(S), host, no whitespace or credentials. */
+function isValidCompanyLogoUrl(value: string) {
+  if (value === "") return true;
+  if (Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return false;
+  if (!/^https?:\/\//i.test(value) || /[\s\\]/u.test(value) || /%(?![a-f\d]{2})/i.test(value) || /[<>"{}|^`]/.test(value)) return false;
+  const authority = value.replace(/^https?:\/\//i, "").split(/[/?#]/)[0];
+  if (!authority || authority.includes("@") || /[^a-z\d.:[\]-]/i.test(authority)) return false;
+  try {
+    const url = new URL(value);
+    if (!url.hostname || url.username || url.password) return false;
+    if (!authority.startsWith("[")) {
+      const labels = authority.split(":")[0].split(".");
+      if (labels.some((label, index) => !(label === "" && index === labels.length - 1) && !/^[a-z\d](?:[a-z\d-]*[a-z\d])?$/i.test(label))) return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
+function CompanyLogo({ name, url }: { name: string; url?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const showImage = url && url.length <= 500 && isValidCompanyLogoUrl(url) && !failed;
+  return <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">
+    {showImage ? <img src={url ?? undefined} alt={`Logo ${name}`} width={64} height={64} referrerPolicy="no-referrer" decoding="async" className="h-full w-full object-contain" onError={() => setFailed(true)} />
+      : <span role="img" aria-label={`Logo mặc định của ${name}`}>{getInitials(name)}</span>}
+  </div>;
 }
