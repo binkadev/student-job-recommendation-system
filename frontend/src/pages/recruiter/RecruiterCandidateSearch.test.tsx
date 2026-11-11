@@ -101,6 +101,7 @@ describe("RecruiterCandidateSearch (/recruiter/candidate-search)", () => {
     expect(await screen.findByText("Nguyễn Văn A")).toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: "Chi tiết" })).toHaveAttribute("href", "/recruiter/candidates/91");
+    expect(screen.getByRole("link", { name: "Mời ứng tuyển" })).toHaveAttribute("href", "/recruiter/invitations/create?applicationId=91");
     expect(screen.getByRole("link", { name: "Đánh giá" })).toHaveAttribute(
       "href",
       "/recruiter/candidates/91/evaluation",
@@ -161,6 +162,7 @@ describe("RecruiterCandidateSearch (/recruiter/candidate-search)", () => {
     await user.click(screen.getByRole("button", { name: "Hồ sơ đã lưu" }));
 
     expect(await screen.findByText("Trần Thị B")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mời ứng tuyển" })).toHaveAttribute("href", "/recruiter/invitations/create?applicationId=95");
     expect(screen.getByText("Đã qua vòng hồ sơ, hẹn phỏng vấn.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Chi tiết" })).toHaveAttribute("href", "/recruiter/candidates/95");
     expect(screen.getByRole("link", { name: "Đánh giá" })).toHaveAttribute(

@@ -1,3 +1,4 @@
+import { InvitationLauncher } from "../../features/recruiting/InvitationLauncher";
 import { BookmarkCheck, BookmarkPlus, CheckCircle2, Clock3, FileText, Mail, Search, Sparkles, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -415,6 +416,7 @@ function ApplicationDetailPage({
       <PageHeader title={application.studentName || "Ứng viên"} description={`${application.jobTitle} · ${formatDateTime(application.appliedAt)}`} />
       <div className="mb-5 flex flex-wrap gap-2">
         <Link to="/recruiter/candidates"><Button variant="secondary">Quay lại danh sách</Button></Link>
+        <InvitationLauncher applicationId={application.id} />
         <Link to={`/recruiter/candidates/${application.id}/evaluation`}><Button variant="secondary">Đánh giá hồ sơ</Button></Link>
         <Button variant="secondary" loading={saveMutation.pending} disabled={savedCandidatesQuery.loading || Boolean(savedCandidatesQuery.error) || savedStudentIds.has(application.studentId)} icon={savedStudentIds.has(application.studentId) ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />} onClick={() => void saveCandidate(application)}>
           {savedStudentIds.has(application.studentId) ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
@@ -988,6 +990,7 @@ function ApplicationActions({
   return (
     <div className="flex flex-wrap gap-2">
       <Link to={`/recruiter/candidates/${application.id}`}><Button variant="secondary" size="sm" icon={<Search size={14} />}>Chi tiết</Button></Link>
+      <InvitationLauncher applicationId={application.id} />
       <Link to={`/recruiter/candidates/${application.id}/evaluation`}><Button variant="secondary" size="sm">Đánh giá</Button></Link>
       <Button variant="secondary" size="sm" loading={saving} disabled={saved || saveDisabled} icon={saved ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />} onClick={() => onSave(application)}>
         {saved ? "Đã lưu ứng viên" : "Lưu hồ sơ"}
