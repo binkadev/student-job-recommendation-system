@@ -18,7 +18,7 @@ import { RecruiterDataTable } from "../RecruiterDataTable";
 import { applicationStatusLabels, listSavedCandidates, removeSavedCandidate, updateSavedNote, type SavedCandidate } from "./savedCandidatesApi";
 import { useCandidateMutation } from "./useCandidateMutation";
 
-export function SavedCandidatesPage() {
+export function SavedCandidatesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [page, setPage] = useState(1), [keyword, setKeyword] = useState("");
   const [size, setSize] = useState(10);
   const [status, setStatus] = useState(""), [jobId, setJobId] = useState("");
@@ -60,8 +60,7 @@ export function SavedCandidatesPage() {
     });
   }
   const close = () => { if (!mutation.pending) { setEditing(null); setRemoving(null); mutation.clearError(); } };
-  return <PageContainer>
-    <PageHeader title="Hồ sơ đã lưu" description="Ứng viên và ghi chú riêng của công ty. Trạng thái bên dưới thuộc đơn ứng tuyển nguồn đã lưu." />
+  const content = <>
     <Card>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Input label="Tìm ứng viên đã lưu" maxLength={255} value={keyword} placeholder="Tên, email, vị trí, ghi chú..." onChange={event => { setKeyword(event.target.value); setPage(1); }} />
@@ -84,6 +83,7 @@ export function SavedCandidatesPage() {
           { key: "note", header: "Ghi chú nội bộ", render: row => <p className="max-w-sm whitespace-pre-wrap break-words text-sm">{row.note || "Chưa có ghi chú"}</p> },
           { key: "actions", header: "Thao tác", render: row => <div className="flex flex-wrap gap-2">
             <Link to={`/recruiter/candidates/${row.applicationId}`}><Button size="sm" variant="secondary">Chi tiết</Button></Link>
+            <Link to={`/recruiter/candidates/${row.applicationId}/evaluation`}><Button size="sm" variant="secondary">Đánh giá</Button></Link>
             <Button size="sm" variant="secondary" disabled={mutation.pending} onClick={() => edit(row)}>Sửa ghi chú</Button>
             <Button size="sm" variant="secondary" disabled={mutation.pending} onClick={() => { setRemoving(row); mutation.clearError(); }}>Bỏ lưu</Button>
           </div> },
@@ -112,5 +112,10 @@ export function SavedCandidatesPage() {
         <Button variant="danger" loading={mutation.pending} onClick={() => { if (removing) void mutation.run(() => removeSavedCandidate(removing.id), () => { setPage(1); changed("Đã bỏ lưu hồ sơ ứng viên"); }); }}>Xác nhận bỏ lưu</Button>
       </div>
     </Modal>
+  </>;
+  if (embedded) return <div>{content}</div>;
+  return <PageContainer>
+    <PageHeader title="Hồ sơ đã lưu" description="Ứng viên và ghi chú riêng của công ty. Trạng thái bên dưới thuộc đơn ứng tuyển nguồn đã lưu." />
+    {content}
   </PageContainer>;
 }
