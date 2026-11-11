@@ -15,6 +15,7 @@ import { CandidateProfileSkeleton } from "../../features/candidate/profile/Candi
 import { CandidateProfileEditView } from "../../features/candidate/profile/CandidateProfileEditView";
 import { CandidatePreferencesView } from "../../features/candidate/profile/CandidatePreferencesView";
 import { getCandidateProfileData } from "../../features/candidate/profile/candidateProfileService";
+import { WORKING_MODEL_LABELS } from "../../features/candidate/profile/candidateProfileTypes";
 import type { CandidateSkill } from "../../features/candidate/profile/candidateProfileTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
@@ -109,6 +110,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
           <Card>
             <SectionHeader title="Giới thiệu" />
             <div className="grid gap-4">
+              <TextBlock title="Hình thức làm việc mong muốn" value={profile.record?.preferredWorkingModel ? WORKING_MODEL_LABELS[profile.record.preferredWorkingModel] : ""} editSection="personal" />
               <TextBlock title="Tóm tắt bản thân" value={profile.summary} editSection="summary" />
               <TextBlock title="Mục tiêu nghề nghiệp" value={profile.careerGoal} editSection="career-goal" />
             </div>
@@ -140,7 +142,14 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
           <Card>
             <SectionHeader title="Học vấn" />
-            {profile.record ? <div className="space-y-3 text-sm leading-6 text-slate-700"><p>{[profile.record.university, profile.record.major, profile.record.graduationYear].filter(Boolean).join(" · ")}</p><p className="whitespace-pre-wrap break-words">{profile.record.education || "Chưa cập nhật nội dung học vấn."}</p></div> : profile.education.length ? (
+            {profile.record ? (
+              <div className="space-y-3 text-sm leading-6 text-slate-700">
+                <p>{[profile.record.university, profile.record.major, profile.record.graduationYear].filter(Boolean).join(" · ")}</p>
+                <p className="break-words">Trình độ học vấn: {profile.record.educationLevel || "Chưa thiết lập"}</p>
+                <p>GPA (thang 4): {profile.record.gpa != null ? profile.record.gpa.toFixed(2) : "Chưa thiết lập"}</p>
+                <p className="whitespace-pre-wrap break-words">{profile.record.education || "Chưa cập nhật nội dung học vấn."}</p>
+              </div>
+            ) : profile.education.length ? (
               <div className="space-y-4">
                 {profile.education.map((education) => (
                   <div key={education.id} className="rounded-lg border border-slate-200 p-4">

@@ -1,5 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
-import type { CandidateProfileData, CandidateSkill } from "./candidateProfileTypes";
+import type { CandidateProfileData, CandidateSkill, PreferredWorkingModel } from "./candidateProfileTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -25,6 +25,9 @@ interface StudentResponse {
 }
 
 interface StudentProfileResponse {
+  gpa: number | null;
+  educationLevel: string | null;
+  preferredWorkingModel: PreferredWorkingModel | null;
   id: number;
   studentId: number;
   headline: string | null;
@@ -119,7 +122,10 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
   };
 
   const profilePayload = {
-    // This API treats null as "keep existing" and an empty string as "clear".
+    // Nullable academic/preference fields are cleared explicitly through clearFields.
+    gpa: profile.record.gpa ?? null,
+    educationLevel: profile.record.educationLevel?.trim() || null,
+    preferredWorkingModel: profile.record.preferredWorkingModel ?? null,
     summary: profile.summary.trim(),
     education: profile.record.education ?? "",
     experience: profile.record.experience ?? "",
@@ -131,6 +137,7 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
 
   const manualSkills = buildStudentSkillsPayload(profile, []);
   const clearFields = [
+    ...(["gpa", "educationLevel", "preferredWorkingModel"] as const).filter((key) => profilePayload[key] == null && profile.baseline!.profile[key] != null),
     ...(studentPayload.graduationYear == null && profile.baseline.student.graduationYear != null ? ["graduationYear"] : []),
     ...(profilePayload.preferredJobType == null && profile.baseline.profile.preferredJobType != null ? ["preferredJobType"] : []),
   ];
@@ -165,6 +172,9 @@ function mapCandidateProfile(
   const mapped: CandidateProfileData = {
     revision,
     record: {
+      gpa: profile.gpa ?? null,
+      educationLevel: profile.educationLevel ?? null,
+      preferredWorkingModel: profile.preferredWorkingModel ?? null,
       major: student.major,
       university: student.university,
       graduationYear: student.graduationYear,

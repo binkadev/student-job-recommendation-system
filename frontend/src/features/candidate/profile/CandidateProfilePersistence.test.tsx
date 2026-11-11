@@ -11,7 +11,7 @@ import { getCandidateProfileData, updateCandidateProfileData } from "./candidate
 vi.mock("../../../services/api/httpClient", () => ({ httpClient: { get: vi.fn(), put: vi.fn() } }));
 const URL = "/students/me/profile-aggregate";
 const studentSeed = { id: 2, userId: 4, email: "synthetic@example.test", fullName: "Original Student", phone: "01234", headline: "Developer", location: "Hà Nội", major: "Software", university: "IT University", graduationYear: 2026 };
-const detailsSeed = { id: 2, studentId: 2, summary: "Existing summary", education: "School one\nSchool two", experience: "Experience one\nExperience two", projects: "Project one\nProject two", targetPosition: "Backend Developer", preferredLocation: "Đà Nẵng", preferredJobType: "INTERNSHIP", profileCompleteness: 75 };
+const detailsSeed = { gpa: 3.25 as number | null, educationLevel: "Đại học" as string | null, preferredWorkingModel: "HYBRID" as string | null, githubUrl: "https://github.com/example", linkedinUrl: "https://example.test/linkedin", portfolioUrl: "https://example.test", certificates: [{ name: "Existing certificate" }], languages: [{ name: "English" }], id: 2, studentId: 2, summary: "Existing summary", education: "School one\nSchool two", experience: "Experience one\nExperience two", projects: "Project one\nProject two", targetPosition: "Backend Developer", preferredLocation: "Đà Nẵng", preferredJobType: "INTERNSHIP", profileCompleteness: 75 };
 let student = { ...studentSeed }, details = { ...detailsSeed }, revision = 5;
 let skillRows: Array<{ studentSkillId: number; skillId: number; skillName: string; category: string; proficiencyLevel: string; source: string; yearsOfExperience: number | null }> = [];
 const envelope = (data: unknown) => ({ data: { success: true, data }, headers: { etag: `"${revision}"` } });
@@ -24,9 +24,10 @@ beforeEach(() => {
     throw new Error(`Unexpected GET: ${url}`);
   });
   vi.mocked(httpClient.put).mockImplementation(async (url, body) => {
-    const payload = body as { student?: object; profile?: object };
+    const payload = body as { student?: object; profile?: object; clearFields?: Array<"gpa" | "educationLevel" | "preferredWorkingModel"> };
     if (url === URL) {
       student = { ...student, ...payload.student }; details = { ...details, ...payload.profile }; revision++;
+      for (const field of payload.clearFields ?? []) details[field] = null;
       return envelope(snapshot());
     }
     if (url === "/students/me/profile") { details = { ...details, ...body as object }; revision++; return envelope({ ...details }); }
@@ -38,6 +39,117 @@ function renderProfile(path = "/candidate/profile/edit") {
 }
 
 describe("Atomic profile transport and draft safety (mocked HTTP; PostgreSQL/browser tested separately)", () => {
+  it("loads real academic and working-model values, saves only changes, and displays the saved snapshot", async () => {
+    skillRows = [{ studentSkillId: 3, skillId: 7, skillName: "Git", category: "Tools", proficiencyLevel: "INTERMEDIATE", yearsOfExperience: null, source: "MANUAL" }];
+    const view = renderProfile("/candidate/profile/edit?section=education");
+    const gpa = await screen.findByLabelText("GPA (thang 4)");
+    expect(gpa).toHaveValue("3.25");
+    expect(screen.getByLabelText("Trình độ học vấn")).toHaveValue("Đại học");
+    await userEvent.clear(gpa); await userEvent.type(gpa, "3.75");
+    await userEvent.clear(screen.getByLabelText("Trình độ học vấn"));
+    await userEvent.type(screen.getByLabelText("Trình độ học vấn"), "Cử nhân");
+    await userEvent.click(screen.getByRole("button", { name: "Thông tin cá nhân" }));
+    expect(screen.getByLabelText("Hình thức làm việc mong muốn")).toHaveValue("HYBRID");
+    await userEvent.selectOptions(screen.getByLabelText("Hình thức làm việc mong muốn"), "REMOTE");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await screen.findByText("Đã lưu hồ sơ");
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: { gpa: 3.75, educationLevel: "Cử nhân", preferredWorkingModel: "REMOTE" } });
+    expect(details).toEqual({ ...detailsSeed, gpa: 3.75, educationLevel: "Cử nhân", preferredWorkingModel: "REMOTE" });
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await waitFor(() => expect(httpClient.put).toHaveBeenLastCalledWith(URL, { revision: 6, student: {}, profile: {} }));
+    view.unmount();
+    render(<ToastProvider><MemoryRouter><CandidateProfilePage /></MemoryRouter></ToastProvider>);
+    expect(await screen.findByText("Trình độ học vấn: Cử nhân")).toBeInTheDocument();
+    expect(screen.getByText("GPA (thang 4): 3.75")).toBeInTheDocument();
+    expect(screen.getByText("Từ xa")).toBeInTheDocument();
+  });
+
+  it("loads unset fields without inventing defaults or clearing unrelated data", async () => {
+    details = { ...details, gpa: null, educationLevel: null, preferredWorkingModel: null };
+    renderProfile("/candidate/profile/edit?section=education");
+    expect(await screen.findByLabelText("GPA (thang 4)")).toHaveValue("");
+    expect(screen.getByLabelText("Trình độ học vấn")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Thông tin cá nhân" }));
+    expect(screen.getByLabelText("Hình thức làm việc mong muốn")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await screen.findByText("Đã lưu hồ sơ");
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: {} });
+  });
+
+  it("clears all nullable academic/preference values through clearFields and reloads empty values", async () => {
+    renderProfile("/candidate/profile/edit?section=education");
+    await userEvent.clear(await screen.findByLabelText("GPA (thang 4)"));
+    await userEvent.clear(screen.getByLabelText("Trình độ học vấn"));
+    await userEvent.click(screen.getByRole("button", { name: "Thông tin cá nhân" }));
+    await userEvent.selectOptions(screen.getByLabelText("Hình thức làm việc mong muốn"), "");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await screen.findByText("Đã lưu hồ sơ");
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: {}, clearFields: ["gpa", "educationLevel", "preferredWorkingModel"] });
+    expect(screen.getByLabelText("Hình thức làm việc mong muốn")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Học vấn" }));
+    expect(screen.getByLabelText("GPA (thang 4)")).toHaveValue("");
+    expect(screen.getByLabelText("Trình độ học vấn")).toHaveValue("");
+    expect(details).toEqual({ ...detailsSeed, gpa: null, educationLevel: null, preferredWorkingModel: null });
+  });
+
+  it.each(["-0.01", "4.01", "3.456", "abc", "1e0", "3,5"])("rejects invalid GPA %s, opens its tab and focuses without writing", async (value) => {
+    renderProfile("/candidate/profile/edit?section=education");
+    const gpa = await screen.findByLabelText("GPA (thang 4)");
+    await userEvent.clear(gpa); await userEvent.type(gpa, value);
+    await userEvent.click(screen.getByRole("button", { name: "Thông tin cá nhân" }));
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await waitFor(() => expect(screen.getByLabelText("GPA (thang 4)")).toHaveFocus());
+    expect(screen.getByLabelText("GPA (thang 4)")).toHaveAttribute("aria-invalid", "true");
+    expect(httpClient.put).not.toHaveBeenCalled();
+  });
+
+  it.each(["0.00", "4.00"])("saves boundary GPA %s as a number", async (value) => {
+    renderProfile("/candidate/profile/edit?section=education");
+    const gpa = await screen.findByLabelText("GPA (thang 4)");
+    await userEvent.clear(gpa); await userEvent.type(gpa, value);
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await screen.findByText("Đã lưu hồ sơ");
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: { gpa: Number(value) } });
+    expect(gpa).toHaveValue(value);
+  });
+
+  it("validates the education-level length and accepts 100 characters", async () => {
+    renderProfile("/candidate/profile/edit?section=education");
+    const level = await screen.findByLabelText("Trình độ học vấn");
+    await userEvent.clear(level); await userEvent.type(level, "a".repeat(101));
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    expect(await screen.findByText("Trình độ học vấn tối đa 100 ký tự.")).toBeInTheDocument();
+    expect(httpClient.put).not.toHaveBeenCalled();
+    await userEvent.clear(level); await userEvent.type(level, "a".repeat(100));
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    await screen.findByText("Đã lưu hồ sơ");
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: { educationLevel: "a".repeat(100) } });
+  });
+
+  it("keeps academic/preference drafts and the original revision after conflict and comparison", async () => {
+    renderProfile("/candidate/profile/edit?section=education");
+    const gpa = await screen.findByLabelText("GPA (thang 4)");
+    await userEvent.clear(gpa); await userEvent.type(gpa, "3.80");
+    await userEvent.clear(screen.getByLabelText("Trình độ học vấn"));
+    await userEvent.click(screen.getByRole("button", { name: "Thông tin cá nhân" }));
+    await userEvent.selectOptions(screen.getByLabelText("Hình thức làm việc mong muốn"), "ONSITE");
+    vi.mocked(httpClient.put).mockRejectedValueOnce({ response: { status: 409, data: { errorCode: "PROFILE_REVISION_CONFLICT" } } });
+    await userEvent.click(screen.getByRole("button", { name: "Lưu hồ sơ" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/phiên khác/);
+    details = { ...details, gpa: 4, educationLevel: "Thạc sĩ", preferredWorkingModel: "REMOTE" }; revision = 6;
+    await userEvent.click(screen.getByRole("button", { name: "Tải bản mới để đối chiếu" }));
+    await screen.findByRole("heading", { name: "Đối chiếu hồ sơ" });
+    expect(screen.getByRole("cell", { name: "3.80" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "4.00" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Tại văn phòng" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Hình thức làm việc mong muốn")).toHaveValue("ONSITE");
+    expect(screen.getByRole("button", { name: "Lưu hồ sơ" })).toBeDisabled();
+    expect(httpClient.put).toHaveBeenCalledExactlyOnceWith(URL, { revision: 5, student: {}, profile: { gpa: 3.8, preferredWorkingModel: "ONSITE" }, clearFields: ["educationLevel"] });
+    await userEvent.click(screen.getByRole("button", { name: "Học vấn" }));
+    expect(screen.getByLabelText("GPA (thang 4)")).toHaveValue("3.80");
+    expect(screen.getByLabelText("Trình độ học vấn")).toHaveValue("");
+  });
+
   it("reads one coherent snapshot and saves one mutation with its captured revision", async () => {
     const profile = await getCandidateProfileData();
     expect(profile.revision).toBe(5); expect(httpClient.get).toHaveBeenCalledTimes(1);
