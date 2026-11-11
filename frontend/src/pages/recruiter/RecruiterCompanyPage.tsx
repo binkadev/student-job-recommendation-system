@@ -15,6 +15,8 @@ import { Table } from "../../components/ui/Table";
 import { Textarea } from "../../components/ui/Textarea";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
+import { CompanyVerificationDocumentPanel } from "../../features/company/verification/CompanyVerificationDocumentPanel";
+import type { VerificationDocumentSnapshot } from "../../features/company/verification/verificationDocumentApi";
 import { httpClient } from "../../services/api/httpClient";
 
 interface RecruiterCompanyPageProps {
@@ -144,6 +146,12 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
     }
   }
 
+  async function documentUploaded(saved: VerificationDocumentSnapshot) {
+    // Update the known shared revision immediately, even if the subsequent profile read fails.
+    companyQuery.setData(current => current ? { ...current, revision: saved.revision, etag: saved.etag } : current);
+    companyQuery.setData(await getMyCompany());
+  }
+
   async function saveCompany(form: CompanyForm) {
     try {
       await updateMyCompany(form);
@@ -175,7 +183,7 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   const company = companyQuery.data;
 
   if (mode === "verification") {
-    return <CompanyVerificationView company={company} />;
+    return <CompanyVerificationView company={company} onUploaded={documentUploaded} />;
   }
 
   if (mode === "edit") {
@@ -426,7 +434,7 @@ function RecruiterCompanyEditView({
   );
 }
 
-function CompanyVerificationView({ company }: { company: CompanyResponse }) {
+function CompanyVerificationView({ company, onUploaded }: { company: CompanyResponse; onUploaded: (snapshot: VerificationDocumentSnapshot) => Promise<void> }) {
   return (
     <PageContainer>
       <PageHeader title="Xác thực doanh nghiệp" description="Theo dõi trạng thái xác thực công ty." />
@@ -441,11 +449,11 @@ function CompanyVerificationView({ company }: { company: CompanyResponse }) {
             <InfoRow label="Cập nhật gần nhất" value={formatDateTime(company.updatedAt)} />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            <p className="text-sm leading-6 text-slate-600">Hệ thống chưa hỗ trợ gửi tài liệu xác thực trực tuyến. Trạng thái xác thực do quản trị viên quản lý.</p>
+            <p className="text-sm leading-6 text-slate-600">Bạn có thể gửi hoặc thay thế tài liệu riêng tư ở bên cạnh. Trạng thái xác thực do quản trị viên quản lý.</p>
             <Link to="/recruiter/company"><Button variant="secondary">Quay lại hồ sơ</Button></Link>
           </div>
         </Card>
-        <UnsupportedSection title="Tài liệu xác thực" message="Chưa có tài liệu xác thực doanh nghiệp." icon={<UploadCloud size={18} />} />
+        <CompanyVerificationDocumentPanel key={company.id} mode="company" onUploaded={onUploaded} />
       </div>
     </PageContainer>
   );
