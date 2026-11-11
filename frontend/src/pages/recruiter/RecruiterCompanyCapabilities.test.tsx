@@ -20,7 +20,8 @@ it("keeps supported business fields editable without offering a nonpersisted ima
   expect(screen.getByLabelText("Mã số thuế")).toBeEnabled();
   expect(screen.getByLabelText("Quy mô công ty")).toBeEnabled();
   expect(screen.getByLabelText("URL logo")).toBeEnabled();
-  expect(screen.getByText(/chưa hỗ trợ lưu ảnh bìa/)).toBeVisible();
+  expect(screen.getByLabelText("URL ảnh bìa")).toBeEnabled();
+  expect(screen.getByText(/hiện hỗ trợ ảnh qua URL/)).toBeVisible();
   expect(screen.queryByRole("button", { name: "Tải ảnh" })).not.toBeInTheDocument();
   expect(httpClient.put).not.toHaveBeenCalled();
 });

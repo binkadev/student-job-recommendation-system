@@ -51,6 +51,7 @@ interface CompanyResponse {
   industry: string | null;
   companySize: string | null;
   logoUrl: string | null;
+  coverImageUrl: string | null;
   status: CompanyStatus;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +69,7 @@ interface CompanyForm {
   industry: string;
   companySize: string;
   logoUrl: string;
+  coverImageUrl: string;
 }
 
 interface JobResponse {
@@ -226,12 +228,7 @@ function CompanyHero({ company, onCopyWebsite, onCopyAddress }: { company: Compa
   const name = company.companyName || company.email;
   return (
     <section className="neo-company-hero overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="aurora-panel flex min-h-48 items-end p-6 text-white">
-        <div className="max-w-3xl">
-          <p className="text-sm text-slate-300">{company.industry || "Chưa cập nhật lĩnh vực"}</p>
-          <h2 className="mt-2 text-3xl font-semibold">{name}</h2>
-        </div>
-      </div>
+      <CompanyCover key={company.coverImageUrl ?? ""} company={company} name={name} />
       <div className="flex flex-wrap items-start justify-between gap-4 p-6">
         <div className="flex min-w-0 flex-1 gap-4">
           <CompanyLogo key={company.logoUrl ?? ""} name={name} url={company.logoUrl} />
@@ -364,7 +361,9 @@ function RecruiterCompanyEditView({
     if (form.phone && form.phone.length > 50) nextErrors.phone = "Số điện thoại tối đa 50 ký tự.";
     if (form.companySize.length > 100) nextErrors.companySize = "Quy mô công ty tối đa 100 ký tự.";
     if (form.logoUrl.length > 500) nextErrors.logoUrl = "URL logo tối đa 500 ký tự.";
-    else if (!isValidCompanyLogoUrl(form.logoUrl)) nextErrors.logoUrl = "Nhập URL HTTP/HTTPS có host hợp lệ, không chứa khoảng trắng hoặc thông tin đăng nhập.";
+    else if (!isValidCompanyImageUrl(form.logoUrl)) nextErrors.logoUrl = "Nhập URL HTTP/HTTPS có host hợp lệ, không chứa khoảng trắng hoặc thông tin đăng nhập.";
+    if (form.coverImageUrl.length > 500) nextErrors.coverImageUrl = "URL ảnh bìa tối đa 500 ký tự.";
+    else if (!isValidCompanyImageUrl(form.coverImageUrl)) nextErrors.coverImageUrl = "Nhập URL HTTP/HTTPS có host hợp lệ, không chứa khoảng trắng hoặc thông tin đăng nhập.";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -396,10 +395,12 @@ function RecruiterCompanyEditView({
             <Input label="Lĩnh vực" value={form.industry} onChange={(event) => update("industry", event.target.value)} />
             <Input label="Quy mô công ty" value={form.companySize} error={errors.companySize} onChange={(event) => update("companySize", event.target.value)} />
             <Input label="URL logo" inputMode="url" value={form.logoUrl} aria-describedby="company-logo-hint" error={errors.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} />
+            <Input label="URL ảnh bìa" inputMode="url" value={form.coverImageUrl} aria-describedby="company-cover-hint" error={errors.coverImageUrl} onChange={(event) => update("coverImageUrl", event.target.value)} />
             <Input label="Website" value={form.website} error={errors.website} onChange={(event) => update("website", event.target.value)} />
             <Input label="Email đăng nhập" value={company.email} disabled />
             <Input label="Số điện thoại" value={form.phone} error={errors.phone} onChange={(event) => update("phone", event.target.value)} />
           </div>
+          <p id="company-cover-hint" className="mt-3 text-sm text-slate-500">URL ảnh bìa HTTP/HTTPS tối đa 500 ký tự. Để trống để xóa; ảnh lỗi sẽ dùng nền Neo-Aurora.</p>
           <p id="company-logo-hint" className="mt-3 text-sm text-slate-500">Quy mô tối đa 100 ký tự. URL logo HTTP/HTTPS tối đa 500 ký tự; để trống để xóa. Logo được tải từ URL, không có chức năng tải ảnh lên.</p>
           <div className="mt-4 grid gap-4">
             <Textarea label="Địa chỉ" value={form.address} onChange={(event) => update("address", event.target.value)} />
@@ -417,7 +418,7 @@ function RecruiterCompanyEditView({
             <StatusBadge label={COMPANY_STATUS_LABELS[company.status]} tone={companyStatusTone(company.status)} />
             <p className="mt-3 text-sm text-slate-600">Trạng thái xác thực do quản trị viên quản lý.</p>
           </Card>
-          <UnsupportedSection title="Ảnh bìa" message="Hệ thống chưa hỗ trợ lưu ảnh bìa." icon={<UploadCloud size={18} />} />
+          <Card><SectionHeader title="Logo và ảnh bìa" description="Dùng URL ảnh HTTP/HTTPS có thể truy cập để cập nhật logo và ảnh bìa. Hệ thống hiện hỗ trợ ảnh qua URL; chưa hỗ trợ tải tệp ảnh lên." /></Card>
           <UnsupportedSection title="Thông tin bổ sung" message="Chưa có dữ liệu chi nhánh, phúc lợi, mạng xã hội và thành viên tuyển dụng." />
         </aside>
       </div>
@@ -487,6 +488,7 @@ async function updateMyCompany(form: CompanyForm) {
     industry: emptyToNull(form.industry),
     companySize: form.companySize.trim(),
     logoUrl: form.logoUrl,
+    coverImageUrl: form.coverImageUrl,
   }, { headers: { "If-Match": form.etag } });
   return response.data.data;
 }
@@ -513,6 +515,7 @@ function mapCompanyToForm(company: CompanyResponse): CompanyForm {
     industry: company.industry || "",
     companySize: company.companySize ?? "",
     logoUrl: company.logoUrl ?? "",
+    coverImageUrl: company.coverImageUrl ?? "",
   };
 }
 
@@ -585,8 +588,8 @@ function getErrorMessage(error: unknown) {
   return "Vui lòng thử lại.";
 }
 
-/** Matches the company logo contract: optional absolute HTTP(S), host, no whitespace or credentials. */
-function isValidCompanyLogoUrl(value: string) {
+/** Shared company logo/cover URL contract: optional absolute HTTP(S), host, no whitespace or credentials. */
+function isValidCompanyImageUrl(value: string) {
   if (value === "") return true;
   if (Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return false;
   if (!/^https?:\/\//i.test(value) || /[\s\\]/u.test(value) || /%(?![a-f\d]{2})/i.test(value) || /[<>"{}|^`]/.test(value)) return false;
@@ -605,9 +608,25 @@ function isValidCompanyLogoUrl(value: string) {
 
 function CompanyLogo({ name, url }: { name: string; url?: string | null }) {
   const [failed, setFailed] = useState(false);
-  const showImage = url && url.length <= 500 && isValidCompanyLogoUrl(url) && !failed;
+  const showImage = url && url.length <= 500 && isValidCompanyImageUrl(url) && !failed;
   return <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50 text-xl font-semibold text-brand-700">
     {showImage ? <img src={url ?? undefined} alt={`Logo ${name}`} width={64} height={64} referrerPolicy="no-referrer" decoding="async" className="h-full w-full object-contain" onError={() => setFailed(true)} />
       : <span role="img" aria-label={`Logo mặc định của ${name}`}>{getInitials(name)}</span>}
+  </div>;
+}
+
+function CompanyCover({ company, name }: { company: CompanyResponse; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const url = company.coverImageUrl;
+  const showImage = url && url.length <= 500 && isValidCompanyImageUrl(url) && !failed;
+  return <div className="aurora-panel relative flex min-h-48 items-end p-6 text-white">
+    {showImage ? <>
+      <img src={url ?? undefined} alt="" aria-hidden="true" referrerPolicy="no-referrer" decoding="async" className="absolute inset-0 h-full w-full object-cover" onError={() => setFailed(true)} />
+      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/75" />
+    </> : null}
+    <div className="relative z-10 min-w-0 max-w-3xl break-words">
+      <p className="text-sm text-slate-200">{company.industry || "Chưa cập nhật lĩnh vực"}</p>
+      <h2 className="mt-2 text-3xl font-semibold text-white">{name}</h2>
+    </div>
   </div>;
 }
