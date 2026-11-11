@@ -1,5 +1,5 @@
 import { BriefcaseBusiness, Copy, ExternalLink, Github, Globe, GraduationCap, Linkedin, Mail, MapPin, Phone, Plus, UserRound } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { SectionHeader } from "../../components/common/SectionHeader";
@@ -11,6 +11,7 @@ import { Card } from "../../components/ui/Card";
 import { IconButton } from "../../components/ui/IconButton";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { Tooltip } from "../../components/ui/Tooltip";
+import { CandidateProfilePreview } from "../../features/candidate/profile/CandidateProfilePreview";
 import { CandidateProfileSkeleton } from "../../features/candidate/profile/CandidateProfileSkeleton";
 import { CandidateProfileEditView } from "../../features/candidate/profile/CandidateProfileEditView";
 import { CandidatePreferencesView } from "../../features/candidate/profile/CandidatePreferencesView";
@@ -30,6 +31,7 @@ const skillGroups = [
 
 export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit" | "preferences" }) {
   const { showToast } = useToast();
+  const [previewOpen, setPreviewOpen] = useState(false);
   const profileQuery = useAsyncData(() => getCandidateProfileData(), []);
   const profile = profileQuery.data;
 
@@ -69,6 +71,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
 
   return (
     <PageContainer>
+      <CandidateProfilePreview profile={profile} open={previewOpen} onClose={() => setPreviewOpen(false)} />
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="flex min-h-40 items-end bg-slate-950 p-6 text-white">
           <div>
@@ -95,7 +98,7 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/candidate/profile/edit"><Button>Chỉnh sửa</Button></Link>
-            <Button variant="secondary" onClick={() => showToast({ type: "info", title: "Hồ sơ công khai chưa sẵn sàng", message: "Bạn có thể tiếp tục cập nhật hồ sơ cá nhân trước." })}>Xem hồ sơ công khai</Button>
+            <Button variant="secondary" aria-haspopup="dialog" onClick={() => setPreviewOpen(true)}>Xem trước hồ sơ</Button>
           </div>
         </div>
       </section>
