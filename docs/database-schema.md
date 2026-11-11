@@ -4,9 +4,9 @@ The implemented database is PostgreSQL managed by Flyway migrations under `backe
 
 Old migrations must not be edited after being applied. Released `V1`–`V19` remain unchanged; V20 adds the Saved Candidate note revision. The schema below includes V20; verify actual deployed Flyway history separately.
 
-All 19 business tables use `BIGSERIAL` primary key `id` and non-null `created_at`/`updated_at` timestamps defaulting to `CURRENT_TIMESTAMP`. All released foreign keys use `ON DELETE RESTRICT`. Types, defaults and column nullability are also shown in [the DBML](database-erd.dbml); omitted `not null` means nullable. VARCHAR enum values in application code are not automatically database CHECK constraints.
+The historical V20 catalog below covers 19 business tables, which use `BIGSERIAL` primary key `id` and non-null `created_at`/`updated_at` timestamps defaulting to `CURRENT_TIMESTAMP`. All released foreign keys use `ON DELETE RESTRICT`. Types, defaults and column nullability are also shown in [the DBML](database-erd.dbml); omitted `not null` means nullable. VARCHAR enum values in application code are not automatically database CHECK constraints.
 
-Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision; V20 Saved Candidate revision. See [released migrations](../backend/src/main/resources/db/migration/).
+Migration coverage: V1 users; V2 Student/profile/Company; V3 skills; V4 Jobs/Job skills/saved Jobs; V5 CVs/Applications; V6 recommendations; V7 indexes; V8 login timestamp; V9 profile extensions; V10 CV storage/active flag; V11 skill normalization; V12 notifications; V13 saved Candidates/settings; V14 saved searches; V15 CV analysis/recommendation V2 metadata; V16 Candidate Ranking; V17 V3 tier/score/limit semantics; V18 active-application uniqueness; V19 Student profile aggregate revision; V20 Saved Candidate revision; V21 settings revisions; V22 Student extensions; V23 Company extensions; V24 interviews/invitations; V25 Application messaging. See [released migrations](../backend/src/main/resources/db/migration/).
 
 ## Tables
 
@@ -326,3 +326,16 @@ Latest migration for W3-C1A is `V24__interviews_and_invitations.sql`. The older 
 `job_invitations`: id BIGSERIAL PK; company_id/student_id/job_id BIGINT NOT NULL with restrictive FKs; message TEXT nullable; status VARCHAR(30) NOT NULL CHECK PENDING/ACCEPTED/DECLINED/CANCELLED; created_at/updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP.
 
 Both tables index `(company_id, created_at DESC, id DESC)` and `(student_id, created_at DESC, id DESC)` for their bounded owner lists. Interviews additionally index application_id. `uk_job_invitations_pending` uniquely indexes `(company_id,student_id,job_id)` only WHERE status='PENDING'; terminal history is not globally unique. Relationship tuple consistency, future meeting time/HTTP(S) details, role-specific transitions, Company/Job visibility/eligibility and captured-state concurrency are enforced by [Backend services](datn/interviews-invitations-backend.md), not represented as stronger cross-table DB CHECKs. No cascade changes to existing records or Application lifecycle are introduced.
+
+
+## V25: Application-scoped private messaging
+
+V25 adds two tables and changes no existing rows or released migrations. V24 is already allocated to interviews/invitations; this V25 allocation supersedes the historical plan's V26 messaging reservation. Password recovery remains excluded.
+
+`conversations`: id BIGSERIAL PK; application_id BIGINT NOT NULL UNIQUE FK applications; company_id BIGINT NOT NULL FK companies; student_id BIGINT NOT NULL FK students; last_message_at TIMESTAMP nullable; created_at/updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP. All FKs ON DELETE RESTRICT. One conversation per Application, not per Student-Company pair. Backend derives and validates the participant tuple against Application and Job; independent FKs alone cannot enforce tuple consistency.
+
+`messages`: id BIGSERIAL PK; conversation_id BIGINT NOT NULL FK conversations; sender_user_id BIGINT NOT NULL FK users; sender_role VARCHAR(20) NOT NULL CHECK STUDENT/COMPANY; content TEXT NOT NULL CHECK non-whitespace and char_length <=5000; is_read BOOLEAN NOT NULL DEFAULT FALSE; created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP. No updated_at is needed for append-only content. Both FKs ON DELETE RESTRICT. API additionally bounds content to 5000 UTF-16 code units; DB char_length counts Unicode characters.
+
+Indexes: idx_conversations_company_activity(company_id, COALESCE(last_message_at,created_at) DESC,id DESC), idx_conversations_student_activity(student_id, same activity expression DESC,id DESC), idx_messages_conversation_chronological(conversation_id,created_at,id), partial idx_messages_unread_sender(conversation_id,sender_user_id) WHERE is_read=FALSE. The application_id UNIQUE constraint also supplies its index.
+
+Application row locking serializes conversation creation; conversation row locking serializes sends/read updates. Recipient marking only updates incoming messages. No hard-delete API or status cascade exists. See [API semantics](api-contract.md#application-scoped-private-messaging-v25) and [verification](datn/application-messaging-backend.md).

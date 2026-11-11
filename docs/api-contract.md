@@ -1499,3 +1499,31 @@ Authenticated STUDENT routes: `GET /api/students/me/interviews`, `PATCH /api/stu
 All use ApiResponse. Lists return PageResponse, accept 1-based page (default1), size1–100 (default10), and sort by createdAt DESC/id DESC within JWT ownership. PATCH bodies require `expectedStatus` and `status`: stale state returns409 RECRUITMENT_STATE_CONFLICT, invalid transitions400, foreign access403, missing records404. No existing Application status is changed by these endpoints; acceptance does not apply automatically. Duplicate PENDING invitations return409 INVITATION_ALREADY_PENDING. No public/Admin listing is added.
 
 See [the executable DTO contract, transitions, eligibility and concurrency decisions](datn/interviews-invitations-backend.md) for exact creation fields, validation limits, supported actions and limitations. This is Backend support only; no integrated UI is claimed.
+
+## Application-scoped private messaging (V25)
+
+Only authenticated STUDENT/COMPANY participants of the persisted Application may use these endpoints; ADMIN has no inbox or override. All return `ApiResponse`, HTTP 200 on success (including conversation reuse). JWT-derived identities are checked against Application.student and Application.job.company; no public messaging directory exists.
+
+| Method / path | Input | `data` result |
+|---|---|---|
+| GET `/api/conversations` | `page=1`, `size=10` (page >=1, size 1-100) | `PageResponse<ConversationResponse>` |
+| POST `/api/conversations` | `{ "applicationId": 123 }`, required positive integer identifying an existing Application | `ConversationResponse`, created or reused |
+| GET `/api/conversations/{id}/messages` | Positive conversation ID; same bounded pagination | `PageResponse<MessageResponse>` |
+| POST `/api/conversations/{id}/messages` | `{ "content": "Hello" }` | `MessageResponse` |
+| PATCH `/api/conversations/{id}/read` | Positive conversation ID, no request body | `{ "conversationId": 123, "markedCount": 2 }` |
+
+`ConversationResponse` contains exactly `id`, `applicationId`, `companyId`, `studentId`, `jobId`, nullable `lastMessageAt`, `createdAt`, `updatedAt`. Listings contain no message body, CV, contact details, passwords or storage metadata. Ownership filtering and total counts run in PostgreSQL; inconsistent participant tuples are excluded. Order is `COALESCE(last_message_at, created_at) DESC, id DESC`.
+
+`MessageResponse` contains exactly `id`, `conversationId`, `senderUserId`, `senderRole` (STUDENT/COMPANY), `content`, `isRead`, `createdAt`. Only participants receive content. Messages are ordered `created_at ASC, id ASC`, paginated in PostgreSQL. GET does not mark messages read. Timestamps follow existing local ISO-8601 / SQL TIMESTAMP conventions.
+
+Both request DTOs reject unknown fields (including `senderUserId`, `senderRole`, `companyId`, `studentId`). Content is required, nonblank, at most **5000 Java UTF-16 code units**, preserved without trimming; NUL characters (unsupported by PostgreSQL text) are rejected with 400. Sender identity/role and timestamps are assigned by Backend. No attachments, message updates/deletes, notifications or realtime transport are provided.
+
+PATCH read marks all currently persisted unread messages from the opposite participant in this conversation, including messages outside the current page. It never marks the caller's outbound messages; subsequent calls return `markedCount: 0` until new incoming messages arrive. No recipient identity is accepted from clients.
+
+Conversation creation locks the Application row and has a unique Application constraint. Sends and read operations lock the Conversation row, serializing across Backend instances. Send inserts a message and updates lastMessageAt in one transaction; the timestamp is chosen after locking and cannot regress below the previous lastMessageAt. Read and send are linearized: a message committed after a read operation remains unread.
+
+All existing Application statuses (including REJECTED/WITHDRAWN history) allow participant create/read/send. Company verification changes or Job closure do not remove private history access for otherwise authenticated active accounts. These APIs never create an Application or modify Company/Job/Application/CV/Interview/Invitation status. Reapplication keeps a separate conversation for each Application row.
+
+Errors use the established envelope: missing/invalid JWT 401, wrong role or foreign participant 403, missing Application/Conversation 404, invalid JSON/unknown fields/invalid IDs/content/pagination 400. Validation errors do not echo content. No If-Match is required: these append-only operations use transactional row locks. Offset pages can shift when new activity arrives; clients should refetch current pages.
+
+See [implementation and focused verification](datn/application-messaging-backend.md). This Backend contract does not claim Frontend messaging integration or browser E2E support.

@@ -466,3 +466,35 @@ Table job_invitations {
   }
   Note: 'V24. All FKs ON DELETE RESTRICT. CHECK status PENDING/ACCEPTED/DECLINED/CANCELLED. Partial UNIQUE uk_job_invitations_pending(company_id, student_id, job_id) WHERE status=PENDING; intentionally not modeled as an ordinary unique DBML index. Terminal invitations remain historical records.'
 }
+
+// V25 private messaging. All FKs explicitly restrict deletes.
+Table conversations {
+  id bigint [pk, increment]
+  application_id bigint [not null, unique]
+  company_id bigint [not null]
+  student_id bigint [not null]
+  last_message_at timestamp
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  Note: 'V25: Backend derives/validates Application participants. Expression indexes idx_conversations_company_activity and idx_conversations_student_activity on (owner_id, COALESCE(last_message_at, created_at) DESC, id DESC). UNIQUE application_id retains separate reapplication histories.'
+}
+
+Table messages {
+  id bigint [pk, increment]
+  conversation_id bigint [not null]
+  sender_user_id bigint [not null]
+  sender_role varchar(20) [not null]
+  content text [not null]
+  is_read boolean [not null, default: false]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  Indexes {
+    (conversation_id, created_at, id) [name: 'idx_messages_conversation_chronological']
+  }
+  Note: 'V25: CHECK sender_role STUDENT/COMPANY; content contains non-whitespace and char_length <=5000. Partial idx_messages_unread_sender(conversation_id,sender_user_id) WHERE is_read=FALSE. JWT-derived sender; recipient-only read updates; no content edit/delete API.'
+}
+
+Ref: conversations.application_id > applications.id [delete: restrict]
+Ref: conversations.company_id > companies.id [delete: restrict]
+Ref: conversations.student_id > students.id [delete: restrict]
+Ref: messages.conversation_id > conversations.id [delete: restrict]
+Ref: messages.sender_user_id > users.id [delete: restrict]
