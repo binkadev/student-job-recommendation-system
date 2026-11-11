@@ -1,5 +1,5 @@
 import { httpClient } from "../../../services/api/httpClient";
-import type { CandidateProfileData, CandidateSkill, PreferredWorkingModel } from "./candidateProfileTypes";
+import type { CandidateCertificate, CandidateLanguage, CandidateProfileData, CandidateSkill, PreferredWorkingModel } from "./candidateProfileTypes";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -25,6 +25,11 @@ interface StudentResponse {
 }
 
 interface StudentProfileResponse {
+  certificates: Array<{ name: string; issuer: string | null; issuedAt: string | null; expiresAt: string | null; code: string | null; url: string | null }> | null;
+  languages: Array<{ name: string; level: string }> | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
   gpa: number | null;
   educationLevel: string | null;
   preferredWorkingModel: PreferredWorkingModel | null;
@@ -123,6 +128,9 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
 
   const profilePayload = {
     // Nullable academic/preference fields are cleared explicitly through clearFields.
+    githubUrl: profile.links.github.trim() || null,
+    linkedinUrl: profile.links.linkedIn.trim() || null,
+    portfolioUrl: profile.links.portfolio.trim() || null,
     gpa: profile.record.gpa ?? null,
     educationLevel: profile.record.educationLevel?.trim() || null,
     preferredWorkingModel: profile.record.preferredWorkingModel ?? null,
@@ -136,8 +144,14 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
   };
 
   const manualSkills = buildStudentSkillsPayload(profile, []);
+  const certificates = certificatePayload(profile.certificates);
+  const languages = languagePayload(profile.languages);
+  const certificatesChanged = JSON.stringify(certificates) !== profile.baseline.certificates;
+  const languagesChanged = JSON.stringify(languages) !== profile.baseline.languages;
   const clearFields = [
-    ...(["gpa", "educationLevel", "preferredWorkingModel"] as const).filter((key) => profilePayload[key] == null && profile.baseline!.profile[key] != null),
+    ...(["gpa", "educationLevel", "preferredWorkingModel", "githubUrl", "linkedinUrl", "portfolioUrl"] as const).filter((key) => profilePayload[key] == null && profile.baseline!.profile[key] != null),
+    ...(certificatesChanged && !certificates.length ? ["certificates"] : []),
+    ...(languagesChanged && !languages.length ? ["languages"] : []),
     ...(studentPayload.graduationYear == null && profile.baseline.student.graduationYear != null ? ["graduationYear"] : []),
     ...(profilePayload.preferredJobType == null && profile.baseline.profile.preferredJobType != null ? ["preferredJobType"] : []),
   ];
@@ -146,6 +160,8 @@ export async function updateCandidateProfileData(profile: CandidateProfileData):
     student: changedFields(studentPayload, profile.baseline.student),
     profile: changedFields(profilePayload, profile.baseline.profile),
     ...(JSON.stringify(manualSkills) !== profile.baseline.manualSkills ? { manualSkills } : {}),
+    ...(certificatesChanged && certificates.length ? { certificates } : {}),
+    ...(languagesChanged && languages.length ? { languages } : {}),
     ...(clearFields.length ? { clearFields } : {}),
   });
   return fromAggregate(response.data.data);
@@ -169,6 +185,7 @@ function mapCandidateProfile(
   const experienceText = profile.experience || "";
   const projectsText = profile.projects || "";
 
+  const { certificates, languages, ...profileScalars } = profile;
   const mapped: CandidateProfileData = {
     revision,
     record: {
@@ -216,7 +233,10 @@ function mapCandidateProfile(
       gpa: "",
     }] : [],
     skills: groupStudentSkills(skills),
-    certificates: [],
+    certificates: (certificates ?? []).map((item, index) => ({
+      id: `certificate-${index}`, name: item.name, issuer: item.issuer ?? "", issuedAt: item.issuedAt ?? "",
+      expiresAt: item.expiresAt ?? "", code: item.code ?? "", url: item.url ?? "",
+    })),
     projects: projectsText ? [{
       id: "project-backend",
       name: "Dự án",
@@ -226,15 +246,15 @@ function mapCandidateProfile(
       technologies: [],
       url: "",
     }] : [],
-    languages: [],
+    languages: (languages ?? []).map((item, index) => ({ ...item, id: `language-${index}` })),
     links: {
-      linkedIn: "",
-      github: "",
-      portfolio: "",
+      linkedIn: profile.linkedinUrl ?? "",
+      github: profile.githubUrl ?? "",
+      portfolio: profile.portfolioUrl ?? "",
       website: "",
     },
   };
-  mapped.baseline = { student: { ...student }, profile: { ...profile }, manualSkills: JSON.stringify(buildStudentSkillsPayload(mapped, [])) };
+  mapped.baseline = { student: { ...student }, profile: { ...profileScalars }, manualSkills: JSON.stringify(buildStudentSkillsPayload(mapped, [])), certificates: JSON.stringify(certificatePayload(mapped.certificates)), languages: JSON.stringify(languagePayload(mapped.languages)) };
   return mapped;
 }
 
@@ -341,4 +361,12 @@ function normalize(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function certificatePayload(items: CandidateCertificate[]) {
+  return items.map((item) => ({ name: item.name, issuer: item.issuer || null, issuedAt: item.issuedAt || null,
+    expiresAt: item.expiresAt || null, code: item.code || null, url: item.url.trim() || null }));
+}
+function languagePayload(items: CandidateLanguage[]) {
+  return items.map((item) => ({ name: item.name, level: item.level }));
 }

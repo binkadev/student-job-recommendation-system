@@ -84,7 +84,7 @@ export interface CandidateProfileLinks {
 
 export interface CandidateProfileData {
   revision?: number;
-  baseline?: { student: Record<string, string | number | null>; profile: Record<string, string | number | null>; manualSkills: string };
+  baseline?: { student: Record<string, string | number | null>; profile: Record<string, string | number | null>; manualSkills: string; certificates?: string; languages?: string };
   /** Exact editable scalar fields; Backend stores these sections as plain text. */
   record?: {
     gpa?: number | null;

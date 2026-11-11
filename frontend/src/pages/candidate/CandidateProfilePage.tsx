@@ -15,6 +15,7 @@ import { CandidateProfileSkeleton } from "../../features/candidate/profile/Candi
 import { CandidateProfileEditView } from "../../features/candidate/profile/CandidateProfileEditView";
 import { CandidatePreferencesView } from "../../features/candidate/profile/CandidatePreferencesView";
 import { getCandidateProfileData } from "../../features/candidate/profile/candidateProfileService";
+import { isProfileHttpUrl } from "../../features/candidate/profile/candidateProfileExtensions";
 import { WORKING_MODEL_LABELS } from "../../features/candidate/profile/candidateProfileTypes";
 import type { CandidateSkill } from "../../features/candidate/profile/candidateProfileTypes";
 import { useAsyncData } from "../../hooks/useAsyncData";
@@ -187,7 +188,8 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
                     <h3 className="font-semibold text-slate-950">{certificate.name}</h3>
                     <p className="mt-1 text-sm text-slate-600">{certificate.issuer}</p>
                     <p className="mt-2 text-sm text-slate-500">Cấp: {certificate.issuedAt} · Hết hạn: {certificate.expiresAt}</p>
-                    <ExternalAnchor href={certificate.url} label="Xem chứng chỉ" />
+                    {certificate.code ? <p className="mt-2 break-words text-sm text-slate-600">Mã chứng chỉ: {certificate.code}</p> : null}
+                    {certificate.url && isProfileHttpUrl(certificate.url) ? <ExternalAnchor href={certificate.url} label="Xem chứng chỉ" /> : null}
                   </div>
                 ))}
               </div>
@@ -252,7 +254,6 @@ export function CandidateProfilePage({ mode = "view" }: { mode?: "view" | "edit"
               <ProfileLink icon={<Linkedin size={16} />} label="LinkedIn" href={profile.links.linkedIn} />
               <ProfileLink icon={<Github size={16} />} label="GitHub" href={profile.links.github} />
               <ProfileLink icon={<Globe size={16} />} label="Portfolio" href={profile.links.portfolio} />
-              <ProfileLink icon={<Globe size={16} />} label="Website" href={profile.links.website} />
             </div>
           </Card>
         </aside>
@@ -344,17 +345,17 @@ function SmallEmptyState({ message, section }: { message: string; section: strin
 
 function ExternalAnchor({ href, label, compact = false }: { href: string; label: string; compact?: boolean }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className={`mt-3 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-800 ${compact ? "mt-0" : ""}`}>
+    <a href={href.trim()} target="_blank" rel="noreferrer" className={`mt-3 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-800 ${compact ? "mt-0" : ""}`}>
       {label} <ExternalLink size={14} />
     </a>
   );
 }
 
 function ProfileLink({ icon, label, href }: { icon: ReactNode; label: string; href: string }) {
-  if (!href) return <SmallEmptyState message={`Chưa có ${label}.`} section="links" />;
+  if (!href || !isProfileHttpUrl(href)) return <SmallEmptyState message={`Chưa có ${label}.`} section="links" />;
   return (
     <Tooltip label={`Mở ${label}`}>
-      <a href={href} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm hover:border-brand-200 hover:bg-brand-50">
+      <a href={href.trim()} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm hover:border-brand-200 hover:bg-brand-50">
         <span className="inline-flex items-center gap-2">{icon}{label}</span>
         <ExternalLink size={14} className="text-slate-400" />
       </a>
