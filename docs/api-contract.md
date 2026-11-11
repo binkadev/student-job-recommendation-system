@@ -1488,3 +1488,14 @@ Swagger UI: `/swagger-ui.html`
 OpenAPI JSON: `/v3/api-docs`
 
 Swagger is configured with Bearer JWT security scheme `bearerAuth`.
+
+
+## Interview scheduling and job invitations (W3-C1A / V24)
+
+Authenticated COMPANY routes: `POST/GET /api/companies/me/interviews`, `PATCH /api/companies/me/interviews/{id}/status`, `POST/GET /api/companies/me/invitations`, `PATCH /api/companies/me/invitations/{id}/status` (owner cancellation).
+
+Authenticated STUDENT routes: `GET /api/students/me/interviews`, `PATCH /api/students/me/interviews/{id}/respond`, `GET /api/students/me/invitations`, `PATCH /api/students/me/invitations/{id}/respond`.
+
+All use ApiResponse. Lists return PageResponse, accept 1-based page (default1), size1–100 (default10), and sort by createdAt DESC/id DESC within JWT ownership. PATCH bodies require `expectedStatus` and `status`: stale state returns409 RECRUITMENT_STATE_CONFLICT, invalid transitions400, foreign access403, missing records404. No existing Application status is changed by these endpoints; acceptance does not apply automatically. Duplicate PENDING invitations return409 INVITATION_ALREADY_PENDING. No public/Admin listing is added.
+
+See [the executable DTO contract, transitions, eligibility and concurrency decisions](datn/interviews-invitations-backend.md) for exact creation fields, validation limits, supported actions and limitations. This is Backend support only; no integrated UI is claimed.

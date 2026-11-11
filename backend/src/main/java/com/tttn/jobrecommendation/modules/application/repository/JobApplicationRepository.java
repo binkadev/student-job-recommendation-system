@@ -24,6 +24,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     boolean existsByStudentIdAndJobIdAndStatusIn(Long studentId, Long jobId, Set<ApplicationStatus> statuses);
 
+    boolean existsByStudentIdAndJobCompanyId(Long studentId, Long companyId);
+
     boolean existsByCvFileId(Long cvFileId);
 
     @Query("select distinct application.cvFile.id from JobApplication application where application.cvFile.id in :cvFileIds")

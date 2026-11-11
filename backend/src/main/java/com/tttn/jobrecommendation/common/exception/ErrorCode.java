@@ -3,6 +3,8 @@ package com.tttn.jobrecommendation.common.exception;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
+    RECRUITMENT_STATE_CONFLICT("RECRUITMENT_STATE_CONFLICT", "State changed; reload before responding", HttpStatus.CONFLICT),
+    INVITATION_ALREADY_PENDING("INVITATION_ALREADY_PENDING", "An invitation is already pending", HttpStatus.CONFLICT),
     REPORT_EXPORT_LIMIT_EXCEEDED("REPORT_EXPORT_LIMIT_EXCEEDED", "Report exceeds export row limit; narrow filters", HttpStatus.UNPROCESSABLE_ENTITY),
     SAVED_CANDIDATE_REVISION_CONFLICT("SAVED_CANDIDATE_REVISION_CONFLICT", "Note changed; reload and compare before saving", HttpStatus.CONFLICT),
     BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),

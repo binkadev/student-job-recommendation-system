@@ -1,6 +1,6 @@
 Project student_job_recommendation {
   database_type: 'PostgreSQL'
-  Note: 'Flyway V1-V20 source; released V1-V19 unchanged. V20 adds Saved Candidate note revision. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
+  Note: 'Historical V1-V20 catalog plus additive V24 recruiting tables; V21-V23 profile extensions remain governed by released migrations. V1-V23 migrations unchanged. Partial indexes, predicates, index sort direction and CHECK semantics are documented in table notes and database-schema.md rather than approximated as ordinary unique constraints.'
 }
 
 Table users {
@@ -425,3 +425,44 @@ Ref: candidate_ranking_runs.job_id > jobs.id [delete: restrict]
 Ref: candidate_ranking_results.run_id > candidate_ranking_runs.id [delete: restrict]
 Ref: candidate_ranking_results.application_id > applications.id [delete: restrict]
 Ref: candidate_ranking_results.cv_file_id > cv_files.id [delete: restrict]
+
+
+// V24 additive tables; existing catalog above predates some V21-V23 profile extensions.
+Table interviews {
+  id bigint [pk, increment]
+  application_id bigint [not null, ref: > applications.id]
+  company_id bigint [not null, ref: > companies.id]
+  student_id bigint [not null, ref: > students.id]
+  job_id bigint [not null, ref: > jobs.id]
+  title varchar(255) [not null]
+  scheduled_at timestamp [not null]
+  duration_minutes integer [not null]
+  meeting_type varchar(20) [not null]
+  location_or_link varchar(1000) [not null]
+  notes text
+  status varchar(30) [not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  Indexes {
+    (company_id, created_at, id) [name: 'idx_interviews_company_created', note: 'created_at DESC, id DESC']
+    (student_id, created_at, id) [name: 'idx_interviews_student_created', note: 'created_at DESC, id DESC']
+    application_id [name: 'idx_interviews_application']
+  }
+  Note: 'V24. All FKs ON DELETE RESTRICT. CHECK duration 15-480, nonblank title/location, meeting ONLINE/ONSITE, status SCHEDULED/CONFIRMED/DECLINED/COMPLETED/CANCELLED. Backend derives matching Application/Company/Student/Job tuple; FKs alone do not ensure tuple consistency.'
+}
+
+Table job_invitations {
+  id bigint [pk, increment]
+  company_id bigint [not null, ref: > companies.id]
+  student_id bigint [not null, ref: > students.id]
+  job_id bigint [not null, ref: > jobs.id]
+  message text
+  status varchar(30) [not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  Indexes {
+    (company_id, created_at, id) [name: 'idx_job_invitations_company_created', note: 'created_at DESC, id DESC']
+    (student_id, created_at, id) [name: 'idx_job_invitations_student_created', note: 'created_at DESC, id DESC']
+  }
+  Note: 'V24. All FKs ON DELETE RESTRICT. CHECK status PENDING/ACCEPTED/DECLINED/CANCELLED. Partial UNIQUE uk_job_invitations_pending(company_id, student_id, job_id) WHERE status=PENDING; intentionally not modeled as an ordinary unique DBML index. Terminal invitations remain historical records.'
+}
