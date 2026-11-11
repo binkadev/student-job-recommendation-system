@@ -16,6 +16,8 @@ app:
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
 
   upload:
+    company-verification:
+      storage-dir: ${APP_COMPANY_VERIFICATION_STORAGE_DIR:${user.home}/.sjrs/private/company-verification}
     cv:
       storage-dir: ${APP_CV_UPLOAD_DIR:uploads/cvs}
       max-file-size-bytes: ${APP_CV_MAX_FILE_SIZE_BYTES:10485760}
