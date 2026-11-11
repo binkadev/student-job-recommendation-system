@@ -18,7 +18,9 @@ it("keeps supported business fields editable without offering a nonpersisted ima
   render(<MemoryRouter><RecruiterCompanyPage mode="edit" /></MemoryRouter>);
   expect(await screen.findByLabelText("Tên công ty")).toBeEnabled();
   expect(screen.getByLabelText("Mã số thuế")).toBeEnabled();
-  expect(screen.getByText(/chưa hỗ trợ lưu logo và ảnh bìa/)).toBeVisible();
+  expect(screen.getByLabelText("Quy mô công ty")).toBeEnabled();
+  expect(screen.getByLabelText("URL logo")).toBeEnabled();
+  expect(screen.getByText(/chưa hỗ trợ lưu ảnh bìa/)).toBeVisible();
   expect(screen.queryByRole("button", { name: "Tải ảnh" })).not.toBeInTheDocument();
   expect(httpClient.put).not.toHaveBeenCalled();
 });
