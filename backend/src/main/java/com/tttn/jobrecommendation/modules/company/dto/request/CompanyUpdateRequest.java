@@ -28,4 +28,13 @@ public class CompanyUpdateRequest {
 
     @Size(max = 150)
     private String industry;
+
+    /** Null/omitted keeps the saved value; an empty string clears it. */
+    @Size(max = 100)
+    private String companySize;
+
+    /** Absolute HTTP(S), no credentials or whitespace; empty string clears it. */
+    @Size(max = 500)
+    @ValidLogoUrl
+    private String logoUrl;
 }
