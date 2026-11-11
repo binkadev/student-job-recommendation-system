@@ -8,6 +8,8 @@ on:
       - "backend/**"
       - "ai-service/**"
       - "scripts/smoke-core.ps1"
+      - "scripts/run-recommendation-real-e2e.ps1"
+      - "docker-compose.e2e.yml"
       - "docker-compose.yml"
       - ".env.example"
       - ".github/workflows/core-smoke-ci.yml"
@@ -19,6 +21,8 @@ on:
       - "backend/**"
       - "ai-service/**"
       - "scripts/smoke-core.ps1"
+      - "scripts/run-recommendation-real-e2e.ps1"
+      - "docker-compose.e2e.yml"
       - "docker-compose.yml"
       - ".env.example"
       - ".github/workflows/core-smoke-ci.yml"
@@ -42,18 +46,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Prepare local environment
-        run: cp .env.example .env
-
-      - name: Validate Docker Compose
-        run: docker compose config
-
-      - name: Build and start core stack
-        run: docker compose up --build -d
-
-      - name: Show service status
-        run: docker compose ps
-
       - name: Run Backend-to-AI acceptance smoke
         shell: pwsh
         run: |
@@ -72,12 +64,13 @@ jobs:
               throw "Smoke script completed without the expected PASS marker."
           }
 
-      - name: Show failure diagnostics
+      - name: Show sanitized owned-stack diagnostics
         if: failure()
+        shell: pwsh
         run: |
-          docker compose ps -a
-          docker compose logs --no-color --tail 500
+          Get-ChildItem e2e/.local -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -in @('diagnostics.json', 'cleanup.json') } |
+            ForEach-Object { Get-Content -LiteralPath $_.FullName }
 
-      - name: Clean up Docker resources
-        if: always()
-        run: docker compose down -v --remove-orphans
+      # The smoke runner owns startup, partial-failure cleanup and volumes.
+      # Never start/stop an unrelated default Compose project in this workflow.
