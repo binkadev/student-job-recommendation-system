@@ -15,6 +15,7 @@ import { Select } from "../../components/ui/Select";
 import { Table } from "../../components/ui/Table";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { useToast } from "../../hooks/useToast";
+import { CompanyVerificationDocumentPanel } from "../../features/company/verification/CompanyVerificationDocumentPanel";
 import { httpClient } from "../../services/api/httpClient";
 
 type CompanyStatus = "PENDING" | "VERIFIED" | "BLOCKED";
@@ -66,7 +67,7 @@ export function AdminCompaniesPage({ mode = "list" }: { mode?: "list" | "detail"
   const id = Number(companyId);
 
   if ((mode === "detail" || mode === "verification") && Number.isFinite(id)) {
-    return <AdminCompanyDetailPage companyId={id} mode={mode} />;
+    return <AdminCompanyDetailPage key={id} companyId={id} mode={mode} />;
   }
 
   return <AdminCompaniesListPage />;
@@ -205,6 +206,7 @@ function AdminCompanyDetailPage({ companyId, mode }: { companyId: number; mode: 
           <p className="mt-4 text-sm leading-6 text-slate-600">{company.description || "Công ty chưa cập nhật mô tả."}</p>
         </Card>
       </div>
+      <div className="mt-5"><CompanyVerificationDocumentPanel key={company.id} mode="admin" companyId={company.id} /></div>
     </PageContainer>
   );
 }
