@@ -76,6 +76,21 @@ public class StudentProfile {
     @Column(name = "preferred_location", length = 255)
     private String preferredLocation;
 
+    @Column(name = "github_url", length = 500)
+    private String githubUrl;
+
+    @Column(name = "linkedin_url", length = 500)
+    private String linkedinUrl;
+
+    @Column(name = "portfolio_url", length = 500)
+    private String portfolioUrl;
+
+    @Column(name = "certificates_json", columnDefinition = "TEXT")
+    private String certificatesJson;
+
+    @Column(name = "languages_json", columnDefinition = "TEXT")
+    private String languagesJson;
+
     @Column(name = "raw_text", columnDefinition = "TEXT")
     private String rawText;
 

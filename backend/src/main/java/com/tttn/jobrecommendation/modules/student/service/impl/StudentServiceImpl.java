@@ -1,8 +1,13 @@
 package com.tttn.jobrecommendation.modules.student.service.impl;
 
+import com.tttn.jobrecommendation.common.exception.AppException;
+import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.modules.skill.service.StudentSkillService;
+import com.tttn.jobrecommendation.modules.student.dto.request.StudentProfileAggregateUpdateRequest;
 import com.tttn.jobrecommendation.modules.student.dto.request.StudentProfileUpdateRequest;
 import com.tttn.jobrecommendation.modules.student.dto.request.StudentUpdateRequest;
+import com.tttn.jobrecommendation.modules.student.dto.response.StudentProfileAggregateResponse;
 import com.tttn.jobrecommendation.modules.student.dto.response.StudentProfileResponse;
 import com.tttn.jobrecommendation.modules.student.dto.response.StudentResponse;
 import com.tttn.jobrecommendation.modules.student.entity.Student;
@@ -10,20 +15,17 @@ import com.tttn.jobrecommendation.modules.student.entity.StudentProfile;
 import com.tttn.jobrecommendation.modules.student.mapper.StudentMapper;
 import com.tttn.jobrecommendation.modules.student.repository.StudentProfileRepository;
 import com.tttn.jobrecommendation.modules.student.repository.StudentRepository;
-import com.tttn.jobrecommendation.modules.student.service.StudentService;
 import com.tttn.jobrecommendation.modules.student.service.StudentProfileRevision;
-import com.tttn.jobrecommendation.modules.student.dto.request.StudentProfileAggregateUpdateRequest;
-import com.tttn.jobrecommendation.modules.student.dto.response.StudentProfileAggregateResponse;
-import com.tttn.jobrecommendation.modules.skill.service.StudentSkillService;
-import com.tttn.jobrecommendation.common.exception.AppException;
-import com.tttn.jobrecommendation.common.exception.ErrorCode;
-import org.springframework.transaction.annotation.Isolation;
+import com.tttn.jobrecommendation.modules.student.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.RoundingMode;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -132,12 +134,44 @@ public class StudentServiceImpl implements StudentService {
             profile.setTargetPosition(trimToNull(request.getTargetPosition()));
         }
 
+        if (request.getEducationLevel() != null) {
+            profile.setEducationLevel(trimToNull(request.getEducationLevel()));
+        }
+
+        if (request.getGpa() != null) {
+            profile.setGpa(request.getGpa().setScale(2, RoundingMode.UNNECESSARY));
+        }
+
         if (request.getPreferredLocation() != null) {
             profile.setPreferredLocation(trimToNull(request.getPreferredLocation()));
         }
 
         if (request.getPreferredJobType() != null) {
             profile.setPreferredJobType(request.getPreferredJobType());
+        }
+
+        if (request.getPreferredWorkingModel() != null) {
+            profile.setPreferredWorkingModel(request.getPreferredWorkingModel());
+        }
+
+        if (request.getGithubUrl() != null) {
+            profile.setGithubUrl(trimToNull(request.getGithubUrl()));
+        }
+
+        if (request.getLinkedinUrl() != null) {
+            profile.setLinkedinUrl(trimToNull(request.getLinkedinUrl()));
+        }
+
+        if (request.getPortfolioUrl() != null) {
+            profile.setPortfolioUrl(trimToNull(request.getPortfolioUrl()));
+        }
+
+        if (request.getCertificates() != null) {
+            profile.setCertificatesJson(studentMapper.serializeCertificates(request.getCertificates()));
+        }
+
+        if (request.getLanguages() != null) {
+            profile.setLanguagesJson(studentMapper.serializeLanguages(request.getLanguages()));
         }
 
         updateSearchText(profile);
@@ -157,8 +191,23 @@ public class StudentServiceImpl implements StudentService {
         profileRevision.claim(userId, request.getRevision());
         Student student = getStudentByUserId(userId);
         StudentProfile profile = getOrCreateProfile(student);
+
+        if (request.getCertificates() != null && request.getProfile() != null && request.getProfile().getCertificates() != null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Specify certificates either at root or in profile, not both");
+        }
+        if (request.getLanguages() != null && request.getProfile() != null && request.getProfile().getLanguages() != null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Specify languages either at root or in profile, not both");
+        }
+
         if (request.getStudent() != null) applyBasic(student, profile, request.getStudent());
         if (request.getProfile() != null && hasProfileChanges(request.getProfile())) applyProfile(profile, request.getProfile());
+        if (request.getCertificates() != null) {
+            profile.setCertificatesJson(studentMapper.serializeCertificates(request.getCertificates()));
+        }
+        if (request.getLanguages() != null) {
+            profile.setLanguagesJson(studentMapper.serializeLanguages(request.getLanguages()));
+        }
+
         if (request.getClearFields() != null) {
             for (var field : request.getClearFields()) {
                 switch (field) {
@@ -172,6 +221,46 @@ public class StudentServiceImpl implements StudentService {
                             throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear preferredJobType together");
                         profile.setPreferredJobType(null);
                         updateProfileCompleteness(profile);
+                    }
+                    case preferredWorkingModel -> {
+                        if (request.getProfile() != null && request.getProfile().getPreferredWorkingModel() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear preferredWorkingModel together");
+                        profile.setPreferredWorkingModel(null);
+                    }
+                    case gpa -> {
+                        if (request.getProfile() != null && request.getProfile().getGpa() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear gpa together");
+                        profile.setGpa(null);
+                    }
+                    case educationLevel -> {
+                        if (request.getProfile() != null && request.getProfile().getEducationLevel() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear educationLevel together");
+                        profile.setEducationLevel(null);
+                    }
+                    case githubUrl -> {
+                        if (request.getProfile() != null && request.getProfile().getGithubUrl() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear githubUrl together");
+                        profile.setGithubUrl(null);
+                    }
+                    case linkedinUrl -> {
+                        if (request.getProfile() != null && request.getProfile().getLinkedinUrl() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear linkedinUrl together");
+                        profile.setLinkedinUrl(null);
+                    }
+                    case portfolioUrl -> {
+                        if (request.getProfile() != null && request.getProfile().getPortfolioUrl() != null)
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear portfolioUrl together");
+                        profile.setPortfolioUrl(null);
+                    }
+                    case certificates -> {
+                        if (request.getCertificates() != null || (request.getProfile() != null && request.getProfile().getCertificates() != null))
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear certificates together");
+                        profile.setCertificatesJson(null);
+                    }
+                    case languages -> {
+                        if (request.getLanguages() != null || (request.getProfile() != null && request.getProfile().getLanguages() != null))
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot set and clear languages together");
+                        profile.setLanguagesJson(null);
                     }
                 }
             }
@@ -188,8 +277,23 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private boolean hasProfileChanges(StudentProfileUpdateRequest request) {
-        return Stream.of(request.getSummary(), request.getEducation(), request.getExperience(), request.getProjects(),
-                request.getTargetPosition(), request.getPreferredLocation(), request.getPreferredJobType()).anyMatch(value -> value != null);
+        return Stream.of(
+                request.getSummary(),
+                request.getEducation(),
+                request.getExperience(),
+                request.getProjects(),
+                request.getTargetPosition(),
+                request.getEducationLevel(),
+                request.getGpa(),
+                request.getPreferredLocation(),
+                request.getPreferredJobType(),
+                request.getPreferredWorkingModel(),
+                request.getGithubUrl(),
+                request.getLinkedinUrl(),
+                request.getPortfolioUrl(),
+                request.getCertificates(),
+                request.getLanguages()
+        ).anyMatch(Objects::nonNull);
     }
 
     private Student getStudentByUserId(Long userId) {

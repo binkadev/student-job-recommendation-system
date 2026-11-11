@@ -245,4 +245,192 @@ class StudentProfileAtomicApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(snapshot(student).path("student").path("fullName").asText()).isEqualTo("Atomic new name");
         assertThat(snapshot(student).path("student").path("phone").asText()).isEqualTo("0123456");
     }
+
+    @Test void persistsAcademicWorkModelLinksCertificatesAndLanguagesAndPreservesOnOmittedUpdates() throws Exception {
+        Student student = student("extensions-persist");
+        var certificates = List.of(Map.of(
+                "name", "AWS Certified Developer",
+                "issuer", "Amazon Web Services",
+                "issuedAt", "2026-01",
+                "expiresAt", "2029-01",
+                "code", "AWS-DEV-001",
+                "url", "https://aws.amazon.com/verification"
+        ));
+        var languages = List.of(
+                Map.of("name", "English", "level", "IELTS 7.5"),
+                Map.of("name", "Japanese", "level", "JLPT N3")
+        );
+
+        save(student, Map.of(
+                "revision", 0,
+                "profile", Map.of(
+                        "gpa", new BigDecimal("3.85"),
+                        "educationLevel", "MASTER",
+                        "preferredWorkingModel", "HYBRID",
+                        "githubUrl", "https://github.com/student-dev",
+                        "linkedinUrl", "https://linkedin.com/in/student-dev",
+                        "portfolioUrl", "https://student-dev.example.com",
+                        "certificates", certificates,
+                        "languages", languages
+                )
+        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revision").value(1))
+                .andExpect(jsonPath("$.data.profile.gpa").value(3.85))
+                .andExpect(jsonPath("$.data.profile.educationLevel").value("MASTER"))
+                .andExpect(jsonPath("$.data.profile.preferredWorkingModel").value("HYBRID"))
+                .andExpect(jsonPath("$.data.profile.githubUrl").value("https://github.com/student-dev"))
+                .andExpect(jsonPath("$.data.profile.linkedinUrl").value("https://linkedin.com/in/student-dev"))
+                .andExpect(jsonPath("$.data.profile.portfolioUrl").value("https://student-dev.example.com"))
+                .andExpect(jsonPath("$.data.profile.certificates.length()").value(1))
+                .andExpect(jsonPath("$.data.profile.certificates[0].name").value("AWS Certified Developer"))
+                .andExpect(jsonPath("$.data.profile.languages.length()").value(2))
+                .andExpect(jsonPath("$.data.profile.languages[0].name").value("English"));
+
+        var stored = profiles.findByStudentId(student.getId()).orElseThrow();
+        assertThat(stored.getGpa()).isEqualByComparingTo("3.85");
+        assertThat(stored.getEducationLevel()).isEqualTo("MASTER");
+        assertThat(stored.getPreferredWorkingModel()).isEqualTo(WorkingModel.HYBRID);
+        assertThat(stored.getGithubUrl()).isEqualTo("https://github.com/student-dev");
+        assertThat(stored.getLinkedinUrl()).isEqualTo("https://linkedin.com/in/student-dev");
+        assertThat(stored.getPortfolioUrl()).isEqualTo("https://student-dev.example.com");
+        assertThat(stored.getCertificatesJson()).contains("AWS Certified Developer");
+        assertThat(stored.getLanguagesJson()).contains("IELTS 7.5", "JLPT N3");
+
+        // Omitted fields remain unchanged on partial update
+        save(student, Map.of("revision", 1, "profile", Map.of("summary", "Updated summary only")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revision").value(2))
+                .andExpect(jsonPath("$.data.profile.summary").value("Updated summary only"))
+                .andExpect(jsonPath("$.data.profile.gpa").value(3.85))
+                .andExpect(jsonPath("$.data.profile.educationLevel").value("MASTER"))
+                .andExpect(jsonPath("$.data.profile.preferredWorkingModel").value("HYBRID"))
+                .andExpect(jsonPath("$.data.profile.githubUrl").value("https://github.com/student-dev"))
+                .andExpect(jsonPath("$.data.profile.certificates.length()").value(1))
+                .andExpect(jsonPath("$.data.profile.languages.length()").value(2));
+
+        // Empty structured lists represent intentionally empty collections
+        save(student, Map.of("revision", 2, "profile", Map.of("certificates", List.of(), "languages", List.of())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revision").value(3))
+                .andExpect(jsonPath("$.data.profile.certificates").isEmpty())
+                .andExpect(jsonPath("$.data.profile.languages").isEmpty())
+                .andExpect(jsonPath("$.data.profile.gpa").value(3.85));
+
+        var afterEmptyLists = profiles.findByStudentId(student.getId()).orElseThrow();
+        assertThat(afterEmptyLists.getCertificatesJson()).isEqualTo("[]");
+        assertThat(afterEmptyLists.getLanguagesJson()).isEqualTo("[]");
+    }
+
+    @Test void explicitClearFieldsClearsExtendedNullableFieldsAndRejectsSetAndClearConflicts() throws Exception {
+        Student student = student("extensions-clear");
+        save(student, Map.of(
+                "revision", 0,
+                "profile", Map.of(
+                        "gpa", new BigDecimal("3.60"),
+                        "educationLevel", "BACHELOR",
+                        "preferredWorkingModel", "REMOTE",
+                        "githubUrl", "https://github.com/clear-test",
+                        "linkedinUrl", "https://linkedin.com/in/clear-test",
+                        "portfolioUrl", "https://clear-test.example.com",
+                        "certificates", List.of(Map.of("name", "Docker Associate")),
+                        "languages", List.of(Map.of("name", "English", "level", "TOEIC 850"))
+                )
+        )).andExpect(status().isOk());
+
+        var beforeConflicts = snapshot(student);
+        for (Map<String, Object> conflictingPayload : List.of(
+                Map.of("revision", 1, "profile", Map.of("gpa", new BigDecimal("3.90")), "clearFields", List.of("gpa")),
+                Map.of("revision", 1, "profile", Map.of("educationLevel", "MASTER"), "clearFields", List.of("educationLevel")),
+                Map.of("revision", 1, "profile", Map.of("preferredWorkingModel", "ONSITE"), "clearFields", List.of("preferredWorkingModel")),
+                Map.of("revision", 1, "profile", Map.of("githubUrl", "https://github.com/other"), "clearFields", List.of("githubUrl")),
+                Map.of("revision", 1, "profile", Map.of("linkedinUrl", "https://linkedin.com/in/other"), "clearFields", List.of("linkedinUrl")),
+                Map.of("revision", 1, "profile", Map.of("portfolioUrl", "https://other.example.com"), "clearFields", List.of("portfolioUrl")),
+                Map.of("revision", 1, "profile", Map.of("certificates", List.of()), "clearFields", List.of("certificates")),
+                Map.of("revision", 1, "profile", Map.of("languages", List.of()), "clearFields", List.of("languages"))
+        )) {
+            save(student, conflictingPayload)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST"));
+            assertThat(snapshot(student)).isEqualTo(beforeConflicts);
+        }
+
+        save(student, Map.of(
+                "revision", 1,
+                "clearFields", List.of(
+                        "gpa",
+                        "educationLevel",
+                        "preferredWorkingModel",
+                        "githubUrl",
+                        "linkedinUrl",
+                        "portfolioUrl",
+                        "certificates",
+                        "languages"
+                )
+        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revision").value(2))
+                .andExpect(jsonPath("$.data.profile.gpa").isEmpty())
+                .andExpect(jsonPath("$.data.profile.educationLevel").isEmpty())
+                .andExpect(jsonPath("$.data.profile.preferredWorkingModel").isEmpty())
+                .andExpect(jsonPath("$.data.profile.githubUrl").isEmpty())
+                .andExpect(jsonPath("$.data.profile.linkedinUrl").isEmpty())
+                .andExpect(jsonPath("$.data.profile.portfolioUrl").isEmpty())
+                .andExpect(jsonPath("$.data.profile.certificates").isEmpty())
+                .andExpect(jsonPath("$.data.profile.languages").isEmpty())
+                .andExpect(jsonPath("$.data.profile.projects").value("Keep projects"));
+    }
+
+    @Test void validatesExtendedFieldsAndRejectsStaleRevisionOnExtendedUpdates() throws Exception {
+        Student student = student("extensions-validation");
+        var before = snapshot(student);
+
+        for (Map<String, Object> invalidPayload : List.of(
+                Map.of("revision", 0, "profile", Map.of("gpa", new BigDecimal("4.01"))),
+                Map.of("revision", 0, "profile", Map.of("gpa", new BigDecimal("-0.01"))),
+                Map.of("revision", 0, "profile", Map.of("gpa", new BigDecimal("3.555"))),
+                Map.of("revision", 0, "profile", Map.of("educationLevel", "E".repeat(101))),
+                Map.of("revision", 0, "profile", Map.of("githubUrl", "javascript:alert(1)")),
+                Map.of("revision", 0, "profile", Map.of("linkedinUrl", "ftp://linkedin.com/in/student")),
+                Map.of("revision", 0, "profile", Map.of("portfolioUrl", "not-a-valid-url")),
+                Map.of("revision", 0, "profile", Map.of("githubUrl", "https://github.com/" + "a".repeat(490))),
+                Map.of("revision", 0, "profile", Map.of("certificates", List.of(Map.of("name", "   ")))),
+                Map.of("revision", 0, "profile", Map.of("certificates", List.of(Map.of("name", "Valid Name", "url", "javascript:evil()")))),
+                Map.of("revision", 0, "profile", Map.of("languages", List.of(Map.of("name", "English", "level", "   "))))
+        )) {
+            save(student, invalidPayload)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+            assertThat(snapshot(student)).isEqualTo(before);
+        }
+
+        mockMvc.perform(put(URL)
+                        .header("Authorization", bearerToken(student.getUser()))
+                        .contentType("application/json")
+                        .content("{\"revision\":0,\"profile\":{\"gpa\":\"3.50\"}}"))
+                .andExpect(status().isBadRequest());
+        assertThat(snapshot(student)).isEqualTo(before);
+
+        save(student, Map.of(
+                "revision", 0,
+                "profile", Map.of(
+                        "gpa", new BigDecimal("3.75"),
+                        "preferredWorkingModel", "REMOTE",
+                        "githubUrl", "https://github.com/committed"
+                )
+        )).andExpect(status().isOk()).andExpect(jsonPath("$.data.revision").value(1));
+
+        save(student, Map.of(
+                "revision", 0,
+                "profile", Map.of(
+                        "gpa", new BigDecimal("2.10"),
+                        "githubUrl", "https://github.com/stale-writer"
+                )
+        )).andExpect(status().isConflict()).andExpect(jsonPath("$.errorCode").value("PROFILE_REVISION_CONFLICT"));
+
+        var committed = snapshot(student);
+        assertThat(committed.path("revision").asLong()).isEqualTo(1);
+        assertThat(committed.path("profile").path("gpa").decimalValue()).isEqualByComparingTo("3.75");
+        assertThat(committed.path("profile").path("githubUrl").asText()).isEqualTo("https://github.com/committed");
+    }
 }
