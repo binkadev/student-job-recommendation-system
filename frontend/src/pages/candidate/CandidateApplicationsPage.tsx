@@ -1,3 +1,4 @@
+import { MessageLauncher } from "../../features/messaging/MessageLauncher";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
@@ -230,6 +231,7 @@ function ApplicationCard({ application, actions }: { application: ApplicationRes
 
         <div className="flex flex-wrap justify-end gap-2">
           {actions}
+          <MessageLauncher applicationId={application.id} role="candidate" />
           <Link to={`/candidate/applications/${application.id}`}><Button variant="secondary" size="sm">Xem chi tiết</Button></Link>
           <Link to={`/candidate/applications/${application.id}/status`}><Button variant="secondary" size="sm">Xem trạng thái</Button></Link>
           <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary" size="sm">Xem việc làm</Button></Link>
@@ -257,6 +259,7 @@ function ApplicationDetail({ application, actions }: { application: ApplicationR
           </div>
           <div className="flex flex-wrap gap-2">
             {actions}
+            <MessageLauncher applicationId={application.id} role="candidate" />
             <Link to={`/candidate/jobs/${application.jobId}`}><Button variant="secondary">Xem việc làm</Button></Link>
             {application.cvFileId ? <Link to={`/candidate/cvs/${application.cvFileId}`}><Button variant="secondary">Xem CV</Button></Link> : null}
           </div>
