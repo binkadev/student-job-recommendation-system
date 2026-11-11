@@ -37,4 +37,9 @@ public class CompanyUpdateRequest {
     @Size(max = 500)
     @ValidLogoUrl
     private String logoUrl;
+
+    /** Same URL rules as logoUrl; null/omitted preserves, empty string clears. */
+    @Size(max = 500)
+    @ValidLogoUrl
+    private String coverImageUrl;
 }

@@ -77,6 +77,10 @@ public class CompanyServiceImpl implements CompanyService {
             company.setLogoUrl(trimToNull(request.getLogoUrl()));
         }
 
+        if (request.getCoverImageUrl() != null) {
+            company.setCoverImageUrl(trimToNull(request.getCoverImageUrl()));
+        }
+
         Company savedCompany = companyRepository.save(company);
         return companyMapper.toCompanyResponse(savedCompany);
     }

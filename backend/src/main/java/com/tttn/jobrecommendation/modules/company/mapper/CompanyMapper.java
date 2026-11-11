@@ -29,6 +29,7 @@ public class CompanyMapper {
                 .industry(company.getIndustry())
                 .companySize(company.getCompanySize())
                 .logoUrl(company.getLogoUrl())
+                .coverImageUrl(company.getCoverImageUrl())
                 .status(company.getStatus())
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
@@ -49,6 +50,7 @@ public class CompanyMapper {
                 .updatedAt(company.getUpdatedAt())
                 .companySize(company.getCompanySize())
                 .logoUrl(company.getLogoUrl())
+                .coverImageUrl(company.getCoverImageUrl())
                 .build();
     }
 
@@ -70,6 +72,7 @@ public class CompanyMapper {
                 .updatedAt(company.getUpdatedAt())
                 .companySize(company.getCompanySize())
                 .logoUrl(company.getLogoUrl())
+                .coverImageUrl(company.getCoverImageUrl())
                 .jobs(jobs)
                 .build();
     }
@@ -92,6 +95,7 @@ public class CompanyMapper {
                 .updatedAt(company.getUpdatedAt())
                 .companySize(company.getCompanySize())
                 .logoUrl(company.getLogoUrl())
+                .coverImageUrl(company.getCoverImageUrl())
                 .build();
     }
 
