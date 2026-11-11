@@ -23,5 +23,6 @@ public class PublicCompanyDetailResponse {
     private LocalDateTime updatedAt;
     private String companySize;
     private String logoUrl;
+    private String coverImageUrl;
     private List<CompanyJobSummaryResponse> jobs;
 }

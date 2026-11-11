@@ -22,4 +22,5 @@ public class PublicCompanyResponse {
     private LocalDateTime updatedAt;
     private String companySize;
     private String logoUrl;
+    private String coverImageUrl;
 }

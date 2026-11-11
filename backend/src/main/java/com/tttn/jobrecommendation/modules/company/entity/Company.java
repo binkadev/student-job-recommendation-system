@@ -52,6 +52,9 @@ public class Company {
     @Column(name = "logo_url", length = 500)
     private String logoUrl;
 
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
+
     @Column(name = "industry", length = 150)
     private String industry;
 

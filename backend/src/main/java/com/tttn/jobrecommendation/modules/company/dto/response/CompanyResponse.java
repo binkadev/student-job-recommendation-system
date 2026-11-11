@@ -22,6 +22,7 @@ public class CompanyResponse {
     private String industry;
     private String companySize;
     private String logoUrl;
+    private String coverImageUrl;
     private CompanyStatus status;
     private long revision;
     private LocalDateTime createdAt;
