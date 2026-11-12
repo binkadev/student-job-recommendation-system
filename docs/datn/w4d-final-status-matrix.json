@@ -1,0 +1,575 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "baseline": "58a494806bc63fadb3bc904bb6f05294839fea32",
+  "branch": "test/datn-w4d-final-acceptance",
+  "decisions": {
+    "demoUat": "READY WITH LIMITATIONS",
+    "productionDeployment": "NOT VERIFIED",
+    "historicalW4B": "NOT READY on original baseline, unchanged"
+  },
+  "evidenceClasses": {
+    "RERUN_EXACT_MASTER": "Executed locally on this baseline; no production/contract/dependency changes.",
+    "CI_EXACT_MASTER": "GitHub headSha equals this baseline.",
+    "CI_OTHER_COMMIT": "Verified CI on the identified PR/merge commit; not relabelled as current-master execution.",
+    "NOT_RUN": "Not executed; does not mean a framework skipped case.",
+    "NOT_TESTED": "Human checklist not performed."
+  },
+  "frontend": {
+    "checks": {
+      "install": 0,
+      "audit": 0,
+      "build": 0,
+      "lint": 0,
+      "tests": 0,
+      "typescript": 0,
+      "omitDevAudit": 0
+    },
+    "passed": 564,
+    "failed": 0,
+    "skipped": 0,
+    "files": 57,
+    "fullAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "omitDevAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "ci": {
+    "master-frontend": {
+      "headSha": "58a494806bc63fadb3bc904bb6f05294839fea32",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43170108527",
+      "classification": "CI_EXACT_MASTER"
+    },
+    "97-backend": {
+      "headSha": "947ad0d5cc925061b9d5b04e7250f5a8e56b75d2",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43158347494",
+      "classification": "CI_OTHER_COMMIT"
+    },
+    "97-smoke": {
+      "headSha": "947ad0d5cc925061b9d5b04e7250f5a8e56b75d2",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43158347384",
+      "classification": "CI_OTHER_COMMIT"
+    },
+    "98-frontend": {
+      "headSha": "8515c55a98c81b6f597bde180c3b3bca9229d67e",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43162805308",
+      "classification": "CI_OTHER_COMMIT"
+    }
+  },
+  "browserSuites": {
+    "recruiting": {
+      "run": "recruiting-workflows-7c9df6ab1fcd4ff0b09025d26798a285",
+      "classification": "RERUN_EXACT_MASTER",
+      "stats": {
+        "startTime": "2026-11-12T06:50:21.927Z",
+        "duration": 29753.652,
+        "expected": 10,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "id": "E01",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E02",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E03",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E04",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E05",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E06",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E07",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E08",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E09",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "E10",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        }
+      ],
+      "cleanup": {
+        "runFailed": false,
+        "reason": "COMPLETED",
+        "ownershipMetadataPresent": true,
+        "errors": [],
+        "ownershipVerified": true,
+        "setupFailureProbe": false,
+        "forcedJvmStop": false,
+        "ownedJvmStopped": true,
+        "status": "CLEAN",
+        "ownedPostgresStopped": true,
+        "clean": true,
+        "temporaryStorageRemoved": true,
+        "fixtureReady": true,
+        "ownedViteStopped": true,
+        "dockerVerified": true,
+        "ownedPostgresRemoved": true
+      },
+      "independentOwnedContainerAbsent": true,
+      "independentOwnedStorageAbsent": true,
+      "compilationSucceeded": true,
+      "validation": {
+        "hibernateSchemaValidation": true,
+        "flywayChecksumsValidated": true,
+        "postgresMajor": 17,
+        "currentVersion": "25",
+        "successfulVersionedMigrations": 25,
+        "migrationVersions": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25"
+        ]
+      },
+      "lateResponse": {
+        "realPostgresTableLock": true,
+        "pendingBeforeSwitch": 1,
+        "cancelledPendingRequests": 1,
+        "currentAccountOnly": true
+      },
+      "applicationIntegrity": {
+        "initialCount": 2,
+        "finalCount": 2,
+        "sha256": "b87c61953734d3c6b48a469b0c070cb3e79b74d09f763ac8b5123c603d46c3da",
+        "matchingSnapshots": 10,
+        "allFingerprintsUnchanged": true
+      }
+    },
+    "messaging": {
+      "run": "application-messaging-d54f86f309c44112831e509aeff6ae11",
+      "classification": "RERUN_EXACT_MASTER",
+      "stats": {
+        "startTime": "2026-11-12T06:52:09.640Z",
+        "duration": 30807.806,
+        "expected": 10,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "id": "M01",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M02",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M03",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M04",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M05",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M06",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M07",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M08",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M09",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "M10",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        }
+      ],
+      "cleanup": {
+        "ownedPostgresStopped": true,
+        "ownedJvmStopped": true,
+        "ownedViteStopped": true,
+        "ownedBuildLinkRemoved": true,
+        "ownedScratchRemoved": true,
+        "cleanupProbe": false,
+        "temporaryStorageRemoved": true
+      },
+      "independentOwnedContainerAbsent": true,
+      "independentOwnedStorageAbsent": true,
+      "compilationSucceeded": true,
+      "integrity": {
+        "postgresMajor": 17,
+        "migrationVersions": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25"
+        ],
+        "flywayChecksumsValidated": true,
+        "protectedBusiness": {
+          "applications": {
+            "sha256": "6278fe95f5a78b52c62acbe938d6eb6558388f9e0e93081d601bf9107622a679",
+            "count": 108
+          },
+          "jobs": {
+            "sha256": "d89fc5d161b3b3ea33b5ea39dcaf8229faf026f29793643cbc27687fcd2f2501",
+            "count": 108
+          },
+          "cv_files": {
+            "sha256": "8408dc6dbc0be5747e6eeebe5716e0fccf03678998540a715cad1a0a190c06b7",
+            "count": 1
+          },
+          "interviews": {
+            "sha256": "c436d5503eb5921fe6a8527c137dd9988a140be04b8c4de0bf9eede8d5ae7a73",
+            "count": 1
+          },
+          "job_invitations": {
+            "sha256": "856e5b5bd117649c9b1bfd6fbfa59f451dc0dd2b60563cd763a319e82ceda1ce",
+            "count": 1
+          }
+        },
+        "conversationCount": 108,
+        "messageCount": 31,
+        "tupleMismatchCount": 0,
+        "senderMismatchCount": 0,
+        "lastMessageMismatchCount": 0
+      },
+      "protectedMatchingSnapshots": 22,
+      "allProtectedFingerprintsUnchanged": true,
+      "networkFailure": {
+        "genuineChromiumOffline": true,
+        "offlineAttemptCommitted": false,
+        "automaticRetries": 0,
+        "manualResendCommittedOnce": true,
+        "afterCommitResponseLossCovered": false
+      },
+      "sessionSwitch": {
+        "realPostgresTableLock": true,
+        "waitingQueryConfirmed": true,
+        "watchdogSeconds": 30,
+        "pendingBeforeSwitch": 1,
+        "cancelledPendingRequests": 1,
+        "priorDraftAbsent": true,
+        "currentAccountOnly": true
+      },
+      "initialConversationCount": 106,
+      "initialMessageCount": 26
+    },
+    "company": {
+      "run": "company-verification-6a34366036df4ea080b35789b6ff7d95",
+      "classification": "RERUN_EXACT_MASTER",
+      "stats": {
+        "startTime": "2026-11-12T06:53:33.780Z",
+        "duration": 16242.141999999998,
+        "expected": 6,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "id": "B3-01",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "B3-02",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "B3-03",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "B3-04",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "B3-05",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        },
+        {
+          "id": "B3-06",
+          "status": "PASS",
+          "attempts": 1,
+          "retries": 0
+        }
+      ],
+      "cleanup": {
+        "ownedPostgresStopped": true,
+        "temporaryStorageRemoved": true,
+        "ownedJvmStopped": true,
+        "ownedViteStopped": true
+      },
+      "independentOwnedContainerAbsent": true,
+      "independentOwnedStorageAbsent": true,
+      "compilationSucceeded": true,
+      "startupAppliedV25": true,
+      "startupHibernateInitialized": true
+    }
+  },
+  "coreSmoke": [
+    {
+      "run": "core-smoke-999eb3a699d74c76b5530cc066afd897",
+      "classification": "RERUN_EXACT_MASTER",
+      "outcome": "SETUP_FAIL_CRLF",
+      "cleanup": {
+        "remainingContainers": 0,
+        "remainingNetworks": 0,
+        "project": "core-smoke-999eb3a699d74c76b5530cc066afd897",
+        "remainingVolumes": 0,
+        "clean": true
+      },
+      "status": "SETUP_FAIL"
+    },
+    {
+      "run": "core-smoke-4a05841f64f246809b5b02e2e682a6dd",
+      "classification": "RERUN_EXACT_MASTER",
+      "outcome": "PASS",
+      "cleanup": {
+        "remainingContainers": 0,
+        "remainingNetworks": 0,
+        "project": "core-smoke-4a05841f64f246809b5b02e2e682a6dd",
+        "remainingVolumes": 0,
+        "clean": true
+      },
+      "diagnostics": {
+        "postgresMajor": 17,
+        "migrationVersions": "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
+        "companyStatusAfterRegistration": "PENDING",
+        "runStatus": "SUCCESS",
+        "resultCount": 2,
+        "primaryCount": 1,
+        "fallbackCount": 1,
+        "processingRuns": 0,
+        "ai": {
+          "v3": 1,
+          "v2": 0,
+          "v3Success": 1
+        },
+        "persistedResults": {
+          "value": [
+            {
+              "jobId": 1,
+              "rankingTier": "PRIMARY",
+              "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+              "rankingScore": 0.35,
+              "overallScore": 0.35,
+              "textScore": 0.0,
+              "skillScore": 1.0,
+              "rankPosition": 1,
+              "tierRankPosition": 1
+            },
+            {
+              "jobId": 2,
+              "rankingTier": "FALLBACK",
+              "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
+              "rankingScore": 1.0,
+              "overallScore": null,
+              "textScore": null,
+              "skillScore": 1.0,
+              "rankPosition": 2,
+              "tierRankPosition": 1
+            }
+          ],
+          "Count": 2
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "notRun": [
+    {
+      "id": "fresh-upload-student-v3",
+      "status": "NOT_RUN",
+      "runner": "scripts/run-student-recommendation-upload-real-e2e.ps1",
+      "reason": "Fixed project/ports and shared local image tags; project-label guard does not isolate existing shared image tags. No runner override for owned images/ports. No fresh-upload coverage transferred from Core Smoke."
+    },
+    {
+      "id": "company-candidate-ranking-v3",
+      "status": "NOT_RUN",
+      "runner": "scripts/run-candidate-ranking-real-e2e.ps1",
+      "reason": "Unconditional initial down --volumes --remove-orphans against a fixed project; fixed named volumes/ports and shared local image tags. No ownership admission check. No production/runner modification to bypass safety."
+    },
+    {
+      "id": "human-manual-uat",
+      "status": "NOT_TESTED",
+      "reason": "No human performed checklist steps in this task."
+    },
+    {
+      "id": "production-deployment",
+      "status": "NOT_VERIFIED",
+      "reason": "No production deployment, backup/restore, monitoring or infrastructure security validation."
+    }
+  ],
+  "preservation": {
+    "preexistingContainerCount": 4,
+    "finalContainerCount": 4,
+    "allPreexistingContainerMetadataUnchanged": true,
+    "newContainersRemaining": 0,
+    "preexistingVolumeCount": 3,
+    "finalVolumeCount": 3,
+    "volumeNamesUnchanged": true,
+    "preexistingProcessCount": 13,
+    "preexistingProcessesStillPresent": 13,
+    "all25MigrationHashesUnchanged": true,
+    "demoDatabaseQueried": false,
+    "demoContentHashed": false
+  },
+  "artifactCleanup": {
+    "ownedFilesRemoved": 49,
+    "credentialFixtureFilesRemoved": 3,
+    "ownedStackSecretFilesRemoved": 2,
+    "rawSqlReplyAndScenarioStateFilesRemoved": true,
+    "onlyExplicitOwnedRunFilesTouched": true,
+    "sanitizedDiagnosticsRetained": true,
+    "noOtherWorktreeOrDemoFilesTouched": true
+  },
+  "humanChecklist": {
+    "status": "NOT_TESTED",
+    "file": "w4d-manual-uat-checklist.md",
+    "steps": 32
+  },
+  "report": "w4d-final-acceptance-report.md"
+}
