@@ -128,7 +128,7 @@ async function inviteFromSource(page, source, jobKey, message) {
 test('E01 Company creates and persists an ONLINE interview through real UI', async ({ page, request }) => {
   expect(fixture.activeProfiles).toEqual(['integration']); expect(fixture.initialDatabase.fixtureCounts).toEqual({ users: 5, companies: 2, students: 2, jobs: 6, savedCandidates: 1 });
   expect(fixture.hibernateSchemaValidation).toBe(true); expect(fixture.initialDatabase.postgresMajor).toBe(17);
-  expect(fixture.initialDatabase.migrationVersions).toEqual(Array.from({ length: 24 }, (_, index) => String(index + 1)));
+  expect(fixture.initialDatabase.migrationVersions).toEqual(Array.from({ length: 25 }, (_, index) => String(index + 1)));
   await signIn(page); const saved = await schedule(page, 'E01 scheduled interview'); saveState({ interviewId: saved.id });
   expect(saved.companyId).toBe(ids.company); expect(saved.studentId).toBe(ids.student); expect(saved.applicationId).toBe(ids.application);
   expect((await all(request, 'company', 'interviews')).find(row => row.id === saved.id).scheduledAt.slice(0,16)).toBe(fixture.futureAt.slice(0,16));
