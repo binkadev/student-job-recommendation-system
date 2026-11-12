@@ -21,6 +21,8 @@ import com.tttn.jobrecommendation.modules.user.entity.User;
 import com.tttn.jobrecommendation.modules.user.repository.UserRepository;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
+import org.flywaydb.core.api.MigrationState;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,15 +34,21 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.time.*;
 import java.util.*;
+import java.util.stream.IntStream;
 
 /** Dedicated disposable recruiting fixture. Control files never create an HTTP/production bypass. */
 public class RecruitingWorkflowsBrowserFixture {
     public static void main(String[] args) throws Exception {
         Path output=Path.of(args[0]).toAbsolutePath(), local=output.getParent(), stop=Path.of(output+".stop");
+        String runId=local.getFileName().toString();
+        if(!runId.matches("recruiting-workflows-[a-f0-9]{32}")) throw new IllegalArgumentException("Dedicated runner directory required");
         Path temporary=Files.createTempDirectory("sjrs-recruiting-e2e-").toRealPath();
-        Files.deleteIfExists(stop);
-        try(var postgres=new PostgreSQLContainer<>("postgres:17-alpine")) {
+        try(var postgres=new PostgreSQLContainer<>("postgres:17-alpine").withLabel("sjrs.recruiting.run",runId)) {
+            // Separate from readiness/credentials: available even if container or application startup fails.
+            recordOwnership(local,runId,temporary,null);
+            Files.deleteIfExists(stop);
             postgres.start();
+            recordOwnership(local,runId,temporary,postgres.getContainerId());
             try(var context=new SpringApplicationBuilder(JobRecommendationApplication.class).profiles("integration").run(
                     "--spring.profiles.active=integration", "--server.address=127.0.0.1", "--server.port=0",
                     "--spring.datasource.url="+postgres.getJdbcUrl(), "--spring.datasource.username="+postgres.getUsername(),
@@ -114,8 +122,24 @@ public class RecruitingWorkflowsBrowserFixture {
                         .message("Foreign private invitation").status(InvitationStatus.PENDING).build());
                 ids.put("foreignInterview",foreignInterview.getId());ids.put("foreignInvitation",foreignInvitation.getId());
                 var flyway=context.getBean(Flyway.class);
-                if(!"24".equals(flyway.info().current().getVersion().getVersion()) || !flyway.validateWithResult().validationSuccessful) throw new IllegalStateException("V24 validation failed");
+                var expectedVersions=IntStream.rangeClosed(1,25).mapToObj(Integer::toString).toList();
+                var migrationInfo=flyway.info();
+                var applied=Arrays.stream(migrationInfo.applied()).filter(MigrationInfo::isVersioned).toList();
+                int postgresMajor=jdbc.queryForObject("select current_setting('server_version_num')::int/10000",Integer.class);
+                if(postgresMajor!=17 || !applied.stream().map(m->m.getVersion().getVersion()).toList().equals(expectedVersions)
+                        || applied.stream().anyMatch(m->m.getState()!=MigrationState.SUCCESS || m.getChecksum()==null)
+                        || !jdbc.queryForList("select version from flyway_schema_history where version is not null order by installed_rank",String.class).equals(expectedVersions)
+                        || migrationInfo.current()==null || !"25".equals(migrationInfo.current().getVersion().getVersion())
+                        || migrationInfo.pending().length!=0 || !flyway.validateWithResult().validationSuccessful)
+                    throw new IllegalStateException("PostgreSQL17 and exact successful V1-V25/checksum validation required");
                 if(!context.getBean(EntityManagerFactory.class).isOpen() || !"validate".equals(context.getEnvironment().getProperty("spring.jpa.hibernate.ddl-auto"))) throw new IllegalStateException("Hibernate validation required");
+                mapper.writeValue(local.resolve("validation.json").toFile(),Map.of("postgresMajor",postgresMajor,
+                        "migrationVersions",expectedVersions,"currentVersion","25","successfulVersionedMigrations",applied.size(),
+                        "flywayChecksumsValidated",true,"hibernateSchemaValidation",true));
+                if(args.length==2 && "--setup-failure-probe".equals(args[1])) {
+                    mapper.writeValue(local.resolve("setup-failure-probe.json").toFile(),Map.of("intentional",true,"beforeReadiness",true));
+                    throw new IllegalStateException("Intentional setup failure before readiness");
+                }
                 var metadata=new LinkedHashMap<String,Object>();
                 metadata.put("backendUrl","http://127.0.0.1:"+((ServletWebServerApplicationContext)context).getWebServer().getPort());
                 metadata.put("accounts",accounts);metadata.put("ids",ids);metadata.put("futureAt",future.toString());
@@ -163,6 +187,14 @@ public class RecruitingWorkflowsBrowserFixture {
         } finally {
             try(var paths=Files.walk(temporary)){for(Path path:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(path);}
         }
+    }
+    private static void recordOwnership(Path local,String runId,Path temporary,String containerId) throws Exception {
+        var owner=new LinkedHashMap<String,Object>();
+        owner.put("runId",runId);owner.put("temporaryRoot",temporary.toString());
+        if(containerId!=null) owner.put("containerId",containerId);
+        Path staging=local.resolve("ownership.tmp");
+        new ObjectMapper().writeValue(staging.toFile(),owner);
+        Files.move(staging,local.resolve("ownership.json"),StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
     }
     private static Map<String,Object> snapshot(JdbcTemplate jdbc) throws Exception {
         String rows=jdbc.queryForObject("select jsonb_agg(to_jsonb(a) order by id)::text from applications a",String.class);
