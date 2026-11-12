@@ -40,6 +40,7 @@ function Tree({ initial, context }: { initial: string; context: AuthContextValue
   </Routes></MemoryRouter></AuthContext.Provider>;
 }
 function mount(initial = "/recruiter/interviews", context = auth()) { return render(<Tree initial={initial} context={context} />); }
+function pagination(config?: { params?: unknown }) { return config?.params as { page: number; size: number } | undefined; }
 async function chooseAction(name: string) {
   await userEvent.click(await screen.findByRole("button", { name }));
   await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Xác nhận thực hiện" }));
@@ -74,7 +75,7 @@ beforeEach(() => {
 
 describe("Owned interview and invitation UI", () => {
   it("loads Company interview pages with exact path and paging instead of a generic query", async () => {
-    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page([{ ...interview, id: config?.params.page === 2 ? 22 : 21 }], { page: config?.params.page ?? 1, totalPages: 2, totalItems: 2 })));
+    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page([{ ...interview, id: pagination(config)?.page === 2 ? 22 : 21 }], { page: pagination(config)?.page ?? 1, totalPages: 2, totalItems: 2 })));
     mount(); await screen.findByText(interview.title);
     expect(httpClient.get).toHaveBeenCalledWith("/companies/me/interviews", expect.objectContaining({ params: { page: 1, size: 10 }, signal: expect.any(AbortSignal) }));
     await userEvent.click(screen.getByRole("button", { name: "Sau" }));
@@ -83,7 +84,7 @@ describe("Owned interview and invitation UI", () => {
     expect(screen.queryByRole("link", { name: "Chi tiết #21" })).not.toBeInTheDocument();
   });
   it("loads deep-link details by owned pages and keeps wall time and supported application links", async () => {
-    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page(config?.params.page === 1 ? [] : [interview], { page: config?.params.page, size: 100, totalPages: 2, totalItems: 101 })));
+    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page(pagination(config)?.page === 1 ? [] : [interview], { page: pagination(config)?.page, size: 100, totalPages: 2, totalItems: 101 })));
     mount("/candidate/interviews/21", auth("candidate"));
     await screen.findByText("Ghi chú đã lưu");
     expect(screen.getByText(/20\/11\/2099 09:30 \(giờ máy chủ\)/)).toBeVisible();
@@ -220,7 +221,7 @@ describe("Company scheduling and invitation forms", () => {
     await screen.findByText(/Vui lòng kiểm tra các trường/); expect(httpClient.post).not.toHaveBeenCalled();
   });
   it("never offers withdrawn/rejected applications and pages actual options", async () => {
-    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page(config?.params.page === 2 ? [application] : [{ ...application, status: "WITHDRAWN" }], { page: config?.params.page ?? 1, totalPages: 2, totalItems: 2 })));
+    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page(pagination(config)?.page === 2 ? [application] : [{ ...application, status: "WITHDRAWN" }], { page: pagination(config)?.page ?? 1, totalPages: 2, totalItems: 2 })));
     mount("/recruiter/interviews/create"); await screen.findByText(/Trang này không có đơn đủ điều kiện/);
     expect(screen.queryByRole("option", { name: /Ứng viên được phép/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Sau" })); await screen.findByRole("option", { name: /Ứng viên được phép/ });
