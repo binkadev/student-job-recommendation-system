@@ -86,7 +86,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
     setSearchParams((current) => { current.set("section", tab); return current; }, { replace: true });
   }
   useEffect(() => {
-    if (!focusField) return;
+    if (!focusField || activeTab !== (fieldTabs[focusField.split(".")[0]] ?? "personal")) return;
     setFocus(focusField);
     setFocusField(null);
   }, [focusField, activeTab, setFocus]);

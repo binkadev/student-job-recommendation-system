@@ -37,13 +37,14 @@ function Tree({ initial = "/candidate/messages/21", context = auth() }: { initia
   </Routes></MemoryRouter></ToastProvider></AuthContext.Provider>;
 }
 function mount(initial = "/candidate/messages/21", context = auth()) { return render(<Tree initial={initial} context={context} />); }
+function pagination(config?: { params?: unknown }) { return config?.params as { page: number; size: number } | undefined; }
 let messages: Message[];
 beforeEach(() => {
   vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); advanceSession(); sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "synthetic-session");
   messages = [incoming, outbound];
   vi.mocked(httpClient.get).mockImplementation(async (url, config) => {
-    if (url === "/conversations") return envelope(page([conversation], { page: config?.params.page, size: config?.params.size }));
-    if (url === "/conversations/21/messages") return envelope(page(messages, { page: config?.params.page }));
+    if (url === "/conversations") return envelope(page([conversation], { page: pagination(config)?.page, size: pagination(config)?.size }));
+    if (url === "/conversations/21/messages") return envelope(page(messages, { page: pagination(config)?.page }));
     if (url === "/students/me/applications/9" || url === "/companies/me/applications/9") return envelope(application);
     if (url === "/companies/me/jobs" || url === "/companies/me/saved-candidates") return envelope(page([], { size: 100 }));
     throw new Error("Unexpected GET endpoint");
@@ -62,7 +63,7 @@ beforeEach(() => {
 
 describe("Private messaging workspace (mocked HTTP)", () => {
   it.each(["candidate", "recruiter"] as const)("%s lists bounded owned pages and refreshes only explicitly", async role => {
-    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page([{ ...conversation, id: config?.params.page === 2 ? 22 : 21 }], { page: config?.params.page, size: 10, totalPages: 2, totalItems: 11 })));
+    vi.mocked(httpClient.get).mockImplementation(async (_url, config) => envelope(page([{ ...conversation, id: pagination(config)?.page === 2 ? 22 : 21 }], { page: pagination(config)?.page, size: 10, totalPages: 2, totalItems: 11 })));
     mount(`/${role}/messages`, auth(role));
     expect(await screen.findByRole("link", { name: "Hội thoại #21" })).toHaveAttribute("href", `/${role}/messages/21`);
     expect(httpClient.post).not.toHaveBeenCalled(); expect(httpClient.patch).not.toHaveBeenCalled();
@@ -73,7 +74,7 @@ describe("Private messaging workspace (mocked HTTP)", () => {
   });
   it("uses only paginated owned metadata for a deep link, then retrieves real history", async () => {
     const fallback = vi.mocked(httpClient.get).getMockImplementation()!;
-    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url === "/conversations" ? envelope(page(config?.params.page === 2 ? [conversation] : [], { page: config?.params.page, size: 100, totalPages: 2, totalItems: 101 })) : fallback(url, config));
+    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url === "/conversations" ? envelope(page(pagination(config)?.page === 2 ? [conversation] : [], { page: pagination(config)?.page, size: 100, totalPages: 2, totalItems: 101 })) : fallback(url, config));
     mount(); await screen.findByText(incoming.content);
     expect(httpClient.get).toHaveBeenNthCalledWith(2, "/conversations", expect.objectContaining({ params: { page: 2, size: 100 } }));
     expect(screen.getByRole("link", { name: "Xem đơn ứng tuyển #9" })).toHaveAttribute("href", "/candidate/applications/9");
@@ -85,7 +86,7 @@ describe("Private messaging workspace (mocked HTTP)", () => {
   });
   it("paginates oldest-first and makes the current latest page available", async () => {
     const fallback = vi.mocked(httpClient.get).getMockImplementation()!;
-    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url.endsWith("/messages") ? envelope(page([{ ...incoming, id: config?.params.page, content: `Trang ${config?.params.page} đã lưu` }], { page: config?.params.page, totalPages: 3, totalItems: 21 })) : fallback(url, config));
+    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url.endsWith("/messages") ? envelope(page([{ ...incoming, id: pagination(config)?.page, content: `Trang ${pagination(config)?.page} đã lưu` }], { page: pagination(config)?.page, totalPages: 3, totalItems: 21 })) : fallback(url, config));
     mount(); await screen.findByText("Trang 1 đã lưu");
     await userEvent.click(screen.getByRole("button", { name: "Sau" })); await screen.findByText("Trang 2 đã lưu");
     await userEvent.click(screen.getByRole("button", { name: "Đến trang mới nhất" })); await screen.findByText("Trang 3 đã lưu");
@@ -125,7 +126,7 @@ describe("Private messaging workspace (mocked HTTP)", () => {
   });
   it("an uncertain-send manual refresh opens the newest history page before enabling a deliberate resend", async () => {
     const fallback = vi.mocked(httpClient.get).getMockImplementation()!;
-    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url.endsWith("/messages") ? envelope(page(messages, { page: config?.params.page, totalItems: 21, totalPages: 3 })) : fallback(url, config));
+    vi.mocked(httpClient.get).mockImplementation(async (url, config) => url.endsWith("/messages") ? envelope(page(messages, { page: pagination(config)?.page, totalItems: 21, totalPages: 3 })) : fallback(url, config));
     vi.mocked(httpClient.post).mockRejectedValueOnce(new Error("Uncertain delivery"));
     mount(); fireEvent.change(await screen.findByRole("textbox"), { target: { value: "newest-page check" } });
     await userEvent.click(screen.getByRole("button", { name: "Gửi tin nhắn" })); await screen.findByRole("alert");
