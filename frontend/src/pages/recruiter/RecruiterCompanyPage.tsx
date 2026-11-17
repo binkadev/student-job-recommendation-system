@@ -1,5 +1,5 @@
 import { Copy, ExternalLink, FileCheck2, MapPin, Pencil, ShieldCheck, UploadCloud } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -356,7 +356,7 @@ function RecruiterCompanyEditView({
   const [saveError, setSaveError] = useState("");
   const [conflict, setConflict] = useState(false);
 
-  useEffect(() => setForm(mapCompanyToForm(company)), [company]);
+  useLayoutEffect(() => setForm(mapCompanyToForm(company)), [company]);
 
   function update<K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));

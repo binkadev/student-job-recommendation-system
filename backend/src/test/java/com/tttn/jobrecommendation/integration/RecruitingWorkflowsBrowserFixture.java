@@ -114,7 +114,7 @@ public class RecruitingWorkflowsBrowserFixture {
                         .message("Foreign private invitation").status(InvitationStatus.PENDING).build());
                 ids.put("foreignInterview",foreignInterview.getId());ids.put("foreignInvitation",foreignInvitation.getId());
                 var flyway=context.getBean(Flyway.class);
-                if(!"24".equals(flyway.info().current().getVersion().getVersion()) || !flyway.validateWithResult().validationSuccessful) throw new IllegalStateException("V24 validation failed");
+                if(!"25".equals(flyway.info().current().getVersion().getVersion()) || !flyway.validateWithResult().validationSuccessful) throw new IllegalStateException("V25 validation failed");
                 if(!context.getBean(EntityManagerFactory.class).isOpen() || !"validate".equals(context.getEnvironment().getProperty("spring.jpa.hibernate.ddl-auto"))) throw new IllegalStateException("Hibernate validation required");
                 var metadata=new LinkedHashMap<String,Object>();
                 metadata.put("backendUrl","http://127.0.0.1:"+((ServletWebServerApplicationContext)context).getWebServer().getPort());

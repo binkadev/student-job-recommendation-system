@@ -1,0 +1,605 @@
+/**
+ * NOVA MOTION DESIGN TOKENS & SYSTEM
+ * Codename: NOVA MOTION (Internal)
+ * Colors:
+ *   - Midnight: #0C111C
+ *   - Graphite: #1B2533
+ *   - Porcelain: #F7F8F6
+ *   - Signal Lime: #D5F36A
+ *   - Sunset Coral: #FF7956
+ *   - Ocean Teal: #237D70
+ */
+
+:root {
+  --nova-midnight: #0c111c;
+  --nova-midnight-rgb: 12 17 28;
+  --nova-graphite: #1b2533;
+  --nova-graphite-rgb: 27 37 51;
+  --nova-graphite-elevated: #243244;
+  --nova-porcelain: #f7f8f6;
+  --nova-porcelain-rgb: 247 248 246;
+  --nova-signal-lime: #d5f36a;
+  --nova-signal-lime-rgb: 213 243 106;
+  --nova-sunset-coral: #ff7956;
+  --nova-sunset-coral-rgb: 255 121 86;
+  --nova-ocean-teal: #237d70;
+  --nova-ocean-teal-rgb: 35 125 112;
+
+  --nova-text-dark: #0c111c;
+  --nova-text-muted: #52637a;
+  --nova-text-light: #f7f8f6;
+  --nova-text-light-muted: #9bb0c9;
+
+  --nova-border-subtle: rgba(255, 255, 255, 0.08);
+  --nova-border-medium: rgba(255, 255, 255, 0.16);
+  --nova-border-light-subtle: #e5e9f0;
+
+  --nova-radius-sm: 8px;
+  --nova-radius-md: 14px;
+  --nova-radius-lg: 20px;
+  --nova-radius-xl: 28px;
+  --nova-radius-full: 9999px;
+
+  --nova-shadow-ambient: 0 4px 20px -4px rgba(12, 17, 28, 0.07);
+  --nova-shadow-floating: 0 16px 36px -12px rgba(12, 17, 28, 0.16);
+  --nova-shadow-glow-lime: 0 0 32px -4px rgba(213, 243, 106, 0.35);
+  --nova-shadow-glow-teal: 0 0 32px -4px rgba(35, 125, 112, 0.3);
+
+  --nova-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --nova-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --nova-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Nova App Root Theme */
+.nova-theme {
+  --brand-50: #f0faf8;
+  --brand-100: #d6f2ec;
+  --brand-200: #aee6dc;
+  --brand-300: #78d2c3;
+  --brand-400: #42b6a3;
+  --brand-500: #237d70;
+  --brand-600: #1a6359;
+  --brand-700: #134b43;
+  --brand-800: #0d332e;
+  --brand-900: #061c19;
+
+  --brand-50-rgb: 240 250 248;
+  --brand-100-rgb: 214 242 236;
+  --brand-200-rgb: 174 230 220;
+  --brand-300-rgb: 120 210 195;
+  --brand-400-rgb: 66 182 163;
+  --brand-500-rgb: 35 125 112;
+  --brand-600-rgb: 26 99 89;
+  --brand-700-rgb: 19 75 67;
+  --brand-800-rgb: 13 51 46;
+  --brand-900-rgb: 6 28 25;
+
+  background-color: var(--nova-porcelain);
+  color: var(--nova-text-dark);
+  font-family: "Be Vietnam Pro", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ==========================================================================
+   NOVA CINEMATIC HERO SECTION
+   ========================================================================== */
+.nova-hero {
+  position: relative;
+  background-color: var(--nova-midnight);
+  color: var(--nova-text-light);
+  border-radius: var(--nova-radius-xl);
+  overflow: hidden;
+  padding: clamp(32px, 5vw, 64px) clamp(24px, 4vw, 56px);
+  box-shadow: 0 20px 48px -16px rgba(12, 17, 28, 0.4);
+  border: 1px solid var(--nova-border-subtle);
+  isolation: isolate;
+}
+
+.nova-hero::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(35, 125, 112, 0.28) 0%, rgba(27, 37, 51, 0) 70%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(40px);
+}
+
+.nova-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -150px;
+  left: 10%;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(213, 243, 106, 0.12) 0%, rgba(12, 17, 28, 0) 70%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(50px);
+}
+
+.nova-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .nova-hero-grid {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 48px;
+  }
+}
+
+.nova-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(27, 37, 51, 0.7);
+  border: 1px solid rgba(35, 125, 112, 0.35);
+  border-radius: var(--nova-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #d6f2ec;
+  backdrop-filter: blur(10px);
+}
+
+.nova-eyebrow-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--nova-signal-lime);
+  box-shadow: 0 0 10px var(--nova-signal-lime);
+}
+
+.nova-hero-title {
+  font-size: clamp(2.4rem, 4.6vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+  margin-top: 20px;
+  color: #ffffff;
+}
+
+.nova-text-gradient {
+  background: linear-gradient(135deg, #ffffff 20%, #d5f36a 85%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.nova-text-coral {
+  color: var(--nova-sunset-coral);
+}
+
+.nova-hero-description {
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
+  line-height: 1.68;
+  color: var(--nova-text-light-muted);
+  max-width: 580px;
+  margin-top: 20px;
+}
+
+/* Nova CTA Buttons */
+.nova-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 24px;
+  background-color: var(--nova-signal-lime);
+  color: var(--nova-midnight);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--nova-radius-md);
+  border: 1px solid rgba(213, 243, 106, 0.4);
+  box-shadow: 0 4px 20px -4px rgba(213, 243, 106, 0.35);
+  transition: transform 180ms var(--nova-ease-out), box-shadow 180ms var(--nova-ease-out), background-color 180ms ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.nova-btn-primary:hover {
+  transform: translateY(-2px);
+  background-color: #def682;
+  box-shadow: 0 8px 26px -2px rgba(213, 243, 106, 0.45);
+}
+
+.nova-btn-primary:active {
+  transform: translateY(0);
+}
+
+.nova-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 22px;
+  background-color: rgba(27, 37, 51, 0.8);
+  color: var(--nova-porcelain);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--nova-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  transition: transform 180ms var(--nova-ease-out), background-color 180ms ease, border-color 180ms ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.nova-btn-secondary:hover {
+  transform: translateY(-2px);
+  background-color: var(--nova-graphite-elevated);
+  border-color: rgba(35, 125, 112, 0.5);
+  color: #ffffff;
+}
+
+.nova-btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   SKILL-TO-JOB CONNECTION VISUALIZATION (HERO GRAPH)
+   ========================================================================== */
+.nova-vis-container {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .nova-vis-container {
+    min-height: 380px;
+    display: block;
+  }
+}
+
+.nova-vis-svg {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .nova-vis-svg {
+    display: block;
+  }
+}
+
+.nova-vis-card {
+  position: relative;
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: var(--nova-radius-lg);
+  background: linear-gradient(135deg, rgba(27, 37, 51, 0.95), rgba(18, 25, 36, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  z-index: 2;
+  transition: transform 220ms var(--nova-ease-out), border-color 220ms ease;
+}
+
+.nova-vis-card:hover {
+  border-color: rgba(213, 243, 106, 0.4);
+}
+
+@media (min-width: 640px) {
+  .nova-vis-card,
+  .nova-vis-card-engine {
+    position: absolute;
+    width: auto;
+  }
+
+  .nova-vis-card-cv {
+    top: 10px;
+    left: 0;
+    width: 200px;
+    z-index: 2;
+  }
+
+  .nova-vis-card-engine {
+    top: 110px;
+    left: 235px;
+    width: 175px;
+    height: 98px;
+    z-index: 3;
+  }
+
+  .nova-vis-card-job {
+    bottom: 20px;
+    left: 50px;
+    width: 250px;
+    z-index: 2;
+  }
+}
+
+.nova-vis-caption {
+  position: relative;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9bb0c9;
+}
+
+@media (min-width: 640px) {
+  .nova-vis-caption {
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    right: 0;
+    margin-top: 0;
+  }
+}
+
+.nova-vis-card-engine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: var(--nova-radius-md);
+  background: linear-gradient(145deg, #1b2533, #0c111c);
+  border: 1px solid rgba(35, 125, 112, 0.6);
+  box-shadow: 0 0 32px -4px rgba(35, 125, 112, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  padding: 14px 16px;
+}
+
+.nova-vis-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: rgba(35, 125, 112, 0.25);
+  color: #78d2c3;
+  border: 1px solid rgba(35, 125, 112, 0.4);
+}
+
+.nova-vis-badge-lime {
+  background-color: rgba(213, 243, 106, 0.15);
+  color: var(--nova-signal-lime);
+  border-color: rgba(213, 243, 106, 0.3);
+}
+
+.nova-vis-badge-coral {
+  background-color: rgba(255, 121, 86, 0.15);
+  color: var(--nova-sunset-coral);
+  border-color: rgba(255, 121, 86, 0.3);
+}
+
+.nova-pulse-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1px dashed rgba(213, 243, 106, 0.35);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   METRICS SECTION (BENTO GRID)
+   ========================================================================== */
+.nova-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media (min-width: 640px) {
+  .nova-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .nova-metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.nova-metric-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1px solid var(--nova-border-light-subtle);
+  border-radius: var(--nova-radius-lg);
+  padding: 24px;
+  box-shadow: var(--nova-shadow-ambient);
+  transition: transform 200ms var(--nova-ease-out), box-shadow 200ms var(--nova-ease-out), border-color 200ms ease;
+  overflow: hidden;
+}
+
+.nova-metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--nova-shadow-floating);
+  border-color: rgba(35, 125, 112, 0.3);
+}
+
+.nova-metric-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--nova-border-light-subtle);
+  transition: background 200ms ease;
+}
+
+.nova-metric-card:hover::after {
+  background: linear-gradient(90deg, var(--nova-ocean-teal), var(--nova-signal-lime));
+}
+
+.nova-metric-number {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nova-text-dark);
+  margin-top: 12px;
+}
+
+/* ==========================================================================
+   FEATURED JOBS & COMPANIES CARDS
+   ========================================================================== */
+.nova-job-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1px solid var(--nova-border-light-subtle);
+  border-radius: var(--nova-radius-lg);
+  padding: 24px;
+  box-shadow: var(--nova-shadow-ambient);
+  transition: transform 220ms var(--nova-ease-out), box-shadow 220ms var(--nova-ease-out), border-color 220ms ease;
+}
+
+.nova-job-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--nova-shadow-floating);
+  border-color: rgba(35, 125, 112, 0.4);
+}
+
+.nova-company-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: var(--nova-graphite);
+  font-weight: 700;
+  font-size: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.nova-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.nova-tag-skill {
+  background-color: rgba(35, 125, 112, 0.08);
+  color: #134b43;
+  border-color: rgba(35, 125, 112, 0.2);
+  font-weight: 600;
+}
+
+.nova-company-card {
+  background-color: #ffffff;
+  border: 1px solid var(--nova-border-light-subtle);
+  border-radius: var(--nova-radius-lg);
+  padding: 22px;
+  box-shadow: var(--nova-shadow-ambient);
+  transition: transform 200ms var(--nova-ease-out), box-shadow 200ms var(--nova-ease-out), border-color 200ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.nova-company-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--nova-shadow-floating);
+  border-color: rgba(35, 125, 112, 0.35);
+}
+
+/* ==========================================================================
+   PROCESS & ARCHITECTURE EXPLAINER
+   ========================================================================== */
+.nova-process-step {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--nova-border-light-subtle);
+  border-radius: var(--nova-radius-md);
+  padding: 20px;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.nova-process-step:hover {
+  transform: translateY(-2px);
+  border-color: rgba(35, 125, 112, 0.4);
+}
+
+.nova-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--nova-midnight);
+  color: var(--nova-signal-lime);
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 2px 8px -2px rgba(12, 17, 28, 0.3);
+}
+
+/* ==========================================================================
+   REFINED SKELETON
+   ========================================================================== */
+.nova-skeleton {
+  background: linear-gradient(90deg, #e5e9f0 25%, #f1f5f9 50%, #e5e9f0 75%);
+  background-size: 200% 100%;
+  animation: nova-shimmer 1.8s infinite ease-in-out;
+  border-radius: var(--nova-radius-md);
+}
+
+@keyframes nova-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: PREFERS-REDUCED-MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .nova-hero::before,
+  .nova-hero::after,
+  .nova-pulse-ring,
+  .nova-skeleton {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .nova-btn-primary,
+  .nova-btn-secondary,
+  .nova-job-card,
+  .nova-company-card,
+  .nova-metric-card,
+  .nova-process-step {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -26,14 +26,14 @@ export function Modal({ open, title, children, onClose, size = "md" }: ModalProp
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`relative flex max-h-[calc(100dvh-2rem)] w-full flex-col ${sizes[size]} overflow-hidden rounded-2xl bg-white shadow-xl`}>
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <h2 id={titleId} className="text-base font-semibold text-slate-900">
             {title}
           </h2>
           <button type="button" onClick={onClose} className="shrink-0 rounded-xl p-2.5 text-slate-500 hover:bg-slate-100" aria-label="Đóng">
             <X size={18} />
           </button>
-        </header>
+        </div>
         <div className="overflow-y-auto overscroll-contain p-5 sm:p-6">{children}</div>
       </section>
     </div>, document.body

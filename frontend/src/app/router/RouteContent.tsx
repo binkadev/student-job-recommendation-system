@@ -24,6 +24,6 @@ class ContentBoundary extends Component<{ children: ReactNode; routeKey: string 
 export function RouteContent() {
   const location = useLocation();
   return <ContentBoundary routeKey={location.pathname}>
-    <Suspense fallback={<PageContainer><LoadingState message="Đang tải trang..." /></PageContainer>}><Outlet /></Suspense>
+    <Suspense fallback={<PageContainer><div className="min-h-[100dvh]"><LoadingState message="Đang tải trang..." /></div></PageContainer>}><Outlet /></Suspense>
   </ContentBoundary>;
 }

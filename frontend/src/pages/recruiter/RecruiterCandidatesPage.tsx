@@ -1,7 +1,7 @@
 import { MessageLauncher } from "../../features/messaging/MessageLauncher";
 import { InvitationLauncher } from "../../features/recruiting/InvitationLauncher";
 import { BookmarkCheck, BookmarkPlus, CheckCircle2, Clock3, FileText, Search, Sparkles, UserCheck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
@@ -516,7 +516,7 @@ function CandidateEvaluationPage({
     if (application) setNextStatus(getDefaultNextStatus(application.status));
   }, [application]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!application || !savedCandidatesQuery.data || noteDirty || draftStale) return;
     const matched = savedCandidatesQuery.data.find((candidate) => candidate.studentId === application.studentId) ?? null;
     if (savedRecord && matched && savedRecord.studentId === matched.studentId && savedRecord.revision > matched.revision) {
