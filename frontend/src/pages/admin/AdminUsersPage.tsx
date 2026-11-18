@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -114,6 +115,11 @@ function AdminUsersListPage({ mode }: { mode: "users" | "recruiters" | "detail" 
   return (
     <PageContainer>
       <PageHeader title={mode === "recruiters" ? "Quản lý nhà tuyển dụng" : "Quản lý người dùng"} description="Quản lý tài khoản và trạng thái người dùng." />
+      <AuroraHero
+        eyebrow="QUẢN TRỊ TÀI KHOẢN"
+        title="Quản lý người dùng & Phân quyền vai trò"
+        description="Theo dõi trạng thái hoạt động của ứng viên, nhà tuyển dụng và quản trị viên trên hệ thống."
+      />
 
       <Card className="mb-5">
         <div className={`grid gap-3 md:grid-cols-2 ${mode === "recruiters" ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>

@@ -4,6 +4,7 @@ import { AlertTriangle, BriefcaseBusiness, Building2, FileText, Users } from "lu
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -125,14 +126,22 @@ export function AdminDashboardPage() {
 
   return (
     <PageContainer>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHeader title="Tổng quan quản trị" description="Theo dõi dữ liệu quản trị và các mục cần xử lý." />
-        <Select
-          label="Filter thời gian"
-          value={timeRange}
-          onChange={(event) => setTimeRange(event.target.value as TimeRange)}
-          options={Object.entries(rangeLabels).map(([value, label]) => ({ value, label }))}
-        />
+      <PageHeader title="Tổng quan quản trị" description="Theo dõi dữ liệu quản trị và các mục cần xử lý." />
+      <AuroraHero
+        eyebrow="TRUNG TÂM QUẢN TRỊ"
+        title="Bảng điều khiển hệ thống"
+        description="Giám sát trạng thái tin tuyển dụng, phê duyệt doanh nghiệp và số liệu vận hành hệ sinh thái."
+      />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <p className="text-sm font-medium text-[#4B5C73]">Khoảng thời gian thống kê hệ thống:</p>
+        <div className="w-48">
+          <Select
+            label="Filter thời gian"
+            value={timeRange}
+            onChange={(event) => setTimeRange(event.target.value as TimeRange)}
+            options={Object.entries(rangeLabels).map(([value, label]) => ({ value, label }))}
+          />
+        </div>
       </div>
 
       {dashboardQuery.error ? (
@@ -143,12 +152,14 @@ export function AdminDashboardPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-brand-50 p-2 text-brand-700">{stat.icon}</div>
-              <div>
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="text-2xl font-semibold text-slate-950">{formatNumber(stat.value)}</p>
+          <Card key={stat.label} className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0C111C] text-[#D5F36A] shadow-inner">
+                {stat.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#4B5C73]">{stat.label}</p>
+                <p className="mt-1 text-2xl font-extrabold text-[#0C111C] tabular-nums">{formatNumber(stat.value)}</p>
               </div>
             </div>
           </Card>
@@ -159,33 +170,33 @@ export function AdminDashboardPage() {
         <ChartCard title="Việc làm theo trạng thái">
           <ResponsiveContainer>
             <BarChart data={statusChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#2563eb" name="Số tin" />
+              <CartesianGrid stroke="#E2E8EE" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8EE", boxShadow: "0 8px 24px rgba(12,17,28,0.08)" }} />
+              <Bar dataKey="value" fill="#237D70" radius={[6, 6, 0, 0]} name="Số tin" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Tổng quan dữ liệu hiện có">
           <ResponsiveContainer>
             <BarChart data={overviewChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#1d4ed8" name="Số lượng" />
+              <CartesianGrid stroke="#E2E8EE" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8EE", boxShadow: "0 8px 24px rgba(12,17,28,0.08)" }} />
+              <Bar dataKey="value" fill="#134B43" radius={[6, 6, 0, 0]} name="Số lượng" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title={`Việc làm tạo mới trong ${rangeLabels[timeRange]}`}>
           <ResponsiveContainer>
             <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line dataKey="jobs" stroke="#2563eb" name="Việc làm" strokeWidth={2} />
+              <CartesianGrid stroke="#E2E8EE" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8EE", boxShadow: "0 8px 24px rgba(12,17,28,0.08)" }} />
+              <Line dataKey="jobs" stroke="#237D70" name="Việc làm" strokeWidth={2.5} dot={{ fill: "#0C111C", r: 3.5 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -197,13 +208,13 @@ export function AdminDashboardPage() {
           {pendingJobs.length ? (
             <div className="grid gap-3 xl:grid-cols-2">
               {pendingJobs.map((job) => (
-                <div key={job.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                <div key={job.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E2E8EE] bg-[#F7F8F6] p-4 transition-all duration-200 hover:border-[#CBD5E1] hover:bg-white hover:shadow-soft">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-slate-900">{job.title}</p>
+                      <p className="font-semibold text-[#0C111C]">{job.title}</p>
                       <StatusBadge label="Tin chờ duyệt" tone="warning" />
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">{job.companyName} - {formatDate(job.publishedAt || job.createdAt)}</p>
+                    <p className="mt-1 text-xs text-[#4B5C73]">{job.companyName} • {formatDate(job.publishedAt || job.createdAt)}</p>
                   </div>
                   <Link to={`/admin/jobs/${job.id}/review`}><Button variant="secondary" size="sm">Xử lý</Button></Link>
                 </div>

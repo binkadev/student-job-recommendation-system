@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -111,6 +112,11 @@ function AnalyticsPage() {
   return (
     <PageContainer>
       <PageHeader title="Thống kê hệ thống" description="Theo dõi tình hình hoạt động của hệ thống." />
+      <AuroraHero
+        eyebrow="PHÂN TÍCH HỆ THỐNG"
+        title="Bức tranh vận hành & Tăng trưởng dữ liệu"
+        description="Theo dõi phân bổ trạng thái việc làm, quy mô người dùng và xu hướng đăng tuyển toàn hệ thống."
+      />
       {analyticsQuery.error ? <div className="mb-5"><ErrorState message={analyticsQuery.error} /></div> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -128,22 +134,22 @@ function AnalyticsPage() {
         <ChartCard title="Việc làm theo trạng thái">
           <ResponsiveContainer>
             <BarChart data={statusChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#2563eb" name="Số tin" />
+              <CartesianGrid stroke="#E2E8EE" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8EE", boxShadow: "0 8px 24px rgba(12,17,28,0.08)" }} />
+              <Bar dataKey="value" fill="#237D70" radius={[6, 6, 0, 0]} name="Số tin" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Việc làm tạo mới theo thời gian">
           <ResponsiveContainer>
             <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line dataKey="jobs" stroke="#10b981" name="Việc làm" strokeWidth={2} />
+              <CartesianGrid stroke="#E2E8EE" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: "#4B5C73", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8EE", boxShadow: "0 8px 24px rgba(12,17,28,0.08)" }} />
+              <Line dataKey="jobs" stroke="#237D70" name="Việc làm" strokeWidth={2.5} dot={{ fill: "#0C111C", r: 3.5 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -208,12 +214,14 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
 
 function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{label}</p>
-        <span className="rounded-lg bg-brand-50 p-2 text-brand-700">{icon}</span>
+    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+      <div className="flex items-start gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0C111C] text-[#D5F36A] shadow-inner">{icon}</span>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#4B5C73]">{label}</p>
+          <p className="mt-1 text-2xl font-extrabold text-[#0C111C] tabular-nums">{new Intl.NumberFormat("vi-VN").format(value)}</p>
+        </div>
       </div>
-      <p className="mt-3 text-2xl font-semibold text-slate-950">{new Intl.NumberFormat("vi-VN").format(value)}</p>
     </Card>
   );
 }
