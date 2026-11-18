@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -339,6 +340,11 @@ function ApplicationsListPage({
       <PageHeader
         title={mode === "pipeline" ? "Pipeline ứng tuyển" : "Ứng viên ứng tuyển"}
         description="Theo dõi hồ sơ ứng tuyển theo tin tuyển dụng và trạng thái xử lý."
+      />
+      <AuroraHero
+        eyebrow="QUẢN LÝ ỨNG VIÊN"
+        title="Theo dõi & Đánh giá hồ sơ tuyển dụng"
+        description="Xem xét hồ sơ ứng tuyển, đối chiếu CV và quản lý vòng tuyển dụng tập trung."
       />
       {content}
     </PageContainer>

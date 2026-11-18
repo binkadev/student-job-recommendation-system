@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -113,6 +114,11 @@ function AdminCompaniesListPage() {
   return (
     <PageContainer>
       <PageHeader title="Quản lý doanh nghiệp" description="Quản lý hồ sơ và trạng thái doanh nghiệp." />
+      <AuroraHero
+        eyebrow="KIỂM DUYỆT DOANH NGHIỆP"
+        title="Xác thực & Quản lý hồ sơ công ty"
+        description="Kiểm tra thông tin pháp lý, tài liệu xác minh và kiểm soát trạng thái hoạt động của doanh nghiệp."
+      />
 
       <Card className="mb-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">

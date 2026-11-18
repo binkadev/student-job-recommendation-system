@@ -44,6 +44,22 @@ export interface CandidateDashboardNotification {
   targetPath: string;
 }
 
+export interface CandidateDashboardRecommendation {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  rankPosition: number | null;
+  tierRankPosition: number | null;
+  rankingTier: "PRIMARY" | "FALLBACK" | null;
+  displayScoreLabel: string;
+  displayTierLabel: string;
+  displayScore: number | null;
+  matchedSkills: string[];
+  missingSkills: string[];
+  reason: string;
+}
+
 export interface MissingProfileItem {
   id: string;
   label: string;

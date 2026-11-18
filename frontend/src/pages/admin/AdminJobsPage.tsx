@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -294,6 +295,11 @@ export function AdminJobsPage({ mode = "list" }: { mode?: "list" | "pending" | "
   return (
     <PageContainer>
       <PageHeader title={mode === "pending" ? "Tin chờ duyệt" : "Quản lý tin tuyển dụng"} description="Danh sách tin tuyển dụng theo bộ lọc hiện tại." />
+      <AuroraHero
+        eyebrow="KIỂM DUYỆT TIN TUYỂN DỤNG"
+        title="Phê duyệt & Giám sát chất lượng việc làm"
+        description="Rà soát nội dung tin đăng từ doanh nghiệp đã xác thực và quản lý vòng đời hiển thị công khai."
+      />
       {jobsQuery.error ? <div className="mb-5"><ErrorState message={jobsQuery.error} /></div> : null}
 
       <Card className="mb-5">

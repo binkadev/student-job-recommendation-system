@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { ErrorState } from "../../components/feedback/ErrorState";
@@ -374,6 +375,11 @@ function RecruiterJobsList({ showToast, company, companyLoading }: { showToast: 
   return (
     <PageContainer>
       <PageHeader title="Quản lý tin tuyển dụng" description="Theo dõi trạng thái tin, cập nhật nội dung và tìm ứng viên cho từng vị trí." />
+      <AuroraHero
+        eyebrow="TRUNG TÂM TUYỂN DỤNG"
+        title="Quản lý tin tuyển dụng & Đăng tin mới"
+        description="Theo dõi tiến độ duyệt tin, cập nhật tiêu chuẩn ứng tuyển và kích hoạt thuật toán gợi ý ứng viên V3."
+      />
       {company && !isCompanyVerified(company) ? (
         <Card className="mb-5 border-amber-200 bg-amber-50">
           <SectionHeader title="Công ty chưa đủ điều kiện công khai tin" description={`Trạng thái hiện tại: ${COMPANY_STATUS_LABELS[company.status]}. Bạn vẫn có thể lưu tin nháp và chỉnh sửa bản nháp. Chỉ gửi duyệt khi Admin xác thực; tin không được công khai trong lúc công ty chưa xác thực hoặc bị chặn.`} />
