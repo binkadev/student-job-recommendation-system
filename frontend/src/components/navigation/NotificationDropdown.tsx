@@ -6,7 +6,17 @@ import { useUnreadCount } from "../../features/account/useUnreadCount";
 
 export function NotificationDropdown() {
   const { currentRole, currentUser } = useAuth();
-  if (currentRole !== "candidate" && currentRole !== "recruiter") return <Link to={getNotificationPath(currentRole)} aria-label="Xem thông báo" className="rounded-md border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"><Bell size={18} /></Link>;
+  if (currentRole !== "candidate" && currentRole !== "recruiter") {
+    return (
+      <Link
+        to={getNotificationPath(currentRole)}
+        aria-label="Xem thông báo"
+        className="rounded-xl border border-[#D5DCE6] bg-white p-2.5 text-[#1B2533] transition-colors hover:border-[#237D70]/45 hover:bg-[#F0FAF8]"
+      >
+        <Bell size={18} />
+      </Link>
+    );
+  }
   return <NotificationLink key={`${currentUser?.id}:${sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY)}`} role={currentRole} />;
 }
 
@@ -16,11 +26,15 @@ function NotificationLink({ role }: { role: string }) {
   return (
     <Link
       to={getNotificationPath(role)}
-      className="relative rounded-md border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+      className="relative rounded-xl border border-[#D5DCE6] bg-white p-2.5 text-[#1B2533] transition-colors hover:border-[#237D70]/45 hover:bg-[#F0FAF8]"
       aria-label={`Xem thông báo${count === null ? ", chưa xác minh số chưa đọc" : `, ${count} chưa đọc`}${failed ? ", chưa đồng bộ" : ""}`}
     >
       <Bell size={18} />
-      {count !== null && count > 0 ? <span aria-hidden="true" className="absolute -right-2 -top-2 min-w-5 rounded-full bg-red-600 px-1 text-center text-xs text-white">{count > 99 ? "99+" : count}</span> : null}
+      {count !== null && count > 0 ? (
+        <span aria-hidden="true" className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-[#C83E2B] px-1.5 py-0.5 text-center text-[11px] font-bold leading-none text-white shadow-sm">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
     </Link>
   );
 }

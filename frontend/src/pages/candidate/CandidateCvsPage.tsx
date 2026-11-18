@@ -1,6 +1,18 @@
-import { FileText, RefreshCw, UploadCloud, X } from "lucide-react";
+import {
+  FileText,
+  RefreshCw,
+  UploadCloud,
+  X,
+  CheckCircle2,
+  Sparkles,
+  Zap,
+  ShieldCheck,
+  ChevronRight,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
 import { SectionHeader } from "../../components/common/SectionHeader";
@@ -102,7 +114,6 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
       setUploadError("Vui lòng chọn file CV trước khi tải lên.");
       return;
     }
-
     setUploading(true);
     try {
       const cv = await uploadCandidateCv(selectedFile, active);
@@ -160,9 +171,12 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   if (cvsQuery.loading) {
     return (
       <PageContainer>
-        <Card>
-          <p className="text-sm text-slate-600">Đang tải danh sách CV...</p>
-        </Card>
+        <div className="rounded-2xl border border-[#E5E9F0] bg-white p-6 shadow-sm">
+          <div className="animate-pulse space-y-3">
+            <div className="h-5 w-32 rounded-lg bg-[#E5E9F0]" />
+            <div className="h-4 w-56 rounded-lg bg-[#E5E9F0]" />
+          </div>
+        </div>
       </PageContainer>
     );
   }
@@ -175,45 +189,63 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     );
   }
 
+  /* ── UPLOAD MODE ──────────────────────────────── */
   if (mode === "upload") {
     return (
       <PageContainer>
         <PageHeader title="Tải CV mới" description="Tải lên file PDF hoặc DOCX để phân tích và gợi ý việc làm phù hợp." />
-        <div className="max-w-5xl">
-          <Card>
+        <div className="max-w-2xl">
+          <div className="rounded-2xl border border-[#E5E9F0] bg-white p-6 shadow-sm">
             <SectionHeader title="Chọn file CV" description="Hỗ trợ PDF và DOCX. Sau khi tải lên, bạn có thể phân tích CV để nhận gợi ý việc làm." />
             <FileUploader label="Chọn file CV" accept=".pdf,.docx" onFileSelect={handleFile} disabled={uploading} />
 
             {selectedFile ? (
-              <div className="mt-5 rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
+              <div className="mt-4 rounded-2xl border border-[#D6F2EC] bg-[#F0FAF8] p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="font-semibold text-slate-950">File đã chọn</h2>
-                    <p className="mt-2 break-words text-sm font-medium text-slate-800" title={selectedFile.name}>{selectedFile.name}</p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D6F2EC] text-[#134B43]">
+                      <FileText size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#0C111C]">File đã chọn</p>
+                      <p className="mt-0.5 break-words text-sm text-[#52637A]" title={selectedFile.name}>{selectedFile.name}</p>
+                      <p className="mt-1 text-xs text-[#9BB0C9]">
+                        {selectedFile.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF"} · {formatFileSize(selectedFile.size)}
+                      </p>
+                    </div>
                   </div>
-                  <button type="button" disabled={uploading} className="rounded-xl p-2 text-slate-500 hover:bg-white hover:text-red-600 disabled:opacity-50" onClick={() => setSelectedFile(null)} aria-label="Bỏ file đã chọn">
-                    <X size={16} />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    className="rounded-xl p-2 text-[#9BB0C9] hover:bg-white hover:text-red-600 disabled:opacity-50"
+                    onClick={() => setSelectedFile(null)}
+                    aria-label="Bỏ file đã chọn"
+                  >
+                    <X size={16} aria-hidden="true" />
                   </button>
-                </div>
-                <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
-                  <p><strong>Loại:</strong> {selectedFile.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF"}</p>
-                  <p><strong>Dung lượng:</strong> {formatFileSize(selectedFile.size)}</p>
                 </div>
               </div>
             ) : null}
 
-            {uploadError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{uploadError}</p> : null}
+            {uploadError ? (
+              <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {uploadError}
+              </p>
+            ) : null}
 
             <div className="mt-5">
               <Switch label="Đặt làm CV đang dùng" checked={active} onChange={setActive} disabled={uploading} />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button type="button" loading={uploading} disabled={uploading || !selectedFile} onClick={() => void uploadCv()}>Tải lên</Button>
-              <Link to="/candidate/cvs"><Button type="button" variant="secondary" disabled={uploading}>Hủy</Button></Link>
+              <Button type="button" loading={uploading} disabled={uploading || !selectedFile} onClick={() => void uploadCv()}>
+                Tải lên
+              </Button>
+              <Link to="/candidate/cvs">
+                <Button type="button" variant="secondary" disabled={uploading}>Hủy</Button>
+              </Link>
             </div>
-          </Card>
-
+          </div>
         </div>
       </PageContainer>
     );
@@ -235,67 +267,96 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
     return <CvDetailView cv={selectedCv} />;
   }
 
+  /* ── LIST MODE ────────────────────────────────── */
+  const activeCv = cvs.find((cv) => isActiveCv(cv));
+
   return (
     <PageContainer>
-      <PageHeader title="Quản lý CV" description="Quản lý các CV dùng để ứng tuyển và cập nhật gợi ý việc làm." />
+      {/* Page header */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge label={`${cvs.length} CV`} />
-          {cvs.some((cv) => isActiveCv(cv)) ? <StatusBadge label="Có CV đang dùng" tone="success" /> : null}
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#134B43]">
+            <FileText size={12} aria-hidden="true" />
+            <span>Quản lý CV</span>
+          </div>
+          <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight text-[#0C111C]">Hồ sơ CV của bạn</h1>
+          <p className="mt-1 text-sm text-[#52637A]">Quản lý các CV dùng để ứng tuyển và cập nhật gợi ý việc làm.</p>
         </div>
-        <Link to="/candidate/cvs/upload"><Button icon={<UploadCloud size={16} />}>Tải CV mới</Button></Link>
+        <Link to="/candidate/cvs/upload">
+          <Button icon={<UploadCloud size={16} aria-hidden="true" />}>Tải CV mới</Button>
+        </Link>
+      </div>
+
+      {/* Active CV hero */}
+      {activeCv ? (
+        <div className="mb-5 overflow-hidden rounded-2xl border border-[#D6F2EC] bg-gradient-to-br from-[#0C111C] to-[#1B2533] p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#237D70]/20 text-[#D5F36A]">
+                <CheckCircle2 size={22} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#78D2C3]">CV đang dùng</p>
+                <p className="mt-0.5 font-semibold text-white">{activeCv.originalFileName || activeCv.fileName}</p>
+                <p className="mt-1 text-xs text-[#9BB0C9]">
+                  {getFileType(activeCv.contentType)} · {formatFileSize(activeCv.fileSize)} · Tải lên {formatDateTime(activeCv.uploadedAt)}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Link to={`/candidate/cvs/${activeCv.id}/review`}>
+                <Button size="sm" variant="secondary" className="border-white/20 bg-white/10 text-white hover:bg-white/20">
+                  Đánh giá CV
+                </Button>
+              </Link>
+              <Link to={`/candidate/cvs/${activeCv.id}/analysis`}>
+                <Button size="sm" className="bg-[#D5F36A] text-[#0C111C] hover:bg-[#c8e85d]">
+                  Phân tích
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Stats row */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E9F0] bg-white px-3 py-1 text-sm font-medium text-[#52637A] shadow-sm">
+          <FileText size={13} aria-hidden="true" />
+          {cvs.length} CV
+        </span>
+        {cvs.some((cv) => isActiveCv(cv)) ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-3 py-1 text-sm font-medium text-[#134B43]">
+            <CheckCircle2 size={13} aria-hidden="true" />
+            Có CV đang dùng
+          </span>
+        ) : null}
       </div>
 
       {cvs.length === 0 ? (
-        <Card>
+        <div className="rounded-2xl border border-dashed border-[#E5E9F0] bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F0FAF8] text-[#237D70]">
+            <FileText size={26} aria-hidden="true" />
+          </div>
           <EmptyState message="Bạn chưa có CV nào." />
           <div className="mt-4">
-            <Link to="/candidate/cvs/upload"><Button>Tải CV đầu tiên</Button></Link>
+            <Link to="/candidate/cvs/upload">
+              <Button icon={<UploadCloud size={16} />}>Tải CV đầu tiên</Button>
+            </Link>
           </div>
-        </Card>
+        </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {cvs.map((cv) => (
-          <Card key={cv.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><FileText size={20} /></div>
-                <div className="min-w-0">
-                  <h2 className="break-words font-semibold text-slate-950" title={cv.originalFileName || cv.fileName || ""}>{cv.originalFileName || cv.fileName || "CV chưa cập nhật tên"}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{getFileType(cv.contentType)} • {formatFileSize(cv.fileSize)}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
-                <button
-                  type="button"
-                  className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400"
-                  disabled={!isCvDeleteAvailable(cv)}
-                  title={cv.deletable ? "Xóa CV" : cvInUseMessage}
-                  onClick={() => {
-                    if (isCvDeleteAvailable(cv)) setDeleteTarget(cv);
-                  }}
-                  aria-label="Xóa CV"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-2 text-sm text-slate-600">
-              <p>Ngày tải lên: {formatDateTime(cv.uploadedAt)}</p>
-              <p className="break-words">Tên file: {cv.originalFileName || cv.fileName || "Chưa cập nhật"}</p>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" size="sm">Xem</Button></Link>
-              <Button variant="secondary" size="sm" onClick={() => void openCv(cv)}>Mở file</Button>
-              <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" size="sm">{hasCvAnalysis(cv) ? "Phân tích lại" : "Phân tích"}</Button></Link>
-              <Link to={`/candidate/cvs/${cv.id}/review`}><Button variant="secondary" size="sm">Đánh giá CV</Button></Link>
-              {!isActiveCv(cv) ? <Button variant="secondary" size="sm" loading={activatingCvId === cv.id} disabled={activatingCvId !== null} onClick={() => void activateCv(cv)}>Đặt làm CV đang dùng</Button> : null}
-            </div>
-          </Card>
+          <CvCard
+            key={cv.id}
+            cv={cv}
+            activatingCvId={activatingCvId}
+            onOpen={() => void openCv(cv)}
+            onDelete={() => { if (isCvDeleteAvailable(cv)) setDeleteTarget(cv); }}
+            onActivate={() => void activateCv(cv)}
+          />
         ))}
       </div>
       <DeleteCvModal cv={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={(cv) => void deleteCv(cv)} />
@@ -303,6 +364,100 @@ export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {
   );
 }
 
+/* ── CV Card ────────────────────────────────────────── */
+function CvCard({
+  cv,
+  activatingCvId,
+  onOpen,
+  onDelete,
+  onActivate,
+}: {
+  cv: CvFileResponse;
+  activatingCvId: number | null;
+  onOpen: () => void;
+  onDelete: () => void;
+  onActivate: () => void;
+}) {
+  const isActive = isActiveCv(cv);
+  const hasAnalysis = hasCvAnalysis(cv);
+
+  return (
+    <div className={`group relative flex flex-col rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md ${isActive ? "border-[#D6F2EC] ring-1 ring-[#AEE6DC]/60" : "border-[#E5E9F0]"}`}>
+      {/* Card header */}
+      <div className="flex items-start justify-between gap-3 p-5 pb-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${isActive ? "bg-[#D6F2EC] text-[#134B43]" : "bg-[#F7F8F6] text-[#9BB0C9]"}`}>
+            <FileText size={20} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="break-words font-semibold text-[#0C111C] leading-snug" title={cv.originalFileName || cv.fileName || ""}>
+              {cv.originalFileName || cv.fileName || "CV chưa cập nhật tên"}
+            </h2>
+            <p className="mt-0.5 text-xs text-[#9BB0C9]">{getFileType(cv.contentType)} · {formatFileSize(cv.fileSize)}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 rounded-lg p-1.5 text-[#C8D5E5] hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={!isCvDeleteAvailable(cv)}
+          title={cv.deletable ? "Xóa CV" : cvInUseMessage}
+          onClick={onDelete}
+          aria-label="Xóa CV"
+        >
+          <X size={15} aria-hidden="true" />
+        </button>
+      </div>
+
+      {/* Meta */}
+      <div className="px-5 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {isActive ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-2.5 py-0.5 text-xs font-semibold text-[#134B43]">
+              <CheckCircle2 size={11} aria-hidden="true" /> Đang dùng
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E9F0] bg-[#F7F8F6] px-2.5 py-0.5 text-xs font-medium text-[#9BB0C9]">
+              Chưa dùng
+            </span>
+          )}
+          {hasAnalysis ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-2.5 py-0.5 text-xs font-medium text-[#237D70]">
+              <Zap size={10} aria-hidden="true" /> Đã phân tích
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-xs text-[#9BB0C9]">Tải lên: {formatDateTime(cv.uploadedAt)}</p>
+      </div>
+
+      {/* Actions */}
+      <div className="mt-auto flex flex-wrap gap-2 border-t border-[#F0F4F8] px-5 py-3">
+        <Link to={`/candidate/cvs/${cv.id}`}>
+          <Button variant="secondary" size="sm">Xem</Button>
+        </Link>
+        <Button variant="secondary" size="sm" onClick={onOpen}>Mở file</Button>
+        <Link to={`/candidate/cvs/${cv.id}/analysis`}>
+          <Button variant="secondary" size="sm">{hasAnalysis ? "Phân tích lại" : "Phân tích"}</Button>
+        </Link>
+        <Link to={`/candidate/cvs/${cv.id}/review`}>
+          <Button variant="secondary" size="sm">Đánh giá</Button>
+        </Link>
+        {!isActive ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={activatingCvId === cv.id}
+            disabled={activatingCvId !== null}
+            onClick={onActivate}
+          >
+            Đặt làm CV đang dùng
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ── CV Detail View ─────────────────────────────────── */
 function CvDetailView({ cv }: { cv: CvFileResponse }) {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -328,11 +483,11 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
   return (
     <PageContainer>
       <PageHeader title="Chi tiết CV" description="Thông tin file CV và trạng thái sử dụng hiện tại." />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-5">
-          <Card>
+          <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader title="Thông tin file" />
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <div className="grid gap-3 text-sm text-[#52637A] md:grid-cols-2">
               <SummaryItem label="ID" value={String(cv.id)} />
               <SummaryItem label="Tên file gốc" value={cv.originalFileName} />
               <SummaryItem label="Loại nội dung" value={cv.contentType || "Chưa cập nhật"} />
@@ -340,10 +495,10 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               <SummaryItem label="Ngày tải lên" value={formatDateTime(cv.uploadedAt)} />
               <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
             </div>
-          </Card>
+          </div>
         </div>
-        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
-          <Card>
+        <section aria-label="Thao tác CV" className="min-w-0 space-y-5">
+          <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
@@ -353,22 +508,25 @@ function CvDetailView({ cv }: { cv: CvFileResponse }) {
               <Button variant="secondary" className="w-full" onClick={() => void openFile()}>Mở file CV</Button>
               {!isActiveCv(cv) ? <Button variant="secondary" className="w-full" onClick={() => void setActive()}>Đặt làm CV đang dùng</Button> : null}
             </div>
-          </Card>
+          </div>
         </section>
       </div>
     </PageContainer>
   );
 }
 
+/* ── Delete Modal ───────────────────────────────────── */
 function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; onClose: () => void; onConfirm: (cv: CvFileResponse) => void }) {
   return (
     <Modal open={Boolean(cv)} title="Xóa CV" onClose={onClose}>
       <div className="space-y-4">
-        <p className="break-words text-sm text-slate-700 [overflow-wrap:anywhere]">
-          Bạn có muốn xóa CV <strong>{cv?.originalFileName}</strong> không?
+        <p className="break-words text-sm text-[#52637A] [overflow-wrap:anywhere]">
+          Bạn có muốn xóa CV <strong className="text-[#0C111C]">{cv?.originalFileName}</strong> không?
         </p>
-        {cv && isActiveCv(cv) ? <p className="text-sm text-amber-700">Đây là CV đang dùng. Bạn có chắc muốn xóa?</p> : null}
-        <p className="text-sm text-slate-500">Chỉ CV chưa từng dùng trong ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên mới có thể xóa.</p>
+        {cv && isActiveCv(cv) ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">Đây là CV đang dùng. Bạn có chắc muốn xóa?</p>
+        ) : null}
+        <p className="text-sm text-[#9BB0C9]">Chỉ CV chưa từng dùng trong ứng tuyển, gợi ý việc làm hoặc xếp hạng ứng viên mới có thể xóa.</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="danger" onClick={() => cv && onConfirm(cv)}>Có, xóa CV</Button>
@@ -378,12 +536,7 @@ function DeleteCvModal({ cv, onClose, onConfirm }: { cv: CvFileResponse | null; 
   );
 }
 
-
-async function getCandidateCvs() {
-  const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
-  return response.data.data;
-}
-
+/* ── CV Analysis View ───────────────────────────────── */
 function CvAnalysisView({
   mode,
   cvId,
@@ -402,6 +555,37 @@ function CvAnalysisView({
   const analysisQuery = useAsyncData(() => (cvId ? getCandidateCvAnalysis(Number(cvId)) : Promise.resolve(null)), [cvId, reloadKey]);
   const cv = cvQuery.data ?? fallbackCv;
   const title = mode === "analysis" ? "Phân tích CV" : mode === "edit-extracted" ? "Chỉnh dữ liệu trích xuất" : "Đánh giá CV";
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      if (mode !== "analysis" || cvQuery.loading || analysisQuery.loading || !cv || !containerRef.current) return;
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ".nova-cv-reveal",
+          { autoAlpha: 0, y: 14 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.07,
+            clearProps: "all",
+          },
+        );
+      });
+
+      return () => mm.revert();
+    },
+    {
+      scope: containerRef.current ? containerRef : undefined,
+      dependencies: [mode, cvQuery.loading, analysisQuery.loading, Boolean(cv)],
+    },
+  );
 
   async function reanalyzeCv() {
     if (!cv) return;
@@ -421,26 +605,18 @@ function CvAnalysisView({
   if (cvQuery.loading || analysisQuery.loading) {
     return (
       <PageContainer>
-        <Card><p className="text-sm text-slate-600">Đang tải dữ liệu CV...</p></Card>
+        <div className="rounded-2xl border border-[#E5E9F0] bg-white p-6 shadow-sm">
+          <div className="animate-pulse space-y-3">
+            <div className="h-5 w-40 rounded-lg bg-[#E5E9F0]" />
+            <div className="h-4 w-64 rounded-lg bg-[#E5E9F0]" />
+          </div>
+        </div>
       </PageContainer>
     );
   }
 
-  if (cvQuery.error) {
-    return (
-      <PageContainer>
-        <ErrorState message={cvQuery.error} />
-      </PageContainer>
-    );
-  }
-
-  if (analysisQuery.error) {
-    return (
-      <PageContainer>
-        <ErrorState message={analysisQuery.error} />
-      </PageContainer>
-    );
-  }
+  if (cvQuery.error) return <PageContainer><ErrorState message={cvQuery.error} /></PageContainer>;
+  if (analysisQuery.error) return <PageContainer><ErrorState message={analysisQuery.error} /></PageContainer>;
 
   if (!cv) {
     return (
@@ -487,121 +663,166 @@ function CvAnalysisView({
     );
   }
 
+  /* ── Analysis mode ── */
   return (
     <PageContainer>
-      <PageHeader title={title} description="Xem trạng thái phân tích CV và dữ liệu chỉ hiển thị khi phân tích đã sẵn sàng." />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-5">
-          <Card>
-            <SectionHeader title="Thông tin CV" />
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-              <SummaryItem label="ID" value={String(cv.id)} />
-              <SummaryItem label="Tên file" value={cv.originalFileName || cv.fileName || "Chưa cập nhật"} />
-              <SummaryItem label="Loại nội dung" value={cv.contentType || "Chưa cập nhật"} />
-              <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
-              <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
-              <SummaryItem label="Trạng thái phân tích" value={analysis?.status ?? "Chưa cập nhật"} />
-              <SummaryItem label="Ngôn ngữ phát hiện" value={formatLanguageCode(analysis?.languageCode)} />
-              <SummaryItem label="Độ tin cậy ngôn ngữ" value={formatLanguageConfidence(analysis?.languageConfidence)} />
-              <SummaryItem label="Phiên bản xử lý" value={analysis?.processingVersion || "Chưa cập nhật"} />
-              <SummaryItem label="Thời điểm phân tích" value={formatDateTime(analysis?.analyzedAt)} />
-              <SummaryItem label="Ngày tải lên" value={formatDateTime(analysis?.uploadedAt ?? cv.uploadedAt)} />
-              <SummaryItem label="Ngày tạo" value={formatDateTime(cv.createdAt)} />
-              <SummaryItem label="Cập nhật" value={formatDateTime(analysis?.updatedAt ?? cv.updatedAt)} />
-            </div>
-          </Card>
-
-          {analysisFailed ? (
-            <Card>
-              <SectionHeader title="Phân tích thất bại" />
-              <EmptyState message={analysis?.analysisError ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại để cập nhật dữ liệu mới."} />
-              <div className="mt-4">
-                <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
+      <div ref={containerRef}>
+        {/* Header strip */}
+        <div className="nova-cv-reveal mb-5 overflow-hidden rounded-2xl border border-[#E5E9F0] bg-[#0C111C] p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#237D70]/30 bg-[#237D70]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#78D2C3]">
+                <Sparkles size={12} aria-hidden="true" />
+                <span>Phân tích CV</span>
               </div>
-            </Card>
-          ) : null}
-
-          {!analysisReady && !analysisFailed ? (
-            <Card>
-              <SectionHeader title="Dữ liệu phân tích" />
-              <EmptyState message="CV chưa ở trạng thái READY nên chưa hiển thị nội dung phân tích." />
-            </Card>
-          ) : null}
-
-          {analysisReady ? (
-            <>
-              <Card>
-                <SectionHeader
-                  title="Cảnh báo phân tích"
-                  description={warnings.length ? `${warnings.length} cảnh báo được ghi nhận từ bộ phân tích V2.` : "Trạng thái cảnh báo từ quá trình trích xuất và chuẩn hóa văn bản."}
-                />
-                {warnings.length ? (
-                  <ul className="list-disc space-y-2 pl-5 text-sm text-amber-800">
-                    {warnings.map((warning, index) => (
-                      <li key={`${index}-${warning}`} className="break-words">{warning}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-slate-600">Không có cảnh báo nào từ quá trình phân tích.</p>
-                )}
-              </Card>
-
-              <Card>
-                <SectionHeader title="Văn bản đã xử lý" />
-                {analysis?.processedText ? (
-                  <pre role="region" aria-label="Nội dung CV đã xử lý, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.processedText}</pre>
-                ) : (
-                  <EmptyState message="Chưa có văn bản đã xử lý cho CV này." />
-                )}
-              </Card>
-
-              <Card>
-                <SectionHeader title="Kỹ năng trích xuất" />
-                {analysis?.skills?.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.skills.map((skill) => <StatusBadge key={skill} label={skill} tone="success" />)}
-                  </div>
-                ) : (
-                  <EmptyState message="Chưa có kỹ năng trích xuất cho CV này." />
-                )}
-              </Card>
-
-              <Card>
-                <SectionHeader title="Dữ liệu trích xuất" />
-                {analysis?.extractedText ? (
-                  <pre role="region" aria-label="Nội dung CV trích xuất, cuộn để đọc" tabIndex={0} className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 text-sm text-slate-700">{analysis.extractedText}</pre>
-                ) : (
-                  <EmptyState message="Chưa có extractedText cho CV này." />
-                )}
-              </Card>
-            </>
-          ) : null}
+              <h1 className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
+                {cv.originalFileName || cv.fileName}
+              </h1>
+              <p className="mt-1 text-sm text-[#9BB0C9]">
+                Trạng thái: <span className={analysisReady ? "text-[#D5F36A]" : analysisFailed ? "text-red-400" : "text-[#9BB0C9]"}>{analysis?.status ?? "Chưa phân tích"}</span>
+                {" "}· {getFileType(cv.contentType)} · {formatFileSize(cv.fileSize)}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                loading={reanalyzing}
+                disabled={reanalyzing}
+                onClick={() => void reanalyzeCv()}
+                icon={<RefreshCw size={15} aria-hidden="true" />}
+              >
+                {analyzeButtonLabel}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <section aria-label="Thông tin bổ sung và thao tác CV" className="min-w-0 space-y-5">
-          <Card>
-            <SectionHeader title="Trạng thái" />
-            <div className="flex flex-wrap gap-2">
-              {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
-              <StatusBadge label={analysis?.status ?? "Chưa cập nhật"} tone={analysisReady ? "success" : analysisFailed ? "danger" : "warning"} />
-              <StatusBadge label={analysisReady ? "Có dữ liệu phân tích" : "Chưa hiển thị dữ liệu"} tone={analysisReady ? "success" : "warning"} />
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_288px]">
+          <div className="min-w-0 space-y-5">
+            {/* Thông tin CV */}
+            <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+              <SectionHeader title="Thông tin CV" />
+              <div className="grid gap-3 text-sm md:grid-cols-2">
+                <SummaryItem label="ID" value={String(cv.id)} />
+                <SummaryItem label="Tên file" value={cv.originalFileName || cv.fileName || "Chưa cập nhật"} />
+                <SummaryItem label="Loại nội dung" value={cv.contentType || "Chưa cập nhật"} />
+                <SummaryItem label="Dung lượng" value={formatFileSize(cv.fileSize)} />
+                <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Có" : "Không"} />
+                <SummaryItem label="Trạng thái phân tích" value={analysis?.status ?? "Chưa cập nhật"} />
+                <SummaryItem label="Ngôn ngữ phát hiện" value={formatLanguageCode(analysis?.languageCode)} />
+                <SummaryItem label="Độ tin cậy ngôn ngữ" value={formatLanguageConfidence(analysis?.languageConfidence)} />
+                <SummaryItem label="Phiên bản xử lý" value={analysis?.processingVersion || "Chưa cập nhật"} />
+                <SummaryItem label="Thời điểm phân tích" value={formatDateTime(analysis?.analyzedAt)} />
+                <SummaryItem label="Ngày tải lên" value={formatDateTime(analysis?.uploadedAt ?? cv.uploadedAt)} />
+                <SummaryItem label="Cập nhật" value={formatDateTime(analysis?.updatedAt ?? cv.updatedAt)} />
+              </div>
+            </section>
+
+            {analysisFailed ? (
+              <section className="nova-cv-reveal rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+                <SectionHeader title="Phân tích thất bại" />
+                <EmptyState message={analysis?.analysisError ?? "CV chưa phân tích thành công. Vui lòng bấm phân tích lại."} />
+                <div className="mt-4">
+                  <Button loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={15} />}>{analyzeButtonLabel}</Button>
+                </div>
+              </section>
+            ) : null}
+
+            {!analysisReady && !analysisFailed ? (
+              <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+                <SectionHeader title="Dữ liệu phân tích" />
+                <EmptyState message="CV chưa ở trạng thái READY nên chưa hiển thị nội dung phân tích." />
+              </section>
+            ) : null}
+
+            {analysisReady ? (
+              <>
+                {/* Cảnh báo */}
+                <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+                  <SectionHeader
+                    title="Cảnh báo phân tích"
+                    description={warnings.length ? `${warnings.length} cảnh báo được ghi nhận từ bộ phân tích V2.` : "Trạng thái cảnh báo từ quá trình trích xuất và chuẩn hóa."}
+                  />
+                  {warnings.length ? (
+                    <ul className="list-disc space-y-2 pl-5 text-sm text-amber-800">
+                      {warnings.map((warning, index) => (
+                        <li key={`${index}-${warning}`} className="break-words">{warning}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-[#52637A]">Không có cảnh báo nào từ quá trình phân tích.</p>
+                  )}
+                </section>
+
+                {/* Văn bản đã xử lý */}
+                <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+                  <SectionHeader title="Văn bản đã xử lý" />
+                  {analysis?.processedText ? (
+                    <pre role="region" aria-label="Nội dung CV đã xử lý, cuộn để đọc" tabIndex={0} className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-xl bg-[#F7F8F6] p-4 text-sm text-[#52637A]">
+                      {analysis.processedText}
+                    </pre>
+                  ) : (
+                    <EmptyState message="Chưa có văn bản đã xử lý cho CV này." />
+                  )}
+                </section>
+
+                {/* Kỹ năng trích xuất */}
+                <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+                  <SectionHeader title="Kỹ năng trích xuất" />
+                  {analysis?.skills?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {analysis.skills.map((skill) => (
+                        <span key={skill} className="inline-flex items-center rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-3 py-1 text-xs font-semibold text-[#134B43]">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState message="Chưa có kỹ năng trích xuất cho CV này." />
+                  )}
+                </section>
+
+                {/* Dữ liệu trích xuất */}
+                <section className="nova-cv-reveal rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+                  <SectionHeader title="Dữ liệu trích xuất" />
+                  {analysis?.extractedText ? (
+                    <pre role="region" aria-label="Nội dung CV trích xuất, cuộn để đọc" tabIndex={0} className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-xl bg-[#F7F8F6] p-4 text-sm text-[#52637A]">
+                      {analysis.extractedText}
+                    </pre>
+                  ) : (
+                    <EmptyState message="Chưa có extractedText cho CV này." />
+                  )}
+                </section>
+              </>
+            ) : null}
+          </div>
+
+          {/* Right sidebar */}
+          <section aria-label="Trạng thái và thao tác CV" className="min-w-0 space-y-5">
+            <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+              <SectionHeader title="Trạng thái" />
+              <div className="flex flex-wrap gap-2">
+                {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
+                <StatusBadge label={analysis?.status ?? "Chưa cập nhật"} tone={analysisReady ? "success" : analysisFailed ? "danger" : "warning"} />
+                <StatusBadge label={analysisReady ? "Có dữ liệu phân tích" : "Chưa hiển thị dữ liệu"} tone={analysisReady ? "success" : "warning"} />
+              </div>
             </div>
-          </Card>
-          <Card>
-            <SectionHeader title="Thao tác" />
-            <div className="grid gap-2">
-              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
-              <Link to={`/candidate/cvs/${cv.id}/review`}><Button variant="secondary" className="w-full">Đánh giá CV</Button></Link>
-              <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
-              <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
+            <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+              <SectionHeader title="Thao tác" />
+              <div className="grid gap-2">
+                <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={() => void reanalyzeCv()} icon={<RefreshCw size={15} />}>{analyzeButtonLabel}</Button>
+                <Link to={`/candidate/cvs/${cv.id}/review`}><Button variant="secondary" className="w-full">Đánh giá CV</Button></Link>
+                <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
+                <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
+              </div>
             </div>
-          </Card>
-        </section>
+          </section>
+        </div>
       </div>
     </PageContainer>
   );
 }
 
+/* ── CV Review View ─────────────────────────────────── */
 function CvReviewView({
   cv,
   analysis,
@@ -628,10 +849,7 @@ function CvReviewView({
   const normalizedLang = (analysis?.languageCode ?? "").trim().toLowerCase();
   const isBilingualSupportedLang = normalizedLang === "vi" || normalizedLang === "en";
   const meetsSameLanguageConfidence =
-    analysisReady &&
-    isBilingualSupportedLang &&
-    confidenceNumber !== null &&
-    confidenceNumber >= V3_SAME_LANGUAGE_CONFIDENCE_FLOOR;
+    analysisReady && isBilingualSupportedLang && confidenceNumber !== null && confidenceNumber >= V3_SAME_LANGUAGE_CONFIDENCE_FLOOR;
   const matchesV3ProcessingVersion = analysis?.processingVersion === V3_PROCESSING_VERSION;
   const isV3SnapshotEligible =
     analysisReady &&
@@ -659,25 +877,48 @@ function CvReviewView({
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Đánh giá CV"
-        description="Tổng hợp minh bạch trạng thái sẵn sàng cho gợi ý việc làm V3, định tuyến ngôn ngữ và thống kê dữ liệu đã trích xuất từ bản chụp CV."
-      />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* Header */}
+      <div className="mb-5 overflow-hidden rounded-2xl border border-[#E5E9F0] bg-[#0C111C] p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D5F36A]/30 bg-[#D5F36A]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#D5F36A]">
+              <ShieldCheck size={12} aria-hidden="true" />
+              <span>Đánh giá CV</span>
+            </div>
+            <h1 className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
+              Tổng hợp sẵn sàng V3
+            </h1>
+            <p className="mt-1 text-sm text-[#9BB0C9]">
+              {cv.originalFileName || cv.fileName} ·{" "}
+              <span className={isV3SnapshotEligible ? "text-[#D5F36A]" : "text-amber-400"}>
+                {isV3SnapshotEligible ? "Đủ điều kiện gợi ý V3" : "Cần phân tích V2"}
+              </span>
+            </p>
+          </div>
+          <Button
+            loading={reanalyzing}
+            disabled={reanalyzing}
+            onClick={onReanalyze}
+            icon={<RefreshCw size={15} aria-hidden="true" />}
+          >
+            {analyzeButtonLabel}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_288px]">
         <div className="min-w-0 space-y-5">
-          <Card>
+          {/* Trạng thái sẵn sàng cho gợi ý việc làm V3 */}
+          <section className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader
               title="Trạng thái sẵn sàng cho gợi ý việc làm V3"
-              description="Kiểm tra xác định dựa trên bản chụp phân tích đã lưu trong hệ thống (không sử dụng điểm AI giả định)."
+              description="Kiểm tra xác định dựa trên bản chụp phân tích đã lưu (không sử dụng điểm AI giả định)."
             />
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <div className="grid gap-3 text-sm md:grid-cols-2">
               <SummaryItem label="File CV" value={cv.originalFileName || cv.fileName || "Chưa cập nhật"} />
               <SummaryItem label="CV đang dùng" value={isActiveCv(cv) ? "Đang dùng làm CV mặc định" : "Chưa đặt làm CV đang dùng"} />
               <SummaryItem label="Trạng thái bản chụp" value={analysis?.status ?? "NOT_READY"} />
-              <SummaryItem
-                label="Đủ điều kiện chạy gợi ý V3"
-                value={isV3SnapshotEligible ? "Đủ điều kiện (Sẵn sàng)" : "Chưa đủ điều kiện (Cần phân tích V2)"}
-              />
+              <SummaryItem label="Đủ điều kiện chạy gợi ý V3" value={isV3SnapshotEligible ? "Đủ điều kiện (Sẵn sàng)" : "Chưa đủ điều kiện (Cần phân tích V2)"} />
               <SummaryItem
                 label="Phiên bản tiền xử lý"
                 value={
@@ -688,14 +929,15 @@ function CvReviewView({
               />
               <SummaryItem label="Thời điểm phân tích gần nhất" value={formatDateTime(analysis?.analyzedAt)} />
             </div>
-          </Card>
+          </section>
 
-          <Card>
+          {/* Định tuyến chiến lược */}
+          <section className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader
-              title="Định tuyến chiến lược đối sánh ngôn ngữ V3"
-              description="Chế độ đối sánh được xác định minh bạch từ ngôn ngữ CV và độ tin cậy ngôn ngữ đã lưu (ngưỡng chuẩn V3: độ tin cậy ≥ 65.0% cho vi/en)."
+              title="Định tuyến chiến lược đối sánh V3"
+              description="Chế độ đối sánh được xác định minh bạch từ ngôn ngữ CV và độ tin cậy đã lưu (ngưỡng chuẩn V3: ≥ 65.0% cho vi/en)."
             />
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <div className="grid gap-3 text-sm md:grid-cols-2">
               <SummaryItem label="Ngôn ngữ phát hiện" value={formatLanguageCode(analysis?.languageCode)} />
               <SummaryItem label="Độ tin cậy ngôn ngữ" value={formatLanguageConfidence(analysis?.languageConfidence)} />
               <SummaryItem
@@ -710,39 +952,35 @@ function CvReviewView({
               />
               <SummaryItem
                 label="Với việc làm khác ngôn ngữ"
-                value={
-                  !analysisReady
-                    ? "Chưa xác định (CV chưa READY)"
-                    : "FALLBACK — CROSS_LANGUAGE_SKILL_BASED (100% theo kỹ năng chuẩn hóa)"
-                }
+                value={!analysisReady ? "Chưa xác định (CV chưa READY)" : "FALLBACK — CROSS_LANGUAGE_SKILL_BASED (100% theo kỹ năng chuẩn hóa)"}
               />
             </div>
-          </Card>
+          </section>
 
-          <Card>
-            <SectionHeader
-              title="Thống kê dữ liệu trích xuất thực tế"
-              description="Số liệu kiểm kê trực tiếp từ văn bản và danh sách kỹ năng chuẩn hóa đã lưu."
-            />
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+          {/* Thống kê */}
+          <section className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
+            <SectionHeader title="Thống kê dữ liệu trích xuất" description="Số liệu từ văn bản và kỹ năng chuẩn hóa đã lưu." />
+            <div className="grid gap-3 text-sm md:grid-cols-2">
               <SummaryItem label="Số kỹ năng chuẩn hóa" value={`${skills.length} kỹ năng`} />
               <SummaryItem label="Số cảnh báo phân tích" value={`${warnings.length} cảnh báo`} />
               <SummaryItem label="Độ dài văn bản trích xuất (raw)" value={`${extractedCharCount} ký tự (${extractedLineCount} dòng)`} />
               <SummaryItem label="Số lượng token chuẩn hóa (processed)" value={`${processedTokenCount} token`} />
             </div>
             {skills.length ? (
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Danh sách kỹ năng chuẩn hóa dùng để đối sánh</p>
+              <div className="mt-4 border-t border-[#F0F4F8] pt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#9BB0C9]">Danh sách kỹ năng chuẩn hóa dùng để đối sánh</p>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => (
-                    <StatusBadge key={skill} label={skill} tone="success" />
+                    <span key={skill} className="inline-flex items-center rounded-full border border-[#D6F2EC] bg-[#F0FAF8] px-2.5 py-0.5 text-xs font-semibold text-[#134B43]">
+                      {skill}
+                    </span>
                   ))}
                 </div>
               </div>
             ) : null}
             {warnings.length ? (
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-amber-700">Cảnh báo ghi nhận từ bộ phân tích</p>
+              <div className="mt-4 border-t border-[#F0F4F8] pt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-amber-700">Cảnh báo ghi nhận</p>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-amber-800">
                   {warnings.map((warning, index) => (
                     <li key={`${index}-${warning}`} className="break-words">{warning}</li>
@@ -750,44 +988,65 @@ function CvReviewView({
                 </ul>
               </div>
             ) : null}
-          </Card>
+          </section>
 
-          <Card>
+          {/* Nhận xét */}
+          <section className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader
-              title="Nhận xét & Hướng dẫn cải thiện minh bạch"
-              description="Gợi ý hành động dựa trên dữ liệu đã lưu của CV và quy tắc đối sánh thực tế của hệ thống."
+              title="Nhận xét & Hướng dẫn cải thiện"
+              description="Gợi ý dựa trên dữ liệu đã lưu của CV và quy tắc đối sánh thực tế của hệ thống."
             />
-            <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
+            <ul className="space-y-3">
               {deterministicObservations.map((item) => (
-                <li key={item} className="leading-6">{item}</li>
+                <li key={item} className="flex items-start gap-3 text-sm leading-6 text-[#52637A]">
+                  <ChevronRight size={15} className="mt-0.5 shrink-0 text-[#237D70]" aria-hidden="true" />
+                  {item}
+                </li>
               ))}
             </ul>
-          </Card>
+          </section>
         </div>
 
-        <section aria-label="Thông tin bổ sung và thao tác đánh giá CV" className="min-w-0 space-y-5">
-          <Card>
+        {/* Right rail */}
+        <section aria-label="Trạng thái và thao tác đánh giá CV" className="min-w-0 space-y-5">
+          <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader title="Trạng thái" />
             <div className="flex flex-wrap gap-2">
               {isActiveCv(cv) ? <StatusBadge label="Đang dùng" tone="success" /> : <StatusBadge label="Chưa dùng" />}
               <StatusBadge label={analysis?.status ?? "Chưa cập nhật"} tone={analysisReady ? "success" : analysisFailed ? "danger" : "warning"} />
               <StatusBadge label={isV3SnapshotEligible ? "Sẵn sàng gợi ý V3" : "Cần phân tích V2"} tone={isV3SnapshotEligible ? "success" : "warning"} />
             </div>
-          </Card>
-          <Card>
+          </div>
+          <div className="rounded-2xl border border-[#E5E9F0] bg-white p-5 shadow-sm">
             <SectionHeader title="Thao tác" />
             <div className="grid gap-2">
-              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={onReanalyze} icon={<RefreshCw size={16} />}>{analyzeButtonLabel}</Button>
+              <Button className="w-full" loading={reanalyzing} disabled={reanalyzing} onClick={onReanalyze} icon={<RefreshCw size={15} />}>{analyzeButtonLabel}</Button>
               <Link to="/candidate/jobs/recommended"><Button variant="secondary" className="w-full">Xem việc làm gợi ý</Button></Link>
               <Link to={`/candidate/cvs/${cv.id}/analysis`}><Button variant="secondary" className="w-full">Xem phân tích kỹ thuật</Button></Link>
               <Link to={`/candidate/cvs/${cv.id}`}><Button variant="secondary" className="w-full">Chi tiết CV</Button></Link>
               <Link to="/candidate/cvs"><Button variant="secondary" className="w-full">Quay lại danh sách</Button></Link>
             </div>
-          </Card>
+          </div>
         </section>
       </div>
     </PageContainer>
   );
+}
+
+/* ── Utility components ─────────────────────────────── */
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[#F7F8F6] p-3">
+      <p className="text-xs font-medium text-[#9BB0C9]">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-[#0C111C] [overflow-wrap:anywhere]">{value}</p>
+    </div>
+  );
+}
+
+/* ── API helpers ────────────────────────────────────── */
+async function getCandidateCvs() {
+  const response = await httpClient.get<ApiResponse<CvFileResponse[]>>("/students/me/cv");
+  return response.data.data;
 }
 
 async function getCandidateCvDetail(cvId: number) {
@@ -831,6 +1090,7 @@ async function openCandidateCvFile(cvId: number) {
   window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
 }
 
+/* ── Pure helpers ───────────────────────────────────── */
 function isActiveCv(cv: CvFileResponse) {
   return Boolean(cv.active ?? cv.isActive);
 }
@@ -844,15 +1104,6 @@ function validateFile(file: File) {
   const isValidExtension = [".pdf", ".docx"].some((extension) => file.name.toLowerCase().endsWith(extension));
   if (!isValidExtension) return "Chỉ chấp nhận file PDF hoặc DOCX.";
   return "";
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-slate-500">{label}</p>
-      <p className="mt-1 break-words font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
-    </div>
-  );
 }
 
 function getFileType(contentType?: string | null) {
@@ -871,7 +1122,13 @@ function formatFileSize(size?: number | null) {
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Chưa cập nhật";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function toConfidenceNumber(value?: number | string | null): number | null {
@@ -961,4 +1218,3 @@ function buildDeterministicReviewObservations(params: {
 
   return items;
 }
-

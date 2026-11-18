@@ -582,13 +582,92 @@
 }
 
 /* ==========================================================================
+   NOVA MOTION V2 SHARED SHELL, DIALOG & REUSABLE SURFACES
+   ========================================================================== */
+.nova-shell {
+  background-color: var(--nova-porcelain);
+  color: var(--nova-text-dark);
+}
+
+.nova-footer {
+  background-color: var(--nova-midnight);
+  color: var(--nova-text-light-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nova-table-wrap {
+  border-radius: var(--nova-radius-lg);
+  border: 1px solid #e2e8ee;
+  background-color: #ffffff;
+  box-shadow: var(--nova-shadow-ambient);
+}
+
+.nova-modal-backdrop {
+  background-color: rgba(12, 17, 28, 0.66);
+  backdrop-filter: blur(4px);
+}
+
+.nova-modal-panel {
+  border-radius: 24px;
+  border: 1px solid #e2e8ee;
+  box-shadow: 0 24px 56px -16px rgba(12, 17, 28, 0.35);
+  animation: nova-modal-enter 200ms var(--nova-ease-out) both;
+}
+
+.nova-drawer-panel {
+  border-left: 1px solid #e2e8ee;
+  box-shadow: -18px 0 48px -16px rgba(12, 17, 28, 0.28);
+  animation: nova-drawer-enter 220ms var(--nova-ease-out) both;
+}
+
+.nova-left-drawer {
+  animation: nova-left-drawer-enter 220ms var(--nova-ease-out) both;
+}
+
+@keyframes nova-modal-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes nova-drawer-enter {
+  from {
+    opacity: 0.7;
+    transform: translate3d(18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes nova-left-drawer-enter {
+  from {
+    opacity: 0.7;
+    transform: translate3d(-18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ==========================================================================
    ACCESSIBILITY: PREFERS-REDUCED-MOTION
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   .nova-hero::before,
   .nova-hero::after,
   .nova-pulse-ring,
-  .nova-skeleton {
+  .nova-skeleton,
+  .nova-modal-panel,
+  .nova-drawer-panel,
+  .nova-left-drawer {
     animation: none !important;
     transition: none !important;
   }

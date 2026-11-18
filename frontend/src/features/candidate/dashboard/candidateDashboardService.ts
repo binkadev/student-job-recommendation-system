@@ -1,9 +1,12 @@
 import { httpClient } from "../../../services/api/httpClient";
 import type { Job } from "../../../types/domain";
+import { getScorePresentation } from "../../shared/ranking/rankingScoreTypes";
+import { mapRecommendationScoreFields } from "../recommendedJobs/recommendedJobsService";
 import type {
   CandidateDashboardApplication,
   CandidateDashboardData,
   CandidateDashboardNotification,
+  CandidateDashboardRecommendation,
 } from "./candidateDashboardTypes";
 
 interface ApiResponse<T> {
@@ -100,6 +103,63 @@ interface NotificationResponse {
 
 interface UnreadNotificationCountResponse {
   unreadCount: number;
+}
+
+interface RecommendationResultItem {
+  id: number;
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
+  rankPosition?: number | null;
+  score?: number | string | null;
+  rankingTier?: string | null;
+  tierRankPosition?: number | string | null;
+  rankingScore?: number | string | null;
+  overallScore?: number | string | null;
+  textScore?: number | string | null;
+  skillScore?: number | string | null;
+  scoringStrategy?: string | null;
+  matchedKeywords?: string[] | null;
+  matchedSkills?: string[] | null;
+  missingKeywords?: string[] | null;
+  missingSkills?: string[] | null;
+  reason?: string | null;
+  explanation?: string | null;
+}
+
+export async function getCandidateDashboardRecommendations(limit = 3): Promise<CandidateDashboardRecommendation[]> {
+  const response = await httpClient.get<ApiResponse<RecommendationResultItem[]>>("/students/me/recommendation-results/latest");
+  const items = (response.data.data ?? []).slice(0, Math.max(0, limit));
+  return items.map((item) => {
+    const scoreFields = mapRecommendationScoreFields(item);
+    const presentation = getScorePresentation(scoreFields);
+    return {
+      id: String(item.id),
+      jobId: String(item.jobId),
+      jobTitle: item.jobTitle || `Công việc #${item.jobId}`,
+      companyName: item.companyName || "Chưa cập nhật",
+      rankPosition: toPositiveInt(item.rankPosition),
+      tierRankPosition: scoreFields.tierRankPosition,
+      rankingTier: scoreFields.rankingTier,
+      displayScoreLabel: presentation.label,
+      displayTierLabel: presentation.tierLabel,
+      displayScore: presentation.value,
+      matchedSkills: normalizeSkillArray(item.matchedSkills ?? item.matchedKeywords),
+      missingSkills: normalizeSkillArray(item.missingSkills ?? item.missingKeywords),
+      reason: (item.reason || item.explanation || "").trim(),
+    };
+  });
+}
+
+function toPositiveInt(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeSkillArray(values?: string[] | null) {
+  if (!Array.isArray(values)) return [];
+  return values.map((item) => String(item).trim()).filter(Boolean);
 }
 
 export async function getCandidateDashboardData(): Promise<CandidateDashboardData> {

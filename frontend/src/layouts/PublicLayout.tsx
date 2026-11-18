@@ -4,7 +4,7 @@ import { PublicHeader } from "../components/layout/PublicHeader";
 
 export function PublicLayout() {
   return (
-    <div className="neo-app flex min-h-screen flex-col">
+    <div className="nova-app neo-app nova-shell flex min-h-screen flex-col">
       <a href="#main-content" className="skip-link">Đến nội dung chính</a>
       <PublicHeader />
       <div className="flex-1">

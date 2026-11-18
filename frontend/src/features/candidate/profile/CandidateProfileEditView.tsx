@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Save, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm, type FieldPath } from "react-hook-form";
 import { useSearchParams, Link } from "react-router-dom";
@@ -140,17 +140,63 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
 
   return (
     <PageContainer>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div><h1 className="text-2xl font-semibold text-slate-950">Chỉnh sửa hồ sơ ứng viên</h1>
-          <p className="mt-1 text-sm text-slate-600">Cập nhật thông tin cá nhân, nội dung hồ sơ và kỹ năng. Các mục học vấn, kinh nghiệm, dự án được lưu dạng văn bản.</p></div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" form="candidate-profile-form" loading={isSubmitting} disabled={conflict || loadingLatest} icon={<Save size={16} />}>Lưu hồ sơ</Button>
-          <Button disabled={isSubmitting} variant="secondary" icon={<X size={16} />} onClick={() => {
-            reset(toEditFormValues(savedProfile)); setSkills(flattenSkills(savedProfile)); if (!conflict) setSaveError("");
-          }}>Hủy thay đổi</Button>
-          <Link to="/candidate/profile" className={isSubmitting ? "pointer-events-none" : ""} aria-disabled={isSubmitting || undefined}><Button disabled={isSubmitting} variant="secondary">Xem hồ sơ</Button></Link>
-        </div>
-      </div>
+      <div className="space-y-6">
+        {/* NOVA MOTION Hero Banner */}
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0C111C] p-6 text-white shadow-xl md:p-8">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-teal-500/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
+                <UserRound className="h-3.5 w-3.5 text-teal-300" />
+                <span>CẬP NHẬT HỒ SƠ ỨNG VIÊN</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                Chỉnh sửa hồ sơ cá nhân
+              </h1>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Cập nhật thông tin cá nhân, nội dung hồ sơ và kỹ năng chuyên môn. Dữ liệu được đồng bộ an toàn qua cơ chế phiên bản.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link to="/candidate/profile" className={isSubmitting ? "pointer-events-none" : ""} aria-disabled={isSubmitting || undefined}>
+                <Button
+                  disabled={isSubmitting}
+                  variant="secondary"
+                  className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  icon={<ArrowLeft className="h-4 w-4" />}
+                >
+                  Xem hồ sơ
+                </Button>
+              </Link>
+              <Button
+                disabled={isSubmitting}
+                variant="secondary"
+                className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                icon={<X size={16} />}
+                onClick={() => {
+                  reset(toEditFormValues(savedProfile));
+                  setSkills(flattenSkills(savedProfile));
+                  if (!conflict) setSaveError("");
+                }}
+              >
+                Hủy thay đổi
+              </Button>
+              <Button
+                type="submit"
+                form="candidate-profile-form"
+                loading={isSubmitting}
+                disabled={conflict || loadingLatest}
+                className="rounded-xl bg-[#D4F933] font-semibold text-[#0C111C] shadow-sm hover:bg-[#C2E82E]"
+                icon={<Save size={16} />}
+              >
+                Lưu hồ sơ
+              </Button>
+            </div>
+          </div>
+        </section>
       <form id="candidate-profile-form" noValidate onSubmit={handleSubmit(saveAll, (invalid) => {
         const field = firstErrorPath(invalid) as FieldPath<EditFormValues>;
         selectTab(fieldTabs[field.split(".")[0]] ?? "personal"); setFocusField(field); setSaveError("Vui lòng kiểm tra các trường có lỗi trước khi lưu.");
@@ -254,6 +300,7 @@ export function CandidateProfileEditView({ profile, onSaved }: { profile: Candid
           setSaveError(""); setConflict(false); setConfirmReload(false); setLatestProfile(null);
         }} />
       </Modal>
+      </div>
     </PageContainer>
   );
 }

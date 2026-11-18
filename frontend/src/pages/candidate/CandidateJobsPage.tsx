@@ -1,7 +1,19 @@
-import { useEffect, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import {
+  ArrowLeft,
+  Bookmark,
+  Building2,
+  Clock,
+  DollarSign,
+  Filter,
+  MapPin,
+  Search,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
-import { PageHeader } from "../../components/common/PageHeader";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -172,6 +184,7 @@ export function CandidateJobsPage({ mode = "list" }: CandidateJobsPageProps) {
 }
 
 function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { getApplicationState } = useAppliedJobs();
   const { jobId } = useParams();
   const [searchParams] = useSearchParams();
@@ -203,6 +216,27 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
     status: "ACTIVE",
   }), [page, keyword, location, jobType, workingModel]);
   const savedJobsQuery = useAsyncData(() => getSavedJobs(), [savedReloadKey]);
+
+  useGSAP(
+    () => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!containerRef.current) return;
+
+      gsap.fromTo(
+        ".nm-reveal",
+        { opacity: 0, y: 16 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          stagger: 0.05,
+          ease: "power2.out",
+        },
+      );
+    },
+    { scope: containerRef.current ? containerRef : undefined, dependencies: [jobsQuery.loading, jobsQuery.data?.totalItems] },
+  );
 
   if (mode === "saved-searches") {
     return <SavedSearchesPage />;
@@ -240,50 +274,139 @@ function CandidateJobsContent({ mode }: { mode: CandidateJobsContentMode }) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Tìm việc"
-        description="Danh sách việc làm đang tuyển phù hợp với bộ lọc của bạn."
-      />
+      <div ref={containerRef} className="space-y-6">
+        {/* NOVA MOTION Hero Banner */}
+        <section className="nm-reveal relative overflow-hidden rounded-3xl border border-white/10 bg-[#0C111C] p-6 text-white shadow-xl md:p-8">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-teal-500/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
 
-      <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
-        {hasActiveFilter ? (
-          <Link to={saveCurrentSearchPath}>
-            <Button variant="secondary" size="sm">Lưu bộ lọc hiện tại</Button>
-          </Link>
+          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
+                <Search className="h-3.5 w-3.5 text-teal-300" />
+                <span>KHÁM PHÁ VIỆC LÀM IT</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                Tìm kiếm việc làm phù hợp
+              </h1>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Khám phá hàng trăm cơ hội việc làm CNTT đang mở tuyển với bộ lọc địa điểm, hình thức làm việc và công nghệ.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {hasActiveFilter ? (
+                <Link to={saveCurrentSearchPath}>
+                  <Button
+                    variant="secondary"
+                    className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                    icon={<Bookmark className="h-4 w-4" />}
+                  >
+                    Lưu bộ lọc hiện tại
+                  </Button>
+                </Link>
+              ) : null}
+              <Link to="/candidate/jobs/saved-searches">
+                <Button
+                  variant="secondary"
+                  className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                >
+                  Tìm kiếm đã lưu
+                </Button>
+              </Link>
+              <Link to="/candidate/jobs/recommended">
+                <Button
+                  className="rounded-xl bg-[#D4F933] font-semibold text-[#0C111C] shadow-sm hover:bg-[#C2E82E]"
+                  icon={<Sparkles className="h-4 w-4" />}
+                >
+                  Việc làm gợi ý
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Filter Card */}
+        <Card className="nm-reveal border border-slate-200/80 bg-white p-5 shadow-sm rounded-2xl">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5" />
+              <span>Bộ lọc tìm kiếm</span>
+            </div>
+            <div className="text-xs font-semibold normal-case text-slate-600">
+              <span className="font-mono font-bold text-[#134B43]">{totalResults}</span> việc làm đang mở tuyển
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3.5 md:grid-cols-2 xl:grid-cols-[minmax(200px,1.2fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)]">
+            <Input
+              label="Từ khóa"
+              value={keyword}
+              onChange={(event) => { setKeyword(event.target.value); setPage(1); }}
+              placeholder="Vị trí, kỹ năng, công nghệ..."
+            />
+            <Select
+              label="Địa điểm"
+              value={location}
+              onChange={(event) => { setLocation(event.target.value); setPage(1); }}
+              options={[{ label: "Tất cả", value: "" }, ...locations]}
+            />
+            <Select
+              label="Loại hình"
+              value={jobType}
+              onChange={(event) => { setJobType(event.target.value as JobType | ""); setPage(1); }}
+              options={jobTypeOptions}
+            />
+            <Select
+              label="Hình thức"
+              value={workingModel}
+              onChange={(event) => { setWorkingModel(event.target.value as WorkingModel | ""); setPage(1); }}
+              options={workingModelOptions}
+            />
+          </div>
+        </Card>
+
+        {/* Loading / Error States */}
+        {jobsQuery.loading ? <LoadingState /> : null}
+        {jobsQuery.error ? <ErrorState message={jobsQuery.error} /> : null}
+
+        {/* Empty State */}
+        {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? (
+          <Card className="nm-reveal border border-slate-200/80 bg-white p-8 text-center shadow-sm rounded-2xl">
+            <EmptyState message="Không có việc làm phù hợp." />
+          </Card>
         ) : null}
-        <Link to="/candidate/jobs/saved-searches">
-          <Button variant="secondary" size="sm">Tìm kiếm đã lưu</Button>
-        </Link>
-      </div>
 
-      <Card className="mb-5">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_120px]">
-          <Input label="Từ khóa" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Vị trí, kỹ năng..." />
-          <Select label="Địa điểm" value={location} onChange={(event) => { setLocation(event.target.value); setPage(1); }} options={[{ label: "Tất cả", value: "" }, ...locations]} />
-          <Select label="Loại hình" value={jobType} onChange={(event) => { setJobType(event.target.value as JobType | ""); setPage(1); }} options={jobTypeOptions} />
-          <Select label="Hình thức" value={workingModel} onChange={(event) => { setWorkingModel(event.target.value as WorkingModel | ""); setPage(1); }} options={workingModelOptions} />
-          <div className="flex h-10 items-center text-sm text-slate-600">{totalResults} kết quả</div>
-        </div>
-      </Card>
+        {/* Jobs List */}
+        {!jobsQuery.loading && !jobsQuery.error && jobs.length > 0 ? (
+          <div className="space-y-4">
+            <div className="grid gap-4">
+              {jobs.map((job) => (
+                <div key={job.id} className="nm-reveal">
+                  <JobCard
+                    job={job}
+                    detailPath={`/candidate/jobs/${job.id}`}
+                    detailLabel={getApplicationState(job.id) === "REJECTED_CAN_REAPPLY" ? "Ứng tuyển lại" : "Xem chi tiết"}
+                    applicationNote={getApplicationState(job.id) === "WITHDRAWN_BLOCKED" ? "Đơn đã rút không thể ứng tuyển lại theo chính sách hiện tại." : undefined}
+                    saved={savedJobIds.has(job.id)}
+                    onToggleSave={() => void toggleSavedJob(job)}
+                  />
+                </div>
+              ))}
+            </div>
 
-      {jobsQuery.loading ? <LoadingState /> : null}
-      {jobsQuery.error ? <ErrorState message={jobsQuery.error} /> : null}
-      {!jobsQuery.loading && !jobsQuery.error && jobs.length === 0 ? <EmptyState message="Không có việc làm phù hợp." /> : null}
-
-      <div className="grid gap-4">
-        {jobs.map((job) => (
-          <JobCard key={job.id} job={job} detailPath={`/candidate/jobs/${job.id}`} detailLabel={getApplicationState(job.id) === "REJECTED_CAN_REAPPLY" ? "Ứng tuyển lại" : "Xem chi tiết"} applicationNote={getApplicationState(job.id) === "WITHDRAWN_BLOCKED" ? "Đơn đã rút không thể ứng tuyển lại theo chính sách hiện tại." : undefined} saved={savedJobIds.has(job.id)} onToggleSave={() => void toggleSavedJob(job)} />
-        ))}
-      </div>
-
-      <div className="mt-5">
-        <Pagination page={result?.page ?? page} totalPages={result?.totalPages ?? 1} onPageChange={setPage} />
+            <div className="mt-6 flex justify-center">
+              <Pagination page={result?.page ?? page} totalPages={result?.totalPages ?? 1} onPageChange={setPage} />
+            </div>
+          </div>
+        ) : null}
       </div>
     </PageContainer>
   );
 }
 
 function CandidateJobDetail({ jobId }: { jobId: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
   const detailQuery = useAsyncData(() => getJobDetail(jobId), [jobId]);
   const selectedJob = detailQuery.data;
@@ -293,6 +416,27 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
   const [applyJob, setApplyJob] = useState<ApplyFlowJob | null>(null);
   const isSaved = Boolean(savedJobsQuery.data?.items.some((item) => String(item.jobId) === jobId));
   const appliedApplication = getLatestApplication(applications, jobId);
+
+  useGSAP(
+    () => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!containerRef.current) return;
+
+      gsap.fromTo(
+        ".nm-reveal",
+        { opacity: 0, y: 16 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          stagger: 0.05,
+          ease: "power2.out",
+        },
+      );
+    },
+    { scope: containerRef.current ? containerRef : undefined, dependencies: [detailQuery.loading, Boolean(selectedJob)] },
+  );
 
   if (detailQuery.loading) {
     return (
@@ -312,96 +456,171 @@ function CandidateJobDetail({ jobId }: { jobId: string }) {
 
   return (
     <PageContainer>
-      <PageHeader title={selectedJob.title} description="Chi tiết thông tin tuyển dụng." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-5">
-          <Card>
-            <SectionHeader
-              title={selectedJob.companyName}
-              description={`${selectedJob.location || "Chưa cập nhật"} • ${formatSalary(selectedJob)} • ${getWorkingModelLabel(selectedJob.workingModel)}`}
-            />
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge label={getJobTypeLabel(selectedJob.jobType)} />
-              <StatusBadge label={getWorkingModelLabel(selectedJob.workingModel)} />
-              <StatusBadge label={getStatusLabel(selectedJob.status)} tone={selectedJob.status === "ACTIVE" ? "success" : "neutral"} />
-              {selectedJob.skills.map((skill) => <StatusBadge key={skill.id} label={skill.skillName} />)}
-            </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">{selectedJob.description || "Chưa có mô tả công việc."}</p>
-          </Card>
+      <div ref={containerRef} className="space-y-6">
+        {/* Header Bento Card */}
+        <Card className="nm-reveal border border-slate-200/80 bg-white p-6 shadow-sm rounded-2xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-2">
+              <Link
+                to="/candidate/jobs"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#134B43] transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Quay lại tìm việc</span>
+              </Link>
 
-          <Card>
-            <SectionHeader title="Yêu cầu và quyền lợi" />
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextList title="Yêu cầu" value={selectedJob.requirements} emptyText="Chưa có yêu cầu." />
-              <TextList title="Quyền lợi" value={selectedJob.benefits} emptyText="Chưa có quyền lợi." />
-            </div>
-          </Card>
-        </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+                {selectedJob.title}
+              </h1>
 
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <Card>
-            <SectionHeader title="Thông tin tuyển dụng" />
-            <div className="space-y-3 text-sm text-slate-700">
-              <InfoRow label="Công ty" value={selectedJob.companyName} />
-              <InfoRow label="Địa điểm" value={selectedJob.location || "Chưa cập nhật"} />
-              <InfoRow label="Loại hình" value={getJobTypeLabel(selectedJob.jobType)} />
-              <InfoRow label="Hình thức" value={getWorkingModelLabel(selectedJob.workingModel)} />
-              <InfoRow label="Mức lương" value={formatSalary(selectedJob)} />
-              <InfoRow label="Hạn ứng tuyển" value={formatDate(selectedJob.deadline)} />
-              <InfoRow label="Ngày đăng" value={formatDateTime(selectedJob.publishedAt || selectedJob.createdAt)} />
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                <span>{selectedJob.companyName}</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <StatusBadge label={getJobTypeLabel(selectedJob.jobType)} />
+                <StatusBadge label={getWorkingModelLabel(selectedJob.workingModel)} />
+                <StatusBadge
+                  label={getStatusLabel(selectedJob.status)}
+                  tone={selectedJob.status === "ACTIVE" ? "success" : "neutral"}
+                />
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                  <MapPin className="h-3 w-3 text-slate-400" />
+                  <span>{selectedJob.location || "Chưa cập nhật"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-[#134B43]">
+                  <DollarSign className="h-3 w-3 text-[#134B43]" />
+                  <span>{formatSalary(selectedJob)}</span>
+                </span>
+              </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-                <Button
-                  onClick={() => setApplyJob({
-                    id: String(selectedJob.id),
-                    title: selectedJob.title,
-                    companyName: selectedJob.companyName,
-                    salary: formatSalary(selectedJob),
-                    location: selectedJob.location || "Chưa cập nhật",
-                    workMode: getWorkingModelLabel(selectedJob.workingModel),
-                  })}
-                  disabled={selectedJob.status !== "ACTIVE" || Boolean(selectedJob.deadline && selectedJob.deadline < new Date().toLocaleDateString("en-CA")) || !canApply(jobId)}
-                >
-                  {getApplyButtonLabel(jobId)}
-                </Button>
-              {appliedApplication ? <Link to={`/candidate/applications/${appliedApplication.id}`}><Button variant="secondary">Xem đơn gần nhất</Button></Link> : null}
-              <Button variant="secondary" onClick={() => void toggleDetailSavedJob(selectedJob, isSaved, setSavedReloadKey, showToast)}>
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-2 lg:pt-0">
+              <Button
+                className="rounded-xl bg-[#134B43] font-medium text-white hover:bg-[#0F3E37] shadow-sm"
+                onClick={() => setApplyJob({
+                  id: String(selectedJob.id),
+                  title: selectedJob.title,
+                  companyName: selectedJob.companyName,
+                  salary: formatSalary(selectedJob),
+                  location: selectedJob.location || "Chưa cập nhật",
+                  workMode: getWorkingModelLabel(selectedJob.workingModel),
+                })}
+                disabled={selectedJob.status !== "ACTIVE" || Boolean(selectedJob.deadline && selectedJob.deadline < new Date().toLocaleDateString("en-CA")) || !canApply(jobId)}
+              >
+                {getApplyButtonLabel(jobId)}
+              </Button>
+
+              {appliedApplication ? (
+                <Link to={`/candidate/applications/${appliedApplication.id}`}>
+                  <Button variant="secondary" className="rounded-xl border-slate-200">
+                    Xem đơn gần nhất
+                  </Button>
+                </Link>
+              ) : null}
+
+              <Button
+                variant="secondary"
+                className="rounded-xl border-slate-200"
+                icon={<Bookmark className="h-4 w-4" />}
+                onClick={() => void toggleDetailSavedJob(selectedJob, isSaved, setSavedReloadKey, showToast)}
+              >
                 {isSaved ? "Bỏ lưu việc làm" : "Lưu việc làm"}
               </Button>
             </div>
-            {getApplicationState(jobId) === "WITHDRAWN_BLOCKED" ? <p className="mt-3 text-sm text-slate-600">Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.</p> : null}
-            {syncError ? <div className="mt-3 space-y-2"><ErrorState message={syncError} /><Button variant="secondary" disabled={syncing} onClick={() => void refreshAppliedJobs()}>Tải lại trạng thái ứng tuyển</Button></div> : null}
-          </Card>
+          </div>
+        </Card>
 
-          <Card>
-            <SectionHeader title="Kỹ năng yêu cầu" />
-            {selectedJob.skills.length ? (
-              <div className="grid gap-2">
-                {selectedJob.skills.map((skill) => (
-                  <div key={skill.id} className="rounded-md border border-slate-200 px-3 py-2 text-sm">
-                    <div className="font-medium text-slate-900">{skill.skillName}</div>
-                    <div className="mt-1 text-xs text-slate-500">{skill.category || "Chưa phân loại"} • {skill.importance} • {skill.minLevel}</div>
-                  </div>
-                ))}
+        {/* 2-Column Content */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          {/* Main Content */}
+          <div className="space-y-6">
+            <Card className="nm-reveal border border-slate-200/80 bg-white p-6 shadow-sm rounded-2xl">
+              <SectionHeader title="Mô tả công việc" />
+              <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                {selectedJob.description || "Chưa có mô tả công việc."}
+              </p>
+            </Card>
+
+            <Card className="nm-reveal border border-slate-200/80 bg-white p-6 shadow-sm rounded-2xl">
+              <SectionHeader title="Yêu cầu và quyền lợi" />
+              <div className="mt-4 grid gap-6 md:grid-cols-2">
+                <TextList title="Yêu cầu" value={selectedJob.requirements} emptyText="Chưa có yêu cầu." />
+                <TextList title="Quyền lợi" value={selectedJob.benefits} emptyText="Chưa có quyền lợi." />
               </div>
-            ) : (
-              <EmptyState message="Chưa có kỹ năng yêu cầu." />
-            )}
-          </Card>
-        </aside>
+            </Card>
+          </div>
+
+          {/* Sticky Sidebar */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <Card className="nm-reveal border border-slate-200/80 bg-white p-5 shadow-sm rounded-2xl">
+              <SectionHeader title="Thông tin tuyển dụng" />
+              <div className="mt-4 space-y-3 text-sm text-slate-700">
+                <InfoRow label="Công ty" value={selectedJob.companyName} />
+                <InfoRow label="Địa điểm" value={selectedJob.location || "Chưa cập nhật"} />
+                <InfoRow label="Loại hình" value={getJobTypeLabel(selectedJob.jobType)} />
+                <InfoRow label="Hình thức" value={getWorkingModelLabel(selectedJob.workingModel)} />
+                <InfoRow label="Mức lương" value={formatSalary(selectedJob)} />
+                <InfoRow label="Hạn ứng tuyển" value={formatDate(selectedJob.deadline)} />
+                <InfoRow label="Ngày đăng" value={formatDateTime(selectedJob.publishedAt || selectedJob.createdAt)} />
+              </div>
+
+              {getApplicationState(jobId) === "WITHDRAWN_BLOCKED" ? (
+                <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/70 p-3 text-xs font-medium text-amber-800">
+                  Đơn đã rút sẽ không thể ứng tuyển lại vào cùng vị trí theo chính sách hiện tại.
+                </div>
+              ) : null}
+
+              {syncError ? (
+                <div className="mt-4 space-y-2">
+                  <ErrorState message={syncError} />
+                  <Button variant="secondary" size="sm" className="w-full rounded-xl" disabled={syncing} onClick={() => void refreshAppliedJobs()}>
+                    Tải lại trạng thái ứng tuyển
+                  </Button>
+                </div>
+              ) : null}
+            </Card>
+
+            <Card className="nm-reveal border border-slate-200/80 bg-white p-5 shadow-sm rounded-2xl">
+              <SectionHeader title="Kỹ năng yêu cầu" />
+              <div className="mt-4">
+                {selectedJob.skills.length ? (
+                  <div className="grid gap-2.5">
+                    {selectedJob.skills.map((skill) => (
+                      <div
+                        key={skill.id}
+                        className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm transition-all hover:bg-slate-100/60"
+                      >
+                        <div className="font-semibold text-slate-900">{skill.skillName}</div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {skill.category || "Chưa phân loại"} • {skill.importance} • {skill.minLevel}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState message="Chưa có kỹ năng yêu cầu." />
+                )}
+              </div>
+            </Card>
+          </aside>
+        </div>
+
+        <CandidateApplyFlowModal
+          job={applyJob}
+          onClose={() => {
+            setApplyJob(null);
+            void refreshAppliedJobs();
+          }}
+        />
       </div>
-      <CandidateApplyFlowModal
-        job={applyJob}
-        onClose={() => {
-          setApplyJob(null);
-          void refreshAppliedJobs();
-        }}
-      />
     </PageContainer>
   );
 }
 
 function SavedSearchesPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -416,6 +635,27 @@ function SavedSearchesPage() {
   }));
   const savedSearchesQuery = useAsyncData(() => getSavedSearches(), [reloadKey]);
   const savedSearches = savedSearchesQuery.data ?? [];
+
+  useGSAP(
+    () => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!containerRef.current) return;
+
+      gsap.fromTo(
+        ".nm-reveal",
+        { opacity: 0, y: 16 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          stagger: 0.05,
+          ease: "power2.out",
+        },
+      );
+    },
+    { scope: containerRef.current ? containerRef : undefined, dependencies: [savedSearchesQuery.loading, savedSearches.length, editingId] },
+  );
 
   function applySavedSearch(search: SavedSearchResponse) {
     navigate(buildSavedSearchJobPath(search));
@@ -469,49 +709,194 @@ function SavedSearchesPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Tìm kiếm đã lưu" description="Quản lý các bộ lọc tìm việc bạn đã lưu." />
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <Card>
-          <SectionHeader title="Danh sách tìm kiếm đã lưu" description={`${savedSearches.length} bộ lọc`} />
-          {savedSearchesQuery.loading ? <LoadingState /> : null}
-          {savedSearchesQuery.error ? <ErrorState message={savedSearchesQuery.error} /> : null}
-          {!savedSearchesQuery.loading && !savedSearchesQuery.error && savedSearches.length === 0 ? <EmptyState message="Chưa có tìm kiếm đã lưu." /> : null}
-          <div className="grid gap-3">
-            {savedSearches.map((search) => (
-              <div key={search.id} className="rounded-lg border border-slate-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold text-slate-950">{search.name}</h2>
-                    <p className="mt-1 text-sm text-slate-600">{formatSavedSearchSummary(search)}</p>
-                    <p className="mt-1 text-xs text-slate-500">Cập nhật: {formatDateTime(search.updatedAt)}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => applySavedSearch(search)}>Áp dụng bộ lọc</Button>
-                    <Button size="sm" variant="secondary" onClick={() => editSavedSearch(search)}>Sửa</Button>
-                    <Button size="sm" variant="danger" onClick={() => void deleteSearch(search.id)}>Xóa</Button>
-                  </div>
-                </div>
+      <div ref={containerRef} className="space-y-6">
+        {/* NOVA MOTION Hero Banner */}
+        <section className="nm-reveal relative overflow-hidden rounded-3xl border border-white/10 bg-[#0C111C] p-6 text-white shadow-xl md:p-8">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-teal-500/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300 backdrop-blur-sm">
+                <Filter className="h-3.5 w-3.5 text-teal-300" />
+                <span>BỘ LỌC TÌM KIẾM ĐÃ LƯU</span>
               </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <SectionHeader title={editingId ? "Cập nhật bộ lọc" : "Lưu bộ lọc mới"} />
-          <div className="grid gap-3">
-            <Input label="Tên bộ lọc" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-            <Input label="Từ khóa" value={form.keyword} onChange={(event) => setForm({ ...form, keyword: event.target.value })} />
-            <Input label="Địa điểm" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} />
-            <Select label="Loại hình" value={form.jobType} onChange={(event) => setForm({ ...form, jobType: event.target.value as JobType | "" })} options={jobTypeOptions} />
-            <Select label="Hình thức" value={form.workingModel} onChange={(event) => setForm({ ...form, workingModel: event.target.value as WorkingModel | "" })} options={workingModelOptions} />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => void saveSearch()}>{editingId ? "Cập nhật" : "Lưu tìm kiếm"}</Button>
-              {editingId ? <Button variant="secondary" onClick={resetForm}>Hủy sửa</Button> : null}
+              <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                Bộ lọc tìm kiếm đã lưu
+              </h1>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Quản lý các bộ lọc tìm việc bạn đã lưu để nhanh chóng áp dụng và theo dõi các cơ hội việc làm mới nhất.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Link to="/candidate/jobs">
+                <Button
+                  variant="secondary"
+                  className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20"
+                >
+                  Quay lại tìm việc
+                </Button>
+              </Link>
+              <Link to="/candidate/jobs/saved">
+                <Button
+                  className="rounded-xl bg-[#D4F933] font-semibold text-[#0C111C] shadow-sm hover:bg-[#C2E82E]"
+                  icon={<Bookmark className="h-4 w-4" />}
+                >
+                  Việc làm đã lưu
+                </Button>
+              </Link>
             </div>
           </div>
-          <Link to="/candidate/jobs" className="mt-4 inline-flex">
-            <Button variant="secondary">Quay lại tìm việc</Button>
-          </Link>
-        </Card>
+        </section>
+
+        {/* 2-Column Grid */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          {/* Left Column: Saved Searches List */}
+          <div className="space-y-4">
+            <Card className="nm-reveal border border-slate-200/80 bg-white p-5 shadow-sm rounded-2xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-950">Danh sách tìm kiếm đã lưu</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    <span className="font-mono font-bold text-[#134B43]">{savedSearches.length}</span> bộ lọc đã thiết lập
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {savedSearchesQuery.loading ? <LoadingState /> : null}
+                {savedSearchesQuery.error ? <ErrorState message={savedSearchesQuery.error} /> : null}
+                {!savedSearchesQuery.loading && !savedSearchesQuery.error && savedSearches.length === 0 ? (
+                  <div className="py-6">
+                    <EmptyState message="Chưa có tìm kiếm đã lưu." />
+                  </div>
+                ) : null}
+
+                <div className="grid gap-3">
+                  {savedSearches.map((search) => (
+                    <div
+                      key={search.id}
+                      className="group rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4.5 transition-all hover:border-slate-300 hover:bg-white hover:shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <h2 className="text-base font-bold text-slate-950 group-hover:text-[#134B43] transition-colors">
+                            {search.name}
+                          </h2>
+                          <p className="text-xs leading-relaxed text-slate-600 font-medium">
+                            {formatSavedSearchSummary(search)}
+                          </p>
+                          <div className="flex items-center gap-1.5 pt-0.5 text-xs text-slate-400">
+                            <Clock className="h-3 w-3" />
+                            <span>Cập nhật: {formatDateTime(search.updatedAt)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 shrink-0">
+                          <Button
+                            size="sm"
+                            className="rounded-xl bg-[#134B43] text-white hover:bg-[#0F3E37]"
+                            onClick={() => applySavedSearch(search)}
+                          >
+                            Áp dụng bộ lọc
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50"
+                            onClick={() => editSavedSearch(search)}
+                          >
+                            Sửa
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            className="rounded-xl text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100"
+                            onClick={() => void deleteSearch(search.id)}
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: Form Card */}
+          <div className="space-y-4">
+            <Card className="nm-reveal sticky top-6 border border-slate-200/80 bg-white p-5 shadow-sm rounded-2xl">
+              <div className="border-b border-slate-100 pb-3">
+                <SectionHeader
+                  title={editingId ? "Cập nhật bộ lọc" : "Lưu bộ lọc mới"}
+                  description={
+                    editingId
+                      ? "Chỉnh sửa các tiêu chí và tên của bộ lọc đã lưu."
+                      : "Lưu lại tổ hợp từ khóa, địa điểm và hình thức làm việc ưa thích."
+                  }
+                />
+              </div>
+
+              <div className="mt-4 grid gap-3.5">
+                <Input
+                  label="Tên bộ lọc"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="Ví dụ: Backend Java Hybrid"
+                />
+                <Input
+                  label="Từ khóa"
+                  value={form.keyword}
+                  onChange={(event) => setForm({ ...form, keyword: event.target.value })}
+                  placeholder="Kỹ năng, vị trí hoặc công nghệ"
+                />
+                <Input
+                  label="Địa điểm"
+                  value={form.location}
+                  onChange={(event) => setForm({ ...form, location: event.target.value })}
+                  placeholder="Tỉnh / Thành phố"
+                />
+                <Select
+                  label="Loại hình"
+                  value={form.jobType}
+                  onChange={(event) => setForm({ ...form, jobType: event.target.value as JobType | "" })}
+                  options={jobTypeOptions}
+                />
+                <Select
+                  label="Hình thức"
+                  value={form.workingModel}
+                  onChange={(event) => setForm({ ...form, workingModel: event.target.value as WorkingModel | "" })}
+                  options={workingModelOptions}
+                />
+
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <Button
+                    className="flex-1 rounded-xl bg-[#134B43] text-white hover:bg-[#0F3E37]"
+                    onClick={() => void saveSearch()}
+                  >
+                    {editingId ? "Cập nhật" : "Lưu tìm kiếm"}
+                  </Button>
+                  {editingId ? (
+                    <Button variant="secondary" className="rounded-xl" onClick={resetForm}>
+                      Hủy sửa
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <Link to="/candidate/jobs" className="block w-full">
+                  <Button variant="secondary" className="w-full rounded-xl">
+                    Quay lại tìm việc
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </PageContainer>
   );
