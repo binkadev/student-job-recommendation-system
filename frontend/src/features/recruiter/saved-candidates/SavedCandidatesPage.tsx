@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../../components/common/PageContainer";
 import { PageHeader } from "../../../components/common/PageHeader";
+import { AuroraHero } from "../../../components/common/AuroraHero";
 import { Pagination } from "../../../components/common/Pagination";
 import { ErrorState } from "../../../components/feedback/ErrorState";
 import { EmptyState } from "../../../components/feedback/EmptyState";
@@ -118,6 +119,11 @@ export function SavedCandidatesPage({ embedded = false }: { embedded?: boolean }
   if (embedded) return <div>{content}</div>;
   return <PageContainer>
     <PageHeader title="Hồ sơ đã lưu" description="Ứng viên và ghi chú riêng của công ty. Trạng thái bên dưới thuộc đơn ứng tuyển nguồn đã lưu." />
+    <AuroraHero
+      eyebrow="NGUỒN ỨNG VIÊN TIỀM NĂNG"
+      title="Danh sách hồ sơ ứng viên đã lưu"
+      description="Lưu trữ ghi chú đánh giá nội bộ và theo dõi trạng thái đơn ứng tuyển nguồn của từng ứng viên."
+    />
     {content}
   </PageContainer>;
 }

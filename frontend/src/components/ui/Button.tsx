@@ -11,10 +11,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-brand-600 text-white shadow-sm hover:bg-brand-700 hover:shadow-soft active:bg-brand-800",
-  secondary: "border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-brand-200 hover:bg-brand-50",
+  primary: "bg-[#1A6359] text-white shadow-sm hover:bg-[#134B43] hover:shadow-soft active:bg-[#0D332E]",
+  secondary: "border border-[#D5DCE6] bg-white text-[#0C111C] shadow-sm hover:border-[#237D70]/50 hover:bg-[#F0FAF8]",
   danger: "bg-red-600 text-white shadow-sm hover:bg-red-700",
-  ghost: "text-slate-700 hover:bg-slate-100",
+  ghost: "text-[#1B2533] hover:bg-[#F0FAF8] hover:text-[#134B43]",
 };
 
 const sizes: Record<ButtonSize, string> = {
@@ -28,7 +28,7 @@ export function Button({ variant = "primary", size = "md", icon, loading = false
     <button
       type={props.type ?? "button"}
       aria-busy={loading || undefined}
-      className={`neo-button neo-button-${variant} inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 focus-visible:ring-4 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`neo-button neo-button-${variant} inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 focus-visible:ring-4 focus-visible:ring-[#aee6dc] disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

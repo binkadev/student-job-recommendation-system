@@ -3,6 +3,7 @@ import { useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer } from "../../components/common/PageContainer";
 import { PageHeader } from "../../components/common/PageHeader";
+import { AuroraHero } from "../../components/common/AuroraHero";
 import { Pagination } from "../../components/common/Pagination";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { EmptyState } from "../../components/feedback/EmptyState";
@@ -193,6 +194,11 @@ export function RecruiterCompanyPage({ mode = "view" }: RecruiterCompanyPageProp
   return (
     <PageContainer>
       <PageHeader title="Hồ sơ công ty" description="Quản lý thông tin doanh nghiệp." />
+      <AuroraHero
+        eyebrow="THƯƠNG HIỆU TUYỂN DỤNG"
+        title="Hồ sơ doanh nghiệp & Trạng thái xác thực"
+        description="Quản lý thông tin giới thiệu công ty, tài liệu xác minh và danh sách vị trí đang mở tuyển."
+      />
 
       <CompanyHero company={company} onCopyWebsite={() => copyText("website", company.website)} onCopyAddress={() => copyText("địa chỉ", company.address)} />
 

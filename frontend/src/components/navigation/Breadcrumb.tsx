@@ -14,8 +14,8 @@ export function Breadcrumb() {
   if (segments.length === 0) return null;
 
   return (
-    <nav className="mb-4 flex flex-wrap items-center gap-1 text-sm text-slate-500">
-      <Link to="/" className="inline-flex items-center gap-1 hover:text-brand-600">
+    <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-[#4B5C73]">
+      <Link to="/" className="inline-flex items-center gap-1 transition-colors hover:text-[#134B43]">
         <Home size={14} />
         Trang chủ
       </Link>
@@ -23,12 +23,12 @@ export function Breadcrumb() {
         const href = `/${segments.slice(0, index + 1).join("/")}`;
         const isLast = index === segments.length - 1;
         return (
-          <span key={href} className="inline-flex items-center gap-1">
-            <ChevronRight size={14} />
+          <span key={href} className="inline-flex items-center gap-1.5">
+            <ChevronRight size={14} className="text-slate-400" />
             {isLast ? (
-              <span className="font-medium text-slate-700">{humanize(segment)}</span>
+              <span className="font-semibold text-[#0C111C]">{humanize(segment)}</span>
             ) : (
-              <Link to={href} className="hover:text-brand-600">
+              <Link to={href} className="transition-colors hover:text-[#134B43]">
                 {humanize(segment)}
               </Link>
             )}

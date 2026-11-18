@@ -21,29 +21,29 @@ export function UserDropdown() {
     <div ref={containerRef} onKeyDown={onKeyDown} className="relative">
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+        className="inline-flex items-center gap-2 rounded-xl border border-[#D5DCE6] bg-white px-3 py-1.5 text-sm font-medium text-[#0C111C] transition-colors hover:border-[#237D70]/45 hover:bg-[#F0FAF8]"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Menu tài khoản"
         aria-controls={open ? menuId : undefined}
       >
-        <span className="h-7 w-7 rounded-full bg-brand-100 text-center text-xs font-semibold leading-7 text-brand-700">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0C111C] text-xs font-bold text-[#D5F36A]">
           {currentUser?.name.charAt(0) ?? "G"}
         </span>
         <span className="hidden sm:inline">{currentUser?.name ?? "Guest"}</span>
-        <ChevronDown size={16} />
+        <ChevronDown size={16} className="text-slate-500" />
       </button>
 
       {open ? (
-        <div id={menuId} className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-2 shadow-lg" role="menu">
-          <div className="border-b border-slate-100 px-4 pb-2 pt-1">
-            <p className="text-sm font-medium text-slate-900">{currentUser?.name ?? "Guest"}</p>
+        <div id={menuId} className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-[#E2E8EE] bg-white py-2 shadow-lift" role="menu">
+          <div className="border-b border-slate-100 px-4 pb-2.5 pt-1">
+            <p className="text-sm font-semibold text-[#0C111C]">{currentUser?.name ?? "Guest"}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">{currentUser?.email ?? "guest@example.com"}</p>
           </div>
           <Link
             to={getProfilePath(currentUser?.role)}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1B2533] transition-colors hover:bg-[#F0FAF8] hover:text-[#134B43]"
             onClick={() => setOpen(false)}
             role="menuitem"
           >
@@ -52,7 +52,7 @@ export function UserDropdown() {
           </Link>
           <button
             type="button"
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
             onClick={handleLogout}
             role="menuitem"
           >

@@ -11,13 +11,16 @@ interface TabsProps {
 
 export function Tabs({ items, value, onChange }: TabsProps) {
   return (
-    <div className="flex flex-wrap gap-2 border-b border-slate-200">
+    <div className="flex flex-wrap gap-2 border-b border-[#E2E8EE]">
       {items.map((item) => (
         <button
           key={item.value}
+          type="button"
           onClick={() => onChange(item.value)}
-          className={`border-b-2 px-3 py-2 text-sm font-medium ${
-            value === item.value ? "border-brand-600 text-brand-700" : "border-transparent text-slate-600 hover:text-slate-900"
+          className={`border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors ${
+            value === item.value
+              ? "border-[#1A6359] font-semibold text-[#134B43]"
+              : "border-transparent text-[#4B5C73] hover:text-[#0C111C]"
           }`}
         >
           {item.label}
