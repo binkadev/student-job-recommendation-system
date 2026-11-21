@@ -1,288 +1,92 @@
-# Bilingual Job Recommendation AI Service
+# English Job Recommendation AI Service
 
-Stateless FastAPI service for CV parsing and Content-Based job recommendation in English and Vietnamese.
+Stateless FastAPI microservice for English-only 3-stage spaCy CV parsing and Global-IDF TF-IDF job recommendation & candidate ranking.
 
-## Responsibilities
+## Architecture & Responsibilities
 
 The AI Service owns:
 
-- PDF and DOCX text extraction
-- strict input validation and sanitized errors
-- English and Vietnamese language detection
-- deterministic language-specific preprocessing
-- technical-token preservation such as `C++`, `C#`, `.NET`, `Node.js`, and `CI/CD`
-- canonical skill extraction and alias normalization
-- same-language TF-IDF and Cosine Similarity
-- cross-language skill-only matching
-- deterministic matched-skill, missing-skill, and explanation output
+- PDF and DOCX text extraction (including DOCX ZIP-bomb & encryption preflight)
+- strict Pydantic input validation (`extra="forbid"`) and sanitized 2-field error envelopes
+- deterministic English-only language gate (`en` with confidence `>= 0.65`; rejects non-English CVs with `422 UNSUPPORTED_LANGUAGE`)
+- **3-stage English NLP pipeline** (`nlp/english_pipeline.py`):
+  1. **Stage 1 — Regex Denoising (`nlp/denoiser.py`)**: repairs PDF/DOCX glued delimiters/CamelCase (`Java,SpringBoot`, `SoftwareEngineer`), strips structured PII (URLs, emails, phones), and shields technical symbols (`C++`, `C#`, `.NET`, `ASP.NET`, `Node.js`, `CI/CD`, `scikit-learn`) and brand casings (`JavaScript`, `PostgreSQL`, `FastAPI`, `PyTorch`).
+  2. **Stage 2 — Offline-Compiled spaCy `EntityRuler` Merging (`offline/build_spacy_model.py`)**: merges all 89 canonical IT skills (`resources/skill_catalog.v1.json`, with exact case-sensitive rules for `C`, `R`, `Go`, `AI`, `ML`, `JS`, `TS`, `TF`, `REST`) and compound IT domain phrases (`resources/domain_phrases.en.json`) into atomic protected tokens (`SKILL` / `CUSTOM_PHRASE`).
+  3. **Stage 3 — spaCy NER & POS Filtering**: drops `PERSON` and numeric/date noise entities, filters non-informative POS tags & stopwords, and preserves all merged `SKILL`/`CUSTOM_PHRASE` tokens verbatim.
+- **Global-IDF TF-IDF Scoring via Incremental DF (`.transform()` only)**:
+  - Online `ai-service` loads the compiled immutable spaCy model (`/app/built_models/spacy_custom_model`) and `tfidf_model.pkl` into RAM once at startup and executes **`.transform()` only** (never `.fit()`).
+  - Offline Incremental DF trainer (`offline/train_tfidf_incremental.py`) updates `df_state.sqlite` (`N`, `term_df`, per-doc delta index for `INSERT`/`UPDATE`/`DELETE`) without re-scanning unchanged documents, computes exact smooth global IDF $\ln((1+N)/(1+\text{df}(t))) + 1$, hydrates a fitted scikit-learn `TfidfVectorizer`, and writes `tfidf_model.pkl` atomically.
+- **Stateless by Packaging Design**: online `ai-service` (`Dockerfile` `target: runtime`) physically installs ZERO PostgreSQL drivers (`psycopg` exists only in `requirements-offline.lock` / `target: trainer`).
 
-The AI Service is stateless. It must not:
+## HTTP Endpoints
 
-- access the Spring Boot database
-- receive or validate a user JWT
-- persist recommendation runs
-- assign public rank positions
+- `GET /health` — Public liveness probe exposing service, contract, and loaded model metadata (`status`, `service`, `algorithm`, `recommendationVersion`, `candidateRankingVersion`, `processingVersion`, `nlpModelHash`, `tfidfModelVersion`, `tfidfModelSource`, `tfidfDocCount`, `tfidfVocabSize`).
+- `POST /internal/cv/parse` — Multipart PDF/DOCX English CV parsing & skill extraction.
+- `POST /internal/recommendations` — Tiered Student Job Recommendation scoring (`PRIMARY` / `FALLBACK`).
+- `POST /internal/candidate-rankings` — Tiered Bulk Recruiter Candidate Ranking scoring (`PRIMARY` / `FALLBACK`).
 
-## Supported Contracts
+Every `/internal/*` route requires `X-Internal-Api-Key` validated with constant-time `hmac.compare_digest`.
 
-### Compatibility V1
-
-- `POST /internal/v1/cv/parse`
-- `POST /internal/v1/recommendations`
-
-V1 remains for regression compatibility.
-
-### Current V2
-
-- `POST /internal/v2/cv/parse`
-- `POST /internal/v2/recommendations`
-
-V2 uses strict Pydantic models with unknown fields rejected. Every
-`/internal/v2/**` request must provide `X-Internal-Api-Key`; missing, blank, or
-incorrect keys receive the sanitized `401 UNAUTHORIZED` V2 error. `/health` and
-the compatibility V1 routes do not require this internal header.
-
-Current metadata:
+### Active Contract Metadata
 
 - Algorithm: `tfidf-cosine-hybrid`
-- Algorithm version: `bilingual-recommendation-v2`
-- Processing version: `bilingual-nlp-v2-skills-v1`
+- Recommendation algorithm version: `english-global-idf-recommendation-v1`
+- Candidate ranking algorithm version: `english-global-idf-candidate-ranking-v1`
+- CV processing version: `english-spacy-v1-skills-v1`
+- Skill catalog version: `skills-v1`
 
-## Language and Scoring Behavior
+## Docker Multi-Stage Build & Offline Training
 
-The service detects the CV language and each Job language independently.
+`ai-service/Dockerfile` provides two stages:
+- **`runtime`** (default `ai-service` service): installs `requirements.lock` (`--require-hashes --only-binary=:all:`), compiles immutable `/app/built_models/spacy_custom_model` and bootstrap `/app/built_models/tfidf/tfidf_model.pkl`, mounts `ai_tfidf_models:/app/models/tfidf:ro` for updated trained models.
+- **`trainer`** (`ai-trainer` under Compose `profiles: ["trainer"]`): extends `runtime` with `requirements-offline.lock` (`psycopg[binary]`) and mounts `ai_tfidf_models:/app/models/tfidf:rw`.
 
-| Pair | Strategy | Behavior |
-|---|---|---|
-| English CV ↔ English Job | `SAME_LANGUAGE_HYBRID` | English TF-IDF plus canonical skills |
-| Vietnamese CV ↔ Vietnamese Job | `SAME_LANGUAGE_HYBRID` | Vietnamese TF-IDF plus canonical skills |
-| English CV ↔ Vietnamese Job | `CROSS_LANGUAGE_SKILL_BASED` | Canonical skills only |
-| Vietnamese CV ↔ English Job | `CROSS_LANGUAGE_SKILL_BASED` | Canonical skills only |
-| Mixed or insufficient-confidence pair | `CROSS_LANGUAGE_SKILL_BASED` | Canonical skills only |
+### Rebuilding Bootstrap `tfidf_model.pkl` from Raw CSVs
 
-For a same-language job with declared skills:
-
-```text
-score = 0.65 * textScore + 0.35 * skillScore
-```
-
-For a same-language job without declared skills:
-
-```text
-score = textScore
-skillScore = 0
-```
-
-For a cross-language or insufficient-confidence pair:
-
-```text
-textScore = null
-score = skillScore
-```
-
-Skill score is the fraction of the Job's canonical skills present in the CV's canonical skill set.
-
-## Ranking Ownership
-
-AI returns results containing:
-
-- `jobId`
-- `score`
-- `textScore`
-- `skillScore`
-- `scoringStrategy`
-- `matchedSkills`
-- `missingSkills`
-- `reason`
-
-AI does not return:
-
-- `rank`
-- `rankPosition`
-
-The Spring Boot backend validates the AI response, sorts by `score DESC` then `jobId ASC`, assigns continuous ranks, and persists the final result set.
-
-## Requirements
-
-- Python 3.11
-
-Dependencies are locked with hashes in `requirements.lock`.
-
-## Setup
-
-Windows PowerShell:
+Replace or append English rows in `data/bootstrap_raw/resumes.csv` (`id,raw_text`) and `data/bootstrap_raw/jobs.csv` (`id,title,description,requirements`), then run:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
+docker compose --profile trainer run --rm ai-trainer --bootstrap --force-rebuild
+docker compose restart ai-service
 ```
 
-Linux or macOS:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install --require-hashes -r requirements.lock
-python -m pip check
-```
-
-## Run
-
-From `ai-service/`:
+### Incremental PostgreSQL Sync
 
 ```powershell
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
+# Sync only newly inserted, modified, or deleted English READY CVs & ACTIVE VERIFIED Jobs:
+docker compose --profile trainer run --rm ai-trainer --keep-bootstrap
+docker compose restart ai-service
 
-Development reload:
-
-```powershell
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Health:
-
-```text
-GET http://localhost:8000/health
-```
-
-OpenAPI:
-
-```text
-http://localhost:8000/docs
+# Drop bootstrap seed rows once live PostgreSQL corpus is large enough:
+docker compose --profile trainer run --rm ai-trainer --drop-bootstrap
+# Or auto-drop automatically once live docs >= 500:
+docker compose --profile trainer run --rm ai-trainer --auto-drop-bootstrap-at 500
 ```
 
 ## Configuration
 
-Set the internal shared key before starting the service:
+| Variable | Required | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `AI_INTERNAL_API_KEY` | Yes | *(none)* | Minimum 32 chars, no edge whitespace. Must match Backend `APP_AI_SERVICE_INTERNAL_API_KEY`. |
+| `AI_CV_MAX_FILE_SIZE_BYTES` | No | `10485760` | Max CV upload size in bytes |
+| `AI_CANDIDATE_RANKING_MAX_CANDIDATES` | No | `500` | Max candidates per synchronous ranking request |
+| `AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES` | No | `8388608` | Max serialized candidate-ranking JSON body bytes |
+| `AI_SPACY_MODEL_DIR` | No | `built_models/spacy_custom_model` | Immutable compiled spaCy model directory |
+| `AI_TFIDF_MODEL_PATH` | No | `models/tfidf/tfidf_model.pkl` | Mutable trained Global IDF `.pkl` path |
+| `AI_TFIDF_BOOTSTRAP_MODEL_PATH` | No | `built_models/tfidf/tfidf_model.pkl` | Cold-start fallback `.pkl` when mounted volume is empty |
+| `AI_TRAINER_DATABASE_URL` | Trainer only | *(none)* | PostgreSQL DSN used strictly by `offline/train_tfidf_incremental.py` |
+
+## Testing & Offline Evaluation
 
 ```powershell
-$env:AI_INTERNAL_API_KEY="<at-least-32-characters-with-no-edge-whitespace>"
+# Run full AI test suite inside official Linux Python 3.11.9 runtime image:
+docker run --rm -e AI_INTERNAL_API_KEY="test-internal-api-key-at-least-32-characters-ok" `
+  -v "${PWD}\ai-service\tests:/app/tests:ro" `
+  student-job-recommendation-ai:local python -m pytest -o cache_dir=/tmp/.pytest_cache -q
+
+# Compare Local-Corpus TF-IDF vs. Global Incremental-DF TF-IDF (Precision@K, Recall@K, F1@K, NDCG@K):
+python -m evaluation.compare_local_vs_global_idf `
+  --dataset evaluation/examples/toy-v1 `
+  --spacy-model-dir built_models/spacy_custom_model `
+  --tfidf-model-path built_models/tfidf/tfidf_model.pkl --k 5
 ```
-
-`AI_INTERNAL_API_KEY` is required, must contain at least 32 characters, and must
-not have leading or trailing whitespace. Runtime construction fails before the
-skill catalog is loaded when this configuration is invalid. The Backend must use
-the same value through `APP_AI_SERVICE_INTERNAL_API_KEY`. Never commit or log the
-real value.
-
-Maximum V2 CV upload size:
-
-```powershell
-$env:AI_CV_MAX_FILE_SIZE_BYTES="10485760"
-```
-
-The default is 10 MiB.
-
-## Request Tracing and Safe Logging
-
-Middleware applies to `/health`, `/internal/v1/**`, and `/internal/v2/**`. It
-accepts a valid `X-Request-Id` or generates a UUID, stores it in a standard
-library `ContextVar`, and returns it in the response. A V2 `401` response also
-contains the request ID.
-
-Completion logs contain only `requestId`, method, path, status, and duration.
-They do not log bodies, multipart bytes, raw or processed CV text, Job text,
-authorization headers, internal API keys, environment secrets, or input-bearing
-exception details. Request context is reset after every request.
-
-`X-Request-Id` is observability metadata, not authentication. It is independent
-of the Contract V2 JSON field `requestId`. See
-[`../docs/operations/request-tracing.md`](../docs/operations/request-tracing.md).
-
-## V2 CV Parse Response
-
-A successful V2 parse returns:
-
-```json
-{
-  "rawText": "...",
-  "processedText": "...",
-  "skills": ["java", "postgresql", "spring boot"],
-  "languageCode": "en",
-  "languageConfidence": 1.0,
-  "processingVersion": "bilingual-nlp-v2-skills-v1",
-  "warnings": []
-}
-```
-
-Supported language codes:
-
-- `en`
-- `vi`
-- `mixed`
-- `unknown`
-
-## Test
-
-Run the complete AI test suite:
-
-```powershell
-python -m pytest
-```
-
-Run a focused V2 suite:
-
-```powershell
-python -m pytest tests/test_v2_contract.py tests/test_v2_cv_service.py tests/test_bilingual_recommendation.py tests/test_v2_http_api.py
-```
-
-The tests cover:
-
-- strict V2 schemas
-- PDF and DOCX decoding
-- English and Vietnamese preprocessing
-- canonical skill aliases
-- same-language hybrid scoring
-- cross-language skill scoring
-- corpus isolation
-- deterministic ordering and explanations
-- V1 compatibility
-- sanitized HTTP errors
-
-## Offline Ranking Evaluation
-
-The offline evaluation framework, independent annotation workflow, dataset
-templates, toy example, metric implementation, privacy rules, and pilot
-procedure are documented in [`evaluation/README.md`](evaluation/README.md).
-Framework availability does not mean ranking quality has been measured. The
-real Job corpus still needs review/freeze, independent annotation by 2–3 people,
-manual adjudication, and final Precision@5, Recall@5, and NDCG@5. Generated
-output, private CV data, and in-progress annotation work are ignored and must
-not be committed.
-
-Recruiter Candidate Ranking uses the separate internal endpoint
-POST /internal/v2/candidate-rankings. It fits one shared TF-IDF representation
-on the complete same-language Candidate CV corpus, transforms the Job once, and
-returns component scores and skills without rank or human-facing reason. The
-Backend owns official ordering, rank assignment, reason generation, and
-persistence. See the [Candidate Ranking contract](../docs/candidate-ranking-contract.md).
-
-## Important Files
-
-- `main.py`: FastAPI application, V1 compatibility routes, and V2 router registration
-- `request_context.py`: request ID validation, context isolation, and completion logging
-- `v2/api.py`: strict V2 HTTP boundary
-- `v2/schemas.py`: V2 wire contract
-- `v2/cv_service.py`: CV parsing orchestration
-- `v2/language_detector.py`: deterministic language detection
-- `v2/preprocessor.py`: English and Vietnamese preprocessing
-- `v2/skill_canonicalizer.py`: canonical skill catalog loading
-- `v2/skill_extractor.py`: skill extraction
-- `v2/recommender.py`: TF-IDF, Cosine Similarity, and component scoring
-- `v2/service.py`: per-Job bilingual recommendation orchestration
-- `resources/skill_catalog.v1.json`: canonical skills and aliases
-
-## Current Limitations
-
-- No OCR for scanned or image-only CVs
-- No embeddings or semantic vector model
-- No vector database
-- No online model training
-- No database access by design
-- No asynchronous queue by design
-- Skill importance and minimum proficiency are not yet part of the V2 scoring contract

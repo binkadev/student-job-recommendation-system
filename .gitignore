@@ -42,6 +42,10 @@ ai-service/evaluation/output/
 ai-service/evaluation/private/
 ai-service/evaluation/work/
 
+# Compiled offline NLP & Global IDF binary artifacts
+ai-service/built_models/
+ai-service/models/
+
 # Vite cache
 frontend/.vite/
 
@@ -49,3 +53,7 @@ frontend/.vite/
 e2e/.local/
 e2e/test-results/
 e2e/playwright-report/
+
+# Local bulk CV ingestion runtime state, logs, and reports
+scripts/bulk_ingest/runs/
+scripts/bulk_job_ingest/runs/

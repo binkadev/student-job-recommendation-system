@@ -13,7 +13,7 @@ $ProjectName = 'student-recommendation-upload-e2e'
 $BackendUrl = 'http://127.0.0.1:18080'
 $ComposeArgs = @('-p', $ProjectName, '-f', 'docker-compose.yml', '-f', 'docker-compose.e2e.yml')
 $ExpectedSkills = @('docker', 'java', 'postgresql', 'spring boot')
-$ProcessingVersion = 'bilingual-nlp-v2-skills-v1'
+$ProcessingVersion = 'english-spacy-v1-skills-v1'
 $ownsProject = $false
 $passed = $false
 $http = $null
@@ -124,7 +124,7 @@ function Assert-Score {
 function Assert-Run {
     param([object]$Run, [long]$CvId, [long[]]$ExpectedJobIds)
     Assert-Condition ($Run.status -eq 'SUCCESS' -and $Run.sourceType -eq 'CV' -and [long]$Run.cvId -eq $CvId) 'Run must use the uploaded CV and finish SUCCESS.'
-    Assert-Condition ($Run.algorithm -eq 'tfidf-cosine-hybrid' -and $Run.algorithmVersion -eq 'bilingual-recommendation-v3') 'V3 algorithm metadata required.'
+    Assert-Condition ($Run.algorithm -eq 'tfidf-cosine-hybrid' -and $Run.algorithmVersion -eq 'english-global-idf-recommendation-v1') 'Algorithm metadata required.'
     Assert-Condition ($Run.totalJobsScanned -eq 3 -and $null -ne $Run.finishedAt -and $null -eq $Run.errorMessage) 'Completed run counters/timestamps required.'
     $results = @($Run.results)
     Assert-Condition ($results.Count -eq $ExpectedJobIds.Count -and $Run.totalRecommended -eq $results.Count) 'Global Top-K/result counts differ.'
@@ -232,7 +232,7 @@ FROM companies c JOIN users u ON u.id=c.user_id WHERE u.email='upload-e2e-compan
 INSERT INTO jobs (company_id,title,description,requirements,job_type,working_model,status,published_at)
 SELECT company_id,title,description,requirements,job_type,working_model,status,published_at FROM jobs;
 INSERT INTO jobs (company_id,title,description,requirements,job_type,working_model,status,published_at)
-SELECT c.id,'Vietnamese Backend Internship',U&'Ph\00e1t tri\1ec3n ph\1ea7n m\1ec1m v\00e0 d\1ecbch v\1ee5 cho ng\01b0\1eddi d\00f9ng. X\00e2y d\1ef1ng h\1ec7 th\1ed1ng backend b\1eb1ng Java Spring Boot.',U&'Y\00eau c\1ea7u c\00f3 kinh nghi\1ec7m l\00e0m vi\1ec7c v\1edbi c\01a1 s\1edf d\1eef li\1ec7u PostgreSQL v\00e0 Docker.','INTERNSHIP','HYBRID','ACTIVE',CURRENT_TIMESTAMP
+SELECT c.id,'Non-English Backend Internship','Developpement logiciel et services backend avec Java et Spring Boot pour nos utilisateurs.','Connaissance des bases de donnees PostgreSQL et Docker pour nos projets.','INTERNSHIP','HYBRID','ACTIVE',CURRENT_TIMESTAMP
 FROM companies c JOIN users u ON u.id=c.user_id WHERE u.email='upload-e2e-company@example.test';
 INSERT INTO job_skills (job_id,skill_id,importance,min_level)
 SELECT j.id,s.id,'REQUIRED','BEGINNER' FROM jobs j CROSS JOIN skills s WHERE j.title='English Backend Internship' OR s.normalized_name<>'redis';
@@ -292,7 +292,7 @@ SELECT COUNT(*) FROM jobs;
     $topRunId = Assert-PersistedAndHistory $topRun $cvId @($jobIds[0], $jobIds[1])
     $history = @(Invoke-JsonApi GET '/api/students/me/recommendation-runs')
     Assert-SameList @($history | ForEach-Object { [long]$_.id }) @($topRunId, $fullRunId) 'Public run history'
-    Assert-Condition (@($history | Where-Object { $_.status -ne 'SUCCESS' -or $_.algorithmVersion -ne 'bilingual-recommendation-v3' -or [long]$_.cvId -ne $cvId }).Count -eq 0) 'History metadata differs.'
+    Assert-Condition (@($history | Where-Object { $_.status -ne 'SUCCESS' -or $_.algorithmVersion -ne 'english-global-idf-recommendation-v1' -or [long]$_.cvId -ne $cvId }).Count -eq 0) 'History metadata differs.'
     $latest = @(Invoke-JsonApi GET '/api/students/me/recommendation-results/latest')
     Assert-SameList @($latest | ForEach-Object { [long]$_.id }) @($topRun.results | ForEach-Object { [long]$_.id }) 'Latest official result IDs'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM recommendation_runs WHERE status='PROCESSING';") -eq '0') 'No PROCESSING run may remain.'
@@ -303,13 +303,13 @@ SELECT COUNT(*) FROM jobs;
     $stage = 'real AI HTTP evidence'
     $aiLogs = @(& $DockerExecutable compose @ComposeArgs logs --no-color ai-service 2>&1)
     Assert-Condition ($LASTEXITCODE -eq 0) 'Could not read isolated AI access evidence.'
-    $parseCount = @($aiLogs | Select-String -SimpleMatch 'POST /internal/v2/cv/parse HTTP/1.1" 200').Count
-    $v3Count = @($aiLogs | Select-String -SimpleMatch 'POST /internal/v3/recommendations HTTP/1.1" 200').Count
+    $parseCount = @($aiLogs | Select-String -SimpleMatch 'POST /internal/cv/parse HTTP/1.1" 200').Count
+    $v3Count = @($aiLogs | Select-String -SimpleMatch 'POST /internal/recommendations HTTP/1.1" 200').Count
     $v2Count = @($aiLogs | Select-String -SimpleMatch 'POST /internal/v2/recommendations HTTP/1.1"').Count
-    Assert-Condition ($parseCount -eq 1 -and $v3Count -eq 2 -and $v2Count -eq 0) 'Require one real V2 parse, two V3 generations, and no V2 generation.'
+    Assert-Condition ($parseCount -eq 1 -and $v3Count -eq 2 -and $v2Count -eq 0) 'Require one real CV parse, two recommendation generations, and no legacy V2 generation.'
     Write-Host 'Recommendation/Ranking: PASS; 2 PRIMARY + 1 FALLBACK; limit=2 retains only PRIMARY; deterministic ties and official ranks.'
     Write-Host 'Persistence/History: PASS; 2 SUCCESS runs, 5 results; detail/list/latest preserve official semantics; snapshot unchanged.'
-    Write-Host "AI HTTP: parse-v2=$parseCount; recommendations-v3=$v3Count; recommendations-v2=$v2Count."
+    Write-Host "AI HTTP: cv-parse=$parseCount; recommendations=$v3Count; recommendations-v2=$v2Count."
     foreach ($feature in $school.GetEnumerator()) { Write-Host "School $($feature.Key): $($feature.Value)" }
     Write-Host 'Lexical evidence proves retained tokens in the scored snapshot, not structured extraction or per-feature score attribution.'
     $passed = $true
