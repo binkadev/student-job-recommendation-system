@@ -63,7 +63,7 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
         cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
         cvFile.setLanguageCode("en");
         cvFile.setLanguageConfidence(new java.math.BigDecimal("0.99"));
-        cvFile.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cvFile.setProcessingVersion("english-spacy-v1-skills-v1");
         cvFileRepository.saveAndFlush(cvFile);
 
         Company company = createCompany(
@@ -80,7 +80,7 @@ class RecommendationPersistenceFailureIT extends AbstractPostgresIntegrationTest
                     AiRecommendationV3Response response = new AiRecommendationV3Response(
                             request.requestId(),
                             "tfidf-cosine-hybrid",
-                            "bilingual-recommendation-v3",
+                            "english-global-idf-recommendation-v1",
                             List.of(
                                     result(firstJob.getId(), request.jobs().get(0).skills()),
                                     result(secondJob.getId(), request.jobs().get(1).skills())

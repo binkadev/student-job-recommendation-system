@@ -72,6 +72,64 @@ public interface JobRepository extends JpaRepository<Job, Long>, JpaSpecificatio
     );
 
     @Query("""
+            select count(job.id)
+            from Job job
+            where job.status = :jobStatus
+              and job.company.status = :companyStatus
+              and (job.deadline is null or job.deadline >= :today)
+            """)
+    long countEligibleForRecommendation(
+            @Param("jobStatus") JobStatus jobStatus,
+            @Param("companyStatus") CompanyStatus companyStatus,
+            @Param("today") LocalDate today
+    );
+
+    @Query(value = """
+            SELECT j.id
+            FROM jobs j
+            JOIN companies c ON c.id = j.company_id
+            LEFT JOIN (
+                SELECT js.job_id, COUNT(*) AS skill_matches
+                FROM job_skills js
+                JOIN skills s ON s.id = js.skill_id
+                WHERE COALESCE(NULLIF(BTRIM(LOWER(s.normalized_name)), ''), LOWER(s.name)) IN (:cvSkills)
+                GROUP BY js.job_id
+            ) sm ON sm.job_id = j.id
+            WHERE j.status = 'ACTIVE'
+              AND c.status = 'VERIFIED'
+              AND (j.deadline IS NULL OR j.deadline >= :today)
+            ORDER BY
+                (CAST(COALESCE(sm.skill_matches, 0) AS DOUBLE PRECISION) * 10.0 +
+                 CASE
+                     WHEN :ftsQuery = '' THEN 0.0
+                     ELSE CAST(ts_rank_cd(
+                         to_tsvector(
+                             'english',
+                             COALESCE(j.title, '') || ' ' || COALESCE(j.description, '') || ' ' || COALESCE(j.requirements, '')
+                         ),
+                         to_tsquery('english', :ftsQuery)
+                     ) AS DOUBLE PRECISION)
+                 END) DESC,
+                COALESCE(j.published_at, j.created_at) DESC,
+                j.id ASC
+            LIMIT :maxCandidates
+            """, nativeQuery = true)
+    List<Long> findTopCandidateJobIdsForRecommendation(
+            @Param("today") LocalDate today,
+            @Param("cvSkills") Collection<String> cvSkills,
+            @Param("ftsQuery") String ftsQuery,
+            @Param("maxCandidates") int maxCandidates
+    );
+
+    @Query("""
+            select job
+            from Job job
+            join fetch job.company
+            where job.id in :ids
+            """)
+    List<Job> findWithCompanyByIdIn(@Param("ids") Collection<Long> ids);
+
+    @Query("""
             select j.company.id as companyId, count(j.id) as openJobs
             from Job j
             where j.company.id in :companyIds and j.status = :status

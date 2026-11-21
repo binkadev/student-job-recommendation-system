@@ -28,7 +28,7 @@ class AiCandidateRankingV3ResponseValidatorTest {
 
     @Test
     void ordersIndependentTiersAndRejectsCrossTierLimitOrEvidenceAttacks() {
-        var response = new AiCandidateRankingV3Response(requestId, "tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", List.of(
+        var response = new AiCandidateRankingV3Response(requestId, "tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", List.of(
                 fallback(40L, "1.00000000"), primary(30L), fallback(10L, "1.00000000"), primary(20L)
         ));
         var validated = validator.validate(requestId, BigDecimal.ZERO, 2, 2, preparation(), response);
@@ -36,17 +36,17 @@ class AiCandidateRankingV3ResponseValidatorTest {
         assertThat(validated.results()).extracting(r -> r.tierRankPosition()).containsExactly(1,2,1,2);
         assertThat(validated.results().get(2).overallScore()).isNull();
         assertThatThrownBy(() -> validator.validate(requestId, BigDecimal.ZERO, 1, 2, preparation(), response)).isInstanceOf(AppException.class);
-        var bad = new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","bilingual-candidate-ranking-v3",List.of(
+        var bad = new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","english-global-idf-candidate-ranking-v1",List.of(
                 new AiCandidateRankingV3Response.Result(10L,110L,RecommendationRankingTier.FALLBACK,new BigDecimal("1"),null,null,new BigDecimal("1"),RecommendationScoringStrategy.CROSS_LANGUAGE_SKILL_BASED,List.of("Java"),List.of())
         ));
         assertThatThrownBy(() -> validator.validate(requestId,BigDecimal.ZERO,2,2,preparation(),bad)).isInstanceOf(AppException.class);
     }
     @Test
     void rejectsRootIdentityScoreAndTierSemanticAttacks() {
-        assertInvalid(new AiCandidateRankingV3Response(UUID.randomUUID(),"tfidf-cosine-hybrid","bilingual-candidate-ranking-v3",List.of()));
-        assertInvalid(new AiCandidateRankingV3Response(requestId,"wrong","bilingual-candidate-ranking-v3",List.of()));
+        assertInvalid(new AiCandidateRankingV3Response(UUID.randomUUID(),"tfidf-cosine-hybrid","english-global-idf-candidate-ranking-v1",List.of()));
+        assertInvalid(new AiCandidateRankingV3Response(requestId,"wrong","english-global-idf-candidate-ranking-v1",List.of()));
         assertInvalid(new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","wrong",List.of()));
-        assertInvalid(new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","bilingual-candidate-ranking-v3",null));
+        assertInvalid(new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","english-global-idf-candidate-ranking-v1",null));
         assertInvalid(response(primary(99L)));
         assertInvalid(response(new AiCandidateRankingV3Response.Result(10L,110L,null,new BigDecimal(".61"),new BigDecimal(".61"),new BigDecimal(".4"),BigDecimal.ONE,RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID,List.of("java","spring boot"),List.of())));
         assertInvalid(response(new AiCandidateRankingV3Response.Result(10L,110L,RecommendationRankingTier.PRIMARY,new BigDecimal(".61"),new BigDecimal(".61"),new BigDecimal(".4"),BigDecimal.ONE,null,List.of("java","spring boot"),List.of())));
@@ -93,17 +93,17 @@ class AiCandidateRankingV3ResponseValidatorTest {
     }
     private AiCandidateRankingV3Response.Result primary(long id){return new AiCandidateRankingV3Response.Result(id,id+100,RecommendationRankingTier.PRIMARY,new BigDecimal("0.61000000"),new BigDecimal("0.61000000"),new BigDecimal("0.40000000"),new BigDecimal("1.00000000"),RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID,List.of("java","spring boot"),List.of());}
     private AiCandidateRankingV3Response.Result fallback(long id,String score){return new AiCandidateRankingV3Response.Result(id,id+100,RecommendationRankingTier.FALLBACK,new BigDecimal(score),null,null,new BigDecimal(score),RecommendationScoringStrategy.CROSS_LANGUAGE_SKILL_BASED,List.of("java","spring boot"),List.of());}
-    private AiCandidateRankingV3Response response(AiCandidateRankingV3Response.Result result){return new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","bilingual-candidate-ranking-v3",List.of(result));}
-    private AiCandidateRankingV3Response response(List<AiCandidateRankingV3Response.Result> results){return new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","bilingual-candidate-ranking-v3",results);}
+    private AiCandidateRankingV3Response response(AiCandidateRankingV3Response.Result result){return new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","english-global-idf-candidate-ranking-v1",List.of(result));}
+    private AiCandidateRankingV3Response response(List<AiCandidateRankingV3Response.Result> results){return new AiCandidateRankingV3Response(requestId,"tfidf-cosine-hybrid","english-global-idf-candidate-ranking-v1",results);}
     private void assertInvalid(AiCandidateRankingV3Response response){assertThatThrownBy(()->validator.validate(requestId,BigDecimal.ZERO,2,2,preparation(),response)).isInstanceOf(AppException.class);}
     private void assertInvalidThreshold(AiCandidateRankingV3Response response,BigDecimal threshold){assertThatThrownBy(()->validator.validate(requestId,threshold,2,2,preparation(),response)).isInstanceOf(AppException.class);}
     private CandidateRankingV3PreparationResult preparation(){
-        List<CandidateRankingCandidateSnapshot> candidates=List.of(10L,20L,30L,40L).stream().map(id->new CandidateRankingCandidateSnapshot(id,ApplicationStatus.PENDING,id+100,"ignored","processed",List.of("java","spring boot"),CvAnalysisStatus.READY,"en",BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",LocalDateTime.now())).toList();
+        List<CandidateRankingCandidateSnapshot> candidates=List.of(10L,20L,30L,40L).stream().map(id->new CandidateRankingCandidateSnapshot(id,ApplicationStatus.PENDING,id+100,"ignored","processed",List.of("java","spring boot"),CvAnalysisStatus.READY,"en",BigDecimal.ONE,"english-spacy-v1-skills-v1",LocalDateTime.now())).toList();
         var job=new CandidateRankingJobSnapshot(1L,"job","","",List.of("java","spring boot"),LocalDateTime.now());
         return new CandidateRankingV3PreparationResult(job,new AiCandidateRankingV3Request.JobInput(1L,"job",job.canonicalSkills()),candidates,List.of(),new CandidateRankingCorpusCounters(4,4,0,0,0),"a".repeat(64));
     }
     private CandidateRankingV3PreparationResult zeroPreparation(){
-        var candidate=new CandidateRankingCandidateSnapshot(10L,ApplicationStatus.PENDING,110L,"ignored","processed",List.of("java"),CvAnalysisStatus.READY,"en",BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",LocalDateTime.now());
+        var candidate=new CandidateRankingCandidateSnapshot(10L,ApplicationStatus.PENDING,110L,"ignored","processed",List.of("java"),CvAnalysisStatus.READY,"en",BigDecimal.ONE,"english-spacy-v1-skills-v1",LocalDateTime.now());
         var job=new CandidateRankingJobSnapshot(1L,"job","","",List.of(),LocalDateTime.now());
         return new CandidateRankingV3PreparationResult(job,new AiCandidateRankingV3Request.JobInput(1L,"job",List.of()),List.of(candidate),List.of(),new CandidateRankingCorpusCounters(1,1,0,0,0),"a".repeat(64));
     }

@@ -80,7 +80,7 @@ public class ReliabilityBrowserFixture {
                         .filePath("isolated-ready.pdf").fileUrl("isolated-ready.pdf").contentType("application/pdf").fileSize(128L)
                         .active(true).analysisStatus(CvAnalysisStatus.READY).extractedText(english).processedText(english)
                         .extractedSkills(List.of("Java", "SQL", "Git")).languageCode("en").languageConfidence(new BigDecimal("0.99"))
-                        .processingVersion("bilingual-nlp-v2-skills-v1").analyzedAt(LocalDateTime.now()).build());
+                        .processingVersion("english-spacy-v1-skills-v1").analyzedAt(LocalDateTime.now()).build());
                 var jobs = new ArrayList<Job>();
                 for (String language : List.of("en", "vi")) jobs.add(context.getBean(JobRepository.class).saveAndFlush(Job.builder()
                         .company(company).title(language.equals("en") ? "Reliability Java backend internship" : "Thực tập lập trình viên Java")

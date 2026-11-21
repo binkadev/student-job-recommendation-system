@@ -23,6 +23,7 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
+      target: runtime
     image: student-job-recommendation-ai:local
     restart: unless-stopped
     init: true
@@ -31,8 +32,36 @@ services:
       AI_CANDIDATE_RANKING_MAX_CANDIDATES: ${AI_CANDIDATE_RANKING_MAX_CANDIDATES:-500}
       AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES: ${AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES:-8388608}
       AI_INTERNAL_API_KEY: ${AI_INTERNAL_API_KEY:?AI_INTERNAL_API_KEY must be set}
+      AI_SPACY_MODEL_DIR: /app/built_models/spacy_custom_model
+      AI_TFIDF_MODEL_PATH: /app/models/tfidf/tfidf_model.pkl
+      AI_TFIDF_BOOTSTRAP_MODEL_PATH: /app/built_models/tfidf/tfidf_model.pkl
     ports:
       - "127.0.0.1:${AI_PORT:-8000}:8000"
+    volumes:
+      - ai_tfidf_models:/app/models/tfidf:ro
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core
+
+  ai-trainer:
+    profiles: ["trainer"]
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+      target: trainer
+    image: student-job-recommendation-ai-trainer:local
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AI_SPACY_MODEL_DIR: /app/built_models/spacy_custom_model
+      AI_TFIDF_STATE_PATH: /app/models/tfidf/df_state.sqlite
+      AI_TFIDF_MODEL_PATH: /app/models/tfidf/tfidf_model.pkl
+      AI_TRAINER_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-student_job_recommendation}
+    volumes:
+      - ai_tfidf_models:/app/models/tfidf:rw
     security_opt:
       - no-new-privileges:true
     networks:
@@ -69,8 +98,7 @@ services:
       APP_AI_SERVICE_READ_TIMEOUT: ${APP_AI_SERVICE_READ_TIMEOUT:-15s}
       APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST: ${APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST:-500}
       APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES: ${APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES:-8388608}
-      APP_AI_RECOMMENDATION_ALGORITHM: tfidf-cosine-hybrid
-      APP_AI_RECOMMENDATION_ALGORITHM_VERSION: bilingual-recommendation-v2
+      APP_RECOMMENDATION_MAX_CANDIDATE_JOBS: ${APP_RECOMMENDATION_MAX_CANDIDATE_JOBS:-500}
       JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
@@ -88,3 +116,4 @@ networks:
 volumes:
   postgres_data:
   cv_uploads:
+  ai_tfidf_models:

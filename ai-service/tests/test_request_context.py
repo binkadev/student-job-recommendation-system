@@ -1,4 +1,4 @@
-"""Request tracing tests across public, V1, and protected V2 routes."""
+"""Request tracing tests across public /health and protected /internal routes."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 import pytest
 
 import main
-from request_context import (
+from core.constants import PROCESSING_VERSION
+from core.request_context import (
     REQUEST_ID_HEADER,
     get_request_id,
     resolve_request_id,
@@ -31,10 +32,15 @@ UUID_PATTERN = re.compile(
 HEALTH_BODY = {
     "status": "ok",
     "service": "job-recommendation-ai",
-    "version": "tfidf-cosine-v1",
-    "supportedContracts": ["v1", "v2"],
-    "recommendationVersion": "bilingual-recommendation-v2",
-    "processingVersion": "bilingual-nlp-v2-skills-v1",
+    "algorithm": "tfidf-cosine-hybrid",
+    "recommendationVersion": "english-global-idf-recommendation-v1",
+    "candidateRankingVersion": "english-global-idf-candidate-ranking-v1",
+    "processingVersion": "english-spacy-v1-skills-v1",
+    "nlpModelHash": main.runtime.spacy_pipeline.model_hash,
+    "tfidfModelVersion": main.runtime.tfidf_artifact.model_version,
+    "tfidfModelSource": main.runtime.tfidf_artifact.source_kind,
+    "tfidfDocCount": main.runtime.tfidf_artifact.doc_count,
+    "tfidfVocabSize": main.runtime.tfidf_artifact.vocab_size,
 }
 
 
@@ -112,14 +118,14 @@ def test_unicode_crlf_and_surrounding_spaces_are_rejected(
         {"X-Internal-Api-Key": "wrong-internal-api-key"},
     ],
 )
-def test_v2_unauthorized_response_has_request_id(
+def test_unauthorized_internal_response_has_request_id(
     internal_headers: dict[str, str],
 ) -> None:
     supplied = "unauthorized.trace-1"
     headers = {REQUEST_ID_HEADER: supplied, **internal_headers}
 
     response = CLIENT.post(
-        "/internal/v2/recommendations",
+        "/internal/recommendations",
         json={},
         headers=headers,
     )
@@ -129,14 +135,17 @@ def test_v2_unauthorized_response_has_request_id(
     assert response.json() == UNAUTHORIZED_BODY
 
 
-def test_valid_v2_request_preserves_existing_behavior_and_trace_header() -> None:
-    supplied = "v2.valid-trace:1"
+def test_valid_internal_request_preserves_behavior_and_trace_header() -> None:
+    supplied = "internal.valid-trace:1"
     payload = {
         "requestId": "e5887544-9785-4697-8345-74953da1c2a7",
         "cv": {
             "id": 7,
-            "text": "Java backend developer",
+            "processedText": "java backend developer",
             "skills": ["Java"],
+            "languageCode": "en",
+            "languageConfidence": 1.0,
+            "processingVersion": PROCESSING_VERSION,
         },
         "jobs": [],
         "threshold": 0,
@@ -144,7 +153,7 @@ def test_valid_v2_request_preserves_existing_behavior_and_trace_header() -> None
     }
 
     response = CLIENT.post(
-        "/internal/v2/recommendations",
+        "/internal/recommendations",
         json=payload,
         headers={
             REQUEST_ID_HEADER: supplied,
@@ -157,26 +166,9 @@ def test_valid_v2_request_preserves_existing_behavior_and_trace_header() -> None
     assert response.json() == {
         "requestId": payload["requestId"],
         "algorithm": "tfidf-cosine-hybrid",
-        "algorithmVersion": "bilingual-recommendation-v2",
+        "algorithmVersion": "english-global-idf-recommendation-v1",
         "results": [],
     }
-
-
-def test_v1_error_body_is_unchanged_and_has_trace_header() -> None:
-    supplied = "v1.trace-1"
-
-    response = CLIENT.post(
-        "/internal/v1/recommendations",
-        content=b"{",
-        headers={
-            REQUEST_ID_HEADER: supplied,
-            "content-type": "application/json",
-        },
-    )
-
-    assert response.status_code == 422
-    assert response.headers[REQUEST_ID_HEADER] == supplied
-    assert set(response.json()) == {"detail"}
 
 
 def test_sequential_requests_do_not_leak_context() -> None:

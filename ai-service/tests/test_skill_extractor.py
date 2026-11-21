@@ -6,9 +6,9 @@ from types import MappingProxyType
 
 import pytest
 
-from v2.constants import SKILL_CATALOG_VERSION
-from v2.skill_canonicalizer import SkillCatalog, load_default_catalog
-from v2.skill_extractor import SkillExtractor
+from core.constants import SKILL_CATALOG_VERSION
+from nlp.skill_canonicalizer import SkillCatalog, load_default_catalog
+from nlp.skill_extractor import SkillExtractor
 
 
 def _catalog(alias_to_canonical: dict[str, str]) -> SkillCatalog:
@@ -69,7 +69,7 @@ def test_longest_matches_prevent_nested_skills_for_one_span(
 def test_separate_non_overlapping_nested_skill_is_retained(
     extractor: SkillExtractor,
 ) -> None:
-    text = "Spring Boot services and the Spring framework"
+    text = "Spring Boot services and core Spring"
 
     assert extractor.extract(text) == ("spring", "spring boot")
 
@@ -117,13 +117,13 @@ def test_does_not_fuzzy_match_or_match_inside_words(
     assert extractor.extract(text) == ()
 
 
-def test_extracts_longest_vietnamese_aliases_without_generic_false_positives(
+def test_extracts_english_compound_skills_without_false_positives(
     extractor: SkillExtractor,
 ) -> None:
     text = (
-        "Trí tuệ nhân tạo, học máy, cơ sở dữ liệu, điện toán đám mây, "
-        "kiến trúc vi dịch vụ, lập trình hướng đối tượng, kiểm thử phần mềm "
-        "và quản lý dự án."
+        "Artificial Intelligence, Machine Learning, Database, Cloud Computing, "
+        "Microservices, Object Oriented Programming, Software Testing, "
+        "and Project Management."
     )
 
     assert extractor.extract(text) == (
@@ -138,12 +138,11 @@ def test_extracts_longest_vietnamese_aliases_without_generic_false_positives(
     )
 
 
-def test_generic_vietnamese_words_are_not_skills(
+def test_generic_english_words_are_not_skills(
     extractor: SkillExtractor,
 ) -> None:
     assert extractor.extract(
-        "hệ thống ứng dụng dữ liệu dịch vụ web phần mềm phát triển quản lý "
-        "kiểm thử đám mây"
+        "system application data service management team"
     ) == ()
 
 

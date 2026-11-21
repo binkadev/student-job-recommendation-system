@@ -41,7 +41,6 @@ class RecommendationGenerationServiceImplTest {
 
         verify(fixture.transaction).createProcessingRunV3(eq(99L), any(GenerateRecommendationRequest.class));
         verify(fixture.ai).recommendV3(any());
-        verify(fixture.ai, never()).recommend(any());
         verify(fixture.transaction).completeSuccessV3(12L, validated);
     }
 
@@ -53,7 +52,6 @@ class RecommendationGenerationServiceImplTest {
         fixture.service.generate(99L, request());
 
         verify(fixture.ai, never()).recommendV3(any());
-        verify(fixture.ai, never()).recommend(any());
         verify(fixture.validator, never()).validate(any(), any(), any(), any(), any(Integer.class), any());
         org.mockito.ArgumentCaptor<ValidatedRecommendationV3Response> captured =
                 org.mockito.ArgumentCaptor.forClass(ValidatedRecommendationV3Response.class);
@@ -72,7 +70,6 @@ class RecommendationGenerationServiceImplTest {
             assertThatThrownBy(() -> fixture.service.generate(99L, request())).isSameAs(failure);
             verify(fixture.transaction).markFailed(12L, failure);
             verify(fixture.transaction, never()).completeSuccessV3(any(), any());
-            verify(fixture.ai, never()).recommend(any());
         }
         Fixture validatorFailure = fixture(contextWithJobs());
         AiRecommendationV3Response response = mock(AiRecommendationV3Response.class);

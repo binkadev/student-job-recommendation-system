@@ -1,0 +1,2 @@
+# Offline Incremental DF trainer dependencies (NEVER installed in online runtime image)
+psycopg[binary]==3.3.9

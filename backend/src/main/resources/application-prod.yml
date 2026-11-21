@@ -48,6 +48,9 @@ app:
       max-candidates-per-request: ${APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST}
       max-request-bytes: ${APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES}
 
+  recommendation:
+    max-candidate-jobs: ${APP_RECOMMENDATION_MAX_CANDIDATE_JOBS:500}
+
 springdoc:
   api-docs:
     enabled: false

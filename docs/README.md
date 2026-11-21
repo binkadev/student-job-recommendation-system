@@ -90,3 +90,11 @@ Recall@5 hoặc NDCG@5 chính thức.
   production prerequisites.
 - [Final verification](final-verification.md) — sanitized command evidence and
   regression conclusion.
+
+## Post-Ingestion, Global-IDF & Operations Guides
+
+- [System Architecture & API Report](system_architecture_and_api_report.md) — end-to-end architecture, use-case flows, AI NLP/Global-IDF scoring, `V26` job snapshots, and REST API contracts.
+- [TF-IDF Vocabulary Construction Report](tfidf_vocabulary_construction_report.md) — code-to-data trace, `(1, 2)` `50,000`-term audit vs. live `(1, 1)` `39,492`-term protected-entity build.
+- [Post-Ingestion AI Operations Guide](post_ingestion_ai_operations_guide.md) — skill sync (`sync_skills.py`), bulk CV analysis (`analyze.py`), `backfill_job_nlp.py`, Zero-NLP `ai-trainer`, and sub-15s 15k-job optimization.
+- [New Machine Setup & Operations Guide](new_machine_setup_and_operations_guide.md) — prerequisites, `.env` reference, DB + CV PDFs + model migration, clean rebuild, and troubleshooting.
+- [Defense Demo & AI Testing Guide](defense_demo_and_ai_testing_guide.md) — standalone Swagger testing checklist, live demo script, and academic defense Q&A.

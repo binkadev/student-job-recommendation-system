@@ -4,13 +4,14 @@ import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.CompanyStatus;
 import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.enums.JobStatus;
+import com.tttn.jobrecommendation.common.enums.RecommendationRankingTier;
 import com.tttn.jobrecommendation.common.enums.RecommendationRunStatus;
 import com.tttn.jobrecommendation.common.enums.RecommendationScoringStrategy;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
 import com.tttn.jobrecommendation.infrastructure.ai.client.AiServiceClient;
-import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingRequest;
-import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingResponse;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingV3Response;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.candidateranking.entity.CandidateRankingResult;
@@ -19,8 +20,8 @@ import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateR
 import com.tttn.jobrecommendation.modules.candidateranking.repository.CandidateRankingRunRepository;
 import com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingGenerationService;
 import com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingTransactionService;
-import com.tttn.jobrecommendation.modules.candidateranking.service.model.CandidateRankingGenerationContext;
-import com.tttn.jobrecommendation.modules.candidateranking.service.model.ValidatedCandidateRankingResponse;
+import com.tttn.jobrecommendation.modules.candidateranking.service.model.CandidateRankingV3GenerationContext;
+import com.tttn.jobrecommendation.modules.candidateranking.service.model.ValidatedCandidateRankingV3Response;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
@@ -70,7 +71,8 @@ import static org.mockito.Mockito.when;
 class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
 
     private static final BigDecimal ZERO_THRESHOLD = new BigDecimal("0.00000");
-    private static final int LIMIT = 20;
+    private static final int PRIMARY_LIMIT = 20;
+    private static final int FALLBACK_LIMIT = 20;
 
     @MockitoBean
     private AiServiceClient aiServiceClient;
@@ -106,8 +108,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         RankingFixture fixture = fixture("committed", 2);
         AtomicBoolean transactionActiveAtAi = new AtomicBoolean(true);
         AtomicReference<String> committedStatusAtAi = new AtomicReference<>();
-        when(aiServiceClient.rankCandidates(any(), anyString())).thenAnswer(invocation -> {
-            AiCandidateRankingRequest request = invocation.getArgument(0);
+        when(aiServiceClient.rankCandidatesV3(any(), anyString())).thenAnswer(invocation -> {
+            AiCandidateRankingV3Request request = invocation.getArgument(0);
             transactionActiveAtAi.set(TransactionSynchronizationManager.isActualTransactionActive());
             committedStatusAtAi.set(jdbcTemplate.queryForObject(
                     "SELECT status FROM candidate_ranking_runs WHERE request_id = ?",
@@ -121,17 +123,18 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                 fixture.company().getId(),
                 fixture.job().getId(),
                 ZERO_THRESHOLD,
-                LIMIT
+                PRIMARY_LIMIT,
+                FALLBACK_LIMIT
         );
 
         assertThat(transactionActiveAtAi.get()).isFalse();
         assertThat(committedStatusAtAi.get()).isEqualTo("PROCESSING");
-        verify(aiServiceClient).rankCandidates(any(AiCandidateRankingRequest.class), anyString());
+        verify(aiServiceClient).rankCandidatesV3(any(AiCandidateRankingV3Request.class), anyString());
 
         CandidateRankingRun run = runRepository.findById(runId).orElseThrow();
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(run.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
-        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-candidate-ranking-v2");
+        assertThat(run.getAlgorithmVersion()).isEqualTo("english-global-idf-candidate-ranking-v1");
         assertThat(run.getFinishedAt()).isNotNull();
 
         List<CandidateRankingResult> results = resultRepository.findByRunIdOrderByRankPositionAsc(runId);
@@ -184,9 +187,11 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                 .status(ApplicationStatus.REVIEWED)
                 .build());
 
-        Long runId = generationService.generate(company.getId(), job.getId(), ZERO_THRESHOLD, LIMIT);
+        Long runId = generationService.generate(
+                company.getId(), job.getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
+        );
 
-        verify(aiServiceClient, never()).rankCandidates(any(), anyString());
+        verify(aiServiceClient, never()).rankCandidatesV3(any(), anyString());
         CandidateRankingRun run = runRepository.findById(runId).orElseThrow();
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(run.getTotalApplicationsScanned()).isEqualTo(3);
@@ -205,8 +210,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         CvFile replacementCv = mutation == FingerprintMutation.SUBMITTED_CV
                 ? readyCv(fixture.students().getFirst(), "replacement.pdf", "Replacement CV", 99)
                 : null;
-        when(aiServiceClient.rankCandidates(any(), anyString())).thenAnswer(invocation -> {
-            AiCandidateRankingRequest request = invocation.getArgument(0);
+        when(aiServiceClient.rankCandidatesV3(any(), anyString())).thenAnswer(invocation -> {
+            AiCandidateRankingV3Request request = invocation.getArgument(0);
             applyMutation(mutation, fixture, replacementCv);
             return validResponse(request, false);
         });
@@ -215,7 +220,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                 fixture.company().getId(),
                 fixture.job().getId(),
                 ZERO_THRESHOLD,
-                LIMIT
+                PRIMARY_LIMIT,
+                FALLBACK_LIMIT
         )).isInstanceOfSatisfying(AppException.class, exception -> {
             assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CANDIDATE_RANKING_GENERATION_FAILED);
             assertThat(exception.getMessage()).isEqualTo("Candidate ranking generation failed");
@@ -230,18 +236,18 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     @Test
     void invalidAiResponsePersistsNoResultsAndFailsIndependently() {
         RankingFixture fixture = fixture("invalid-response", 1);
-        when(aiServiceClient.rankCandidates(any(), anyString())).thenAnswer(invocation -> {
-            AiCandidateRankingRequest request = invocation.getArgument(0);
-            return new AiCandidateRankingResponse(
+        when(aiServiceClient.rankCandidatesV3(any(), anyString())).thenAnswer(invocation -> {
+            AiCandidateRankingV3Request request = invocation.getArgument(0);
+            return new AiCandidateRankingV3Response(
                     UUID.randomUUID(),
                     "tfidf-cosine-hybrid",
-                    "bilingual-candidate-ranking-v2",
+                    "english-global-idf-candidate-ranking-v1",
                     validResponse(request, false).results()
             );
         });
 
         assertThatThrownBy(() -> generationService.generate(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         )).isInstanceOfSatisfying(AppException.class, exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_SERVICE_INVALID_RESPONSE));
 
@@ -254,7 +260,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     @Test
     void resultFlushFailureRollsBackEveryResultAndMarksRunFailedInNewTransaction() {
         RankingFixture fixture = fixture("persistence-failure", 2);
-        when(aiServiceClient.rankCandidates(any(), anyString())).thenAnswer(invocation ->
+        when(aiServiceClient.rankCandidatesV3(any(), anyString())).thenAnswer(invocation ->
                 validResponse(invocation.getArgument(0), true));
         doAnswer(invocation -> {
             invocation.callRealMethod();
@@ -264,7 +270,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         }).when(resultRepository).saveAllAndFlush(anyList());
 
         assertThatThrownBy(() -> generationService.generate(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         )).isInstanceOfSatisfying(AppException.class, exception ->
                 assertThat(exception.getErrorCode())
                         .isEqualTo(ErrorCode.CANDIDATE_RANKING_GENERATION_FAILED));
@@ -285,12 +291,12 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     @Test
     void existingProcessingRunUsesApplicationLevelConflict() {
         RankingFixture fixture = fixture("already-processing", 0);
-        CandidateRankingGenerationContext first = transactionService.createProcessingRun(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+        CandidateRankingV3GenerationContext first = transactionService.createProcessingRunV3(
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         );
 
         assertThatThrownBy(() -> generationService.generate(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         )).isInstanceOfSatisfying(AppException.class, exception ->
                 assertThat(exception.getErrorCode())
                         .isEqualTo(ErrorCode.CANDIDATE_RANKING_ALREADY_PROCESSING));
@@ -299,7 +305,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
             assertThat(run.getId()).isEqualTo(first.runId());
             assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.PROCESSING);
         });
-        verify(aiServiceClient, never()).rankCandidates(any(), anyString());
+        verify(aiServiceClient, never()).rankCandidatesV3(any(), anyString());
     }
 
     @Test
@@ -325,7 +331,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                 outcomes.add(future.get(20, TimeUnit.SECONDS));
             }
 
-            assertThat(outcomes).filteredOn(CandidateRankingGenerationContext.class::isInstance).hasSize(1);
+            assertThat(outcomes).filteredOn(CandidateRankingV3GenerationContext.class::isInstance).hasSize(1);
             assertThat(outcomes).filteredOn(AppException.class::isInstance).singleElement().satisfies(outcome ->
                     assertThat(((AppException) outcome).getErrorCode())
                             .isEqualTo(ErrorCode.CANDIDATE_RANKING_ALREADY_PROCESSING));
@@ -343,11 +349,12 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     void unrelatedPostgresConstraintViolationIsNotMisclassifiedAsAlreadyProcessing() {
         RankingFixture fixture = fixture("unrelated-constraint", 0);
 
-        assertThatThrownBy(() -> transactionService.createProcessingRun(
+        assertThatThrownBy(() -> transactionService.createProcessingRunV3(
                 fixture.company().getId(),
                 fixture.job().getId(),
                 new BigDecimal("-0.10000"),
-                LIMIT
+                PRIMARY_LIMIT,
+                FALLBACK_LIMIT
         )).isInstanceOf(DataIntegrityViolationException.class)
                 .isNotInstanceOf(AppException.class);
         assertThat(runRepository.findAll()).isEmpty();
@@ -357,7 +364,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     void markFailedNeverOverwritesSuccessAndCompleteSuccessRejectsNonProcessing() {
         RankingFixture fixture = fixture("state-transitions", 0);
         Long runId = generationService.generate(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         );
         CandidateRankingRun successful = runRepository.findById(runId).orElseThrow();
         LocalDateTime originalFinishedAt = successful.getFinishedAt();
@@ -368,7 +375,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         assertThat(unchanged.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(unchanged.getFinishedAt()).isEqualTo(originalFinishedAt);
         assertThat(unchanged.getErrorMessage()).isNull();
-        assertThatThrownBy(() -> transactionService.completeSuccess(
+
+        assertThatThrownBy(() -> transactionService.completeSuccessV3(
                 runId,
                 fixture.company().getId(),
                 fixture.job().getId(),
@@ -384,11 +392,12 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     void concurrentMarkFailedWaitsForSuccessRowLockAndNeverOverwritesCommittedSuccess()
             throws Exception {
         RankingFixture fixture = fixture("locked-state-transition", 0);
-        CandidateRankingGenerationContext context = transactionService.createProcessingRun(
+        CandidateRankingV3GenerationContext context = transactionService.createProcessingRunV3(
                 fixture.company().getId(),
                 fixture.job().getId(),
                 ZERO_THRESHOLD,
-                LIMIT
+                PRIMARY_LIMIT,
+                FALLBACK_LIMIT
         );
         CountDownLatch successHoldingRowLock = new CountDownLatch(1);
         CountDownLatch allowSuccessToCommit = new CountDownLatch(1);
@@ -403,7 +412,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<RunStateSnapshot> successFuture = executor.submit(() -> {
-                transactionService.completeSuccess(
+                transactionService.completeSuccessV3(
                         context.runId(),
                         fixture.company().getId(),
                         fixture.job().getId(),
@@ -454,7 +463,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     void successReadQueryCountDoesNotGrowPerRankedResult() {
         RankingFixture oneCandidate = fixture("query-one", 1);
         RankingFixture tenCandidates = fixture("query-ten", 10);
-        when(aiServiceClient.rankCandidates(any(), anyString())).thenAnswer(invocation ->
+        when(aiServiceClient.rankCandidatesV3(any(), anyString())).thenAnswer(invocation ->
                 validResponse(invocation.getArgument(0), true));
 
         QueryMeasurement one = measureGeneration(oneCandidate);
@@ -468,8 +477,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
 
     private Object createProcessingOutcome(RankingFixture fixture) {
         try {
-            return transactionService.createProcessingRun(
-                    fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+            return transactionService.createProcessingRunV3(
+                    fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
             );
         } catch (RuntimeException exception) {
             return exception;
@@ -505,7 +514,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
         Long runId = generationService.generate(
-                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, LIMIT
+                fixture.company().getId(), fixture.job().getId(), ZERO_THRESHOLD, PRIMARY_LIMIT, FALLBACK_LIMIT
         );
         long queryExecutions = statistics.getQueryExecutionCount();
         long entityFetches = statistics.getEntityFetchCount();
@@ -533,8 +542,8 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                     replacementCv.getId(),
                     application.getId()
             );
-            case CV_EXTRACTED_TEXT -> jdbcTemplate.update(
-                    "UPDATE cv_files SET extracted_text = 'Changed CV text' WHERE id = ?",
+            case CV_PROCESSED_TEXT -> jdbcTemplate.update(
+                    "UPDATE cv_files SET processed_text = 'changed cv text' WHERE id = ?",
                     application.getCvFile().getId()
             );
             case JOB_TEXT -> jdbcTemplate.update(
@@ -592,26 +601,30 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
         cv.setProcessedText(text.toLowerCase());
         cv.setExtractedSkills(List.of());
         cv.setAnalysisStatus(CvAnalysisStatus.READY);
-        cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cv.setLanguageCode("en");
+        cv.setLanguageConfidence(new BigDecimal("0.9900"));
+        cv.setProcessingVersion("english-spacy-v1-skills-v1");
         cv.setAnalyzedAt(LocalDateTime.of(2026, 8, 1, 10, 0).plusMinutes(minuteOffset));
         return cvFileRepository.saveAndFlush(cv);
     }
 
-    private AiCandidateRankingResponse validResponse(
-            AiCandidateRankingRequest request,
+    private AiCandidateRankingV3Response validResponse(
+            AiCandidateRankingV3Request request,
             boolean reverseScores
     ) {
-        List<AiCandidateRankingResponse.Result> results = new ArrayList<>();
+        List<AiCandidateRankingV3Response.Result> results = new ArrayList<>();
         for (int index = 0; index < request.candidates().size(); index++) {
-            AiCandidateRankingRequest.CandidateInput candidate = request.candidates().get(index);
+            AiCandidateRankingV3Request.CandidateInput candidate = request.candidates().get(index);
             BigDecimal score = reverseScores
                     ? index == 0
                             ? new BigDecimal("0.80000000")
                             : new BigDecimal("0.90000000")
                     : new BigDecimal("0.80000000");
-            results.add(new AiCandidateRankingResponse.Result(
+            results.add(new AiCandidateRankingV3Response.Result(
                     candidate.applicationId(),
                     candidate.cvId(),
+                    RecommendationRankingTier.PRIMARY,
+                    score,
                     score,
                     score,
                     new BigDecimal("0.00000000"),
@@ -620,18 +633,18 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
                     List.of()
             ));
         }
-        return new AiCandidateRankingResponse(
+        return new AiCandidateRankingV3Response(
                 request.requestId(),
                 "tfidf-cosine-hybrid",
-                "bilingual-candidate-ranking-v2",
+                "english-global-idf-candidate-ranking-v1",
                 List.copyOf(results)
         );
     }
 
-    private ValidatedCandidateRankingResponse emptyValidatedResponse() {
-        return new ValidatedCandidateRankingResponse(
+    private ValidatedCandidateRankingV3Response emptyValidatedResponse() {
+        return new ValidatedCandidateRankingV3Response(
                 "tfidf-cosine-hybrid",
-                "bilingual-candidate-ranking-v2",
+                "english-global-idf-candidate-ranking-v1",
                 List.of()
         );
     }
@@ -639,7 +652,7 @@ class CandidateRankingOrchestrationIT extends AbstractPostgresIntegrationTest {
     private enum FingerprintMutation {
         APPLICATION_STATUS,
         SUBMITTED_CV,
-        CV_EXTRACTED_TEXT,
+        CV_PROCESSED_TEXT,
         JOB_TEXT,
         JOB_SKILL
     }

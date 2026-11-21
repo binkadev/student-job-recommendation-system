@@ -1,11 +1,15 @@
-"""Phase 0 dependency compatibility smoke tests."""
+"""Dependency compatibility and stateless-runtime packaging smoke tests."""
+
+import importlib.util
+from pathlib import Path
+import re
 
 import numpy as np
 import pytest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from underthesea import word_tokenize
+import spacy
 
 
 class _PydanticSmokeModel(BaseModel):
@@ -16,24 +20,27 @@ class _PydanticSmokeModel(BaseModel):
 
 
 def test_pydantic_v2_validation_executes() -> None:
-    model = _PydanticSmokeModel.model_validate({"name": "phase-0", "score": 0.5})
+    model = _PydanticSmokeModel.model_validate({"name": "smoke", "score": 0.5})
 
-    assert model.model_dump() == {"name": "phase-0", "score": 0.5}
+    assert model.model_dump() == {"name": "smoke", "score": 0.5}
     with pytest.raises(ValidationError):
         _PydanticSmokeModel.model_validate(
-            {"name": "phase-0", "score": 0.5, "unexpected": True}
+            {"name": "smoke", "score": 0.5, "unexpected": True}
         )
 
 
-def test_underthesea_tokenizer_executes() -> None:
-    tokenized = word_tokenize(
-        "Tôi đang học lập trình Python và phát triển phần mềm.",
-        format="text",
-    )
+def test_spacy_english_model_loads_and_underthesea_is_absent(ai_service_root: Path) -> None:
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp("Software engineers build backend APIs with Python and PostgreSQL.")
 
-    assert isinstance(tokenized, str)
-    assert tokenized.strip()
-    assert "Python" in tokenized
+    assert [token.text for token in doc if token.text == "Python"] == ["Python"]
+    assert importlib.util.find_spec("underthesea") is None
+    requirements_lock = (ai_service_root / "requirements.lock").read_text(encoding="utf-8")
+    assert not any(
+        re.match(r"^psycopg(?:$|[-_=<>!~;\s\[])", line.strip().lower())
+        for line in requirements_lock.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    )
 
 
 def test_numpy_import_and_execution() -> None:
@@ -44,11 +51,11 @@ def test_numpy_import_and_execution() -> None:
 
 
 def test_tfidf_and_cosine_similarity_execute() -> None:
-    vectorizer = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True)
+    vectorizer = TfidfVectorizer(ngram_range=(1, 1), sublinear_tf=True)
     job_vectors = vectorizer.fit_transform(
-        ["java spring boot backend", "react typescript frontend"]
+        ["java spring_boot backend", "react typescript frontend"]
     )
-    cv_vector = vectorizer.transform(["java spring boot"])
+    cv_vector = vectorizer.transform(["java spring_boot"])
     similarities = cosine_similarity(cv_vector, job_vectors).ravel()
 
     assert similarities.shape == (2,)

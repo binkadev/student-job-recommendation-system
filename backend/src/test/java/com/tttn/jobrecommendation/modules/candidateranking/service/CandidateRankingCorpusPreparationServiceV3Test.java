@@ -4,6 +4,7 @@ import com.tttn.jobrecommendation.common.enums.ApplicationStatus;
 import com.tttn.jobrecommendation.common.enums.CvAnalysisStatus;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
+import com.tttn.jobrecommendation.infrastructure.ai.job.JobTextContentHasher;
 import com.tttn.jobrecommendation.infrastructure.ai.skill.SkillCatalogCanonicalizer;
 import com.tttn.jobrecommendation.modules.application.repository.CandidateRankingApplicationRow;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
@@ -32,15 +33,15 @@ class CandidateRankingCorpusPreparationServiceV3Test {
     void acceptsSubmittedReadySnapshotsWithoutExtractedTextAndCountsAllExclusions() {
         Fixture f=fixture(List.of(skill("JS"),skill("javascript"),skill("Spring Boot")));
         when(f.apps.findCandidateRankingRowsByJobId(JOB)).thenReturn(List.of(
-                row(10L,ApplicationStatus.PENDING,110L,null,"processed",List.of("JS","javascript"),"mixed",new BigDecimal(".01"),"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
-                row(11L,ApplicationStatus.REVIEWED,111L," ","processed",List.of("Spring Boot"),"unknown",BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
+                row(10L,ApplicationStatus.PENDING,110L,null,"processed",List.of("JS","javascript"),"mixed",new BigDecimal(".01"),"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
+                row(11L,ApplicationStatus.REVIEWED,111L," ","processed",List.of("Spring Boot"),"unknown",BigDecimal.ONE,"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
                 row(12L,ApplicationStatus.ACCEPTED,null,null,null,null,null,null,null,null),
-                row(13L,ApplicationStatus.REJECTED,113L,"x","processed",List.of(),"en",BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
+                row(13L,ApplicationStatus.REJECTED,113L,"x","processed",List.of(),"en",BigDecimal.ONE,"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
                 row(14L,ApplicationStatus.WITHDRAWN,null,null,null,null,null,null,null,null),
                 row(15L,ApplicationStatus.PENDING,null,null,null,null,null,null,null,null),
-                row(16L,ApplicationStatus.PENDING,116L,"x"," ",List.of(),"en",BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
-                row(17L,ApplicationStatus.PENDING,117L,"x","processed",List.of(),null,BigDecimal.ONE,"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
-                row(18L,ApplicationStatus.PENDING,118L,"x","processed",List.of(),"en",new BigDecimal("1.1"),"bilingual-nlp-v2-skills-v1",CvAnalysisStatus.READY),
+                row(16L,ApplicationStatus.PENDING,116L,"x"," ",List.of(),"en",BigDecimal.ONE,"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
+                row(17L,ApplicationStatus.PENDING,117L,"x","processed",List.of(),null,BigDecimal.ONE,"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
+                row(18L,ApplicationStatus.PENDING,118L,"x","processed",List.of(),"en",new BigDecimal("1.1"),"english-spacy-v1-skills-v1",CvAnalysisStatus.READY),
                 row(19L,ApplicationStatus.PENDING,119L,"x","processed",List.of(),"en",BigDecimal.ONE,"wrong",CvAnalysisStatus.READY)
         ));
         var result=f.service.prepareV3(COMPANY,JOB);
@@ -64,6 +65,35 @@ class CandidateRankingCorpusPreparationServiceV3Test {
         List<JobSkill> oneHundredOne=new ArrayList<>();for(int i=0;i<101;i++)oneHundredOne.add(skill("unknown-"+i));
         Fixture invalid=fixture(oneHundredOne);
         assertThatThrownBy(()->invalid.service.prepareV3(COMPANY,JOB)).isInstanceOf(AppException.class);
+    }
+
+    @Test
+    void reusesFreshJobSnapshotWithoutSendingRawTextWhilePreservingJobSnapshot() {
+        JobRepository jobs = mock(JobRepository.class);
+        JobSkillRepository jobSkills = mock(JobSkillRepository.class);
+        JobApplicationRepository apps = mock(JobApplicationRepository.class);
+        String hash = JobTextContentHasher.sha256("Backend", "Build APIs", "Java");
+        Job job = Job.builder()
+                .id(JOB).company(Company.builder().id(COMPANY).build())
+                .title("Backend").description("Build APIs").requirements("Java")
+                .processedText("backend build api java")
+                .languageCode("en").languageConfidence(new BigDecimal("0.98"))
+                .processingVersion(JobTextContentHasher.PROCESSING_VERSION)
+                .contentHash(hash)
+                .updatedAt(LocalDateTime.now())
+                .build();
+        when(jobs.findByIdAndCompanyId(JOB, COMPANY)).thenReturn(Optional.of(job));
+        when(jobSkills.findByJobIdOrderByIdAsc(JOB)).thenReturn(List.of(skill("Java")));
+        when(apps.findCandidateRankingRowsByJobId(JOB)).thenReturn(List.of());
+
+        var result = new CandidateRankingCorpusPreparationService(jobs, jobSkills, apps, new SkillCatalogCanonicalizer())
+                .prepareV3(COMPANY, JOB);
+
+        assertThat(result.aiJobInput().text()).isNull();
+        assertThat(result.aiJobInput().processedText()).isEqualTo("backend build api java");
+        assertThat(result.aiJobInput().languageCode()).isEqualTo("en");
+        assertThat(result.aiJobInput().processingVersion()).isEqualTo(JobTextContentHasher.PROCESSING_VERSION);
+        assertThat(result.jobSnapshot().title()).isEqualTo("Backend");
     }
     private Fixture fixture(List<JobSkill> skills){JobRepository jobs=mock(JobRepository.class);JobSkillRepository jobSkills=mock(JobSkillRepository.class);JobApplicationRepository apps=mock(JobApplicationRepository.class);Job job=Job.builder().id(JOB).company(Company.builder().id(COMPANY).build()).title("Backend").updatedAt(LocalDateTime.now()).build();when(jobs.findByIdAndCompanyId(JOB,COMPANY)).thenReturn(Optional.of(job));when(jobSkills.findByJobIdOrderByIdAsc(JOB)).thenReturn(skills);return new Fixture(new CandidateRankingCorpusPreparationService(jobs,jobSkills,apps,new SkillCatalogCanonicalizer()),jobs,apps);}
     private JobSkill skill(String name){return JobSkill.builder().skill(Skill.builder().name(name).normalizedName(name).build()).build();}

@@ -38,7 +38,7 @@ class RecommendationTransactionServiceV3Test {
         cv.setExtractedSkills(List.of("JS", "javascript", "Spring Boot"));
         when(fixture.cvFiles.findByIdAndStudentId(11L, 7L)).thenReturn(Optional.of(cv));
         AiRecommendationV3Request.JobInput job = new AiRecommendationV3Request.JobInput(100L, "structured job", List.of("java"));
-        when(fixture.v3Corpus.build(any())).thenReturn(List.of(job));
+        when(fixture.v3Corpus.buildForCv(any(), any())).thenReturn(new EligibleJobCorpusV3Builder.EligibleJobCorpus(List.of(job), 14956));
 
         RecommendationGenerationV3Context context = fixture.service.createProcessingRunV3(99L, request());
 
@@ -50,7 +50,6 @@ class RecommendationTransactionServiceV3Test {
         assertThat(context.request().cv().processingVersion()).isEqualTo(RecommendationV3Contract.PROCESSING_VERSION);
         assertThat(context.request().jobs()).containsExactly(job);
         assertThat(context.jobSkillsById()).containsEntry(100L, List.of("java"));
-        verify(fixture.v2Corpus, never()).build(any());
     }
 
     @Test
@@ -61,7 +60,7 @@ class RecommendationTransactionServiceV3Test {
             cv.setLanguageCode(language);
             cv.setLanguageConfidence(new BigDecimal("0.01"));
             when(fixture.cvFiles.findByIdAndStudentId(11L, 7L)).thenReturn(Optional.of(cv));
-            when(fixture.v3Corpus.build(any())).thenReturn(List.of());
+            when(fixture.v3Corpus.buildForCv(any(), any())).thenReturn(new EligibleJobCorpusV3Builder.EligibleJobCorpus(List.of(), 0));
 
             assertThat(fixture.service.createProcessingRunV3(99L, request()).request().cv().languageCode())
                     .isEqualTo(language);
@@ -83,7 +82,7 @@ class RecommendationTransactionServiceV3Test {
             when(fixture.cvFiles.findByIdAndStudentId(11L, 7L)).thenReturn(Optional.of(cv));
             assertThatThrownBy(() -> fixture.service.createProcessingRunV3(99L, request()))
                     .isInstanceOf(AppException.class);
-            verify(fixture.v3Corpus, never()).build(any());
+            verify(fixture.v3Corpus, never()).buildForCv(any(), any());
         }
     }
 
@@ -93,7 +92,6 @@ class RecommendationTransactionServiceV3Test {
         JobRepository jobs = mock(JobRepository.class);
         RecommendationRunRepository runs = mock(RecommendationRunRepository.class);
         RecommendationResultRepository results = mock(RecommendationResultRepository.class);
-        EligibleJobCorpusBuilder v2Corpus = mock(EligibleJobCorpusBuilder.class);
         EligibleJobCorpusV3Builder v3Corpus = mock(EligibleJobCorpusV3Builder.class);
         Student student = Student.builder().id(7L).build();
         when(students.findByUserId(99L)).thenReturn(Optional.of(student));
@@ -104,10 +102,10 @@ class RecommendationTransactionServiceV3Test {
             return run;
         });
         RecommendationTransactionService service = new RecommendationTransactionService(students, cvs, jobs, runs, results,
-                v2Corpus, mock(AiRecommendationRequestMapper.class), v3Corpus, new AiRecommendationV3RequestMapper(),
+                v3Corpus, new AiRecommendationV3RequestMapper(),
                 new SkillCatalogCanonicalizer(), mock(RecommendationFailureMessageSanitizer.class),
                 mock(com.tttn.jobrecommendation.modules.notification.service.NotificationService.class));
-        return new Fixture(service, cvs, v2Corpus, v3Corpus);
+        return new Fixture(service, cvs, v3Corpus);
     }
 
     private CvFile readyCv() {
@@ -125,6 +123,6 @@ class RecommendationTransactionServiceV3Test {
     }
 
     private record Fixture(RecommendationTransactionService service, CvFileRepository cvFiles,
-                           EligibleJobCorpusBuilder v2Corpus, EligibleJobCorpusV3Builder v3Corpus) {
+                           EligibleJobCorpusV3Builder v3Corpus) {
     }
 }

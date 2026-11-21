@@ -3,359 +3,10974 @@
   "skills": [
     {
       "canonical": ".net",
-      "aliases": [".net", "dotnet"]
+      "aliases": [
+        ".net",
+        "dotnet"
+      ]
+    },
+    {
+      "canonical": ".net 6+",
+      "aliases": [
+        ".net 6+"
+      ]
+    },
+    {
+      "canonical": ".net 8",
+      "aliases": [
+        ".net 8"
+      ]
+    },
+    {
+      "canonical": ".net core",
+      "aliases": [
+        ".net core"
+      ]
+    },
+    {
+      "canonical": ".net framework",
+      "aliases": [
+        ".net framework"
+      ]
+    },
+    {
+      "canonical": ".net mvc",
+      "aliases": [
+        ".net mvc"
+      ]
+    },
+    {
+      "canonical": "1password",
+      "aliases": [
+        "1password"
+      ]
+    },
+    {
+      "canonical": "3d game",
+      "aliases": [
+        "3d game"
+      ]
+    },
+    {
+      "canonical": "3d modeling",
+      "aliases": [
+        "3d modeling"
+      ]
+    },
+    {
+      "canonical": "3ds max",
+      "aliases": [
+        "3ds max"
+      ]
+    },
+    {
+      "canonical": "a-spice",
+      "aliases": [
+        "a-spice"
+      ]
+    },
+    {
+      "canonical": "a/b testing",
+      "aliases": [
+        "a/b testing"
+      ]
+    },
+    {
+      "canonical": "aapanel",
+      "aliases": [
+        "aapanel"
+      ]
+    },
+    {
+      "canonical": "aave",
+      "aliases": [
+        "aave"
+      ]
+    },
+    {
+      "canonical": "abap",
+      "aliases": [
+        "abap"
+      ]
+    },
+    {
+      "canonical": "abb",
+      "aliases": [
+        "abb"
+      ]
+    },
+    {
+      "canonical": "abb robot",
+      "aliases": [
+        "abb robot"
+      ]
+    },
+    {
+      "canonical": "account management",
+      "aliases": [
+        "account management"
+      ]
+    },
+    {
+      "canonical": "accounting",
+      "aliases": [
+        "accounting"
+      ]
+    },
+    {
+      "canonical": "acf",
+      "aliases": [
+        "acf"
+      ]
+    },
+    {
+      "canonical": "acronis",
+      "aliases": [
+        "acronis"
+      ]
+    },
+    {
+      "canonical": "active directory",
+      "aliases": [
+        "active directory"
+      ]
+    },
+    {
+      "canonical": "activemq",
+      "aliases": [
+        "activemq"
+      ]
+    },
+    {
+      "canonical": "activiti",
+      "aliases": [
+        "activiti"
+      ]
+    },
+    {
+      "canonical": "ad",
+      "aliases": [
+        "ad"
+      ]
+    },
+    {
+      "canonical": "adas",
+      "aliases": [
+        "adas"
+      ]
+    },
+    {
+      "canonical": "adc",
+      "aliases": [
+        "adc"
+      ]
+    },
+    {
+      "canonical": "adf",
+      "aliases": [
+        "adf"
+      ]
+    },
+    {
+      "canonical": "admob",
+      "aliases": [
+        "admob"
+      ]
+    },
+    {
+      "canonical": "admob mediation",
+      "aliases": [
+        "admob mediation"
+      ]
+    },
+    {
+      "canonical": "ado.net",
+      "aliases": [
+        "ado.net"
+      ]
+    },
+    {
+      "canonical": "adobe creative cloud",
+      "aliases": [
+        "adobe creative cloud"
+      ]
+    },
+    {
+      "canonical": "adobe creative suite",
+      "aliases": [
+        "adobe creative suite"
+      ]
+    },
+    {
+      "canonical": "adobe forms",
+      "aliases": [
+        "adobe forms"
+      ]
+    },
+    {
+      "canonical": "adobe illustrator",
+      "aliases": [
+        "adobe illustrator"
+      ]
+    },
+    {
+      "canonical": "adobe suite",
+      "aliases": [
+        "adobe suite"
+      ]
+    },
+    {
+      "canonical": "adobe xd",
+      "aliases": [
+        "adobe xd"
+      ]
+    },
+    {
+      "canonical": "aem",
+      "aliases": [
+        "aem"
+      ]
+    },
+    {
+      "canonical": "afnetworking",
+      "aliases": [
+        "afnetworking"
+      ]
+    },
+    {
+      "canonical": "after effects",
+      "aliases": [
+        "after effects"
+      ]
     },
     {
       "canonical": "agile",
-      "aliases": ["agile"]
+      "aliases": [
+        "agile"
+      ]
+    },
+    {
+      "canonical": "agile scrum",
+      "aliases": [
+        "agile scrum"
+      ]
+    },
+    {
+      "canonical": "agile testing",
+      "aliases": [
+        "agile testing"
+      ]
+    },
+    {
+      "canonical": "agile/scrum",
+      "aliases": [
+        "agile/scrum"
+      ]
+    },
+    {
+      "canonical": "ai plugins",
+      "aliases": [
+        "ai plugins"
+      ]
+    },
+    {
+      "canonical": "ai tools",
+      "aliases": [
+        "ai tools"
+      ]
+    },
+    {
+      "canonical": "ai-powered coding tools",
+      "aliases": [
+        "ai-powered coding tools"
+      ]
+    },
+    {
+      "canonical": "ai/ml",
+      "aliases": [
+        "ai/ml"
+      ]
+    },
+    {
+      "canonical": "ai/ml algorithms",
+      "aliases": [
+        "ai/ml algorithms"
+      ]
+    },
+    {
+      "canonical": "ai/ml frameworks",
+      "aliases": [
+        "ai/ml frameworks"
+      ]
+    },
+    {
+      "canonical": "airbyte",
+      "aliases": [
+        "airbyte"
+      ]
+    },
+    {
+      "canonical": "airflow",
+      "aliases": [
+        "airflow"
+      ]
+    },
+    {
+      "canonical": "airtable",
+      "aliases": [
+        "airtable"
+      ]
+    },
+    {
+      "canonical": "ajax",
+      "aliases": [
+        "ajax"
+      ]
+    },
+    {
+      "canonical": "akka",
+      "aliases": [
+        "akka"
+      ]
+    },
+    {
+      "canonical": "aks",
+      "aliases": [
+        "aks"
+      ]
+    },
+    {
+      "canonical": "alamofire",
+      "aliases": [
+        "alamofire"
+      ]
+    },
+    {
+      "canonical": "alembic",
+      "aliases": [
+        "alembic"
+      ]
+    },
+    {
+      "canonical": "alerta",
+      "aliases": [
+        "alerta"
+      ]
+    },
+    {
+      "canonical": "alfresco",
+      "aliases": [
+        "alfresco"
+      ]
+    },
+    {
+      "canonical": "algolia",
+      "aliases": [
+        "algolia"
+      ]
+    },
+    {
+      "canonical": "algorithms",
+      "aliases": [
+        "algorithms"
+      ]
+    },
+    {
+      "canonical": "am",
+      "aliases": [
+        "am"
+      ]
+    },
+    {
+      "canonical": "amazon",
+      "aliases": [
+        "amazon"
+      ]
+    },
+    {
+      "canonical": "amazon aurora",
+      "aliases": [
+        "amazon aurora"
+      ]
+    },
+    {
+      "canonical": "amazon bedrock",
+      "aliases": [
+        "amazon bedrock"
+      ]
+    },
+    {
+      "canonical": "amazon cloudwatch",
+      "aliases": [
+        "amazon cloudwatch"
+      ]
+    },
+    {
+      "canonical": "amazon mq",
+      "aliases": [
+        "amazon mq"
+      ]
+    },
+    {
+      "canonical": "amazon redshift",
+      "aliases": [
+        "amazon redshift"
+      ]
+    },
+    {
+      "canonical": "amazon sns/sqs",
+      "aliases": [
+        "amazon sns/sqs"
+      ]
+    },
+    {
+      "canonical": "amazon web services",
+      "aliases": [
+        "amazon web services"
+      ]
+    },
+    {
+      "canonical": "amqp",
+      "aliases": [
+        "amqp"
+      ]
+    },
+    {
+      "canonical": "analytics",
+      "aliases": [
+        "analytics"
+      ]
     },
     {
       "canonical": "android",
-      "aliases": ["android"]
+      "aliases": [
+        "android"
+      ]
+    },
+    {
+      "canonical": "android jetpack",
+      "aliases": [
+        "android jetpack"
+      ]
+    },
+    {
+      "canonical": "android ndk",
+      "aliases": [
+        "android ndk"
+      ]
+    },
+    {
+      "canonical": "android sdk",
+      "aliases": [
+        "android sdk"
+      ]
+    },
+    {
+      "canonical": "android studio",
+      "aliases": [
+        "android studio"
+      ]
     },
     {
       "canonical": "angular",
-      "aliases": ["angular"]
+      "aliases": [
+        "angular"
+      ]
+    },
+    {
+      "canonical": "angular cli",
+      "aliases": [
+        "angular cli"
+      ]
+    },
+    {
+      "canonical": "angular universal",
+      "aliases": [
+        "angular universal"
+      ]
+    },
+    {
+      "canonical": "angular.js",
+      "aliases": [
+        "angular.js"
+      ]
+    },
+    {
+      "canonical": "angularjs",
+      "aliases": [
+        "angularjs"
+      ]
+    },
+    {
+      "canonical": "animation",
+      "aliases": [
+        "animation"
+      ]
+    },
+    {
+      "canonical": "ansible",
+      "aliases": [
+        "ansible"
+      ]
+    },
+    {
+      "canonical": "ant",
+      "aliases": [
+        "ant"
+      ]
+    },
+    {
+      "canonical": "ant design",
+      "aliases": [
+        "ant design"
+      ]
+    },
+    {
+      "canonical": "antd",
+      "aliases": [
+        "antd"
+      ]
+    },
+    {
+      "canonical": "antd design",
+      "aliases": [
+        "antd design"
+      ]
+    },
+    {
+      "canonical": "antdesign",
+      "aliases": [
+        "antdesign"
+      ]
+    },
+    {
+      "canonical": "anti-ddos",
+      "aliases": [
+        "anti-ddos"
+      ]
+    },
+    {
+      "canonical": "anti-malware/endpoint protection",
+      "aliases": [
+        "anti-malware/endpoint protection"
+      ]
+    },
+    {
+      "canonical": "apache",
+      "aliases": [
+        "apache"
+      ]
+    },
+    {
+      "canonical": "apache airflow",
+      "aliases": [
+        "apache airflow"
+      ]
+    },
+    {
+      "canonical": "apache devlake",
+      "aliases": [
+        "apache devlake"
+      ]
+    },
+    {
+      "canonical": "apache druid",
+      "aliases": [
+        "apache druid"
+      ]
+    },
+    {
+      "canonical": "apache flink",
+      "aliases": [
+        "apache flink"
+      ]
+    },
+    {
+      "canonical": "apache http server",
+      "aliases": [
+        "apache http server"
+      ]
+    },
+    {
+      "canonical": "apache kafka",
+      "aliases": [
+        "apache kafka"
+      ]
+    },
+    {
+      "canonical": "apache mina",
+      "aliases": [
+        "apache mina"
+      ]
+    },
+    {
+      "canonical": "apache solr",
+      "aliases": [
+        "apache solr"
+      ]
+    },
+    {
+      "canonical": "apache spark",
+      "aliases": [
+        "apache spark"
+      ]
+    },
+    {
+      "canonical": "apache tomcat",
+      "aliases": [
+        "apache tomcat"
+      ]
+    },
+    {
+      "canonical": "apache-spark",
+      "aliases": [
+        "apache-spark"
+      ]
+    },
+    {
+      "canonical": "apex",
+      "aliases": [
+        "apex"
+      ]
+    },
+    {
+      "canonical": "api",
+      "aliases": [
+        "api"
+      ]
+    },
+    {
+      "canonical": "api automation testing",
+      "aliases": [
+        "api automation testing"
+      ]
+    },
+    {
+      "canonical": "api design",
+      "aliases": [
+        "api design"
+      ]
+    },
+    {
+      "canonical": "api development",
+      "aliases": [
+        "api development"
+      ]
+    },
+    {
+      "canonical": "api gateway",
+      "aliases": [
+        "api gateway"
+      ]
+    },
+    {
+      "canonical": "api management",
+      "aliases": [
+        "api management"
+      ]
+    },
+    {
+      "canonical": "api platform",
+      "aliases": [
+        "api platform"
+      ]
+    },
+    {
+      "canonical": "api restful",
+      "aliases": [
+        "api restful"
+      ]
+    },
+    {
+      "canonical": "api services",
+      "aliases": [
+        "api services"
+      ]
+    },
+    {
+      "canonical": "api testing",
+      "aliases": [
+        "api testing"
+      ]
+    },
+    {
+      "canonical": "apis",
+      "aliases": [
+        "apis"
+      ]
+    },
+    {
+      "canonical": "apl",
+      "aliases": [
+        "apl"
+      ]
+    },
+    {
+      "canonical": "apm",
+      "aliases": [
+        "apm"
+      ]
+    },
+    {
+      "canonical": "apollo",
+      "aliases": [
+        "apollo"
+      ]
+    },
+    {
+      "canonical": "apollo graphql",
+      "aliases": [
+        "apollo graphql"
+      ]
+    },
+    {
+      "canonical": "apollo server",
+      "aliases": [
+        "apollo server"
+      ]
+    },
+    {
+      "canonical": "app annie",
+      "aliases": [
+        "app annie"
+      ]
+    },
+    {
+      "canonical": "app store optimization",
+      "aliases": [
+        "app store optimization"
+      ]
+    },
+    {
+      "canonical": "appdynamics",
+      "aliases": [
+        "appdynamics"
+      ]
+    },
+    {
+      "canonical": "appium",
+      "aliases": [
+        "appium"
+      ]
+    },
+    {
+      "canonical": "apple connect",
+      "aliases": [
+        "apple connect"
+      ]
+    },
+    {
+      "canonical": "application insights",
+      "aliases": [
+        "application insights"
+      ]
+    },
+    {
+      "canonical": "applitools",
+      "aliases": [
+        "applitools"
+      ]
+    },
+    {
+      "canonical": "ar",
+      "aliases": [
+        "ar"
+      ]
+    },
+    {
+      "canonical": "ar/vr",
+      "aliases": [
+        "ar/vr"
+      ]
+    },
+    {
+      "canonical": "arbitrum",
+      "aliases": [
+        "arbitrum"
+      ]
+    },
+    {
+      "canonical": "arcgis pro",
+      "aliases": [
+        "arcgis pro"
+      ]
+    },
+    {
+      "canonical": "argo cd",
+      "aliases": [
+        "argo cd"
+      ]
+    },
+    {
+      "canonical": "argocd",
+      "aliases": [
+        "argocd"
+      ]
+    },
+    {
+      "canonical": "arm",
+      "aliases": [
+        "arm"
+      ]
+    },
+    {
+      "canonical": "arm toolchain",
+      "aliases": [
+        "arm toolchain"
+      ]
+    },
+    {
+      "canonical": "artcam",
+      "aliases": [
+        "artcam"
+      ]
+    },
+    {
+      "canonical": "artifactory",
+      "aliases": [
+        "artifactory"
+      ]
     },
     {
       "canonical": "artificial intelligence",
-      "aliases": ["ai", "artificial intelligence", "tri tue nhan tao", "trí tuệ nhân tạo"]
+      "aliases": [
+        "ai",
+        "artificial intelligence"
+      ]
+    },
+    {
+      "canonical": "aruba",
+      "aliases": [
+        "aruba"
+      ]
+    },
+    {
+      "canonical": "asana",
+      "aliases": [
+        "asana"
+      ]
+    },
+    {
+      "canonical": "asic",
+      "aliases": [
+        "asic"
+      ]
     },
     {
       "canonical": "asp.net",
-      "aliases": ["asp.net"]
+      "aliases": [
+        "asp.net"
+      ]
+    },
+    {
+      "canonical": "asp.net core",
+      "aliases": [
+        "asp.net core"
+      ]
+    },
+    {
+      "canonical": "asp.net mvc",
+      "aliases": [
+        "asp.net mvc"
+      ]
+    },
+    {
+      "canonical": "aspice",
+      "aliases": [
+        "aspice"
+      ]
+    },
+    {
+      "canonical": "assetbundles",
+      "aliases": [
+        "assetbundles"
+      ]
+    },
+    {
+      "canonical": "asteria warp",
+      "aliases": [
+        "asteria warp"
+      ]
+    },
+    {
+      "canonical": "asterisk",
+      "aliases": [
+        "asterisk"
+      ]
+    },
+    {
+      "canonical": "async systems",
+      "aliases": [
+        "async systems"
+      ]
+    },
+    {
+      "canonical": "async-std",
+      "aliases": [
+        "async-std"
+      ]
+    },
+    {
+      "canonical": "asynchronous programming",
+      "aliases": [
+        "asynchronous programming"
+      ]
+    },
+    {
+      "canonical": "atlassian",
+      "aliases": [
+        "atlassian"
+      ]
+    },
+    {
+      "canonical": "audio",
+      "aliases": [
+        "audio"
+      ]
+    },
+    {
+      "canonical": "aura",
+      "aliases": [
+        "aura"
+      ]
+    },
+    {
+      "canonical": "aurora postgresql",
+      "aliases": [
+        "aurora postgresql"
+      ]
+    },
+    {
+      "canonical": "auth0",
+      "aliases": [
+        "auth0"
+      ]
+    },
+    {
+      "canonical": "autify",
+      "aliases": [
+        "autify"
+      ]
+    },
+    {
+      "canonical": "auto cad",
+      "aliases": [
+        "auto cad"
+      ]
+    },
+    {
+      "canonical": "auto layout",
+      "aliases": [
+        "auto layout"
+      ]
+    },
+    {
+      "canonical": "autocad",
+      "aliases": [
+        "autocad"
+      ]
+    },
+    {
+      "canonical": "autofac",
+      "aliases": [
+        "autofac"
+      ]
+    },
+    {
+      "canonical": "autolayout",
+      "aliases": [
+        "autolayout"
+      ]
+    },
+    {
+      "canonical": "automated testing",
+      "aliases": [
+        "automated testing"
+      ]
+    },
+    {
+      "canonical": "automation",
+      "aliases": [
+        "automation"
+      ]
+    },
+    {
+      "canonical": "automation anywhere",
+      "aliases": [
+        "automation anywhere"
+      ]
+    },
+    {
+      "canonical": "automation testing",
+      "aliases": [
+        "automation testing"
+      ]
+    },
+    {
+      "canonical": "automotive",
+      "aliases": [
+        "automotive"
+      ]
+    },
+    {
+      "canonical": "autonomous driving",
+      "aliases": [
+        "autonomous driving"
+      ]
+    },
+    {
+      "canonical": "autoruns",
+      "aliases": [
+        "autoruns"
+      ]
+    },
+    {
+      "canonical": "autosar",
+      "aliases": [
+        "autosar"
+      ]
+    },
+    {
+      "canonical": "av",
+      "aliases": [
+        "av"
+      ]
     },
     {
       "canonical": "aws",
-      "aliases": ["aws"]
+      "aliases": [
+        "aws"
+      ]
+    },
+    {
+      "canonical": "aws cli",
+      "aliases": [
+        "aws cli"
+      ]
+    },
+    {
+      "canonical": "aws cloudwatch",
+      "aliases": [
+        "aws cloudwatch"
+      ]
+    },
+    {
+      "canonical": "aws codeartifacts",
+      "aliases": [
+        "aws codeartifacts"
+      ]
+    },
+    {
+      "canonical": "aws cognito",
+      "aliases": [
+        "aws cognito"
+      ]
+    },
+    {
+      "canonical": "aws device farm",
+      "aliases": [
+        "aws device farm"
+      ]
+    },
+    {
+      "canonical": "aws ecr",
+      "aliases": [
+        "aws ecr"
+      ]
+    },
+    {
+      "canonical": "aws glue",
+      "aliases": [
+        "aws glue"
+      ]
+    },
+    {
+      "canonical": "aws iam identity center",
+      "aliases": [
+        "aws iam identity center"
+      ]
+    },
+    {
+      "canonical": "aws iotcore",
+      "aliases": [
+        "aws iotcore"
+      ]
+    },
+    {
+      "canonical": "aws networking",
+      "aliases": [
+        "aws networking"
+      ]
+    },
+    {
+      "canonical": "aws quicksight",
+      "aliases": [
+        "aws quicksight"
+      ]
+    },
+    {
+      "canonical": "aws rds",
+      "aliases": [
+        "aws rds"
+      ]
+    },
+    {
+      "canonical": "aws redshift",
+      "aliases": [
+        "aws redshift"
+      ]
+    },
+    {
+      "canonical": "aws s3",
+      "aliases": [
+        "aws s3"
+      ]
+    },
+    {
+      "canonical": "aws secrets manager",
+      "aliases": [
+        "aws secrets manager"
+      ]
+    },
+    {
+      "canonical": "axios",
+      "aliases": [
+        "axios"
+      ]
+    },
+    {
+      "canonical": "axure",
+      "aliases": [
+        "axure"
+      ]
     },
     {
       "canonical": "azure",
-      "aliases": ["azure"]
+      "aliases": [
+        "azure"
+      ]
+    },
+    {
+      "canonical": "azure ad",
+      "aliases": [
+        "azure ad"
+      ]
+    },
+    {
+      "canonical": "azure cloud",
+      "aliases": [
+        "azure cloud"
+      ]
+    },
+    {
+      "canonical": "azure data factory",
+      "aliases": [
+        "azure data factory"
+      ]
+    },
+    {
+      "canonical": "azure data lake",
+      "aliases": [
+        "azure data lake"
+      ]
+    },
+    {
+      "canonical": "azure devops",
+      "aliases": [
+        "azure devops"
+      ]
+    },
+    {
+      "canonical": "azure event hubs",
+      "aliases": [
+        "azure event hubs"
+      ]
+    },
+    {
+      "canonical": "azure monitor",
+      "aliases": [
+        "azure monitor"
+      ]
+    },
+    {
+      "canonical": "azure openai",
+      "aliases": [
+        "azure openai"
+      ]
+    },
+    {
+      "canonical": "azure pipelines",
+      "aliases": [
+        "azure pipelines"
+      ]
+    },
+    {
+      "canonical": "azure service bus",
+      "aliases": [
+        "azure service bus"
+      ]
+    },
+    {
+      "canonical": "azure sql",
+      "aliases": [
+        "azure sql"
+      ]
+    },
+    {
+      "canonical": "azure synapse",
+      "aliases": [
+        "azure synapse"
+      ]
+    },
+    {
+      "canonical": "babel",
+      "aliases": [
+        "babel"
+      ]
+    },
+    {
+      "canonical": "backbone js",
+      "aliases": [
+        "backbone js"
+      ]
+    },
+    {
+      "canonical": "backend testing",
+      "aliases": [
+        "backend testing"
+      ]
+    },
+    {
+      "canonical": "backlog",
+      "aliases": [
+        "backlog"
+      ]
+    },
+    {
+      "canonical": "backup",
+      "aliases": [
+        "backup"
+      ]
+    },
+    {
+      "canonical": "backup systems",
+      "aliases": [
+        "backup systems"
+      ]
+    },
+    {
+      "canonical": "balsamiq",
+      "aliases": [
+        "balsamiq"
+      ]
+    },
+    {
+      "canonical": "bash",
+      "aliases": [
+        "bash"
+      ]
+    },
+    {
+      "canonical": "beam",
+      "aliases": [
+        "beam"
+      ]
+    },
+    {
+      "canonical": "beaver builder",
+      "aliases": [
+        "beaver builder"
+      ]
+    },
+    {
+      "canonical": "behave",
+      "aliases": [
+        "behave"
+      ]
+    },
+    {
+      "canonical": "benchmarking",
+      "aliases": [
+        "benchmarking"
+      ]
+    },
+    {
+      "canonical": "bfgminer",
+      "aliases": [
+        "bfgminer"
+      ]
+    },
+    {
+      "canonical": "bi",
+      "aliases": [
+        "bi"
+      ]
+    },
+    {
+      "canonical": "bi tools",
+      "aliases": [
+        "bi tools"
+      ]
+    },
+    {
+      "canonical": "big data",
+      "aliases": [
+        "big data"
+      ]
+    },
+    {
+      "canonical": "bigcommerce",
+      "aliases": [
+        "bigcommerce"
+      ]
+    },
+    {
+      "canonical": "bigquery",
+      "aliases": [
+        "bigquery"
+      ]
+    },
+    {
+      "canonical": "bim",
+      "aliases": [
+        "bim"
+      ]
+    },
+    {
+      "canonical": "biomedical informatics",
+      "aliases": [
+        "biomedical informatics"
+      ]
+    },
+    {
+      "canonical": "bitbucket",
+      "aliases": [
+        "bitbucket"
+      ]
+    },
+    {
+      "canonical": "bitlocker",
+      "aliases": [
+        "bitlocker"
+      ]
+    },
+    {
+      "canonical": "bitrise",
+      "aliases": [
+        "bitrise"
+      ]
+    },
+    {
+      "canonical": "bizagi",
+      "aliases": [
+        "bizagi"
+      ]
+    },
+    {
+      "canonical": "black box testing",
+      "aliases": [
+        "black box testing"
+      ]
+    },
+    {
+      "canonical": "blackduck",
+      "aliases": [
+        "blackduck"
+      ]
+    },
+    {
+      "canonical": "blackduck hub",
+      "aliases": [
+        "blackduck hub"
+      ]
+    },
+    {
+      "canonical": "blazor",
+      "aliases": [
+        "blazor"
+      ]
+    },
+    {
+      "canonical": "ble",
+      "aliases": [
+        "ble"
+      ]
+    },
+    {
+      "canonical": "blender",
+      "aliases": [
+        "blender"
+      ]
+    },
+    {
+      "canonical": "bloc",
+      "aliases": [
+        "bloc"
+      ]
+    },
+    {
+      "canonical": "blockchain",
+      "aliases": [
+        "blockchain"
+      ]
+    },
+    {
+      "canonical": "bloodhound",
+      "aliases": [
+        "bloodhound"
+      ]
+    },
+    {
+      "canonical": "bluetooth",
+      "aliases": [
+        "bluetooth"
+      ]
+    },
+    {
+      "canonical": "bnb chain",
+      "aliases": [
+        "bnb chain"
+      ]
+    },
+    {
+      "canonical": "boomi",
+      "aliases": [
+        "boomi"
+      ]
+    },
+    {
+      "canonical": "boost",
+      "aliases": [
+        "boost"
+      ]
+    },
+    {
+      "canonical": "bootstrap",
+      "aliases": [
+        "bootstrap"
+      ]
+    },
+    {
+      "canonical": "bpmn",
+      "aliases": [
+        "bpmn"
+      ]
+    },
+    {
+      "canonical": "browserstack",
+      "aliases": [
+        "browserstack"
+      ]
+    },
+    {
+      "canonical": "bsp",
+      "aliases": [
+        "bsp"
+      ]
+    },
+    {
+      "canonical": "bsp linux",
+      "aliases": [
+        "bsp linux"
+      ]
+    },
+    {
+      "canonical": "bubble",
+      "aliases": [
+        "bubble"
+      ]
+    },
+    {
+      "canonical": "budgeting",
+      "aliases": [
+        "budgeting"
+      ]
+    },
+    {
+      "canonical": "bug-tracking systems",
+      "aliases": [
+        "bug-tracking systems"
+      ]
+    },
+    {
+      "canonical": "bugzilla",
+      "aliases": [
+        "bugzilla"
+      ]
+    },
+    {
+      "canonical": "build automation",
+      "aliases": [
+        "build automation"
+      ]
+    },
+    {
+      "canonical": "bullmq",
+      "aliases": [
+        "bullmq"
+      ]
+    },
+    {
+      "canonical": "burp suite",
+      "aliases": [
+        "burp suite"
+      ]
+    },
+    {
+      "canonical": "business intelligence",
+      "aliases": [
+        "business intelligence"
+      ]
+    },
+    {
+      "canonical": "bw/bo",
+      "aliases": [
+        "bw/bo"
+      ]
+    },
+    {
+      "canonical": "byteplus",
+      "aliases": [
+        "byteplus"
+      ]
+    },
+    {
+      "canonical": "byteplus cdn",
+      "aliases": [
+        "byteplus cdn"
+      ]
     },
     {
       "canonical": "c",
-      "aliases": ["c"]
+      "aliases": [
+        "c"
+      ]
     },
     {
       "canonical": "c#",
-      "aliases": ["c#", "csharp"]
+      "aliases": [
+        "c#",
+        "csharp"
+      ]
     },
     {
       "canonical": "c++",
-      "aliases": ["c++", "cplusplus"]
+      "aliases": [
+        "c++",
+        "cplusplus"
+      ]
+    },
+    {
+      "canonical": "c++ builder",
+      "aliases": [
+        "c++ builder"
+      ]
+    },
+    {
+      "canonical": "c/c++",
+      "aliases": [
+        "c/c++"
+      ]
+    },
+    {
+      "canonical": "caching mechanisms",
+      "aliases": [
+        "caching mechanisms"
+      ]
+    },
+    {
+      "canonical": "cacti",
+      "aliases": [
+        "cacti"
+      ]
+    },
+    {
+      "canonical": "cad",
+      "aliases": [
+        "cad"
+      ]
+    },
+    {
+      "canonical": "cad/cam",
+      "aliases": [
+        "cad/cam"
+      ]
+    },
+    {
+      "canonical": "caffe",
+      "aliases": [
+        "caffe"
+      ]
+    },
+    {
+      "canonical": "cakephp",
+      "aliases": [
+        "cakephp"
+      ]
+    },
+    {
+      "canonical": "cals",
+      "aliases": [
+        "cals"
+      ]
+    },
+    {
+      "canonical": "cam",
+      "aliases": [
+        "cam"
+      ]
+    },
+    {
+      "canonical": "camerax",
+      "aliases": [
+        "camerax"
+      ]
+    },
+    {
+      "canonical": "camunda",
+      "aliases": [
+        "camunda"
+      ]
+    },
+    {
+      "canonical": "can",
+      "aliases": [
+        "can"
+      ]
+    },
+    {
+      "canonical": "can protocol",
+      "aliases": [
+        "can protocol"
+      ]
+    },
+    {
+      "canonical": "canalyzer",
+      "aliases": [
+        "canalyzer"
+      ]
+    },
+    {
+      "canonical": "canoe",
+      "aliases": [
+        "canoe"
+      ]
+    },
+    {
+      "canonical": "canva",
+      "aliases": [
+        "canva"
+      ]
+    },
+    {
+      "canonical": "canva ai",
+      "aliases": [
+        "canva ai"
+      ]
+    },
+    {
+      "canonical": "canvas",
+      "aliases": [
+        "canvas"
+      ]
+    },
+    {
+      "canonical": "canvas apps",
+      "aliases": [
+        "canvas apps"
+      ]
+    },
+    {
+      "canonical": "capcut ai",
+      "aliases": [
+        "capcut ai"
+      ]
+    },
+    {
+      "canonical": "carthage",
+      "aliases": [
+        "carthage"
+      ]
+    },
+    {
+      "canonical": "cash flow",
+      "aliases": [
+        "cash flow"
+      ]
     },
     {
       "canonical": "cassandra",
-      "aliases": ["cassandra"]
+      "aliases": [
+        "cassandra"
+      ]
+    },
+    {
+      "canonical": "catia",
+      "aliases": [
+        "catia"
+      ]
+    },
+    {
+      "canonical": "ccna",
+      "aliases": [
+        "ccna"
+      ]
+    },
+    {
+      "canonical": "cdn",
+      "aliases": [
+        "cdn"
+      ]
+    },
+    {
+      "canonical": "cds view",
+      "aliases": [
+        "cds view"
+      ]
+    },
+    {
+      "canonical": "celery",
+      "aliases": [
+        "celery"
+      ]
+    },
+    {
+      "canonical": "centos",
+      "aliases": [
+        "centos"
+      ]
+    },
+    {
+      "canonical": "ceph",
+      "aliases": [
+        "ceph"
+      ]
+    },
+    {
+      "canonical": "cgminer",
+      "aliases": [
+        "cgminer"
+      ]
+    },
+    {
+      "canonical": "chai",
+      "aliases": [
+        "chai"
+      ]
+    },
+    {
+      "canonical": "chakra ui",
+      "aliases": [
+        "chakra ui"
+      ]
+    },
+    {
+      "canonical": "charles",
+      "aliases": [
+        "charles"
+      ]
+    },
+    {
+      "canonical": "charles proxy",
+      "aliases": [
+        "charles proxy"
+      ]
+    },
+    {
+      "canonical": "chatgpt",
+      "aliases": [
+        "chatgpt"
+      ]
+    },
+    {
+      "canonical": "chatwork",
+      "aliases": [
+        "chatwork"
+      ]
+    },
+    {
+      "canonical": "checkmarx",
+      "aliases": [
+        "checkmarx"
+      ]
+    },
+    {
+      "canonical": "checkpoint",
+      "aliases": [
+        "checkpoint"
+      ]
+    },
+    {
+      "canonical": "chef",
+      "aliases": [
+        "chef"
+      ]
+    },
+    {
+      "canonical": "chmer",
+      "aliases": [
+        "chmer"
+      ]
+    },
+    {
+      "canonical": "chopper",
+      "aliases": [
+        "chopper"
+      ]
     },
     {
       "canonical": "ci/cd",
-      "aliases": ["ci/cd", "cicd"]
+      "aliases": [
+        "ci/cd",
+        "cicd"
+      ]
+    },
+    {
+      "canonical": "cim",
+      "aliases": [
+        "cim"
+      ]
+    },
+    {
+      "canonical": "cimatrol",
+      "aliases": [
+        "cimatrol"
+      ]
+    },
+    {
+      "canonical": "cimatron",
+      "aliases": [
+        "cimatron"
+      ]
+    },
+    {
+      "canonical": "circle ci",
+      "aliases": [
+        "circle ci"
+      ]
+    },
+    {
+      "canonical": "circleci",
+      "aliases": [
+        "circleci"
+      ]
+    },
+    {
+      "canonical": "cisam",
+      "aliases": [
+        "cisam"
+      ]
+    },
+    {
+      "canonical": "cisco",
+      "aliases": [
+        "cisco"
+      ]
+    },
+    {
+      "canonical": "cisco secure endpoint",
+      "aliases": [
+        "cisco secure endpoint"
+      ]
+    },
+    {
+      "canonical": "cisco ucs",
+      "aliases": [
+        "cisco ucs"
+      ]
+    },
+    {
+      "canonical": "cissp",
+      "aliases": [
+        "cissp"
+      ]
+    },
+    {
+      "canonical": "clean architecture",
+      "aliases": [
+        "clean architecture"
+      ]
+    },
+    {
+      "canonical": "clean code",
+      "aliases": [
+        "clean code"
+      ]
+    },
+    {
+      "canonical": "clerk",
+      "aliases": [
+        "clerk"
+      ]
+    },
+    {
+      "canonical": "clickhouse",
+      "aliases": [
+        "clickhouse"
+      ]
+    },
+    {
+      "canonical": "clickup",
+      "aliases": [
+        "clickup"
+      ]
+    },
+    {
+      "canonical": "clienttrack",
+      "aliases": [
+        "clienttrack"
+      ]
+    },
+    {
+      "canonical": "clm",
+      "aliases": [
+        "clm"
+      ]
+    },
+    {
+      "canonical": "closing",
+      "aliases": [
+        "closing"
+      ]
+    },
+    {
+      "canonical": "cloud",
+      "aliases": [
+        "cloud"
+      ]
+    },
+    {
+      "canonical": "cloud architecture",
+      "aliases": [
+        "cloud architecture"
+      ]
     },
     {
       "canonical": "cloud computing",
-      "aliases": ["cloud computing", "dien toan dam may", "điện toán đám mây"]
+      "aliases": [
+        "cloud computing"
+      ]
+    },
+    {
+      "canonical": "cloud config",
+      "aliases": [
+        "cloud config"
+      ]
+    },
+    {
+      "canonical": "cloud firestore",
+      "aliases": [
+        "cloud firestore"
+      ]
+    },
+    {
+      "canonical": "cloud foundry",
+      "aliases": [
+        "cloud foundry"
+      ]
+    },
+    {
+      "canonical": "cloud functions",
+      "aliases": [
+        "cloud functions"
+      ]
+    },
+    {
+      "canonical": "cloud gateway",
+      "aliases": [
+        "cloud gateway"
+      ]
+    },
+    {
+      "canonical": "cloud infrastructure",
+      "aliases": [
+        "cloud infrastructure"
+      ]
+    },
+    {
+      "canonical": "cloud native",
+      "aliases": [
+        "cloud native"
+      ]
+    },
+    {
+      "canonical": "cloud platforms",
+      "aliases": [
+        "cloud platforms"
+      ]
+    },
+    {
+      "canonical": "cloud security",
+      "aliases": [
+        "cloud security"
+      ]
+    },
+    {
+      "canonical": "cloud services",
+      "aliases": [
+        "cloud services"
+      ]
+    },
+    {
+      "canonical": "cloud solutions",
+      "aliases": [
+        "cloud solutions"
+      ]
+    },
+    {
+      "canonical": "cloud storage",
+      "aliases": [
+        "cloud storage"
+      ]
+    },
+    {
+      "canonical": "cloud technologies",
+      "aliases": [
+        "cloud technologies"
+      ]
+    },
+    {
+      "canonical": "cloud-native",
+      "aliases": [
+        "cloud-native"
+      ]
+    },
+    {
+      "canonical": "cloud-native architectures",
+      "aliases": [
+        "cloud-native architectures"
+      ]
+    },
+    {
+      "canonical": "cloud-native solutions",
+      "aliases": [
+        "cloud-native solutions"
+      ]
+    },
+    {
+      "canonical": "cloudflare",
+      "aliases": [
+        "cloudflare"
+      ]
+    },
+    {
+      "canonical": "cloudformation",
+      "aliases": [
+        "cloudformation"
+      ]
+    },
+    {
+      "canonical": "cloudwatch",
+      "aliases": [
+        "cloudwatch"
+      ]
+    },
+    {
+      "canonical": "cmake",
+      "aliases": [
+        "cmake"
+      ]
+    },
+    {
+      "canonical": "cmmi",
+      "aliases": [
+        "cmmi"
+      ]
+    },
+    {
+      "canonical": "cms",
+      "aliases": [
+        "cms"
+      ]
+    },
+    {
+      "canonical": "cnc",
+      "aliases": [
+        "cnc"
+      ]
+    },
+    {
+      "canonical": "cnc programming",
+      "aliases": [
+        "cnc programming"
+      ]
+    },
+    {
+      "canonical": "cobalt strike",
+      "aliases": [
+        "cobalt strike"
+      ]
+    },
+    {
+      "canonical": "cobit",
+      "aliases": [
+        "cobit"
+      ]
+    },
+    {
+      "canonical": "cobol",
+      "aliases": [
+        "cobol"
+      ]
+    },
+    {
+      "canonical": "cockroachdb",
+      "aliases": [
+        "cockroachdb"
+      ]
+    },
+    {
+      "canonical": "cocoalumberjack",
+      "aliases": [
+        "cocoalumberjack"
+      ]
+    },
+    {
+      "canonical": "cocoapods",
+      "aliases": [
+        "cocoapods"
+      ]
+    },
+    {
+      "canonical": "cocoatouch",
+      "aliases": [
+        "cocoatouch"
+      ]
+    },
+    {
+      "canonical": "cocos",
+      "aliases": [
+        "cocos"
+      ]
+    },
+    {
+      "canonical": "cocos 2d-x",
+      "aliases": [
+        "cocos 2d-x"
+      ]
+    },
+    {
+      "canonical": "cocos creator",
+      "aliases": [
+        "cocos creator"
+      ]
+    },
+    {
+      "canonical": "cocos2d-js",
+      "aliases": [
+        "cocos2d-js"
+      ]
+    },
+    {
+      "canonical": "cocos2d-x",
+      "aliases": [
+        "cocos2d-x"
+      ]
+    },
+    {
+      "canonical": "cocos2dx",
+      "aliases": [
+        "cocos2dx"
+      ]
+    },
+    {
+      "canonical": "codebuild",
+      "aliases": [
+        "codebuild"
+      ]
+    },
+    {
+      "canonical": "codeigniter",
+      "aliases": [
+        "codeigniter"
+      ]
+    },
+    {
+      "canonical": "codelgniter",
+      "aliases": [
+        "codelgniter"
+      ]
+    },
+    {
+      "canonical": "codepipeline",
+      "aliases": [
+        "codepipeline"
+      ]
+    },
+    {
+      "canonical": "codepush",
+      "aliases": [
+        "codepush"
+      ]
+    },
+    {
+      "canonical": "combine",
+      "aliases": [
+        "combine"
+      ]
+    },
+    {
+      "canonical": "command line interface",
+      "aliases": [
+        "command line interface"
+      ]
+    },
+    {
+      "canonical": "communication",
+      "aliases": [
+        "communication"
+      ]
+    },
+    {
+      "canonical": "compose",
+      "aliases": [
+        "compose"
+      ]
+    },
+    {
+      "canonical": "compose multiplatform",
+      "aliases": [
+        "compose multiplatform"
+      ]
+    },
+    {
+      "canonical": "compose ui",
+      "aliases": [
+        "compose ui"
+      ]
+    },
+    {
+      "canonical": "composer",
+      "aliases": [
+        "composer"
+      ]
+    },
+    {
+      "canonical": "comptia",
+      "aliases": [
+        "comptia"
+      ]
+    },
+    {
+      "canonical": "computer vision",
+      "aliases": [
+        "computer vision"
+      ]
+    },
+    {
+      "canonical": "concurrency",
+      "aliases": [
+        "concurrency"
+      ]
+    },
+    {
+      "canonical": "configuation management software",
+      "aliases": [
+        "configuation management software"
+      ]
+    },
+    {
+      "canonical": "configuration manager",
+      "aliases": [
+        "configuration manager"
+      ]
+    },
+    {
+      "canonical": "confluence",
+      "aliases": [
+        "confluence"
+      ]
+    },
+    {
+      "canonical": "confluent",
+      "aliases": [
+        "confluent"
+      ]
+    },
+    {
+      "canonical": "console app",
+      "aliases": [
+        "console app"
+      ]
+    },
+    {
+      "canonical": "container",
+      "aliases": [
+        "container"
+      ]
+    },
+    {
+      "canonical": "containerization",
+      "aliases": [
+        "containerization"
+      ]
+    },
+    {
+      "canonical": "containers",
+      "aliases": [
+        "containers"
+      ]
+    },
+    {
+      "canonical": "content distribution network",
+      "aliases": [
+        "content distribution network"
+      ]
+    },
+    {
+      "canonical": "content marketing",
+      "aliases": [
+        "content marketing"
+      ]
+    },
+    {
+      "canonical": "context api",
+      "aliases": [
+        "context api"
+      ]
+    },
+    {
+      "canonical": "continuous delivery",
+      "aliases": [
+        "continuous delivery"
+      ]
+    },
+    {
+      "canonical": "continuous delivery/deployment",
+      "aliases": [
+        "continuous delivery/deployment"
+      ]
+    },
+    {
+      "canonical": "continuous deployment",
+      "aliases": [
+        "continuous deployment"
+      ]
+    },
+    {
+      "canonical": "continuous integration",
+      "aliases": [
+        "continuous integration"
+      ]
+    },
+    {
+      "canonical": "conversion optimization",
+      "aliases": [
+        "conversion optimization"
+      ]
+    },
+    {
+      "canonical": "copywriting",
+      "aliases": [
+        "copywriting"
+      ]
+    },
+    {
+      "canonical": "core banking",
+      "aliases": [
+        "core banking"
+      ]
+    },
+    {
+      "canonical": "core data",
+      "aliases": [
+        "core data"
+      ]
+    },
+    {
+      "canonical": "core data services",
+      "aliases": [
+        "core data services"
+      ]
+    },
+    {
+      "canonical": "coreanimation",
+      "aliases": [
+        "coreanimation"
+      ]
+    },
+    {
+      "canonical": "corebank t24",
+      "aliases": [
+        "corebank t24"
+      ]
+    },
+    {
+      "canonical": "coredata",
+      "aliases": [
+        "coredata"
+      ]
+    },
+    {
+      "canonical": "coreml",
+      "aliases": [
+        "coreml"
+      ]
+    },
+    {
+      "canonical": "corgi engine",
+      "aliases": [
+        "corgi engine"
+      ]
+    },
+    {
+      "canonical": "coroutine",
+      "aliases": [
+        "coroutine"
+      ]
+    },
+    {
+      "canonical": "coroutine/rx",
+      "aliases": [
+        "coroutine/rx"
+      ]
+    },
+    {
+      "canonical": "coroutines",
+      "aliases": [
+        "coroutines"
+      ]
+    },
+    {
+      "canonical": "cosmos",
+      "aliases": [
+        "cosmos"
+      ]
+    },
+    {
+      "canonical": "coverity",
+      "aliases": [
+        "coverity"
+      ]
+    },
+    {
+      "canonical": "cpanel",
+      "aliases": [
+        "cpanel"
+      ]
+    },
+    {
+      "canonical": "cpi",
+      "aliases": [
+        "cpi"
+      ]
+    },
+    {
+      "canonical": "crashlytics",
+      "aliases": [
+        "crashlytics"
+      ]
+    },
+    {
+      "canonical": "creo",
+      "aliases": [
+        "creo"
+      ]
+    },
+    {
+      "canonical": "cribl",
+      "aliases": [
+        "cribl"
+      ]
+    },
+    {
+      "canonical": "crm",
+      "aliases": [
+        "crm"
+      ]
+    },
+    {
+      "canonical": "cross-functional coordination",
+      "aliases": [
+        "cross-functional coordination"
+      ]
+    },
+    {
+      "canonical": "crypto algorithms",
+      "aliases": [
+        "crypto algorithms"
+      ]
+    },
+    {
+      "canonical": "cryptography",
+      "aliases": [
+        "cryptography"
+      ]
+    },
+    {
+      "canonical": "crystal report",
+      "aliases": [
+        "crystal report"
+      ]
+    },
+    {
+      "canonical": "cs-cart",
+      "aliases": [
+        "cs-cart"
+      ]
     },
     {
       "canonical": "css",
-      "aliases": ["css"]
+      "aliases": [
+        "css"
+      ]
+    },
+    {
+      "canonical": "css modules",
+      "aliases": [
+        "css modules"
+      ]
+    },
+    {
+      "canonical": "css-in-js",
+      "aliases": [
+        "css-in-js"
+      ]
+    },
+    {
+      "canonical": "css3",
+      "aliases": [
+        "css3"
+      ]
+    },
+    {
+      "canonical": "csv",
+      "aliases": [
+        "csv"
+      ]
+    },
+    {
+      "canonical": "cucumber",
+      "aliases": [
+        "cucumber"
+      ]
+    },
+    {
+      "canonical": "cucumberjs",
+      "aliases": [
+        "cucumberjs"
+      ]
+    },
+    {
+      "canonical": "cuda",
+      "aliases": [
+        "cuda"
+      ]
+    },
+    {
+      "canonical": "curl",
+      "aliases": [
+        "curl"
+      ]
+    },
+    {
+      "canonical": "customer satisfaction",
+      "aliases": [
+        "customer satisfaction"
+      ]
+    },
+    {
+      "canonical": "cwe",
+      "aliases": [
+        "cwe"
+      ]
+    },
+    {
+      "canonical": "cyber security",
+      "aliases": [
+        "cyber security"
+      ]
+    },
+    {
+      "canonical": "cyber security analyst",
+      "aliases": [
+        "cyber security analyst"
+      ]
+    },
+    {
+      "canonical": "cyber security engineer",
+      "aliases": [
+        "cyber security engineer"
+      ]
+    },
+    {
+      "canonical": "cybersecurity",
+      "aliases": [
+        "cybersecurity"
+      ]
+    },
+    {
+      "canonical": "cybersecurity engineering",
+      "aliases": [
+        "cybersecurity engineering"
+      ]
+    },
+    {
+      "canonical": "cypress",
+      "aliases": [
+        "cypress"
+      ]
+    },
+    {
+      "canonical": "d365",
+      "aliases": [
+        "d365"
+      ]
+    },
+    {
+      "canonical": "dapper",
+      "aliases": [
+        "dapper"
+      ]
+    },
+    {
+      "canonical": "dapps",
+      "aliases": [
+        "dapps"
+      ]
+    },
+    {
+      "canonical": "dart",
+      "aliases": [
+        "dart"
+      ]
+    },
+    {
+      "canonical": "dash",
+      "aliases": [
+        "dash"
+      ]
+    },
+    {
+      "canonical": "dashcam",
+      "aliases": [
+        "dashcam"
+      ]
+    },
+    {
+      "canonical": "dast",
+      "aliases": [
+        "dast"
+      ]
+    },
+    {
+      "canonical": "data & ai",
+      "aliases": [
+        "data & ai"
+      ]
+    },
+    {
+      "canonical": "data analysis",
+      "aliases": [
+        "data analysis"
+      ]
+    },
+    {
+      "canonical": "data bricks",
+      "aliases": [
+        "data bricks"
+      ]
+    },
+    {
+      "canonical": "data lake",
+      "aliases": [
+        "data lake"
+      ]
+    },
+    {
+      "canonical": "data lake/warehouse",
+      "aliases": [
+        "data lake/warehouse"
+      ]
+    },
+    {
+      "canonical": "data mining",
+      "aliases": [
+        "data mining"
+      ]
+    },
+    {
+      "canonical": "data modeling",
+      "aliases": [
+        "data modeling"
+      ]
+    },
+    {
+      "canonical": "data pipeline",
+      "aliases": [
+        "data pipeline"
+      ]
+    },
+    {
+      "canonical": "data science",
+      "aliases": [
+        "data science"
+      ]
+    },
+    {
+      "canonical": "data security",
+      "aliases": [
+        "data security"
+      ]
+    },
+    {
+      "canonical": "data structures",
+      "aliases": [
+        "data structures"
+      ]
+    },
+    {
+      "canonical": "data studio",
+      "aliases": [
+        "data studio"
+      ]
+    },
+    {
+      "canonical": "data visualization",
+      "aliases": [
+        "data visualization"
+      ]
+    },
+    {
+      "canonical": "data warehouse",
+      "aliases": [
+        "data warehouse"
+      ]
     },
     {
       "canonical": "database",
-      "aliases": ["co so du lieu", "cơ sở dữ liệu", "database"]
+      "aliases": [
+        "database"
+      ]
+    },
+    {
+      "canonical": "database management",
+      "aliases": [
+        "database management"
+      ]
+    },
+    {
+      "canonical": "databases",
+      "aliases": [
+        "databases"
+      ]
+    },
+    {
+      "canonical": "databricks",
+      "aliases": [
+        "databricks"
+      ]
+    },
+    {
+      "canonical": "datadog",
+      "aliases": [
+        "datadog"
+      ]
+    },
+    {
+      "canonical": "dataops",
+      "aliases": [
+        "dataops"
+      ]
+    },
+    {
+      "canonical": "datastage",
+      "aliases": [
+        "datastage"
+      ]
+    },
+    {
+      "canonical": "dataverse",
+      "aliases": [
+        "dataverse"
+      ]
+    },
+    {
+      "canonical": "davinci",
+      "aliases": [
+        "davinci"
+      ]
+    },
+    {
+      "canonical": "db2",
+      "aliases": [
+        "db2"
+      ]
+    },
+    {
+      "canonical": "dbt",
+      "aliases": [
+        "dbt"
+      ]
+    },
+    {
+      "canonical": "dbweaver",
+      "aliases": [
+        "dbweaver"
+      ]
+    },
+    {
+      "canonical": "debian",
+      "aliases": [
+        "debian"
+      ]
+    },
+    {
+      "canonical": "decentralized applications",
+      "aliases": [
+        "decentralized applications"
+      ]
     },
     {
       "canonical": "deep learning",
-      "aliases": ["deep learning"]
+      "aliases": [
+        "deep learning"
+      ]
+    },
+    {
+      "canonical": "defi",
+      "aliases": [
+        "defi"
+      ]
+    },
+    {
+      "canonical": "dell",
+      "aliases": [
+        "dell"
+      ]
+    },
+    {
+      "canonical": "dell boomi atomsphere",
+      "aliases": [
+        "dell boomi atomsphere"
+      ]
+    },
+    {
+      "canonical": "delta lake",
+      "aliases": [
+        "delta lake"
+      ]
+    },
+    {
+      "canonical": "dependency injection",
+      "aliases": [
+        "dependency injection"
+      ]
+    },
+    {
+      "canonical": "dependency management",
+      "aliases": [
+        "dependency management"
+      ]
+    },
+    {
+      "canonical": "design pattern",
+      "aliases": [
+        "design pattern"
+      ]
+    },
+    {
+      "canonical": "design patterns",
+      "aliases": [
+        "design patterns"
+      ]
+    },
+    {
+      "canonical": "design thinking",
+      "aliases": [
+        "design thinking"
+      ]
+    },
+    {
+      "canonical": "devexpress",
+      "aliases": [
+        "devexpress"
+      ]
+    },
+    {
+      "canonical": "devextreme",
+      "aliases": [
+        "devextreme"
+      ]
+    },
+    {
+      "canonical": "devops",
+      "aliases": [
+        "devops"
+      ]
+    },
+    {
+      "canonical": "devops azure",
+      "aliases": [
+        "devops azure"
+      ]
+    },
+    {
+      "canonical": "devops tools",
+      "aliases": [
+        "devops tools"
+      ]
+    },
+    {
+      "canonical": "devsecops",
+      "aliases": [
+        "devsecops"
+      ]
+    },
+    {
+      "canonical": "dgl",
+      "aliases": [
+        "dgl"
+      ]
+    },
+    {
+      "canonical": "dhcp",
+      "aliases": [
+        "dhcp"
+      ]
+    },
+    {
+      "canonical": "dialogflow",
+      "aliases": [
+        "dialogflow"
+      ]
+    },
+    {
+      "canonical": "diffusion models",
+      "aliases": [
+        "diffusion models"
+      ]
+    },
+    {
+      "canonical": "digitalocean",
+      "aliases": [
+        "digitalocean"
+      ]
+    },
+    {
+      "canonical": "dio",
+      "aliases": [
+        "dio"
+      ]
+    },
+    {
+      "canonical": "directadmin",
+      "aliases": [
+        "directadmin"
+      ]
+    },
+    {
+      "canonical": "directx",
+      "aliases": [
+        "directx"
+      ]
+    },
+    {
+      "canonical": "discovery calls",
+      "aliases": [
+        "discovery calls"
+      ]
+    },
+    {
+      "canonical": "distributed systems",
+      "aliases": [
+        "distributed systems"
+      ]
+    },
+    {
+      "canonical": "divi",
+      "aliases": [
+        "divi"
+      ]
     },
     {
       "canonical": "django",
-      "aliases": ["django"]
+      "aliases": [
+        "django"
+      ]
+    },
+    {
+      "canonical": "dl4j",
+      "aliases": [
+        "dl4j"
+      ]
+    },
+    {
+      "canonical": "dlms protocol",
+      "aliases": [
+        "dlms protocol"
+      ]
+    },
+    {
+      "canonical": "dlp",
+      "aliases": [
+        "dlp"
+      ]
+    },
+    {
+      "canonical": "dms",
+      "aliases": [
+        "dms"
+      ]
+    },
+    {
+      "canonical": "dns",
+      "aliases": [
+        "dns"
+      ]
     },
     {
       "canonical": "docker",
-      "aliases": ["docker"]
+      "aliases": [
+        "docker"
+      ]
+    },
+    {
+      "canonical": "docker compose",
+      "aliases": [
+        "docker compose"
+      ]
+    },
+    {
+      "canonical": "docker swarm",
+      "aliases": [
+        "docker swarm"
+      ]
+    },
+    {
+      "canonical": "documentation",
+      "aliases": [
+        "documentation"
+      ]
+    },
+    {
+      "canonical": "domain",
+      "aliases": [
+        "domain"
+      ]
+    },
+    {
+      "canonical": "domain-driven design",
+      "aliases": [
+        "domain-driven design"
+      ]
+    },
+    {
+      "canonical": "doors",
+      "aliases": [
+        "doors"
+      ]
+    },
+    {
+      "canonical": "doosan",
+      "aliases": [
+        "doosan"
+      ]
+    },
+    {
+      "canonical": "draw.io",
+      "aliases": [
+        "draw.io"
+      ]
+    },
+    {
+      "canonical": "dremio",
+      "aliases": [
+        "dremio"
+      ]
+    },
+    {
+      "canonical": "drm",
+      "aliases": [
+        "drm"
+      ]
+    },
+    {
+      "canonical": "dropshipping",
+      "aliases": [
+        "dropshipping"
+      ]
+    },
+    {
+      "canonical": "drp",
+      "aliases": [
+        "drp"
+      ]
+    },
+    {
+      "canonical": "drupal",
+      "aliases": [
+        "drupal"
+      ]
     },
     {
       "canonical": "dynamodb",
-      "aliases": ["dynamodb"]
+      "aliases": [
+        "dynamodb"
+      ]
+    },
+    {
+      "canonical": "dynatrace",
+      "aliases": [
+        "dynatrace"
+      ]
+    },
+    {
+      "canonical": "e-commerce",
+      "aliases": [
+        "e-commerce"
+      ]
+    },
+    {
+      "canonical": "ec2",
+      "aliases": [
+        "ec2"
+      ]
+    },
+    {
+      "canonical": "eclipse",
+      "aliases": [
+        "eclipse"
+      ]
+    },
+    {
+      "canonical": "eclipse rcp",
+      "aliases": [
+        "eclipse rcp"
+      ]
+    },
+    {
+      "canonical": "edge computing",
+      "aliases": [
+        "edge computing"
+      ]
+    },
+    {
+      "canonical": "edr",
+      "aliases": [
+        "edr"
+      ]
+    },
+    {
+      "canonical": "efk",
+      "aliases": [
+        "efk"
+      ]
+    },
+    {
+      "canonical": "ejb",
+      "aliases": [
+        "ejb"
+      ]
+    },
+    {
+      "canonical": "eks",
+      "aliases": [
+        "eks"
+      ]
+    },
+    {
+      "canonical": "elastic search",
+      "aliases": [
+        "elastic search"
+      ]
+    },
+    {
+      "canonical": "elasticache",
+      "aliases": [
+        "elasticache"
+      ]
     },
     {
       "canonical": "elasticsearch",
-      "aliases": ["elastic", "elasticsearch"]
+      "aliases": [
+        "elastic",
+        "elasticsearch"
+      ]
+    },
+    {
+      "canonical": "electron.js",
+      "aliases": [
+        "electron.js"
+      ]
+    },
+    {
+      "canonical": "electronjs",
+      "aliases": [
+        "electronjs"
+      ]
+    },
+    {
+      "canonical": "element plus",
+      "aliases": [
+        "element plus"
+      ]
+    },
+    {
+      "canonical": "elementor",
+      "aliases": [
+        "elementor"
+      ]
+    },
+    {
+      "canonical": "elk",
+      "aliases": [
+        "elk"
+      ]
+    },
+    {
+      "canonical": "elk stack",
+      "aliases": [
+        "elk stack"
+      ]
+    },
+    {
+      "canonical": "elk/loki",
+      "aliases": [
+        "elk/loki"
+      ]
+    },
+    {
+      "canonical": "elt",
+      "aliases": [
+        "elt"
+      ]
+    },
+    {
+      "canonical": "elv",
+      "aliases": [
+        "elv"
+      ]
+    },
+    {
+      "canonical": "email",
+      "aliases": [
+        "email"
+      ]
+    },
+    {
+      "canonical": "email exchange server",
+      "aliases": [
+        "email exchange server"
+      ]
+    },
+    {
+      "canonical": "email marketing",
+      "aliases": [
+        "email marketing"
+      ]
+    },
+    {
+      "canonical": "embedded",
+      "aliases": [
+        "embedded"
+      ]
+    },
+    {
+      "canonical": "embedded automotive development",
+      "aliases": [
+        "embedded automotive development"
+      ]
+    },
+    {
+      "canonical": "embedded linux",
+      "aliases": [
+        "embedded linux"
+      ]
+    },
+    {
+      "canonical": "embedded software",
+      "aliases": [
+        "embedded software"
+      ]
+    },
+    {
+      "canonical": "embedded system",
+      "aliases": [
+        "embedded system"
+      ]
+    },
+    {
+      "canonical": "embedded systems",
+      "aliases": [
+        "embedded systems"
+      ]
+    },
+    {
+      "canonical": "ember",
+      "aliases": [
+        "ember"
+      ]
+    },
+    {
+      "canonical": "emr/ehr",
+      "aliases": [
+        "emr/ehr"
+      ]
+    },
+    {
+      "canonical": "emulate3d",
+      "aliases": [
+        "emulate3d"
+      ]
+    },
+    {
+      "canonical": "encryption",
+      "aliases": [
+        "encryption"
+      ]
+    },
+    {
+      "canonical": "end-to-end encryption",
+      "aliases": [
+        "end-to-end encryption"
+      ]
+    },
+    {
+      "canonical": "endpoint central",
+      "aliases": [
+        "endpoint central"
+      ]
+    },
+    {
+      "canonical": "endpoint security",
+      "aliases": [
+        "endpoint security"
+      ]
+    },
+    {
+      "canonical": "english",
+      "aliases": [
+        "english"
+      ]
+    },
+    {
+      "canonical": "ens",
+      "aliases": [
+        "ens"
+      ]
+    },
+    {
+      "canonical": "enterprise architect",
+      "aliases": [
+        "enterprise architect"
+      ]
+    },
+    {
+      "canonical": "entity framework",
+      "aliases": [
+        "entity framework"
+      ]
+    },
+    {
+      "canonical": "entity framework core",
+      "aliases": [
+        "entity framework core"
+      ]
+    },
+    {
+      "canonical": "entra id",
+      "aliases": [
+        "entra id"
+      ]
+    },
+    {
+      "canonical": "enzyme",
+      "aliases": [
+        "enzyme"
+      ]
+    },
+    {
+      "canonical": "epicor",
+      "aliases": [
+        "epicor"
+      ]
+    },
+    {
+      "canonical": "eplan",
+      "aliases": [
+        "eplan"
+      ]
+    },
+    {
+      "canonical": "epp",
+      "aliases": [
+        "epp"
+      ]
+    },
+    {
+      "canonical": "erp",
+      "aliases": [
+        "erp"
+      ]
+    },
+    {
+      "canonical": "es6",
+      "aliases": [
+        "es6"
+      ]
+    },
+    {
+      "canonical": "esb",
+      "aliases": [
+        "esb"
+      ]
+    },
+    {
+      "canonical": "escalations",
+      "aliases": [
+        "escalations"
+      ]
+    },
+    {
+      "canonical": "eslint",
+      "aliases": [
+        "eslint"
+      ]
+    },
+    {
+      "canonical": "esp-idf",
+      "aliases": [
+        "esp-idf"
+      ]
+    },
+    {
+      "canonical": "esp32",
+      "aliases": [
+        "esp32"
+      ]
+    },
+    {
+      "canonical": "espresso",
+      "aliases": [
+        "espresso"
+      ]
+    },
+    {
+      "canonical": "etas",
+      "aliases": [
+        "etas"
+      ]
+    },
+    {
+      "canonical": "ether",
+      "aliases": [
+        "ether"
+      ]
+    },
+    {
+      "canonical": "ethercat",
+      "aliases": [
+        "ethercat"
+      ]
+    },
+    {
+      "canonical": "ethereum",
+      "aliases": [
+        "ethereum"
+      ]
+    },
+    {
+      "canonical": "ethernet",
+      "aliases": [
+        "ethernet"
+      ]
+    },
+    {
+      "canonical": "ethernet tcp/ip",
+      "aliases": [
+        "ethernet tcp/ip"
+      ]
+    },
+    {
+      "canonical": "ethers.js",
+      "aliases": [
+        "ethers.js"
+      ]
+    },
+    {
+      "canonical": "ethical hacking",
+      "aliases": [
+        "ethical hacking"
+      ]
+    },
+    {
+      "canonical": "etl",
+      "aliases": [
+        "etl"
+      ]
+    },
+    {
+      "canonical": "etl pentaho",
+      "aliases": [
+        "etl pentaho"
+      ]
+    },
+    {
+      "canonical": "event streaming",
+      "aliases": [
+        "event streaming"
+      ]
+    },
+    {
+      "canonical": "event-driven architecture",
+      "aliases": [
+        "event-driven architecture"
+      ]
+    },
+    {
+      "canonical": "evm",
+      "aliases": [
+        "evm"
+      ]
+    },
+    {
+      "canonical": "excel",
+      "aliases": [
+        "excel"
+      ]
+    },
+    {
+      "canonical": "exchange",
+      "aliases": [
+        "exchange"
+      ]
+    },
+    {
+      "canonical": "exchange server",
+      "aliases": [
+        "exchange server"
+      ]
+    },
+    {
+      "canonical": "expo",
+      "aliases": [
+        "expo"
+      ]
     },
     {
       "canonical": "express",
-      "aliases": ["express", "express.js", "expressjs"]
+      "aliases": [
+        "express",
+        "express.js",
+        "expressjs"
+      ]
+    },
+    {
+      "canonical": "express js",
+      "aliases": [
+        "express js"
+      ]
+    },
+    {
+      "canonical": "eyeshot",
+      "aliases": [
+        "eyeshot"
+      ]
+    },
+    {
+      "canonical": "f#",
+      "aliases": [
+        "f#"
+      ]
+    },
+    {
+      "canonical": "facebook",
+      "aliases": [
+        "facebook"
+      ]
+    },
+    {
+      "canonical": "facial recognition",
+      "aliases": [
+        "facial recognition"
+      ]
+    },
+    {
+      "canonical": "faiss",
+      "aliases": [
+        "faiss"
+      ]
+    },
+    {
+      "canonical": "faktory",
+      "aliases": [
+        "faktory"
+      ]
+    },
+    {
+      "canonical": "fanuc",
+      "aliases": [
+        "fanuc"
+      ]
+    },
+    {
+      "canonical": "fast api",
+      "aliases": [
+        "fast api"
+      ]
     },
     {
       "canonical": "fastapi",
-      "aliases": ["fastapi"]
+      "aliases": [
+        "fastapi"
+      ]
+    },
+    {
+      "canonical": "fastlane",
+      "aliases": [
+        "fastlane"
+      ]
+    },
+    {
+      "canonical": "fetch",
+      "aliases": [
+        "fetch"
+      ]
+    },
+    {
+      "canonical": "ffmpeg",
+      "aliases": [
+        "ffmpeg"
+      ]
+    },
+    {
+      "canonical": "figma",
+      "aliases": [
+        "figma"
+      ]
+    },
+    {
+      "canonical": "file management",
+      "aliases": [
+        "file management"
+      ]
+    },
+    {
+      "canonical": "financial modeling",
+      "aliases": [
+        "financial modeling"
+      ]
+    },
+    {
+      "canonical": "fiori",
+      "aliases": [
+        "fiori"
+      ]
+    },
+    {
+      "canonical": "fiori elements",
+      "aliases": [
+        "fiori elements"
+      ]
+    },
+    {
+      "canonical": "firebase",
+      "aliases": [
+        "firebase"
+      ]
+    },
+    {
+      "canonical": "firebase analytics",
+      "aliases": [
+        "firebase analytics"
+      ]
+    },
+    {
+      "canonical": "fireflies",
+      "aliases": [
+        "fireflies"
+      ]
+    },
+    {
+      "canonical": "firestore",
+      "aliases": [
+        "firestore"
+      ]
+    },
+    {
+      "canonical": "firewall",
+      "aliases": [
+        "firewall"
+      ]
+    },
+    {
+      "canonical": "firewalls",
+      "aliases": [
+        "firewalls"
+      ]
+    },
+    {
+      "canonical": "fitnesse",
+      "aliases": [
+        "fitnesse"
+      ]
+    },
+    {
+      "canonical": "flash bootloader",
+      "aliases": [
+        "flash bootloader"
+      ]
     },
     {
       "canonical": "flask",
-      "aliases": ["flask"]
+      "aliases": [
+        "flask"
+      ]
+    },
+    {
+      "canonical": "flexbox",
+      "aliases": [
+        "flexbox"
+      ]
+    },
+    {
+      "canonical": "flink",
+      "aliases": [
+        "flink"
+      ]
+    },
+    {
+      "canonical": "flow",
+      "aliases": [
+        "flow"
+      ]
     },
     {
       "canonical": "flutter",
-      "aliases": ["flutter"]
+      "aliases": [
+        "flutter"
+      ]
+    },
+    {
+      "canonical": "flux",
+      "aliases": [
+        "flux"
+      ]
+    },
+    {
+      "canonical": "fme",
+      "aliases": [
+        "fme"
+      ]
+    },
+    {
+      "canonical": "forecasting",
+      "aliases": [
+        "forecasting"
+      ]
+    },
+    {
+      "canonical": "forguncy",
+      "aliases": [
+        "forguncy"
+      ]
+    },
+    {
+      "canonical": "fortify",
+      "aliases": [
+        "fortify"
+      ]
+    },
+    {
+      "canonical": "fortigate",
+      "aliases": [
+        "fortigate"
+      ]
+    },
+    {
+      "canonical": "fortinet",
+      "aliases": [
+        "fortinet"
+      ]
+    },
+    {
+      "canonical": "fota",
+      "aliases": [
+        "fota"
+      ]
+    },
+    {
+      "canonical": "foundation",
+      "aliases": [
+        "foundation"
+      ]
+    },
+    {
+      "canonical": "foundry",
+      "aliases": [
+        "foundry"
+      ]
+    },
+    {
+      "canonical": "fpga",
+      "aliases": [
+        "fpga"
+      ]
+    },
+    {
+      "canonical": "framework",
+      "aliases": [
+        "framework"
+      ]
+    },
+    {
+      "canonical": "freeipa",
+      "aliases": [
+        "freeipa"
+      ]
+    },
+    {
+      "canonical": "freertos",
+      "aliases": [
+        "freertos"
+      ]
+    },
+    {
+      "canonical": "functional safety standards",
+      "aliases": [
+        "functional safety standards"
+      ]
+    },
+    {
+      "canonical": "functional testing",
+      "aliases": [
+        "functional testing"
+      ]
+    },
+    {
+      "canonical": "fusion 360",
+      "aliases": [
+        "fusion 360"
+      ]
+    },
+    {
+      "canonical": "fw",
+      "aliases": [
+        "fw"
+      ]
+    },
+    {
+      "canonical": "g suite",
+      "aliases": [
+        "g suite"
+      ]
+    },
+    {
+      "canonical": "g-code",
+      "aliases": [
+        "g-code"
+      ]
+    },
+    {
+      "canonical": "ga360",
+      "aliases": [
+        "ga360"
+      ]
+    },
+    {
+      "canonical": "ga4",
+      "aliases": [
+        "ga4"
+      ]
+    },
+    {
+      "canonical": "game development",
+      "aliases": [
+        "game development"
+      ]
+    },
+    {
+      "canonical": "gan",
+      "aliases": [
+        "gan"
+      ]
+    },
+    {
+      "canonical": "gatsby",
+      "aliases": [
+        "gatsby"
+      ]
+    },
+    {
+      "canonical": "gcd",
+      "aliases": [
+        "gcd"
+      ]
+    },
+    {
+      "canonical": "gcore",
+      "aliases": [
+        "gcore"
+      ]
+    },
+    {
+      "canonical": "gdb",
+      "aliases": [
+        "gdb"
+      ]
+    },
+    {
+      "canonical": "gemma",
+      "aliases": [
+        "gemma"
+      ]
+    },
+    {
+      "canonical": "genai",
+      "aliases": [
+        "genai"
+      ]
+    },
+    {
+      "canonical": "geopandas",
+      "aliases": [
+        "geopandas"
+      ]
+    },
+    {
+      "canonical": "geoserver",
+      "aliases": [
+        "geoserver"
+      ]
+    },
+    {
+      "canonical": "getx",
+      "aliases": [
+        "getx"
+      ]
+    },
+    {
+      "canonical": "gherkin",
+      "aliases": [
+        "gherkin"
+      ]
+    },
+    {
+      "canonical": "gimp",
+      "aliases": [
+        "gimp"
+      ]
     },
     {
       "canonical": "git",
-      "aliases": ["git", "github", "gitlab"]
+      "aliases": [
+        "git",
+        "github",
+        "gitlab"
+      ]
+    },
+    {
+      "canonical": "git flow",
+      "aliases": [
+        "git flow"
+      ]
+    },
+    {
+      "canonical": "github action",
+      "aliases": [
+        "github action"
+      ]
     },
     {
       "canonical": "github actions",
-      "aliases": ["github actions"]
+      "aliases": [
+        "github actions"
+      ]
+    },
+    {
+      "canonical": "github copilot",
+      "aliases": [
+        "github copilot"
+      ]
+    },
+    {
+      "canonical": "gitlab ci",
+      "aliases": [
+        "gitlab ci"
+      ]
+    },
+    {
+      "canonical": "gitlab ci/cd",
+      "aliases": [
+        "gitlab ci/cd"
+      ]
+    },
+    {
+      "canonical": "gitops",
+      "aliases": [
+        "gitops"
+      ]
+    },
+    {
+      "canonical": "gke",
+      "aliases": [
+        "gke"
+      ]
+    },
+    {
+      "canonical": "glue",
+      "aliases": [
+        "glue"
+      ]
+    },
+    {
+      "canonical": "gmes",
+      "aliases": [
+        "gmes"
+      ]
     },
     {
       "canonical": "go",
-      "aliases": ["go", "golang"]
+      "aliases": [
+        "go",
+        "golang"
+      ]
+    },
+    {
+      "canonical": "go route",
+      "aliases": [
+        "go route"
+      ]
+    },
+    {
+      "canonical": "godot",
+      "aliases": [
+        "godot"
+      ]
+    },
+    {
+      "canonical": "goldengate",
+      "aliases": [
+        "goldengate"
+      ]
+    },
+    {
+      "canonical": "google",
+      "aliases": [
+        "google"
+      ]
+    },
+    {
+      "canonical": "google ads",
+      "aliases": [
+        "google ads"
+      ]
+    },
+    {
+      "canonical": "google ai studio",
+      "aliases": [
+        "google ai studio"
+      ]
+    },
+    {
+      "canonical": "google analytics",
+      "aliases": [
+        "google analytics"
+      ]
+    },
+    {
+      "canonical": "google analytics 4",
+      "aliases": [
+        "google analytics 4"
+      ]
+    },
+    {
+      "canonical": "google calendar",
+      "aliases": [
+        "google calendar"
+      ]
+    },
+    {
+      "canonical": "google chronicle",
+      "aliases": [
+        "google chronicle"
+      ]
     },
     {
       "canonical": "google cloud",
-      "aliases": ["gcp", "google cloud", "google cloud platform"]
+      "aliases": [
+        "gcp",
+        "google cloud",
+        "google cloud platform"
+      ]
+    },
+    {
+      "canonical": "google cloud platform services",
+      "aliases": [
+        "google cloud platform services"
+      ]
+    },
+    {
+      "canonical": "google cloud sql",
+      "aliases": [
+        "google cloud sql"
+      ]
+    },
+    {
+      "canonical": "google cloud vision",
+      "aliases": [
+        "google cloud vision"
+      ]
+    },
+    {
+      "canonical": "google drive realtime api",
+      "aliases": [
+        "google drive realtime api"
+      ]
+    },
+    {
+      "canonical": "google firebase",
+      "aliases": [
+        "google firebase"
+      ]
+    },
+    {
+      "canonical": "google keyword planner",
+      "aliases": [
+        "google keyword planner"
+      ]
+    },
+    {
+      "canonical": "google kubernetes engine",
+      "aliases": [
+        "google kubernetes engine"
+      ]
+    },
+    {
+      "canonical": "google maps",
+      "aliases": [
+        "google maps"
+      ]
+    },
+    {
+      "canonical": "google maps api",
+      "aliases": [
+        "google maps api"
+      ]
+    },
+    {
+      "canonical": "google meet",
+      "aliases": [
+        "google meet"
+      ]
+    },
+    {
+      "canonical": "google natural language api",
+      "aliases": [
+        "google natural language api"
+      ]
+    },
+    {
+      "canonical": "google sheet",
+      "aliases": [
+        "google sheet"
+      ]
+    },
+    {
+      "canonical": "google sheets",
+      "aliases": [
+        "google sheets"
+      ]
+    },
+    {
+      "canonical": "google tools",
+      "aliases": [
+        "google tools"
+      ]
+    },
+    {
+      "canonical": "google vertex ai",
+      "aliases": [
+        "google vertex ai"
+      ]
+    },
+    {
+      "canonical": "google workplace",
+      "aliases": [
+        "google workplace"
+      ]
+    },
+    {
+      "canonical": "google workspace",
+      "aliases": [
+        "google workspace"
+      ]
+    },
+    {
+      "canonical": "googleappscript",
+      "aliases": [
+        "googleappscript"
+      ]
+    },
+    {
+      "canonical": "gpib",
+      "aliases": [
+        "gpib"
+      ]
+    },
+    {
+      "canonical": "gpo",
+      "aliases": [
+        "gpo"
+      ]
+    },
+    {
+      "canonical": "gradio",
+      "aliases": [
+        "gradio"
+      ]
+    },
+    {
+      "canonical": "gradle",
+      "aliases": [
+        "gradle"
+      ]
+    },
+    {
+      "canonical": "grafana",
+      "aliases": [
+        "grafana"
+      ]
+    },
+    {
+      "canonical": "grafana/prometheus",
+      "aliases": [
+        "grafana/prometheus"
+      ]
+    },
+    {
+      "canonical": "graphana",
+      "aliases": [
+        "graphana"
+      ]
+    },
+    {
+      "canonical": "graphical user interface",
+      "aliases": [
+        "graphical user interface"
+      ]
     },
     {
       "canonical": "graphql",
-      "aliases": ["graphql"]
+      "aliases": [
+        "graphql"
+      ]
+    },
+    {
+      "canonical": "graphql apis",
+      "aliases": [
+        "graphql apis"
+      ]
+    },
+    {
+      "canonical": "graylog",
+      "aliases": [
+        "graylog"
+      ]
+    },
+    {
+      "canonical": "groovy",
+      "aliases": [
+        "groovy"
+      ]
+    },
+    {
+      "canonical": "group policy",
+      "aliases": [
+        "group policy"
+      ]
     },
     {
       "canonical": "grpc",
-      "aliases": ["grpc"]
+      "aliases": [
+        "grpc"
+      ]
+    },
+    {
+      "canonical": "gstreamer",
+      "aliases": [
+        "gstreamer"
+      ]
+    },
+    {
+      "canonical": "gulp",
+      "aliases": [
+        "gulp"
+      ]
     },
     {
       "canonical": "hadoop",
-      "aliases": ["hadoop"]
+      "aliases": [
+        "hadoop"
+      ]
+    },
+    {
+      "canonical": "halcon",
+      "aliases": [
+        "halcon"
+      ]
+    },
+    {
+      "canonical": "hana cloud",
+      "aliases": [
+        "hana cloud"
+      ]
+    },
+    {
+      "canonical": "hapi",
+      "aliases": [
+        "hapi"
+      ]
+    },
+    {
+      "canonical": "haproxy",
+      "aliases": [
+        "haproxy"
+      ]
+    },
+    {
+      "canonical": "hardhat",
+      "aliases": [
+        "hardhat"
+      ]
+    },
+    {
+      "canonical": "hardware maintenance",
+      "aliases": [
+        "hardware maintenance"
+      ]
+    },
+    {
+      "canonical": "hardware-software integration",
+      "aliases": [
+        "hardware-software integration"
+      ]
+    },
+    {
+      "canonical": "havoc",
+      "aliases": [
+        "havoc"
+      ]
+    },
+    {
+      "canonical": "hazelcast",
+      "aliases": [
+        "hazelcast"
+      ]
+    },
+    {
+      "canonical": "hbase",
+      "aliases": [
+        "hbase"
+      ]
+    },
+    {
+      "canonical": "hdfs",
+      "aliases": [
+        "hdfs"
+      ]
+    },
+    {
+      "canonical": "helm",
+      "aliases": [
+        "helm"
+      ]
+    },
+    {
+      "canonical": "helm charts",
+      "aliases": [
+        "helm charts"
+      ]
+    },
+    {
+      "canonical": "hfs",
+      "aliases": [
+        "hfs"
+      ]
+    },
+    {
+      "canonical": "hibernate",
+      "aliases": [
+        "hibernate"
+      ]
+    },
+    {
+      "canonical": "hibernate/jpa",
+      "aliases": [
+        "hibernate/jpa"
+      ]
+    },
+    {
+      "canonical": "his",
+      "aliases": [
+        "his"
+      ]
+    },
+    {
+      "canonical": "hive",
+      "aliases": [
+        "hive"
+      ]
+    },
+    {
+      "canonical": "hls",
+      "aliases": [
+        "hls"
+      ]
+    },
+    {
+      "canonical": "hls.js",
+      "aliases": [
+        "hls.js"
+      ]
+    },
+    {
+      "canonical": "hmi",
+      "aliases": [
+        "hmi"
+      ]
+    },
+    {
+      "canonical": "hooks",
+      "aliases": [
+        "hooks"
+      ]
+    },
+    {
+      "canonical": "hp",
+      "aliases": [
+        "hp"
+      ]
+    },
+    {
+      "canonical": "hp-ux",
+      "aliases": [
+        "hp-ux"
+      ]
+    },
+    {
+      "canonical": "hpe",
+      "aliases": [
+        "hpe"
+      ]
     },
     {
       "canonical": "html",
-      "aliases": ["html"]
+      "aliases": [
+        "html"
+      ]
+    },
+    {
+      "canonical": "html/css",
+      "aliases": [
+        "html/css"
+      ]
+    },
+    {
+      "canonical": "html5",
+      "aliases": [
+        "html5"
+      ]
+    },
+    {
+      "canonical": "htmx",
+      "aliases": [
+        "htmx"
+      ]
+    },
+    {
+      "canonical": "http",
+      "aliases": [
+        "http"
+      ]
+    },
+    {
+      "canonical": "http client",
+      "aliases": [
+        "http client"
+      ]
+    },
+    {
+      "canonical": "http/2",
+      "aliases": [
+        "http/2"
+      ]
+    },
+    {
+      "canonical": "http2",
+      "aliases": [
+        "http2"
+      ]
+    },
+    {
+      "canonical": "https",
+      "aliases": [
+        "https"
+      ]
+    },
+    {
+      "canonical": "hubspot",
+      "aliases": [
+        "hubspot"
+      ]
+    },
+    {
+      "canonical": "hugging face",
+      "aliases": [
+        "hugging face"
+      ]
+    },
+    {
+      "canonical": "hugging face transformers",
+      "aliases": [
+        "hugging face transformers"
+      ]
+    },
+    {
+      "canonical": "huggingface",
+      "aliases": [
+        "huggingface"
+      ]
+    },
+    {
+      "canonical": "huggingface transformers",
+      "aliases": [
+        "huggingface transformers"
+      ]
+    },
+    {
+      "canonical": "hyper-v",
+      "aliases": [
+        "hyper-v"
+      ]
+    },
+    {
+      "canonical": "hyperledger",
+      "aliases": [
+        "hyperledger"
+      ]
+    },
+    {
+      "canonical": "hypermill",
+      "aliases": [
+        "hypermill"
+      ]
+    },
+    {
+      "canonical": "i2c",
+      "aliases": [
+        "i2c"
+      ]
+    },
+    {
+      "canonical": "iac",
+      "aliases": [
+        "iac"
+      ]
+    },
+    {
+      "canonical": "iam",
+      "aliases": [
+        "iam"
+      ]
+    },
+    {
+      "canonical": "iap",
+      "aliases": [
+        "iap"
+      ]
+    },
+    {
+      "canonical": "iast",
+      "aliases": [
+        "iast"
+      ]
+    },
+    {
+      "canonical": "ibm db2",
+      "aliases": [
+        "ibm db2"
+      ]
+    },
+    {
+      "canonical": "ibm websphere",
+      "aliases": [
+        "ibm websphere"
+      ]
+    },
+    {
+      "canonical": "ice",
+      "aliases": [
+        "ice"
+      ]
+    },
+    {
+      "canonical": "iceberg",
+      "aliases": [
+        "iceberg"
+      ]
+    },
+    {
+      "canonical": "ids/ips",
+      "aliases": [
+        "ids/ips"
+      ]
+    },
+    {
+      "canonical": "ids/ips/firewall",
+      "aliases": [
+        "ids/ips/firewall"
+      ]
+    },
+    {
+      "canonical": "iis",
+      "aliases": [
+        "iis"
+      ]
+    },
+    {
+      "canonical": "illustrator",
+      "aliases": [
+        "illustrator"
+      ]
+    },
+    {
+      "canonical": "industrial printing",
+      "aliases": [
+        "industrial printing"
+      ]
+    },
+    {
+      "canonical": "information security",
+      "aliases": [
+        "information security"
+      ]
+    },
+    {
+      "canonical": "infrastructure as code",
+      "aliases": [
+        "infrastructure as code"
+      ]
+    },
+    {
+      "canonical": "inovance",
+      "aliases": [
+        "inovance"
+      ]
+    },
+    {
+      "canonical": "intellij",
+      "aliases": [
+        "intellij"
+      ]
+    },
+    {
+      "canonical": "intellij idea",
+      "aliases": [
+        "intellij idea"
+      ]
+    },
+    {
+      "canonical": "intercom",
+      "aliases": [
+        "intercom"
+      ]
+    },
+    {
+      "canonical": "internet gateway",
+      "aliases": [
+        "internet gateway"
+      ]
+    },
+    {
+      "canonical": "interrupt",
+      "aliases": [
+        "interrupt"
+      ]
+    },
+    {
+      "canonical": "intune",
+      "aliases": [
+        "intune"
+      ]
+    },
+    {
+      "canonical": "inventor",
+      "aliases": [
+        "inventor"
+      ]
+    },
+    {
+      "canonical": "invision",
+      "aliases": [
+        "invision"
+      ]
+    },
+    {
+      "canonical": "ionic",
+      "aliases": [
+        "ionic"
+      ]
     },
     {
       "canonical": "ios",
-      "aliases": ["ios"]
+      "aliases": [
+        "ios"
+      ]
+    },
+    {
+      "canonical": "ios app",
+      "aliases": [
+        "ios app"
+      ]
+    },
+    {
+      "canonical": "ios sdk",
+      "aliases": [
+        "ios sdk"
+      ]
+    },
+    {
+      "canonical": "ios/android sdks",
+      "aliases": [
+        "ios/android sdks"
+      ]
+    },
+    {
+      "canonical": "iot",
+      "aliases": [
+        "iot"
+      ]
+    },
+    {
+      "canonical": "iot cloud",
+      "aliases": [
+        "iot cloud"
+      ]
+    },
+    {
+      "canonical": "ipc",
+      "aliases": [
+        "ipc"
+      ]
+    },
+    {
+      "canonical": "ipfs",
+      "aliases": [
+        "ipfs"
+      ]
+    },
+    {
+      "canonical": "ips",
+      "aliases": [
+        "ips"
+      ]
+    },
+    {
+      "canonical": "isar",
+      "aliases": [
+        "isar"
+      ]
+    },
+    {
+      "canonical": "iso",
+      "aliases": [
+        "iso"
+      ]
+    },
+    {
+      "canonical": "iso 27001",
+      "aliases": [
+        "iso 27001"
+      ]
+    },
+    {
+      "canonical": "iso 9001",
+      "aliases": [
+        "iso 9001"
+      ]
+    },
+    {
+      "canonical": "iso26262",
+      "aliases": [
+        "iso26262"
+      ]
+    },
+    {
+      "canonical": "iso27001",
+      "aliases": [
+        "iso27001"
+      ]
+    },
+    {
+      "canonical": "istio",
+      "aliases": [
+        "istio"
+      ]
+    },
+    {
+      "canonical": "itil",
+      "aliases": [
+        "itil"
+      ]
+    },
+    {
+      "canonical": "itsm",
+      "aliases": [
+        "itsm"
+      ]
+    },
+    {
+      "canonical": "j2ee",
+      "aliases": [
+        "j2ee"
+      ]
+    },
+    {
+      "canonical": "jakarta ee",
+      "aliases": [
+        "jakarta ee"
+      ]
+    },
+    {
+      "canonical": "japanese",
+      "aliases": [
+        "japanese"
+      ]
+    },
+    {
+      "canonical": "jasmine",
+      "aliases": [
+        "jasmine"
+      ]
     },
     {
       "canonical": "java",
-      "aliases": ["java"]
+      "aliases": [
+        "java"
+      ]
+    },
+    {
+      "canonical": "java ee",
+      "aliases": [
+        "java ee"
+      ]
+    },
+    {
+      "canonical": "java persistence api",
+      "aliases": [
+        "java persistence api"
+      ]
+    },
+    {
+      "canonical": "java spring",
+      "aliases": [
+        "java spring"
+      ]
+    },
+    {
+      "canonical": "java spring boot",
+      "aliases": [
+        "java spring boot"
+      ]
+    },
+    {
+      "canonical": "java spring-framework",
+      "aliases": [
+        "java spring-framework"
+      ]
+    },
+    {
+      "canonical": "java swing",
+      "aliases": [
+        "java swing"
+      ]
+    },
+    {
+      "canonical": "javaee",
+      "aliases": [
+        "javaee"
+      ]
+    },
+    {
+      "canonical": "javafx",
+      "aliases": [
+        "javafx"
+      ]
     },
     {
       "canonical": "javascript",
-      "aliases": ["javascript", "js"]
+      "aliases": [
+        "javascript",
+        "js"
+      ]
+    },
+    {
+      "canonical": "jazz",
+      "aliases": [
+        "jazz"
+      ]
+    },
+    {
+      "canonical": "jboss",
+      "aliases": [
+        "jboss"
+      ]
+    },
+    {
+      "canonical": "jboss as",
+      "aliases": [
+        "jboss as"
+      ]
+    },
+    {
+      "canonical": "jbpm",
+      "aliases": [
+        "jbpm"
+      ]
     },
     {
       "canonical": "jenkins",
-      "aliases": ["jenkins"]
+      "aliases": [
+        "jenkins"
+      ]
+    },
+    {
+      "canonical": "jest",
+      "aliases": [
+        "jest"
+      ]
+    },
+    {
+      "canonical": "jetpack",
+      "aliases": [
+        "jetpack"
+      ]
+    },
+    {
+      "canonical": "jetpack component",
+      "aliases": [
+        "jetpack component"
+      ]
+    },
+    {
+      "canonical": "jetpack compose",
+      "aliases": [
+        "jetpack compose"
+      ]
+    },
+    {
+      "canonical": "jetson",
+      "aliases": [
+        "jetson"
+      ]
+    },
+    {
+      "canonical": "jetson devices",
+      "aliases": [
+        "jetson devices"
+      ]
+    },
+    {
+      "canonical": "jetty",
+      "aliases": [
+        "jetty"
+      ]
+    },
+    {
+      "canonical": "jfrog",
+      "aliases": [
+        "jfrog"
+      ]
+    },
+    {
+      "canonical": "jira",
+      "aliases": [
+        "jira"
+      ]
+    },
+    {
+      "canonical": "jira service management",
+      "aliases": [
+        "jira service management"
+      ]
+    },
+    {
+      "canonical": "jmeter",
+      "aliases": [
+        "jmeter"
+      ]
+    },
+    {
+      "canonical": "jpa",
+      "aliases": [
+        "jpa"
+      ]
+    },
+    {
+      "canonical": "jpa2",
+      "aliases": [
+        "jpa2"
+      ]
     },
     {
       "canonical": "jquery",
-      "aliases": ["jquery"]
+      "aliases": [
+        "jquery"
+      ]
+    },
+    {
+      "canonical": "jsf",
+      "aliases": [
+        "jsf"
+      ]
+    },
+    {
+      "canonical": "json",
+      "aliases": [
+        "json"
+      ]
+    },
+    {
+      "canonical": "json-rpc",
+      "aliases": [
+        "json-rpc"
+      ]
+    },
+    {
+      "canonical": "jsp",
+      "aliases": [
+        "jsp"
+      ]
+    },
+    {
+      "canonical": "jsp servlet",
+      "aliases": [
+        "jsp servlet"
+      ]
+    },
+    {
+      "canonical": "juniper",
+      "aliases": [
+        "juniper"
+      ]
+    },
+    {
+      "canonical": "junit",
+      "aliases": [
+        "junit"
+      ]
+    },
+    {
+      "canonical": "jupyter notebook",
+      "aliases": [
+        "jupyter notebook"
+      ]
+    },
+    {
+      "canonical": "jwt",
+      "aliases": [
+        "jwt"
+      ]
+    },
+    {
+      "canonical": "kace",
+      "aliases": [
+        "kace"
+      ]
     },
     {
       "canonical": "kafka",
-      "aliases": ["kafka"]
+      "aliases": [
+        "kafka"
+      ]
+    },
+    {
+      "canonical": "kanban",
+      "aliases": [
+        "kanban"
+      ]
+    },
+    {
+      "canonical": "karate",
+      "aliases": [
+        "karate"
+      ]
+    },
+    {
+      "canonical": "karma",
+      "aliases": [
+        "karma"
+      ]
+    },
+    {
+      "canonical": "katalon",
+      "aliases": [
+        "katalon"
+      ]
+    },
+    {
+      "canonical": "katalon studio",
+      "aliases": [
+        "katalon studio"
+      ]
+    },
+    {
+      "canonical": "kendo ui",
+      "aliases": [
+        "kendo ui"
+      ]
     },
     {
       "canonical": "keras",
-      "aliases": ["keras"]
+      "aliases": [
+        "keras"
+      ]
+    },
+    {
+      "canonical": "keycloak",
+      "aliases": [
+        "keycloak"
+      ]
+    },
+    {
+      "canonical": "keyence",
+      "aliases": [
+        "keyence"
+      ]
+    },
+    {
+      "canonical": "kibana",
+      "aliases": [
+        "kibana"
+      ]
+    },
+    {
+      "canonical": "koa.js",
+      "aliases": [
+        "koa.js"
+      ]
     },
     {
       "canonical": "kotlin",
-      "aliases": ["kotlin"]
+      "aliases": [
+        "kotlin"
+      ]
+    },
+    {
+      "canonical": "kotlin multiplatform",
+      "aliases": [
+        "kotlin multiplatform"
+      ]
+    },
+    {
+      "canonical": "kotlin multiplatform mobile",
+      "aliases": [
+        "kotlin multiplatform mobile"
+      ]
+    },
+    {
+      "canonical": "kpis",
+      "aliases": [
+        "kpis"
+      ]
+    },
+    {
+      "canonical": "ktor",
+      "aliases": [
+        "ktor"
+      ]
+    },
+    {
+      "canonical": "kubeflow",
+      "aliases": [
+        "kubeflow"
+      ]
     },
     {
       "canonical": "kubernetes",
-      "aliases": ["k8s", "kube", "kubernetes"]
+      "aliases": [
+        "k8s",
+        "kube",
+        "kubernetes"
+      ]
+    },
+    {
+      "canonical": "kvm",
+      "aliases": [
+        "kvm"
+      ]
+    },
+    {
+      "canonical": "kysely",
+      "aliases": [
+        "kysely"
+      ]
+    },
+    {
+      "canonical": "lambda",
+      "aliases": [
+        "lambda"
+      ]
+    },
+    {
+      "canonical": "lan",
+      "aliases": [
+        "lan"
+      ]
+    },
+    {
+      "canonical": "landing pages",
+      "aliases": [
+        "landing pages"
+      ]
+    },
+    {
+      "canonical": "langchain",
+      "aliases": [
+        "langchain"
+      ]
+    },
+    {
+      "canonical": "langflow",
+      "aliases": [
+        "langflow"
+      ]
+    },
+    {
+      "canonical": "langgraph",
+      "aliases": [
+        "langgraph"
+      ]
     },
     {
       "canonical": "laravel",
-      "aliases": ["laravel"]
+      "aliases": [
+        "laravel"
+      ]
+    },
+    {
+      "canonical": "laravel dusk",
+      "aliases": [
+        "laravel dusk"
+      ]
+    },
+    {
+      "canonical": "lavarel",
+      "aliases": [
+        "lavarel"
+      ]
+    },
+    {
+      "canonical": "lead generation",
+      "aliases": [
+        "lead generation"
+      ]
+    },
+    {
+      "canonical": "leadership",
+      "aliases": [
+        "leadership"
+      ]
+    },
+    {
+      "canonical": "lean",
+      "aliases": [
+        "lean"
+      ]
+    },
+    {
+      "canonical": "legacy 3-tier architecture",
+      "aliases": [
+        "legacy 3-tier architecture"
+      ]
+    },
+    {
+      "canonical": "lerna",
+      "aliases": [
+        "lerna"
+      ]
+    },
+    {
+      "canonical": "less",
+      "aliases": [
+        "less"
+      ]
+    },
+    {
+      "canonical": "liferay",
+      "aliases": [
+        "liferay"
+      ]
+    },
+    {
+      "canonical": "lift control",
+      "aliases": [
+        "lift control"
+      ]
+    },
+    {
+      "canonical": "lighting",
+      "aliases": [
+        "lighting"
+      ]
+    },
+    {
+      "canonical": "lin",
+      "aliases": [
+        "lin"
+      ]
+    },
+    {
+      "canonical": "linq",
+      "aliases": [
+        "linq"
+      ]
     },
     {
       "canonical": "linux",
-      "aliases": ["linux"]
+      "aliases": [
+        "linux"
+      ]
+    },
+    {
+      "canonical": "linux kernel",
+      "aliases": [
+        "linux kernel"
+      ]
+    },
+    {
+      "canonical": "linux/unix",
+      "aliases": [
+        "linux/unix"
+      ]
+    },
+    {
+      "canonical": "liquid",
+      "aliases": [
+        "liquid"
+      ]
+    },
+    {
+      "canonical": "lis",
+      "aliases": [
+        "lis"
+      ]
+    },
+    {
+      "canonical": "livedata",
+      "aliases": [
+        "livedata"
+      ]
+    },
+    {
+      "canonical": "llama 2",
+      "aliases": [
+        "llama 2"
+      ]
+    },
+    {
+      "canonical": "llamaindex",
+      "aliases": [
+        "llamaindex"
+      ]
+    },
+    {
+      "canonical": "lldb",
+      "aliases": [
+        "lldb"
+      ]
+    },
+    {
+      "canonical": "llm",
+      "aliases": [
+        "llm"
+      ]
+    },
+    {
+      "canonical": "llms",
+      "aliases": [
+        "llms"
+      ]
+    },
+    {
+      "canonical": "load balancer",
+      "aliases": [
+        "load balancer"
+      ]
+    },
+    {
+      "canonical": "load balancing",
+      "aliases": [
+        "load balancing"
+      ]
+    },
+    {
+      "canonical": "load/performance testing",
+      "aliases": [
+        "load/performance testing"
+      ]
+    },
+    {
+      "canonical": "loadrunner",
+      "aliases": [
+        "loadrunner"
+      ]
+    },
+    {
+      "canonical": "logging",
+      "aliases": [
+        "logging"
+      ]
+    },
+    {
+      "canonical": "looker",
+      "aliases": [
+        "looker"
+      ]
+    },
+    {
+      "canonical": "looker studio",
+      "aliases": [
+        "looker studio"
+      ]
+    },
+    {
+      "canonical": "lora/lorawan",
+      "aliases": [
+        "lora/lorawan"
+      ]
+    },
+    {
+      "canonical": "low-code",
+      "aliases": [
+        "low-code"
+      ]
+    },
+    {
+      "canonical": "lstm",
+      "aliases": [
+        "lstm"
+      ]
+    },
+    {
+      "canonical": "lua",
+      "aliases": [
+        "lua"
+      ]
+    },
+    {
+      "canonical": "lua script",
+      "aliases": [
+        "lua script"
+      ]
+    },
+    {
+      "canonical": "lucidchart",
+      "aliases": [
+        "lucidchart"
+      ]
+    },
+    {
+      "canonical": "luigi",
+      "aliases": [
+        "luigi"
+      ]
+    },
+    {
+      "canonical": "lwc",
+      "aliases": [
+        "lwc"
+      ]
+    },
+    {
+      "canonical": "m700",
+      "aliases": [
+        "m700"
+      ]
+    },
+    {
+      "canonical": "m850",
+      "aliases": [
+        "m850"
+      ]
+    },
+    {
+      "canonical": "mac",
+      "aliases": [
+        "mac"
+      ]
+    },
+    {
+      "canonical": "mac os",
+      "aliases": [
+        "mac os"
+      ]
     },
     {
       "canonical": "machine learning",
-      "aliases": ["hoc may", "học máy", "machine learning", "ml"]
+      "aliases": [
+        "machine learning",
+        "ml"
+      ]
+    },
+    {
+      "canonical": "machinery",
+      "aliases": [
+        "machinery"
+      ]
+    },
+    {
+      "canonical": "macos",
+      "aliases": [
+        "macos"
+      ]
+    },
+    {
+      "canonical": "magento",
+      "aliases": [
+        "magento"
+      ]
+    },
+    {
+      "canonical": "magento 2",
+      "aliases": [
+        "magento 2"
+      ]
+    },
+    {
+      "canonical": "magicpod",
+      "aliases": [
+        "magicpod"
+      ]
+    },
+    {
+      "canonical": "make",
+      "aliases": [
+        "make"
+      ]
+    },
+    {
+      "canonical": "makino",
+      "aliases": [
+        "makino"
+      ]
+    },
+    {
+      "canonical": "mantis",
+      "aliases": [
+        "mantis"
+      ]
+    },
+    {
+      "canonical": "manual testing",
+      "aliases": [
+        "manual testing"
+      ]
+    },
+    {
+      "canonical": "mapbox",
+      "aliases": [
+        "mapbox"
+      ]
+    },
+    {
+      "canonical": "mariadb",
+      "aliases": [
+        "mariadb"
+      ]
+    },
+    {
+      "canonical": "marketing analytics",
+      "aliases": [
+        "marketing analytics"
+      ]
+    },
+    {
+      "canonical": "marketing cloud",
+      "aliases": [
+        "marketing cloud"
+      ]
+    },
+    {
+      "canonical": "mastercam",
+      "aliases": [
+        "mastercam"
+      ]
+    },
+    {
+      "canonical": "mastercam 2018",
+      "aliases": [
+        "mastercam 2018"
+      ]
+    },
+    {
+      "canonical": "mastercam 2021",
+      "aliases": [
+        "mastercam 2021"
+      ]
+    },
+    {
+      "canonical": "mastercam x5",
+      "aliases": [
+        "mastercam x5"
+      ]
+    },
+    {
+      "canonical": "mastercam2020",
+      "aliases": [
+        "mastercam2020"
+      ]
+    },
+    {
+      "canonical": "material",
+      "aliases": [
+        "material"
+      ]
+    },
+    {
+      "canonical": "material design",
+      "aliases": [
+        "material design"
+      ]
+    },
+    {
+      "canonical": "material design ui",
+      "aliases": [
+        "material design ui"
+      ]
+    },
+    {
+      "canonical": "material ui",
+      "aliases": [
+        "material ui"
+      ]
+    },
+    {
+      "canonical": "materialui",
+      "aliases": [
+        "materialui"
+      ]
     },
     {
       "canonical": "matlab",
-      "aliases": ["matlab"]
+      "aliases": [
+        "matlab"
+      ]
+    },
+    {
+      "canonical": "matlab/simulink",
+      "aliases": [
+        "matlab/simulink"
+      ]
+    },
+    {
+      "canonical": "maven",
+      "aliases": [
+        "maven"
+      ]
+    },
+    {
+      "canonical": "maya",
+      "aliases": [
+        "maya"
+      ]
+    },
+    {
+      "canonical": "mcu",
+      "aliases": [
+        "mcu"
+      ]
+    },
+    {
+      "canonical": "mdm",
+      "aliases": [
+        "mdm"
+      ]
+    },
+    {
+      "canonical": "mdvr",
+      "aliases": [
+        "mdvr"
+      ]
+    },
+    {
+      "canonical": "memcached",
+      "aliases": [
+        "memcached"
+      ]
+    },
+    {
+      "canonical": "mermaid.js",
+      "aliases": [
+        "mermaid.js"
+      ]
+    },
+    {
+      "canonical": "mes",
+      "aliases": [
+        "mes"
+      ]
+    },
+    {
+      "canonical": "message queue",
+      "aliases": [
+        "message queue"
+      ]
+    },
+    {
+      "canonical": "message queues",
+      "aliases": [
+        "message queues"
+      ]
+    },
+    {
+      "canonical": "messagequeue",
+      "aliases": [
+        "messagequeue"
+      ]
+    },
+    {
+      "canonical": "meta ads",
+      "aliases": [
+        "meta ads"
+      ]
+    },
+    {
+      "canonical": "metabase",
+      "aliases": [
+        "metabase"
+      ]
+    },
+    {
+      "canonical": "metronic",
+      "aliases": [
+        "metronic"
+      ]
+    },
+    {
+      "canonical": "mfa",
+      "aliases": [
+        "mfa"
+      ]
+    },
+    {
+      "canonical": "mfc",
+      "aliases": [
+        "mfc"
+      ]
+    },
+    {
+      "canonical": "microchip",
+      "aliases": [
+        "microchip"
+      ]
+    },
+    {
+      "canonical": "microcontrollers",
+      "aliases": [
+        "microcontrollers"
+      ]
+    },
+    {
+      "canonical": "microfrontend",
+      "aliases": [
+        "microfrontend"
+      ]
+    },
+    {
+      "canonical": "microservice",
+      "aliases": [
+        "microservice"
+      ]
     },
     {
       "canonical": "microservices",
-      "aliases": ["kien truc vi dich vu", "kiến trúc vi dịch vụ", "microservices", "vi dich vu", "vi dịch vụ"]
+      "aliases": [
+        "microservices"
+      ]
+    },
+    {
+      "canonical": "microsoft",
+      "aliases": [
+        "microsoft"
+      ]
+    },
+    {
+      "canonical": "microsoft 365",
+      "aliases": [
+        "microsoft 365"
+      ]
+    },
+    {
+      "canonical": "microsoft azure",
+      "aliases": [
+        "microsoft azure"
+      ]
+    },
+    {
+      "canonical": "microsoft azure devops",
+      "aliases": [
+        "microsoft azure devops"
+      ]
+    },
+    {
+      "canonical": "microsoft dynamics",
+      "aliases": [
+        "microsoft dynamics"
+      ]
+    },
+    {
+      "canonical": "microsoft endpoint manager",
+      "aliases": [
+        "microsoft endpoint manager"
+      ]
+    },
+    {
+      "canonical": "microsoft entra id",
+      "aliases": [
+        "microsoft entra id"
+      ]
+    },
+    {
+      "canonical": "microsoft excel",
+      "aliases": [
+        "microsoft excel"
+      ]
+    },
+    {
+      "canonical": "microsoft exchange server",
+      "aliases": [
+        "microsoft exchange server"
+      ]
+    },
+    {
+      "canonical": "microsoft fabric",
+      "aliases": [
+        "microsoft fabric"
+      ]
+    },
+    {
+      "canonical": "microsoft intune",
+      "aliases": [
+        "microsoft intune"
+      ]
+    },
+    {
+      "canonical": "microsoft office",
+      "aliases": [
+        "microsoft office"
+      ]
+    },
+    {
+      "canonical": "microsoft office 365",
+      "aliases": [
+        "microsoft office 365"
+      ]
+    },
+    {
+      "canonical": "microsoft outlook",
+      "aliases": [
+        "microsoft outlook"
+      ]
+    },
+    {
+      "canonical": "microsoft power automate",
+      "aliases": [
+        "microsoft power automate"
+      ]
+    },
+    {
+      "canonical": "microsoft power bi",
+      "aliases": [
+        "microsoft power bi"
+      ]
+    },
+    {
+      "canonical": "microsoft powerapps",
+      "aliases": [
+        "microsoft powerapps"
+      ]
+    },
+    {
+      "canonical": "microsoft project",
+      "aliases": [
+        "microsoft project"
+      ]
+    },
+    {
+      "canonical": "microsoft sql",
+      "aliases": [
+        "microsoft sql"
+      ]
+    },
+    {
+      "canonical": "microsoft sql server",
+      "aliases": [
+        "microsoft sql server"
+      ]
+    },
+    {
+      "canonical": "microsoft teams",
+      "aliases": [
+        "microsoft teams"
+      ]
+    },
+    {
+      "canonical": "microsoft visual studio",
+      "aliases": [
+        "microsoft visual studio"
+      ]
+    },
+    {
+      "canonical": "microsoft word",
+      "aliases": [
+        "microsoft word"
+      ]
+    },
+    {
+      "canonical": "microstation",
+      "aliases": [
+        "microstation"
+      ]
+    },
+    {
+      "canonical": "milvus",
+      "aliases": [
+        "milvus"
+      ]
+    },
+    {
+      "canonical": "minio",
+      "aliases": [
+        "minio"
+      ]
+    },
+    {
+      "canonical": "miro",
+      "aliases": [
+        "miro"
+      ]
+    },
+    {
+      "canonical": "mirror",
+      "aliases": [
+        "mirror"
+      ]
+    },
+    {
+      "canonical": "mitsu",
+      "aliases": [
+        "mitsu"
+      ]
+    },
+    {
+      "canonical": "mitsubishi",
+      "aliases": [
+        "mitsubishi"
+      ]
+    },
+    {
+      "canonical": "mitsubishi m70",
+      "aliases": [
+        "mitsubishi m70"
+      ]
+    },
+    {
+      "canonical": "mlflow",
+      "aliases": [
+        "mlflow"
+      ]
+    },
+    {
+      "canonical": "mlops",
+      "aliases": [
+        "mlops"
+      ]
+    },
+    {
+      "canonical": "mmdetection",
+      "aliases": [
+        "mmdetection"
+      ]
+    },
+    {
+      "canonical": "mml",
+      "aliases": [
+        "mml"
+      ]
+    },
+    {
+      "canonical": "mobile",
+      "aliases": [
+        "mobile"
+      ]
+    },
+    {
+      "canonical": "mobile app",
+      "aliases": [
+        "mobile app"
+      ]
+    },
+    {
+      "canonical": "mobile app development",
+      "aliases": [
+        "mobile app development"
+      ]
+    },
+    {
+      "canonical": "mobile applications",
+      "aliases": [
+        "mobile applications"
+      ]
+    },
+    {
+      "canonical": "mobile development",
+      "aliases": [
+        "mobile development"
+      ]
+    },
+    {
+      "canonical": "mobx",
+      "aliases": [
+        "mobx"
+      ]
+    },
+    {
+      "canonical": "mocha",
+      "aliases": [
+        "mocha"
+      ]
+    },
+    {
+      "canonical": "mockito",
+      "aliases": [
+        "mockito"
+      ]
+    },
+    {
+      "canonical": "modbus",
+      "aliases": [
+        "modbus"
+      ]
+    },
+    {
+      "canonical": "modbus rtu",
+      "aliases": [
+        "modbus rtu"
+      ]
+    },
+    {
+      "canonical": "model-driven apps",
+      "aliases": [
+        "model-driven apps"
+      ]
+    },
+    {
+      "canonical": "modularization",
+      "aliases": [
+        "modularization"
+      ]
+    },
+    {
+      "canonical": "monday",
+      "aliases": [
+        "monday"
+      ]
     },
     {
       "canonical": "mongodb",
-      "aliases": ["mongo", "mongodb"]
+      "aliases": [
+        "mongo",
+        "mongodb"
+      ]
+    },
+    {
+      "canonical": "mongoose",
+      "aliases": [
+        "mongoose"
+      ]
+    },
+    {
+      "canonical": "monitoring",
+      "aliases": [
+        "monitoring"
+      ]
+    },
+    {
+      "canonical": "monitoring tools",
+      "aliases": [
+        "monitoring tools"
+      ]
+    },
+    {
+      "canonical": "moodle",
+      "aliases": [
+        "moodle"
+      ]
+    },
+    {
+      "canonical": "mpc",
+      "aliases": [
+        "mpc"
+      ]
+    },
+    {
+      "canonical": "mq",
+      "aliases": [
+        "mq"
+      ]
+    },
+    {
+      "canonical": "mqtt",
+      "aliases": [
+        "mqtt"
+      ]
+    },
+    {
+      "canonical": "ms office",
+      "aliases": [
+        "ms office"
+      ]
+    },
+    {
+      "canonical": "ms sql",
+      "aliases": [
+        "ms sql"
+      ]
+    },
+    {
+      "canonical": "ms sql server",
+      "aliases": [
+        "ms sql server"
+      ]
+    },
+    {
+      "canonical": "ms-sql",
+      "aliases": [
+        "ms-sql"
+      ]
+    },
+    {
+      "canonical": "msca",
+      "aliases": [
+        "msca"
+      ]
+    },
+    {
+      "canonical": "msql",
+      "aliases": [
+        "msql"
+      ]
+    },
+    {
+      "canonical": "mssql",
+      "aliases": [
+        "mssql"
+      ]
+    },
+    {
+      "canonical": "mssql server",
+      "aliases": [
+        "mssql server"
+      ]
+    },
+    {
+      "canonical": "mui",
+      "aliases": [
+        "mui"
+      ]
+    },
+    {
+      "canonical": "mvc",
+      "aliases": [
+        "mvc"
+      ]
+    },
+    {
+      "canonical": "mvc framework",
+      "aliases": [
+        "mvc framework"
+      ]
+    },
+    {
+      "canonical": "mvc3",
+      "aliases": [
+        "mvc3"
+      ]
+    },
+    {
+      "canonical": "mvc5",
+      "aliases": [
+        "mvc5"
+      ]
+    },
+    {
+      "canonical": "mvi",
+      "aliases": [
+        "mvi"
+      ]
+    },
+    {
+      "canonical": "mvi architecture",
+      "aliases": [
+        "mvi architecture"
+      ]
+    },
+    {
+      "canonical": "mvp",
+      "aliases": [
+        "mvp"
+      ]
+    },
+    {
+      "canonical": "mvvc",
+      "aliases": [
+        "mvvc"
+      ]
+    },
+    {
+      "canonical": "mvvm",
+      "aliases": [
+        "mvvm"
+      ]
+    },
+    {
+      "canonical": "mybatis",
+      "aliases": [
+        "mybatis"
+      ]
     },
     {
       "canonical": "mysql",
-      "aliases": ["mysql"]
+      "aliases": [
+        "mysql"
+      ]
+    },
+    {
+      "canonical": "n8n",
+      "aliases": [
+        "n8n"
+      ]
+    },
+    {
+      "canonical": "nac",
+      "aliases": [
+        "nac"
+      ]
+    },
+    {
+      "canonical": "nagios",
+      "aliases": [
+        "nagios"
+      ]
+    },
+    {
+      "canonical": "nas",
+      "aliases": [
+        "nas"
+      ]
+    },
+    {
+      "canonical": "nat traversal",
+      "aliases": [
+        "nat traversal"
+      ]
+    },
+    {
+      "canonical": "natural language processing",
+      "aliases": [
+        "natural language processing"
+      ]
+    },
+    {
+      "canonical": "negotiation",
+      "aliases": [
+        "negotiation"
+      ]
+    },
+    {
+      "canonical": "neo4j",
+      "aliases": [
+        "neo4j"
+      ]
+    },
+    {
+      "canonical": "nessus",
+      "aliases": [
+        "nessus"
+      ]
+    },
+    {
+      "canonical": "nest js",
+      "aliases": [
+        "nest js"
+      ]
+    },
+    {
+      "canonical": "nest.js",
+      "aliases": [
+        "nest.js"
+      ]
+    },
+    {
+      "canonical": "nestjs",
+      "aliases": [
+        "nestjs"
+      ]
+    },
+    {
+      "canonical": "netbeans",
+      "aliases": [
+        "netbeans"
+      ]
+    },
+    {
+      "canonical": "netsecops",
+      "aliases": [
+        "netsecops"
+      ]
+    },
+    {
+      "canonical": "netsuite",
+      "aliases": [
+        "netsuite"
+      ]
+    },
+    {
+      "canonical": "netty",
+      "aliases": [
+        "netty"
+      ]
+    },
+    {
+      "canonical": "network",
+      "aliases": [
+        "network"
+      ]
+    },
+    {
+      "canonical": "network access control",
+      "aliases": [
+        "network access control"
+      ]
+    },
+    {
+      "canonical": "network security",
+      "aliases": [
+        "network security"
+      ]
+    },
+    {
+      "canonical": "network systems",
+      "aliases": [
+        "network systems"
+      ]
+    },
+    {
+      "canonical": "network topology",
+      "aliases": [
+        "network topology"
+      ]
+    },
+    {
+      "canonical": "networking",
+      "aliases": [
+        "networking"
+      ]
+    },
+    {
+      "canonical": "neural network",
+      "aliases": [
+        "neural network"
+      ]
+    },
+    {
+      "canonical": "new relic",
+      "aliases": [
+        "new relic"
+      ]
+    },
+    {
+      "canonical": "newrelic",
+      "aliases": [
+        "newrelic"
+      ]
+    },
+    {
+      "canonical": "nexacro",
+      "aliases": [
+        "nexacro"
+      ]
     },
     {
       "canonical": "next.js",
-      "aliases": ["next js", "next.js", "nextjs"]
+      "aliases": [
+        "next js",
+        "next.js",
+        "nextjs"
+      ]
+    },
+    {
+      "canonical": "nexus",
+      "aliases": [
+        "nexus"
+      ]
+    },
+    {
+      "canonical": "nfc",
+      "aliases": [
+        "nfc"
+      ]
     },
     {
       "canonical": "nginx",
-      "aliases": ["nginx"]
+      "aliases": [
+        "nginx"
+      ]
+    },
+    {
+      "canonical": "nhibernate",
+      "aliases": [
+        "nhibernate"
+      ]
+    },
+    {
+      "canonical": "nifi",
+      "aliases": [
+        "nifi"
+      ]
+    },
+    {
+      "canonical": "nist",
+      "aliases": [
+        "nist"
+      ]
+    },
+    {
+      "canonical": "nist csf/rmf",
+      "aliases": [
+        "nist csf/rmf"
+      ]
     },
     {
       "canonical": "nlp",
-      "aliases": ["nlp"]
+      "aliases": [
+        "nlp"
+      ]
+    },
+    {
+      "canonical": "no-code",
+      "aliases": [
+        "no-code"
+      ]
+    },
+    {
+      "canonical": "no-sql",
+      "aliases": [
+        "no-sql"
+      ]
     },
     {
       "canonical": "nodejs",
-      "aliases": ["node js", "node.js", "nodejs"]
+      "aliases": [
+        "node js",
+        "node.js",
+        "nodejs"
+      ]
+    },
+    {
+      "canonical": "nordic chip",
+      "aliases": [
+        "nordic chip"
+      ]
+    },
+    {
+      "canonical": "nosql",
+      "aliases": [
+        "nosql"
+      ]
+    },
+    {
+      "canonical": "notebooklm",
+      "aliases": [
+        "notebooklm"
+      ]
+    },
+    {
+      "canonical": "notion",
+      "aliases": [
+        "notion"
+      ]
+    },
+    {
+      "canonical": "notion api",
+      "aliases": [
+        "notion api"
+      ]
+    },
+    {
+      "canonical": "npm",
+      "aliases": [
+        "npm"
+      ]
+    },
+    {
+      "canonical": "npm/yarn",
+      "aliases": [
+        "npm/yarn"
+      ]
+    },
+    {
+      "canonical": "nservicebus",
+      "aliases": [
+        "nservicebus"
+      ]
+    },
+    {
+      "canonical": "ntp",
+      "aliases": [
+        "ntp"
+      ]
     },
     {
       "canonical": "numpy",
-      "aliases": ["numpy"]
+      "aliases": [
+        "numpy"
+      ]
     },
     {
-      "canonical": "object oriented programming",
-      "aliases": ["lap trinh huong doi tuong", "lập trình hướng đối tượng", "object oriented programming"]
+      "canonical": "nunit",
+      "aliases": [
+        "nunit"
+      ]
+    },
+    {
+      "canonical": "nuxt",
+      "aliases": [
+        "nuxt"
+      ]
     },
     {
       "canonical": "nuxt.js",
-      "aliases": ["nuxt.js", "nuxtjs"]
+      "aliases": [
+        "nuxt.js",
+        "nuxtjs"
+      ]
+    },
+    {
+      "canonical": "nx",
+      "aliases": [
+        "nx"
+      ]
+    },
+    {
+      "canonical": "nxp",
+      "aliases": [
+        "nxp"
+      ]
+    },
+    {
+      "canonical": "oauth",
+      "aliases": [
+        "oauth"
+      ]
+    },
+    {
+      "canonical": "oauth 2.0",
+      "aliases": [
+        "oauth 2.0"
+      ]
+    },
+    {
+      "canonical": "oauth2",
+      "aliases": [
+        "oauth2"
+      ]
+    },
+    {
+      "canonical": "obd",
+      "aliases": [
+        "obd"
+      ]
+    },
+    {
+      "canonical": "object oriented programming",
+      "aliases": [
+        "object oriented programming"
+      ]
+    },
+    {
+      "canonical": "objective c",
+      "aliases": [
+        "objective c"
+      ]
+    },
+    {
+      "canonical": "objective-c",
+      "aliases": [
+        "objective-c"
+      ]
+    },
+    {
+      "canonical": "observable",
+      "aliases": [
+        "observable"
+      ]
+    },
+    {
+      "canonical": "ocr",
+      "aliases": [
+        "ocr"
+      ]
+    },
+    {
+      "canonical": "odata",
+      "aliases": [
+        "odata"
+      ]
+    },
+    {
+      "canonical": "odata gateway",
+      "aliases": [
+        "odata gateway"
+      ]
+    },
+    {
+      "canonical": "odi",
+      "aliases": [
+        "odi"
+      ]
+    },
+    {
+      "canonical": "odoo",
+      "aliases": [
+        "odoo"
+      ]
+    },
+    {
+      "canonical": "office 365",
+      "aliases": [
+        "office 365"
+      ]
+    },
+    {
+      "canonical": "oidc",
+      "aliases": [
+        "oidc"
+      ]
+    },
+    {
+      "canonical": "okhttp",
+      "aliases": [
+        "okhttp"
+      ]
+    },
+    {
+      "canonical": "omron",
+      "aliases": [
+        "omron"
+      ]
+    },
+    {
+      "canonical": "onesignal",
+      "aliases": [
+        "onesignal"
+      ]
+    },
+    {
+      "canonical": "onnx",
+      "aliases": [
+        "onnx"
+      ]
+    },
+    {
+      "canonical": "oop",
+      "aliases": [
+        "oop"
+      ]
+    },
+    {
+      "canonical": "opc ua",
+      "aliases": [
+        "opc ua"
+      ]
+    },
+    {
+      "canonical": "open api",
+      "aliases": [
+        "open api"
+      ]
+    },
+    {
+      "canonical": "open source",
+      "aliases": [
+        "open source"
+      ]
+    },
+    {
+      "canonical": "open telemetry",
+      "aliases": [
+        "open telemetry"
+      ]
+    },
+    {
+      "canonical": "openai",
+      "aliases": [
+        "openai"
+      ]
+    },
+    {
+      "canonical": "openai api",
+      "aliases": [
+        "openai api"
+      ]
+    },
+    {
+      "canonical": "openai apis",
+      "aliases": [
+        "openai apis"
+      ]
+    },
+    {
+      "canonical": "openapi",
+      "aliases": [
+        "openapi"
+      ]
+    },
+    {
+      "canonical": "openapi specification",
+      "aliases": [
+        "openapi specification"
+      ]
+    },
+    {
+      "canonical": "opencv",
+      "aliases": [
+        "opencv"
+      ]
+    },
+    {
+      "canonical": "opengl",
+      "aliases": [
+        "opengl"
+      ]
+    },
+    {
+      "canonical": "openid connect",
+      "aliases": [
+        "openid connect"
+      ]
+    },
+    {
+      "canonical": "opensearch",
+      "aliases": [
+        "opensearch"
+      ]
+    },
+    {
+      "canonical": "openshift",
+      "aliases": [
+        "openshift"
+      ]
+    },
+    {
+      "canonical": "openstack",
+      "aliases": [
+        "openstack"
+      ]
+    },
+    {
+      "canonical": "opentelemetry",
+      "aliases": [
+        "opentelemetry"
+      ]
+    },
+    {
+      "canonical": "openvz",
+      "aliases": [
+        "openvz"
+      ]
+    },
+    {
+      "canonical": "operating systems",
+      "aliases": [
+        "operating systems"
+      ]
+    },
+    {
+      "canonical": "opsgenie",
+      "aliases": [
+        "opsgenie"
+      ]
+    },
+    {
+      "canonical": "optimism",
+      "aliases": [
+        "optimism"
+      ]
     },
     {
       "canonical": "oracle",
-      "aliases": ["oracle"]
+      "aliases": [
+        "oracle"
+      ]
+    },
+    {
+      "canonical": "oracle 11g",
+      "aliases": [
+        "oracle 11g"
+      ]
+    },
+    {
+      "canonical": "oracle apex",
+      "aliases": [
+        "oracle apex"
+      ]
+    },
+    {
+      "canonical": "oracle bi",
+      "aliases": [
+        "oracle bi"
+      ]
+    },
+    {
+      "canonical": "oracle database",
+      "aliases": [
+        "oracle database"
+      ]
+    },
+    {
+      "canonical": "oracle db",
+      "aliases": [
+        "oracle db"
+      ]
+    },
+    {
+      "canonical": "oracle ebs",
+      "aliases": [
+        "oracle ebs"
+      ]
+    },
+    {
+      "canonical": "oracle flexcube",
+      "aliases": [
+        "oracle flexcube"
+      ]
+    },
+    {
+      "canonical": "oracle pl/sql",
+      "aliases": [
+        "oracle pl/sql"
+      ]
+    },
+    {
+      "canonical": "oracle sql developer",
+      "aliases": [
+        "oracle sql developer"
+      ]
+    },
+    {
+      "canonical": "oracle warehouse builder",
+      "aliases": [
+        "oracle warehouse builder"
+      ]
+    },
+    {
+      "canonical": "orm",
+      "aliases": [
+        "orm"
+      ]
+    },
+    {
+      "canonical": "osint",
+      "aliases": [
+        "osint"
+      ]
+    },
+    {
+      "canonical": "outbound outreach",
+      "aliases": [
+        "outbound outreach"
+      ]
+    },
+    {
+      "canonical": "outsystems",
+      "aliases": [
+        "outsystems"
+      ]
+    },
+    {
+      "canonical": "owasp",
+      "aliases": [
+        "owasp"
+      ]
+    },
+    {
+      "canonical": "p2p",
+      "aliases": [
+        "p2p"
+      ]
+    },
+    {
+      "canonical": "p2p systems",
+      "aliases": [
+        "p2p systems"
+      ]
+    },
+    {
+      "canonical": "paas",
+      "aliases": [
+        "paas"
+      ]
+    },
+    {
+      "canonical": "packer",
+      "aliases": [
+        "packer"
+      ]
+    },
+    {
+      "canonical": "pact",
+      "aliases": [
+        "pact"
+      ]
+    },
+    {
+      "canonical": "paddleocr",
+      "aliases": [
+        "paddleocr"
+      ]
+    },
+    {
+      "canonical": "pal",
+      "aliases": [
+        "pal"
+      ]
+    },
+    {
+      "canonical": "palo alto networks",
+      "aliases": [
+        "palo alto networks"
+      ]
+    },
+    {
+      "canonical": "pam",
+      "aliases": [
+        "pam"
+      ]
     },
     {
       "canonical": "pandas",
-      "aliases": ["pandas"]
+      "aliases": [
+        "pandas"
+      ]
+    },
+    {
+      "canonical": "parcel",
+      "aliases": [
+        "parcel"
+      ]
+    },
+    {
+      "canonical": "particle system",
+      "aliases": [
+        "particle system"
+      ]
+    },
+    {
+      "canonical": "paypal",
+      "aliases": [
+        "paypal"
+      ]
+    },
+    {
+      "canonical": "pc tools",
+      "aliases": [
+        "pc tools"
+      ]
+    },
+    {
+      "canonical": "pcb",
+      "aliases": [
+        "pcb"
+      ]
+    },
+    {
+      "canonical": "pchunter",
+      "aliases": [
+        "pchunter"
+      ]
+    },
+    {
+      "canonical": "pci dss",
+      "aliases": [
+        "pci dss"
+      ]
+    },
+    {
+      "canonical": "pcidss",
+      "aliases": [
+        "pcidss"
+      ]
+    },
+    {
+      "canonical": "pdb",
+      "aliases": [
+        "pdb"
+      ]
+    },
+    {
+      "canonical": "pdm",
+      "aliases": [
+        "pdm"
+      ]
+    },
+    {
+      "canonical": "pen testing",
+      "aliases": [
+        "pen testing"
+      ]
+    },
+    {
+      "canonical": "penetration testing",
+      "aliases": [
+        "penetration testing"
+      ]
+    },
+    {
+      "canonical": "pentaho",
+      "aliases": [
+        "pentaho"
+      ]
+    },
+    {
+      "canonical": "pentesting",
+      "aliases": [
+        "pentesting"
+      ]
+    },
+    {
+      "canonical": "perfecto",
+      "aliases": [
+        "perfecto"
+      ]
+    },
+    {
+      "canonical": "performance testing",
+      "aliases": [
+        "performance testing"
+      ]
+    },
+    {
+      "canonical": "perl",
+      "aliases": [
+        "perl"
+      ]
+    },
+    {
+      "canonical": "perplexity",
+      "aliases": [
+        "perplexity"
+      ]
+    },
+    {
+      "canonical": "pgsql",
+      "aliases": [
+        "pgsql"
+      ]
+    },
+    {
+      "canonical": "phaser",
+      "aliases": [
+        "phaser"
+      ]
+    },
+    {
+      "canonical": "phaserjs",
+      "aliases": [
+        "phaserjs"
+      ]
+    },
+    {
+      "canonical": "phonegap",
+      "aliases": [
+        "phonegap"
+      ]
+    },
+    {
+      "canonical": "photo",
+      "aliases": [
+        "photo"
+      ]
+    },
+    {
+      "canonical": "photon",
+      "aliases": [
+        "photon"
+      ]
+    },
+    {
+      "canonical": "photoshop",
+      "aliases": [
+        "photoshop"
+      ]
     },
     {
       "canonical": "php",
-      "aliases": ["php"]
+      "aliases": [
+        "php"
+      ]
+    },
+    {
+      "canonical": "php laravel",
+      "aliases": [
+        "php laravel"
+      ]
+    },
+    {
+      "canonical": "phpunit",
+      "aliases": [
+        "phpunit"
+      ]
+    },
+    {
+      "canonical": "pi/po",
+      "aliases": [
+        "pi/po"
+      ]
+    },
+    {
+      "canonical": "pid",
+      "aliases": [
+        "pid"
+      ]
+    },
+    {
+      "canonical": "pigma",
+      "aliases": [
+        "pigma"
+      ]
+    },
+    {
+      "canonical": "pillow",
+      "aliases": [
+        "pillow"
+      ]
+    },
+    {
+      "canonical": "pipedream",
+      "aliases": [
+        "pipedream"
+      ]
+    },
+    {
+      "canonical": "pipeline management",
+      "aliases": [
+        "pipeline management"
+      ]
+    },
+    {
+      "canonical": "pixijs",
+      "aliases": [
+        "pixijs"
+      ]
+    },
+    {
+      "canonical": "pki",
+      "aliases": [
+        "pki"
+      ]
+    },
+    {
+      "canonical": "pl sql",
+      "aliases": [
+        "pl sql"
+      ]
+    },
+    {
+      "canonical": "pl/sql",
+      "aliases": [
+        "pl/sql"
+      ]
+    },
+    {
+      "canonical": "plantuml",
+      "aliases": [
+        "plantuml"
+      ]
+    },
+    {
+      "canonical": "playable ads",
+      "aliases": [
+        "playable ads"
+      ]
+    },
+    {
+      "canonical": "playwright",
+      "aliases": [
+        "playwright"
+      ]
+    },
+    {
+      "canonical": "plc",
+      "aliases": [
+        "plc"
+      ]
+    },
+    {
+      "canonical": "plm",
+      "aliases": [
+        "plm"
+      ]
+    },
+    {
+      "canonical": "plsql",
+      "aliases": [
+        "plsql"
+      ]
+    },
+    {
+      "canonical": "plugin",
+      "aliases": [
+        "plugin"
+      ]
+    },
+    {
+      "canonical": "pmi",
+      "aliases": [
+        "pmi"
+      ]
+    },
+    {
+      "canonical": "pmp",
+      "aliases": [
+        "pmp"
+      ]
+    },
+    {
+      "canonical": "poe",
+      "aliases": [
+        "poe"
+      ]
+    },
+    {
+      "canonical": "polarion",
+      "aliases": [
+        "polarion"
+      ]
+    },
+    {
+      "canonical": "polyspace",
+      "aliases": [
+        "polyspace"
+      ]
     },
     {
       "canonical": "postgresql",
-      "aliases": ["postgres", "postgresql"]
+      "aliases": [
+        "postgres",
+        "postgresql"
+      ]
+    },
+    {
+      "canonical": "postman",
+      "aliases": [
+        "postman"
+      ]
+    },
+    {
+      "canonical": "power app",
+      "aliases": [
+        "power app"
+      ]
+    },
+    {
+      "canonical": "power apps",
+      "aliases": [
+        "power apps"
+      ]
+    },
+    {
+      "canonical": "power automate",
+      "aliases": [
+        "power automate"
+      ]
+    },
+    {
+      "canonical": "power bi",
+      "aliases": [
+        "power bi"
+      ]
+    },
+    {
+      "canonical": "power platform",
+      "aliases": [
+        "power platform"
+      ]
+    },
+    {
+      "canonical": "powerapps",
+      "aliases": [
+        "powerapps"
+      ]
+    },
+    {
+      "canonical": "powerbi",
+      "aliases": [
+        "powerbi"
+      ]
+    },
+    {
+      "canonical": "powerbuilder",
+      "aliases": [
+        "powerbuilder"
+      ]
+    },
+    {
+      "canonical": "powermill",
+      "aliases": [
+        "powermill"
+      ]
+    },
+    {
+      "canonical": "powershell",
+      "aliases": [
+        "powershell"
+      ]
+    },
+    {
+      "canonical": "prd",
+      "aliases": [
+        "prd"
+      ]
+    },
+    {
+      "canonical": "prettier",
+      "aliases": [
+        "prettier"
+      ]
+    },
+    {
+      "canonical": "primefaces",
+      "aliases": [
+        "primefaces"
+      ]
+    },
+    {
+      "canonical": "prioritization",
+      "aliases": [
+        "prioritization"
+      ]
+    },
+    {
+      "canonical": "prisma",
+      "aliases": [
+        "prisma"
+      ]
+    },
+    {
+      "canonical": "process improvement",
+      "aliases": [
+        "process improvement"
+      ]
+    },
+    {
+      "canonical": "procexp",
+      "aliases": [
+        "procexp"
+      ]
+    },
+    {
+      "canonical": "product strategy",
+      "aliases": [
+        "product strategy"
+      ]
+    },
+    {
+      "canonical": "programming",
+      "aliases": [
+        "programming"
+      ]
+    },
+    {
+      "canonical": "programming languages",
+      "aliases": [
+        "programming languages"
+      ]
+    },
+    {
+      "canonical": "progress abl/4gl",
+      "aliases": [
+        "progress abl/4gl"
+      ]
+    },
+    {
+      "canonical": "progress database",
+      "aliases": [
+        "progress database"
+      ]
+    },
+    {
+      "canonical": "progress openedge",
+      "aliases": [
+        "progress openedge"
+      ]
     },
     {
       "canonical": "project management",
-      "aliases": ["project management", "quan ly du an", "quản lý dự án"]
+      "aliases": [
+        "project management"
+      ]
+    },
+    {
+      "canonical": "project planning",
+      "aliases": [
+        "project planning"
+      ]
+    },
+    {
+      "canonical": "prometheus",
+      "aliases": [
+        "prometheus"
+      ]
+    },
+    {
+      "canonical": "prosemirror",
+      "aliases": [
+        "prosemirror"
+      ]
+    },
+    {
+      "canonical": "prospecting",
+      "aliases": [
+        "prospecting"
+      ]
+    },
+    {
+      "canonical": "protobuf",
+      "aliases": [
+        "protobuf"
+      ]
+    },
+    {
+      "canonical": "protopie",
+      "aliases": [
+        "protopie"
+      ]
+    },
+    {
+      "canonical": "protractor",
+      "aliases": [
+        "protractor"
+      ]
+    },
+    {
+      "canonical": "provider",
+      "aliases": [
+        "provider"
+      ]
+    },
+    {
+      "canonical": "proxmox",
+      "aliases": [
+        "proxmox"
+      ]
+    },
+    {
+      "canonical": "proxysql",
+      "aliases": [
+        "proxysql"
+      ]
+    },
+    {
+      "canonical": "prtg",
+      "aliases": [
+        "prtg"
+      ]
+    },
+    {
+      "canonical": "ptc",
+      "aliases": [
+        "ptc"
+      ]
+    },
+    {
+      "canonical": "ptc creo",
+      "aliases": [
+        "ptc creo"
+      ]
+    },
+    {
+      "canonical": "pub/sub",
+      "aliases": [
+        "pub/sub"
+      ]
+    },
+    {
+      "canonical": "public key infrastructure",
+      "aliases": [
+        "public key infrastructure"
+      ]
+    },
+    {
+      "canonical": "pulumi",
+      "aliases": [
+        "pulumi"
+      ]
+    },
+    {
+      "canonical": "puppeteer",
+      "aliases": [
+        "puppeteer"
+      ]
+    },
+    {
+      "canonical": "push notification",
+      "aliases": [
+        "push notification"
+      ]
+    },
+    {
+      "canonical": "pwm",
+      "aliases": [
+        "pwm"
+      ]
+    },
+    {
+      "canonical": "pycharm",
+      "aliases": [
+        "pycharm"
+      ]
+    },
+    {
+      "canonical": "pydantic",
+      "aliases": [
+        "pydantic"
+      ]
+    },
+    {
+      "canonical": "pyg",
+      "aliases": [
+        "pyg"
+      ]
+    },
+    {
+      "canonical": "pylon",
+      "aliases": [
+        "pylon"
+      ]
+    },
+    {
+      "canonical": "pyqt",
+      "aliases": [
+        "pyqt"
+      ]
+    },
+    {
+      "canonical": "pyspark",
+      "aliases": [
+        "pyspark"
+      ]
+    },
+    {
+      "canonical": "pytest",
+      "aliases": [
+        "pytest"
+      ]
     },
     {
       "canonical": "python",
-      "aliases": ["python"]
+      "aliases": [
+        "python"
+      ]
     },
     {
       "canonical": "pytorch",
-      "aliases": ["pytorch"]
+      "aliases": [
+        "pytorch"
+      ]
+    },
+    {
+      "canonical": "pytorch mobile",
+      "aliases": [
+        "pytorch mobile"
+      ]
+    },
+    {
+      "canonical": "qa",
+      "aliases": [
+        "qa"
+      ]
+    },
+    {
+      "canonical": "qa processes",
+      "aliases": [
+        "qa processes"
+      ]
+    },
+    {
+      "canonical": "qase",
+      "aliases": [
+        "qase"
+      ]
+    },
+    {
+      "canonical": "qdrant",
+      "aliases": [
+        "qdrant"
+      ]
+    },
+    {
+      "canonical": "qgis",
+      "aliases": [
+        "qgis"
+      ]
+    },
+    {
+      "canonical": "qlik",
+      "aliases": [
+        "qlik"
+      ]
+    },
+    {
+      "canonical": "qml",
+      "aliases": [
+        "qml"
+      ]
+    },
+    {
+      "canonical": "qt",
+      "aliases": [
+        "qt"
+      ]
+    },
+    {
+      "canonical": "qtest",
+      "aliases": [
+        "qtest"
+      ]
+    },
+    {
+      "canonical": "quality assurance",
+      "aliases": [
+        "quality assurance"
+      ]
+    },
+    {
+      "canonical": "quarkus",
+      "aliases": [
+        "quarkus"
+      ]
     },
     {
       "canonical": "r",
-      "aliases": ["r"]
+      "aliases": [
+        "r"
+      ]
     },
     {
       "canonical": "rabbitmq",
-      "aliases": ["rabbitmq"]
+      "aliases": [
+        "rabbitmq"
+      ]
+    },
+    {
+      "canonical": "radix-ui",
+      "aliases": [
+        "radix-ui"
+      ]
+    },
+    {
+      "canonical": "rag",
+      "aliases": [
+        "rag"
+      ]
     },
     {
       "canonical": "rails",
-      "aliases": ["rails", "ror", "ruby on rails"]
+      "aliases": [
+        "rails",
+        "ror",
+        "ruby on rails"
+      ]
+    },
+    {
+      "canonical": "rancher",
+      "aliases": [
+        "rancher"
+      ]
+    },
+    {
+      "canonical": "random forest",
+      "aliases": [
+        "random forest"
+      ]
+    },
+    {
+      "canonical": "ranorex",
+      "aliases": [
+        "ranorex"
+      ]
+    },
+    {
+      "canonical": "rasa",
+      "aliases": [
+        "rasa"
+      ]
+    },
+    {
+      "canonical": "rasp pi",
+      "aliases": [
+        "rasp pi"
+      ]
+    },
+    {
+      "canonical": "raspberry pi",
+      "aliases": [
+        "raspberry pi"
+      ]
+    },
+    {
+      "canonical": "rdbms",
+      "aliases": [
+        "rdbms"
+      ]
+    },
+    {
+      "canonical": "rds",
+      "aliases": [
+        "rds"
+      ]
     },
     {
       "canonical": "react",
-      "aliases": ["react", "react js", "react.js", "reactjs"]
+      "aliases": [
+        "react",
+        "react js",
+        "react.js",
+        "reactjs"
+      ]
+    },
+    {
+      "canonical": "react hook",
+      "aliases": [
+        "react hook"
+      ]
+    },
+    {
+      "canonical": "react hook form",
+      "aliases": [
+        "react hook form"
+      ]
+    },
+    {
+      "canonical": "react hooks",
+      "aliases": [
+        "react hooks"
+      ]
     },
     {
       "canonical": "react native",
-      "aliases": ["react native"]
+      "aliases": [
+        "react native"
+      ]
+    },
+    {
+      "canonical": "react testing library",
+      "aliases": [
+        "react testing library"
+      ]
+    },
+    {
+      "canonical": "react-router",
+      "aliases": [
+        "react-router"
+      ]
+    },
+    {
+      "canonical": "reactnative",
+      "aliases": [
+        "reactnative"
+      ]
+    },
+    {
+      "canonical": "real time operating system",
+      "aliases": [
+        "real time operating system"
+      ]
+    },
+    {
+      "canonical": "real-time computing",
+      "aliases": [
+        "real-time computing"
+      ]
+    },
+    {
+      "canonical": "realm",
+      "aliases": [
+        "realm"
+      ]
+    },
+    {
+      "canonical": "realtime",
+      "aliases": [
+        "realtime"
+      ]
+    },
+    {
+      "canonical": "realtime database",
+      "aliases": [
+        "realtime database"
+      ]
+    },
+    {
+      "canonical": "realtime os",
+      "aliases": [
+        "realtime os"
+      ]
+    },
+    {
+      "canonical": "reanimated",
+      "aliases": [
+        "reanimated"
+      ]
+    },
+    {
+      "canonical": "recoil",
+      "aliases": [
+        "recoil"
+      ]
+    },
+    {
+      "canonical": "red team",
+      "aliases": [
+        "red team"
+      ]
     },
     {
       "canonical": "redis",
-      "aliases": ["redis"]
+      "aliases": [
+        "redis"
+      ]
+    },
+    {
+      "canonical": "redmine",
+      "aliases": [
+        "redmine"
+      ]
+    },
+    {
+      "canonical": "redshift",
+      "aliases": [
+        "redshift"
+      ]
+    },
+    {
+      "canonical": "redteam",
+      "aliases": [
+        "redteam"
+      ]
     },
     {
       "canonical": "redux",
-      "aliases": ["redux"]
+      "aliases": [
+        "redux"
+      ]
+    },
+    {
+      "canonical": "redux saga",
+      "aliases": [
+        "redux saga"
+      ]
+    },
+    {
+      "canonical": "redux-saga",
+      "aliases": [
+        "redux-saga"
+      ]
+    },
+    {
+      "canonical": "regex",
+      "aliases": [
+        "regex"
+      ]
+    },
+    {
+      "canonical": "regression testing",
+      "aliases": [
+        "regression testing"
+      ]
+    },
+    {
+      "canonical": "relational databases",
+      "aliases": [
+        "relational databases"
+      ]
+    },
+    {
+      "canonical": "reporting",
+      "aliases": [
+        "reporting"
+      ]
+    },
+    {
+      "canonical": "requests",
+      "aliases": [
+        "requests"
+      ]
+    },
+    {
+      "canonical": "requirements gathering",
+      "aliases": [
+        "requirements gathering"
+      ]
+    },
+    {
+      "canonical": "research methodologies",
+      "aliases": [
+        "research methodologies"
+      ]
+    },
+    {
+      "canonical": "reselect",
+      "aliases": [
+        "reselect"
+      ]
+    },
+    {
+      "canonical": "responsive design",
+      "aliases": [
+        "responsive design"
+      ]
+    },
+    {
+      "canonical": "responsive web design",
+      "aliases": [
+        "responsive web design"
+      ]
     },
     {
       "canonical": "rest api",
-      "aliases": ["rest", "rest api", "restful"]
+      "aliases": [
+        "rest",
+        "rest api",
+        "restful"
+      ]
+    },
+    {
+      "canonical": "rest apis",
+      "aliases": [
+        "rest apis"
+      ]
+    },
+    {
+      "canonical": "rest assured",
+      "aliases": [
+        "rest assured"
+      ]
+    },
+    {
+      "canonical": "rest-assured",
+      "aliases": [
+        "rest-assured"
+      ]
+    },
+    {
+      "canonical": "rest/soap apis",
+      "aliases": [
+        "rest/soap apis"
+      ]
+    },
+    {
+      "canonical": "rest/soap-based web services",
+      "aliases": [
+        "rest/soap-based web services"
+      ]
+    },
+    {
+      "canonical": "restassured",
+      "aliases": [
+        "restassured"
+      ]
+    },
+    {
+      "canonical": "restful api",
+      "aliases": [
+        "restful api"
+      ]
+    },
+    {
+      "canonical": "restful apis",
+      "aliases": [
+        "restful apis"
+      ]
+    },
+    {
+      "canonical": "restful web services",
+      "aliases": [
+        "restful web services"
+      ]
+    },
+    {
+      "canonical": "retrofit",
+      "aliases": [
+        "retrofit"
+      ]
+    },
+    {
+      "canonical": "revenue cat",
+      "aliases": [
+        "revenue cat"
+      ]
+    },
+    {
+      "canonical": "revit",
+      "aliases": [
+        "revit"
+      ]
+    },
+    {
+      "canonical": "rhapsody",
+      "aliases": [
+        "rhapsody"
+      ]
+    },
+    {
+      "canonical": "ris",
+      "aliases": [
+        "ris"
+      ]
+    },
+    {
+      "canonical": "risk management",
+      "aliases": [
+        "risk management"
+      ]
+    },
+    {
+      "canonical": "rive",
+      "aliases": [
+        "rive"
+      ]
+    },
+    {
+      "canonical": "riverpod",
+      "aliases": [
+        "riverpod"
+      ]
+    },
+    {
+      "canonical": "roadmap",
+      "aliases": [
+        "roadmap"
+      ]
+    },
+    {
+      "canonical": "roblox",
+      "aliases": [
+        "roblox"
+      ]
+    },
+    {
+      "canonical": "roboelectric",
+      "aliases": [
+        "roboelectric"
+      ]
+    },
+    {
+      "canonical": "robot",
+      "aliases": [
+        "robot"
+      ]
+    },
+    {
+      "canonical": "robot cylinder",
+      "aliases": [
+        "robot cylinder"
+      ]
+    },
+    {
+      "canonical": "robot framework",
+      "aliases": [
+        "robot framework"
+      ]
+    },
+    {
+      "canonical": "robotics",
+      "aliases": [
+        "robotics"
+      ]
+    },
+    {
+      "canonical": "rocksdb",
+      "aliases": [
+        "rocksdb"
+      ]
+    },
+    {
+      "canonical": "rollbar",
+      "aliases": [
+        "rollbar"
+      ]
+    },
+    {
+      "canonical": "rollup",
+      "aliases": [
+        "rollup"
+      ]
+    },
+    {
+      "canonical": "room",
+      "aliases": [
+        "room"
+      ]
+    },
+    {
+      "canonical": "root cause analysis",
+      "aliases": [
+        "root cause analysis"
+      ]
+    },
+    {
+      "canonical": "ros",
+      "aliases": [
+        "ros"
+      ]
+    },
+    {
+      "canonical": "router",
+      "aliases": [
+        "router"
+      ]
+    },
+    {
+      "canonical": "rpa",
+      "aliases": [
+        "rpa"
+      ]
+    },
+    {
+      "canonical": "rs232",
+      "aliases": [
+        "rs232"
+      ]
+    },
+    {
+      "canonical": "rs485",
+      "aliases": [
+        "rs485"
+      ]
+    },
+    {
+      "canonical": "rtcp",
+      "aliases": [
+        "rtcp"
+      ]
+    },
+    {
+      "canonical": "rtos",
+      "aliases": [
+        "rtos"
+      ]
+    },
+    {
+      "canonical": "rtp",
+      "aliases": [
+        "rtp"
+      ]
+    },
+    {
+      "canonical": "rtsp",
+      "aliases": [
+        "rtsp"
+      ]
     },
     {
       "canonical": "ruby",
-      "aliases": ["ruby"]
+      "aliases": [
+        "ruby"
+      ]
+    },
+    {
+      "canonical": "ruckus",
+      "aliases": [
+        "ruckus"
+      ]
     },
     {
       "canonical": "rust",
-      "aliases": ["rust"]
+      "aliases": [
+        "rust"
+      ]
+    },
+    {
+      "canonical": "rx",
+      "aliases": [
+        "rx"
+      ]
+    },
+    {
+      "canonical": "rxjava",
+      "aliases": [
+        "rxjava"
+      ]
+    },
+    {
+      "canonical": "rxjs",
+      "aliases": [
+        "rxjs"
+      ]
+    },
+    {
+      "canonical": "rxswift",
+      "aliases": [
+        "rxswift"
+      ]
+    },
+    {
+      "canonical": "s3",
+      "aliases": [
+        "s3"
+      ]
+    },
+    {
+      "canonical": "saas",
+      "aliases": [
+        "saas"
+      ]
+    },
+    {
+      "canonical": "safe agile",
+      "aliases": [
+        "safe agile"
+      ]
+    },
+    {
+      "canonical": "salescloud",
+      "aliases": [
+        "salescloud"
+      ]
+    },
+    {
+      "canonical": "salesforce",
+      "aliases": [
+        "salesforce"
+      ]
+    },
+    {
+      "canonical": "salesforce apis",
+      "aliases": [
+        "salesforce apis"
+      ]
+    },
+    {
+      "canonical": "salesforce commerce cloud",
+      "aliases": [
+        "salesforce commerce cloud"
+      ]
+    },
+    {
+      "canonical": "salesforce platform developer 1",
+      "aliases": [
+        "salesforce platform developer 1"
+      ]
+    },
+    {
+      "canonical": "samsung galaxy framework",
+      "aliases": [
+        "samsung galaxy framework"
+      ]
+    },
+    {
+      "canonical": "san storage",
+      "aliases": [
+        "san storage"
+      ]
+    },
+    {
+      "canonical": "sap",
+      "aliases": [
+        "sap"
+      ]
+    },
+    {
+      "canonical": "sap ai business services",
+      "aliases": [
+        "sap ai business services"
+      ]
+    },
+    {
+      "canonical": "sap ai core",
+      "aliases": [
+        "sap ai core"
+      ]
+    },
+    {
+      "canonical": "sap ai launchpad",
+      "aliases": [
+        "sap ai launchpad"
+      ]
+    },
+    {
+      "canonical": "sap btp",
+      "aliases": [
+        "sap btp"
+      ]
+    },
+    {
+      "canonical": "sap business object",
+      "aliases": [
+        "sap business object"
+      ]
+    },
+    {
+      "canonical": "sap cap",
+      "aliases": [
+        "sap cap"
+      ]
+    },
+    {
+      "canonical": "sap cloud application programming model",
+      "aliases": [
+        "sap cloud application programming model"
+      ]
+    },
+    {
+      "canonical": "sap fiori",
+      "aliases": [
+        "sap fiori"
+      ]
+    },
+    {
+      "canonical": "sap ui5",
+      "aliases": [
+        "sap ui5"
+      ]
+    },
+    {
+      "canonical": "sap workflows",
+      "aliases": [
+        "sap workflows"
+      ]
+    },
+    {
+      "canonical": "sap2000",
+      "aliases": [
+        "sap2000"
+      ]
+    },
+    {
+      "canonical": "sapui5",
+      "aliases": [
+        "sapui5"
+      ]
+    },
+    {
+      "canonical": "sas",
+      "aliases": [
+        "sas"
+      ]
     },
     {
       "canonical": "sass",
-      "aliases": ["sass"]
+      "aliases": [
+        "sass"
+      ]
+    },
+    {
+      "canonical": "sass/scss",
+      "aliases": [
+        "sass/scss"
+      ]
+    },
+    {
+      "canonical": "sast",
+      "aliases": [
+        "sast"
+      ]
+    },
+    {
+      "canonical": "sca",
+      "aliases": [
+        "sca"
+      ]
+    },
+    {
+      "canonical": "scada",
+      "aliases": [
+        "scada"
+      ]
+    },
+    {
+      "canonical": "scala",
+      "aliases": [
+        "scala"
+      ]
+    },
+    {
+      "canonical": "scikit",
+      "aliases": [
+        "scikit"
+      ]
     },
     {
       "canonical": "scikit-learn",
-      "aliases": ["scikit-learn", "sklearn"]
+      "aliases": [
+        "scikit-learn",
+        "sklearn"
+      ]
+    },
+    {
+      "canonical": "scm",
+      "aliases": [
+        "scm"
+      ]
+    },
+    {
+      "canonical": "scratch",
+      "aliases": [
+        "scratch"
+      ]
+    },
+    {
+      "canonical": "screaming frog",
+      "aliases": [
+        "screaming frog"
+      ]
+    },
+    {
+      "canonical": "scripting",
+      "aliases": [
+        "scripting"
+      ]
     },
     {
       "canonical": "scrum",
-      "aliases": ["scrum"]
+      "aliases": [
+        "scrum"
+      ]
+    },
+    {
+      "canonical": "scss",
+      "aliases": [
+        "scss"
+      ]
+    },
+    {
+      "canonical": "sctp",
+      "aliases": [
+        "sctp"
+      ]
+    },
+    {
+      "canonical": "sdl",
+      "aliases": [
+        "sdl"
+      ]
+    },
+    {
+      "canonical": "sdlc",
+      "aliases": [
+        "sdlc"
+      ]
+    },
+    {
+      "canonical": "sdlc management tools",
+      "aliases": [
+        "sdlc management tools"
+      ]
+    },
+    {
+      "canonical": "search console",
+      "aliases": [
+        "search console"
+      ]
+    },
+    {
+      "canonical": "secure boot",
+      "aliases": [
+        "secure boot"
+      ]
+    },
+    {
+      "canonical": "secure hardware",
+      "aliases": [
+        "secure hardware"
+      ]
+    },
+    {
+      "canonical": "security",
+      "aliases": [
+        "security"
+      ]
+    },
+    {
+      "canonical": "security audits",
+      "aliases": [
+        "security audits"
+      ]
+    },
+    {
+      "canonical": "security protocols",
+      "aliases": [
+        "security protocols"
+      ]
+    },
+    {
+      "canonical": "security testing",
+      "aliases": [
+        "security testing"
+      ]
+    },
+    {
+      "canonical": "selenium",
+      "aliases": [
+        "selenium"
+      ]
+    },
+    {
+      "canonical": "semgrep",
+      "aliases": [
+        "semgrep"
+      ]
+    },
+    {
+      "canonical": "sensor tower",
+      "aliases": [
+        "sensor tower"
+      ]
+    },
+    {
+      "canonical": "sentry",
+      "aliases": [
+        "sentry"
+      ]
+    },
+    {
+      "canonical": "seo",
+      "aliases": [
+        "seo"
+      ]
+    },
+    {
+      "canonical": "serenity bdd",
+      "aliases": [
+        "serenity bdd"
+      ]
+    },
+    {
+      "canonical": "server",
+      "aliases": [
+        "server"
+      ]
+    },
+    {
+      "canonical": "server configuration",
+      "aliases": [
+        "server configuration"
+      ]
+    },
+    {
+      "canonical": "serverless",
+      "aliases": [
+        "serverless"
+      ]
+    },
+    {
+      "canonical": "serverless architecture",
+      "aliases": [
+        "serverless architecture"
+      ]
+    },
+    {
+      "canonical": "servers",
+      "aliases": [
+        "servers"
+      ]
+    },
+    {
+      "canonical": "service mesh",
+      "aliases": [
+        "service mesh"
+      ]
+    },
+    {
+      "canonical": "servicenow",
+      "aliases": [
+        "servicenow"
+      ]
+    },
+    {
+      "canonical": "servlet",
+      "aliases": [
+        "servlet"
+      ]
+    },
+    {
+      "canonical": "servlets",
+      "aliases": [
+        "servlets"
+      ]
+    },
+    {
+      "canonical": "servo",
+      "aliases": [
+        "servo"
+      ]
+    },
+    {
+      "canonical": "servo motor",
+      "aliases": [
+        "servo motor"
+      ]
+    },
+    {
+      "canonical": "shader/shader graph",
+      "aliases": [
+        "shader/shader graph"
+      ]
+    },
+    {
+      "canonical": "shaderlab",
+      "aliases": [
+        "shaderlab"
+      ]
+    },
+    {
+      "canonical": "shaders",
+      "aliases": [
+        "shaders"
+      ]
+    },
+    {
+      "canonical": "shapely",
+      "aliases": [
+        "shapely"
+      ]
+    },
+    {
+      "canonical": "shared memory",
+      "aliases": [
+        "shared memory"
+      ]
+    },
+    {
+      "canonical": "sharepoint",
+      "aliases": [
+        "sharepoint"
+      ]
+    },
+    {
+      "canonical": "shell",
+      "aliases": [
+        "shell"
+      ]
+    },
+    {
+      "canonical": "shell script",
+      "aliases": [
+        "shell script"
+      ]
+    },
+    {
+      "canonical": "shell scripts",
+      "aliases": [
+        "shell scripts"
+      ]
+    },
+    {
+      "canonical": "shiftleft testing",
+      "aliases": [
+        "shiftleft testing"
+      ]
+    },
+    {
+      "canonical": "shopify",
+      "aliases": [
+        "shopify"
+      ]
+    },
+    {
+      "canonical": "shopify liquid",
+      "aliases": [
+        "shopify liquid"
+      ]
+    },
+    {
+      "canonical": "siem",
+      "aliases": [
+        "siem"
+      ]
+    },
+    {
+      "canonical": "siemen",
+      "aliases": [
+        "siemen"
+      ]
+    },
+    {
+      "canonical": "siemens",
+      "aliases": [
+        "siemens"
+      ]
+    },
+    {
+      "canonical": "siemens nx",
+      "aliases": [
+        "siemens nx"
+      ]
+    },
+    {
+      "canonical": "signalr",
+      "aliases": [
+        "signalr"
+      ]
+    },
+    {
+      "canonical": "sigrid",
+      "aliases": [
+        "sigrid"
+      ]
+    },
+    {
+      "canonical": "simulink",
+      "aliases": [
+        "simulink"
+      ]
+    },
+    {
+      "canonical": "sinon",
+      "aliases": [
+        "sinon"
+      ]
+    },
+    {
+      "canonical": "sip",
+      "aliases": [
+        "sip"
+      ]
+    },
+    {
+      "canonical": "six sigma",
+      "aliases": [
+        "six sigma"
+      ]
+    },
+    {
+      "canonical": "sketch",
+      "aliases": [
+        "sketch"
+      ]
+    },
+    {
+      "canonical": "sketchup",
+      "aliases": [
+        "sketchup"
+      ]
+    },
+    {
+      "canonical": "sla",
+      "aliases": [
+        "sla"
+      ]
+    },
+    {
+      "canonical": "slack",
+      "aliases": [
+        "slack"
+      ]
+    },
+    {
+      "canonical": "sliver",
+      "aliases": [
+        "sliver"
+      ]
+    },
+    {
+      "canonical": "smart contract",
+      "aliases": [
+        "smart contract"
+      ]
+    },
+    {
+      "canonical": "smart contracts",
+      "aliases": [
+        "smart contracts"
+      ]
+    },
+    {
+      "canonical": "snapkit",
+      "aliases": [
+        "snapkit"
+      ]
+    },
+    {
+      "canonical": "snowflake",
+      "aliases": [
+        "snowflake"
+      ]
+    },
+    {
+      "canonical": "snpe",
+      "aliases": [
+        "snpe"
+      ]
+    },
+    {
+      "canonical": "snyk code",
+      "aliases": [
+        "snyk code"
+      ]
+    },
+    {
+      "canonical": "soa",
+      "aliases": [
+        "soa"
+      ]
+    },
+    {
+      "canonical": "soap",
+      "aliases": [
+        "soap"
+      ]
+    },
+    {
+      "canonical": "soap apis",
+      "aliases": [
+        "soap apis"
+      ]
+    },
+    {
+      "canonical": "soap ui",
+      "aliases": [
+        "soap ui"
+      ]
+    },
+    {
+      "canonical": "soapui",
+      "aliases": [
+        "soapui"
+      ]
+    },
+    {
+      "canonical": "soar",
+      "aliases": [
+        "soar"
+      ]
+    },
+    {
+      "canonical": "soc",
+      "aliases": [
+        "soc"
+      ]
+    },
+    {
+      "canonical": "socket",
+      "aliases": [
+        "socket"
+      ]
+    },
+    {
+      "canonical": "socket programming",
+      "aliases": [
+        "socket programming"
+      ]
+    },
+    {
+      "canonical": "socs",
+      "aliases": [
+        "socs"
+      ]
+    },
+    {
+      "canonical": "sodick",
+      "aliases": [
+        "sodick"
+      ]
+    },
+    {
+      "canonical": "software development",
+      "aliases": [
+        "software development"
+      ]
     },
     {
       "canonical": "software testing",
-      "aliases": ["kiem thu phan mem", "kiểm thử phần mềm", "software testing"]
+      "aliases": [
+        "software testing"
+      ]
+    },
+    {
+      "canonical": "solana",
+      "aliases": [
+        "solana"
+      ]
+    },
+    {
+      "canonical": "solana web3.js",
+      "aliases": [
+        "solana web3.js"
+      ]
+    },
+    {
+      "canonical": "solarwinds",
+      "aliases": [
+        "solarwinds"
+      ]
+    },
+    {
+      "canonical": "solid",
+      "aliases": [
+        "solid"
+      ]
+    },
+    {
+      "canonical": "solidcam",
+      "aliases": [
+        "solidcam"
+      ]
+    },
+    {
+      "canonical": "solidity",
+      "aliases": [
+        "solidity"
+      ]
+    },
+    {
+      "canonical": "solidwork",
+      "aliases": [
+        "solidwork"
+      ]
+    },
+    {
+      "canonical": "solidworks",
+      "aliases": [
+        "solidworks"
+      ]
+    },
+    {
+      "canonical": "solr",
+      "aliases": [
+        "solr"
+      ]
+    },
+    {
+      "canonical": "sonarqube",
+      "aliases": [
+        "sonarqube"
+      ]
+    },
+    {
+      "canonical": "soql",
+      "aliases": [
+        "soql"
+      ]
     },
     {
       "canonical": "spark",
-      "aliases": ["spark"]
+      "aliases": [
+        "spark"
+      ]
+    },
+    {
+      "canonical": "spc",
+      "aliases": [
+        "spc"
+      ]
+    },
+    {
+      "canonical": "specflow",
+      "aliases": [
+        "specflow"
+      ]
+    },
+    {
+      "canonical": "spi",
+      "aliases": [
+        "spi"
+      ]
+    },
+    {
+      "canonical": "splunk",
+      "aliases": [
+        "splunk"
+      ]
     },
     {
       "canonical": "spring",
-      "aliases": ["spring"]
+      "aliases": [
+        "spring"
+      ]
     },
     {
       "canonical": "spring boot",
-      "aliases": ["spring boot", "spring-boot", "springboot"]
+      "aliases": [
+        "spring boot",
+        "spring-boot",
+        "springboot"
+      ]
+    },
+    {
+      "canonical": "spring cloud",
+      "aliases": [
+        "spring cloud"
+      ]
+    },
+    {
+      "canonical": "spring data",
+      "aliases": [
+        "spring data"
+      ]
+    },
+    {
+      "canonical": "spring framework",
+      "aliases": [
+        "spring framework"
+      ]
+    },
+    {
+      "canonical": "spring mvc",
+      "aliases": [
+        "spring mvc"
+      ]
+    },
+    {
+      "canonical": "spring security",
+      "aliases": [
+        "spring security"
+      ]
+    },
+    {
+      "canonical": "springmvc",
+      "aliases": [
+        "springmvc"
+      ]
+    },
+    {
+      "canonical": "spss",
+      "aliases": [
+        "spss"
+      ]
     },
     {
       "canonical": "sql",
-      "aliases": ["sql"]
+      "aliases": [
+        "sql"
+      ]
+    },
+    {
+      "canonical": "sql developer",
+      "aliases": [
+        "sql developer"
+      ]
+    },
+    {
+      "canonical": "sql server",
+      "aliases": [
+        "sql server"
+      ]
+    },
+    {
+      "canonical": "sqlalchemy",
+      "aliases": [
+        "sqlalchemy"
+      ]
+    },
+    {
+      "canonical": "sqldelight",
+      "aliases": [
+        "sqldelight"
+      ]
     },
     {
       "canonical": "sqlite",
-      "aliases": ["sqlite"]
+      "aliases": [
+        "sqlite"
+      ]
+    },
+    {
+      "canonical": "sqlserver",
+      "aliases": [
+        "sqlserver"
+      ]
+    },
+    {
+      "canonical": "sre",
+      "aliases": [
+        "sre"
+      ]
+    },
+    {
+      "canonical": "srt",
+      "aliases": [
+        "srt"
+      ]
+    },
+    {
+      "canonical": "srtp",
+      "aliases": [
+        "srtp"
+      ]
+    },
+    {
+      "canonical": "ssis",
+      "aliases": [
+        "ssis"
+      ]
+    },
+    {
+      "canonical": "sso",
+      "aliases": [
+        "sso"
+      ]
+    },
+    {
+      "canonical": "st",
+      "aliases": [
+        "st"
+      ]
+    },
+    {
+      "canonical": "staad pro",
+      "aliases": [
+        "staad pro"
+      ]
+    },
+    {
+      "canonical": "stakeholder communication",
+      "aliases": [
+        "stakeholder communication"
+      ]
+    },
+    {
+      "canonical": "stakeholder management",
+      "aliases": [
+        "stakeholder management"
+      ]
+    },
+    {
+      "canonical": "starlark",
+      "aliases": [
+        "starlark"
+      ]
+    },
+    {
+      "canonical": "state management",
+      "aliases": [
+        "state management"
+      ]
+    },
+    {
+      "canonical": "statistics",
+      "aliases": [
+        "statistics"
+      ]
+    },
+    {
+      "canonical": "stepping motor",
+      "aliases": [
+        "stepping motor"
+      ]
+    },
+    {
+      "canonical": "stm32",
+      "aliases": [
+        "stm32"
+      ]
+    },
+    {
+      "canonical": "storage",
+      "aliases": [
+        "storage"
+      ]
+    },
+    {
+      "canonical": "storekit",
+      "aliases": [
+        "storekit"
+      ]
+    },
+    {
+      "canonical": "storekit2",
+      "aliases": [
+        "storekit2"
+      ]
+    },
+    {
+      "canonical": "storm",
+      "aliases": [
+        "storm"
+      ]
+    },
+    {
+      "canonical": "storyboard",
+      "aliases": [
+        "storyboard"
+      ]
+    },
+    {
+      "canonical": "storybook",
+      "aliases": [
+        "storybook"
+      ]
+    },
+    {
+      "canonical": "strategic planning",
+      "aliases": [
+        "strategic planning"
+      ]
+    },
+    {
+      "canonical": "streamlit",
+      "aliases": [
+        "streamlit"
+      ]
+    },
+    {
+      "canonical": "stripe",
+      "aliases": [
+        "stripe"
+      ]
+    },
+    {
+      "canonical": "structured cabling",
+      "aliases": [
+        "structured cabling"
+      ]
+    },
+    {
+      "canonical": "strut",
+      "aliases": [
+        "strut"
+      ]
+    },
+    {
+      "canonical": "struts",
+      "aliases": [
+        "struts"
+      ]
+    },
+    {
+      "canonical": "stun",
+      "aliases": [
+        "stun"
+      ]
+    },
+    {
+      "canonical": "styled components",
+      "aliases": [
+        "styled components"
+      ]
+    },
+    {
+      "canonical": "styled-components",
+      "aliases": [
+        "styled-components"
+      ]
+    },
+    {
+      "canonical": "substance painter",
+      "aliases": [
+        "substance painter"
+      ]
+    },
+    {
+      "canonical": "supabase",
+      "aliases": [
+        "supabase"
+      ]
     },
     {
       "canonical": "svelte",
-      "aliases": ["svelte"]
+      "aliases": [
+        "svelte"
+      ]
+    },
+    {
+      "canonical": "svn",
+      "aliases": [
+        "svn"
+      ]
+    },
+    {
+      "canonical": "swagger",
+      "aliases": [
+        "swagger"
+      ]
     },
     {
       "canonical": "swift",
-      "aliases": ["swift"]
+      "aliases": [
+        "swift"
+      ]
+    },
+    {
+      "canonical": "swift package manager",
+      "aliases": [
+        "swift package manager"
+      ]
+    },
+    {
+      "canonical": "swiftpm",
+      "aliases": [
+        "swiftpm"
+      ]
+    },
+    {
+      "canonical": "swiftui",
+      "aliases": [
+        "swiftui"
+      ]
+    },
+    {
+      "canonical": "switch",
+      "aliases": [
+        "switch"
+      ]
+    },
+    {
+      "canonical": "switches",
+      "aliases": [
+        "switches"
+      ]
+    },
+    {
+      "canonical": "sybase",
+      "aliases": [
+        "sybase"
+      ]
+    },
+    {
+      "canonical": "symfony",
+      "aliases": [
+        "symfony"
+      ]
+    },
+    {
+      "canonical": "synapse",
+      "aliases": [
+        "synapse"
+      ]
+    },
+    {
+      "canonical": "syslog",
+      "aliases": [
+        "syslog"
+      ]
+    },
+    {
+      "canonical": "system center configuration manager",
+      "aliases": [
+        "system center configuration manager"
+      ]
+    },
+    {
+      "canonical": "system monitoring tools",
+      "aliases": [
+        "system monitoring tools"
+      ]
+    },
+    {
+      "canonical": "t-sql",
+      "aliases": [
+        "t-sql"
+      ]
+    },
+    {
+      "canonical": "tableau",
+      "aliases": [
+        "tableau"
+      ]
+    },
+    {
+      "canonical": "tabnine",
+      "aliases": [
+        "tabnine"
+      ]
+    },
+    {
+      "canonical": "tabular",
+      "aliases": [
+        "tabular"
+      ]
+    },
+    {
+      "canonical": "tailwind",
+      "aliases": [
+        "tailwind"
+      ]
+    },
+    {
+      "canonical": "tailwind css",
+      "aliases": [
+        "tailwind css"
+      ]
+    },
+    {
+      "canonical": "tailwindcss",
+      "aliases": [
+        "tailwindcss"
+      ]
+    },
+    {
+      "canonical": "talend",
+      "aliases": [
+        "talend"
+      ]
+    },
+    {
+      "canonical": "tanstack query",
+      "aliases": [
+        "tanstack query"
+      ]
+    },
+    {
+      "canonical": "tanstack router",
+      "aliases": [
+        "tanstack router"
+      ]
+    },
+    {
+      "canonical": "tanstack table",
+      "aliases": [
+        "tanstack table"
+      ]
+    },
+    {
+      "canonical": "tara",
+      "aliases": [
+        "tara"
+      ]
+    },
+    {
+      "canonical": "tcp/ip",
+      "aliases": [
+        "tcp/ip"
+      ]
+    },
+    {
+      "canonical": "tcpdump",
+      "aliases": [
+        "tcpdump"
+      ]
+    },
+    {
+      "canonical": "tcpview",
+      "aliases": [
+        "tcpview"
+      ]
+    },
+    {
+      "canonical": "tcserver",
+      "aliases": [
+        "tcserver"
+      ]
+    },
+    {
+      "canonical": "tdd",
+      "aliases": [
+        "tdd"
+      ]
+    },
+    {
+      "canonical": "team city",
+      "aliases": [
+        "team city"
+      ]
+    },
+    {
+      "canonical": "team leadership",
+      "aliases": [
+        "team leadership"
+      ]
+    },
+    {
+      "canonical": "teamcenter",
+      "aliases": [
+        "teamcenter"
+      ]
+    },
+    {
+      "canonical": "teamcity",
+      "aliases": [
+        "teamcity"
+      ]
+    },
+    {
+      "canonical": "temenos infinity",
+      "aliases": [
+        "temenos infinity"
+      ]
+    },
+    {
+      "canonical": "tenable.io",
+      "aliases": [
+        "tenable.io"
+      ]
+    },
+    {
+      "canonical": "tensor core",
+      "aliases": [
+        "tensor core"
+      ]
     },
     {
       "canonical": "tensorflow",
-      "aliases": ["tensorflow", "tf"]
+      "aliases": [
+        "tensorflow",
+        "tf"
+      ]
+    },
+    {
+      "canonical": "tensorflow lite",
+      "aliases": [
+        "tensorflow lite"
+      ]
+    },
+    {
+      "canonical": "tensorflow serving",
+      "aliases": [
+        "tensorflow serving"
+      ]
+    },
+    {
+      "canonical": "tensorrt",
+      "aliases": [
+        "tensorrt"
+      ]
     },
     {
       "canonical": "terraform",
-      "aliases": ["terraform"]
+      "aliases": [
+        "terraform"
+      ]
+    },
+    {
+      "canonical": "terragrunt",
+      "aliases": [
+        "terragrunt"
+      ]
+    },
+    {
+      "canonical": "tesseract",
+      "aliases": [
+        "tesseract"
+      ]
+    },
+    {
+      "canonical": "test automation",
+      "aliases": [
+        "test automation"
+      ]
+    },
+    {
+      "canonical": "test complete",
+      "aliases": [
+        "test complete"
+      ]
+    },
+    {
+      "canonical": "test driven development",
+      "aliases": [
+        "test driven development"
+      ]
+    },
+    {
+      "canonical": "test planning",
+      "aliases": [
+        "test planning"
+      ]
+    },
+    {
+      "canonical": "testcafe",
+      "aliases": [
+        "testcafe"
+      ]
+    },
+    {
+      "canonical": "testflight",
+      "aliases": [
+        "testflight"
+      ]
+    },
+    {
+      "canonical": "testing",
+      "aliases": [
+        "testing"
+      ]
+    },
+    {
+      "canonical": "testlink",
+      "aliases": [
+        "testlink"
+      ]
+    },
+    {
+      "canonical": "testng",
+      "aliases": [
+        "testng"
+      ]
+    },
+    {
+      "canonical": "testrail",
+      "aliases": [
+        "testrail"
+      ]
+    },
+    {
+      "canonical": "text-to-sql",
+      "aliases": [
+        "text-to-sql"
+      ]
+    },
+    {
+      "canonical": "textract",
+      "aliases": [
+        "textract"
+      ]
+    },
+    {
+      "canonical": "texturing",
+      "aliases": [
+        "texturing"
+      ]
+    },
+    {
+      "canonical": "tflite",
+      "aliases": [
+        "tflite"
+      ]
+    },
+    {
+      "canonical": "the graph",
+      "aliases": [
+        "the graph"
+      ]
+    },
+    {
+      "canonical": "theia",
+      "aliases": [
+        "theia"
+      ]
+    },
+    {
+      "canonical": "themeleaf",
+      "aliases": [
+        "themeleaf"
+      ]
+    },
+    {
+      "canonical": "threat modeling",
+      "aliases": [
+        "threat modeling"
+      ]
+    },
+    {
+      "canonical": "three.js",
+      "aliases": [
+        "three.js"
+      ]
+    },
+    {
+      "canonical": "thymeleaf",
+      "aliases": [
+        "thymeleaf"
+      ]
+    },
+    {
+      "canonical": "ticketing",
+      "aliases": [
+        "ticketing"
+      ]
+    },
+    {
+      "canonical": "ticketing systems",
+      "aliases": [
+        "ticketing systems"
+      ]
+    },
+    {
+      "canonical": "tiktok",
+      "aliases": [
+        "tiktok"
+      ]
+    },
+    {
+      "canonical": "timeline management",
+      "aliases": [
+        "timeline management"
+      ]
+    },
+    {
+      "canonical": "timer",
+      "aliases": [
+        "timer"
+      ]
+    },
+    {
+      "canonical": "tls",
+      "aliases": [
+        "tls"
+      ]
+    },
+    {
+      "canonical": "tokio",
+      "aliases": [
+        "tokio"
+      ]
+    },
+    {
+      "canonical": "tomcat",
+      "aliases": [
+        "tomcat"
+      ]
+    },
+    {
+      "canonical": "trac",
+      "aliases": [
+        "trac"
+      ]
+    },
+    {
+      "canonical": "tracing",
+      "aliases": [
+        "tracing"
+      ]
+    },
+    {
+      "canonical": "transformer",
+      "aliases": [
+        "transformer"
+      ]
+    },
+    {
+      "canonical": "trello",
+      "aliases": [
+        "trello"
+      ]
+    },
+    {
+      "canonical": "tritonserver",
+      "aliases": [
+        "tritonserver"
+      ]
+    },
+    {
+      "canonical": "troubleshooting",
+      "aliases": [
+        "troubleshooting"
+      ]
+    },
+    {
+      "canonical": "trpc",
+      "aliases": [
+        "trpc"
+      ]
+    },
+    {
+      "canonical": "trustzone",
+      "aliases": [
+        "trustzone"
+      ]
+    },
+    {
+      "canonical": "turbo",
+      "aliases": [
+        "turbo"
+      ]
+    },
+    {
+      "canonical": "turn",
+      "aliases": [
+        "turn"
+      ]
+    },
+    {
+      "canonical": "turnstile control",
+      "aliases": [
+        "turnstile control"
+      ]
+    },
+    {
+      "canonical": "tuxedo middleware",
+      "aliases": [
+        "tuxedo middleware"
+      ]
+    },
+    {
+      "canonical": "twig",
+      "aliases": [
+        "twig"
+      ]
+    },
+    {
+      "canonical": "typeform",
+      "aliases": [
+        "typeform"
+      ]
+    },
+    {
+      "canonical": "typeorm",
+      "aliases": [
+        "typeorm"
+      ]
     },
     {
       "canonical": "typescript",
-      "aliases": ["ts", "typescript"]
+      "aliases": [
+        "ts",
+        "typescript"
+      ]
+    },
+    {
+      "canonical": "uart",
+      "aliases": [
+        "uart"
+      ]
+    },
+    {
+      "canonical": "ubuntu",
+      "aliases": [
+        "ubuntu"
+      ]
+    },
+    {
+      "canonical": "udp",
+      "aliases": [
+        "udp"
+      ]
+    },
+    {
+      "canonical": "uds",
+      "aliases": [
+        "uds"
+      ]
+    },
+    {
+      "canonical": "udsoncan",
+      "aliases": [
+        "udsoncan"
+      ]
+    },
+    {
+      "canonical": "ui frameworks",
+      "aliases": [
+        "ui frameworks"
+      ]
+    },
+    {
+      "canonical": "ui path",
+      "aliases": [
+        "ui path"
+      ]
+    },
+    {
+      "canonical": "ui testing",
+      "aliases": [
+        "ui testing"
+      ]
+    },
+    {
+      "canonical": "ui-ux",
+      "aliases": [
+        "ui-ux"
+      ]
+    },
+    {
+      "canonical": "ui/ux basics",
+      "aliases": [
+        "ui/ux basics"
+      ]
+    },
+    {
+      "canonical": "ui/ux design",
+      "aliases": [
+        "ui/ux design"
+      ]
+    },
+    {
+      "canonical": "uikit",
+      "aliases": [
+        "uikit"
+      ]
+    },
+    {
+      "canonical": "uipath",
+      "aliases": [
+        "uipath"
+      ]
+    },
+    {
+      "canonical": "uml",
+      "aliases": [
+        "uml"
+      ]
+    },
+    {
+      "canonical": "unet",
+      "aliases": [
+        "unet"
+      ]
+    },
+    {
+      "canonical": "uniswap",
+      "aliases": [
+        "uniswap"
+      ]
+    },
+    {
+      "canonical": "unit testing",
+      "aliases": [
+        "unit testing"
+      ]
+    },
+    {
+      "canonical": "unity",
+      "aliases": [
+        "unity"
+      ]
+    },
+    {
+      "canonical": "unity 2d",
+      "aliases": [
+        "unity 2d"
+      ]
+    },
+    {
+      "canonical": "unity 3d",
+      "aliases": [
+        "unity 3d"
+      ]
+    },
+    {
+      "canonical": "unix",
+      "aliases": [
+        "unix"
+      ]
+    },
+    {
+      "canonical": "unix shell",
+      "aliases": [
+        "unix shell"
+      ]
+    },
+    {
+      "canonical": "unix/linux",
+      "aliases": [
+        "unix/linux"
+      ]
+    },
+    {
+      "canonical": "unreal",
+      "aliases": [
+        "unreal"
+      ]
+    },
+    {
+      "canonical": "unreal engine",
+      "aliases": [
+        "unreal engine"
+      ]
+    },
+    {
+      "canonical": "ur robot",
+      "aliases": [
+        "ur robot"
+      ]
+    },
+    {
+      "canonical": "usart",
+      "aliases": [
+        "usart"
+      ]
+    },
+    {
+      "canonical": "usb",
+      "aliases": [
+        "usb"
+      ]
+    },
+    {
+      "canonical": "user research",
+      "aliases": [
+        "user research"
+      ]
+    },
+    {
+      "canonical": "userdefaults",
+      "aliases": [
+        "userdefaults"
+      ]
+    },
+    {
+      "canonical": "uwp",
+      "aliases": [
+        "uwp"
+      ]
+    },
+    {
+      "canonical": "ux/ui",
+      "aliases": [
+        "ux/ui"
+      ]
+    },
+    {
+      "canonical": "valgrind",
+      "aliases": [
+        "valgrind"
+      ]
+    },
+    {
+      "canonical": "valuation",
+      "aliases": [
+        "valuation"
+      ]
+    },
+    {
+      "canonical": "variance analysis",
+      "aliases": [
+        "variance analysis"
+      ]
+    },
+    {
+      "canonical": "vault",
+      "aliases": [
+        "vault"
+      ]
+    },
+    {
+      "canonical": "vb.net",
+      "aliases": [
+        "vb.net"
+      ]
+    },
+    {
+      "canonical": "vb6",
+      "aliases": [
+        "vb6"
+      ]
+    },
+    {
+      "canonical": "vba",
+      "aliases": [
+        "vba"
+      ]
+    },
+    {
+      "canonical": "vcl",
+      "aliases": [
+        "vcl"
+      ]
+    },
+    {
+      "canonical": "vector",
+      "aliases": [
+        "vector"
+      ]
+    },
+    {
+      "canonical": "vector canoe",
+      "aliases": [
+        "vector canoe"
+      ]
+    },
+    {
+      "canonical": "vercel",
+      "aliases": [
+        "vercel"
+      ]
+    },
+    {
+      "canonical": "vericut",
+      "aliases": [
+        "vericut"
+      ]
+    },
+    {
+      "canonical": "verilog",
+      "aliases": [
+        "verilog"
+      ]
+    },
+    {
+      "canonical": "version control",
+      "aliases": [
+        "version control"
+      ]
+    },
+    {
+      "canonical": "vert.x",
+      "aliases": [
+        "vert.x"
+      ]
+    },
+    {
+      "canonical": "vertex ai",
+      "aliases": [
+        "vertex ai"
+      ]
+    },
+    {
+      "canonical": "vertx",
+      "aliases": [
+        "vertx"
+      ]
+    },
+    {
+      "canonical": "video",
+      "aliases": [
+        "video"
+      ]
+    },
+    {
+      "canonical": "video.js",
+      "aliases": [
+        "video.js"
+      ]
+    },
+    {
+      "canonical": "viem",
+      "aliases": [
+        "viem"
+      ]
+    },
+    {
+      "canonical": "virtualization",
+      "aliases": [
+        "virtualization"
+      ]
+    },
+    {
+      "canonical": "virtuozzo",
+      "aliases": [
+        "virtuozzo"
+      ]
+    },
+    {
+      "canonical": "visi",
+      "aliases": [
+        "visi"
+      ]
+    },
+    {
+      "canonical": "visily",
+      "aliases": [
+        "visily"
+      ]
+    },
+    {
+      "canonical": "visio",
+      "aliases": [
+        "visio"
+      ]
+    },
+    {
+      "canonical": "vision",
+      "aliases": [
+        "vision"
+      ]
+    },
+    {
+      "canonical": "visual basic",
+      "aliases": [
+        "visual basic"
+      ]
+    },
+    {
+      "canonical": "visual c++",
+      "aliases": [
+        "visual c++"
+      ]
+    },
+    {
+      "canonical": "visual paradigm",
+      "aliases": [
+        "visual paradigm"
+      ]
+    },
+    {
+      "canonical": "visual studio",
+      "aliases": [
+        "visual studio"
+      ]
+    },
+    {
+      "canonical": "visual studio 2019",
+      "aliases": [
+        "visual studio 2019"
+      ]
+    },
+    {
+      "canonical": "visual studio 2022",
+      "aliases": [
+        "visual studio 2022"
+      ]
+    },
+    {
+      "canonical": "visual studio code",
+      "aliases": [
+        "visual studio code"
+      ]
+    },
+    {
+      "canonical": "visual studio.net",
+      "aliases": [
+        "visual studio.net"
+      ]
+    },
+    {
+      "canonical": "visualforce",
+      "aliases": [
+        "visualforce"
+      ]
+    },
+    {
+      "canonical": "visualization tools",
+      "aliases": [
+        "visualization tools"
+      ]
+    },
+    {
+      "canonical": "vite",
+      "aliases": [
+        "vite"
+      ]
+    },
+    {
+      "canonical": "vitest",
+      "aliases": [
+        "vitest"
+      ]
+    },
+    {
+      "canonical": "vlan",
+      "aliases": [
+        "vlan"
+      ]
+    },
+    {
+      "canonical": "vmware",
+      "aliases": [
+        "vmware"
+      ]
+    },
+    {
+      "canonical": "vmware esxi",
+      "aliases": [
+        "vmware esxi"
+      ]
+    },
+    {
+      "canonical": "vnpay",
+      "aliases": [
+        "vnpay"
+      ]
+    },
+    {
+      "canonical": "voip",
+      "aliases": [
+        "voip"
+      ]
+    },
+    {
+      "canonical": "vpn",
+      "aliases": [
+        "vpn"
+      ]
+    },
+    {
+      "canonical": "vr",
+      "aliases": [
+        "vr"
+      ]
+    },
+    {
+      "canonical": "vr/ar",
+      "aliases": [
+        "vr/ar"
+      ]
+    },
+    {
+      "canonical": "vs code",
+      "aliases": [
+        "vs code"
+      ]
+    },
+    {
+      "canonical": "vsan",
+      "aliases": [
+        "vsan"
+      ]
+    },
+    {
+      "canonical": "vscode",
+      "aliases": [
+        "vscode"
+      ]
+    },
+    {
+      "canonical": "vsts",
+      "aliases": [
+        "vsts"
+      ]
+    },
+    {
+      "canonical": "vtiger crm",
+      "aliases": [
+        "vtiger crm"
+      ]
     },
     {
       "canonical": "vue",
-      "aliases": ["vue", "vue js", "vue.js", "vuejs"]
+      "aliases": [
+        "vue",
+        "vue js",
+        "vue.js",
+        "vuejs"
+      ]
+    },
+    {
+      "canonical": "vue router",
+      "aliases": [
+        "vue router"
+      ]
+    },
+    {
+      "canonical": "vue3",
+      "aliases": [
+        "vue3"
+      ]
+    },
+    {
+      "canonical": "vuetify",
+      "aliases": [
+        "vuetify"
+      ]
+    },
+    {
+      "canonical": "vuex",
+      "aliases": [
+        "vuex"
+      ]
+    },
+    {
+      "canonical": "vulnerability assessment",
+      "aliases": [
+        "vulnerability assessment"
+      ]
+    },
+    {
+      "canonical": "w3c blockchain",
+      "aliases": [
+        "w3c blockchain"
+      ]
+    },
+    {
+      "canonical": "waf",
+      "aliases": [
+        "waf"
+      ]
+    },
+    {
+      "canonical": "wagmi",
+      "aliases": [
+        "wagmi"
+      ]
+    },
+    {
+      "canonical": "walletconnect",
+      "aliases": [
+        "walletconnect"
+      ]
+    },
+    {
+      "canonical": "wan",
+      "aliases": [
+        "wan"
+      ]
+    },
+    {
+      "canonical": "was",
+      "aliases": [
+        "was"
+      ]
+    },
+    {
+      "canonical": "waterfall",
+      "aliases": [
+        "waterfall"
+      ]
+    },
+    {
+      "canonical": "watermarking",
+      "aliases": [
+        "watermarking"
+      ]
+    },
+    {
+      "canonical": "wcf",
+      "aliases": [
+        "wcf"
+      ]
+    },
+    {
+      "canonical": "wdio",
+      "aliases": [
+        "wdio"
+      ]
+    },
+    {
+      "canonical": "weaviate",
+      "aliases": [
+        "weaviate"
+      ]
+    },
+    {
+      "canonical": "web",
+      "aliases": [
+        "web"
+      ]
+    },
+    {
+      "canonical": "web api",
+      "aliases": [
+        "web api"
+      ]
+    },
+    {
+      "canonical": "web apis",
+      "aliases": [
+        "web apis"
+      ]
+    },
+    {
+      "canonical": "web app",
+      "aliases": [
+        "web app"
+      ]
+    },
+    {
+      "canonical": "web application",
+      "aliases": [
+        "web application"
+      ]
+    },
+    {
+      "canonical": "web applications",
+      "aliases": [
+        "web applications"
+      ]
+    },
+    {
+      "canonical": "web service",
+      "aliases": [
+        "web service"
+      ]
+    },
+    {
+      "canonical": "web services",
+      "aliases": [
+        "web services"
+      ]
+    },
+    {
+      "canonical": "web system",
+      "aliases": [
+        "web system"
+      ]
+    },
+    {
+      "canonical": "web-based",
+      "aliases": [
+        "web-based"
+      ]
+    },
+    {
+      "canonical": "web/mobile testing",
+      "aliases": [
+        "web/mobile testing"
+      ]
+    },
+    {
+      "canonical": "web3",
+      "aliases": [
+        "web3"
+      ]
+    },
+    {
+      "canonical": "web3.js",
+      "aliases": [
+        "web3.js"
+      ]
+    },
+    {
+      "canonical": "webapi",
+      "aliases": [
+        "webapi"
+      ]
+    },
+    {
+      "canonical": "webassembly",
+      "aliases": [
+        "webassembly"
+      ]
+    },
+    {
+      "canonical": "webdriverio",
+      "aliases": [
+        "webdriverio"
+      ]
+    },
+    {
+      "canonical": "webflow",
+      "aliases": [
+        "webflow"
+      ]
+    },
+    {
+      "canonical": "webgl",
+      "aliases": [
+        "webgl"
+      ]
+    },
+    {
+      "canonical": "webgpu",
+      "aliases": [
+        "webgpu"
+      ]
+    },
+    {
+      "canonical": "webhook",
+      "aliases": [
+        "webhook"
+      ]
+    },
+    {
+      "canonical": "webpack",
+      "aliases": [
+        "webpack"
+      ]
+    },
+    {
+      "canonical": "webrtc",
+      "aliases": [
+        "webrtc"
+      ]
+    },
+    {
+      "canonical": "webserver",
+      "aliases": [
+        "webserver"
+      ]
+    },
+    {
+      "canonical": "webservices",
+      "aliases": [
+        "webservices"
+      ]
     },
     {
       "canonical": "websocket",
-      "aliases": ["websocket"]
+      "aliases": [
+        "websocket"
+      ]
+    },
+    {
+      "canonical": "websockets",
+      "aliases": [
+        "websockets"
+      ]
+    },
+    {
+      "canonical": "websphere",
+      "aliases": [
+        "websphere"
+      ]
+    },
+    {
+      "canonical": "weight & biases",
+      "aliases": [
+        "weight & biases"
+      ]
+    },
+    {
+      "canonical": "wifi",
+      "aliases": [
+        "wifi"
+      ]
+    },
+    {
+      "canonical": "wildfly",
+      "aliases": [
+        "wildfly"
+      ]
+    },
+    {
+      "canonical": "win form application",
+      "aliases": [
+        "win form application"
+      ]
+    },
+    {
+      "canonical": "windidea",
+      "aliases": [
+        "windidea"
+      ]
+    },
+    {
+      "canonical": "windows",
+      "aliases": [
+        "windows"
+      ]
+    },
+    {
+      "canonical": "windows 10",
+      "aliases": [
+        "windows 10"
+      ]
+    },
+    {
+      "canonical": "windows 11",
+      "aliases": [
+        "windows 11"
+      ]
+    },
+    {
+      "canonical": "windows api",
+      "aliases": [
+        "windows api"
+      ]
+    },
+    {
+      "canonical": "windows app",
+      "aliases": [
+        "windows app"
+      ]
+    },
+    {
+      "canonical": "windows event forwarder",
+      "aliases": [
+        "windows event forwarder"
+      ]
+    },
+    {
+      "canonical": "windows form",
+      "aliases": [
+        "windows form"
+      ]
+    },
+    {
+      "canonical": "windows forms",
+      "aliases": [
+        "windows forms"
+      ]
+    },
+    {
+      "canonical": "windows iis",
+      "aliases": [
+        "windows iis"
+      ]
+    },
+    {
+      "canonical": "windows sdk",
+      "aliases": [
+        "windows sdk"
+      ]
+    },
+    {
+      "canonical": "windows server",
+      "aliases": [
+        "windows server"
+      ]
+    },
+    {
+      "canonical": "windows service",
+      "aliases": [
+        "windows service"
+      ]
+    },
+    {
+      "canonical": "windows services",
+      "aliases": [
+        "windows services"
+      ]
+    },
+    {
+      "canonical": "winform",
+      "aliases": [
+        "winform"
+      ]
+    },
+    {
+      "canonical": "winforms",
+      "aliases": [
+        "winforms"
+      ]
+    },
+    {
+      "canonical": "winui",
+      "aliases": [
+        "winui"
+      ]
+    },
+    {
+      "canonical": "winui3",
+      "aliases": [
+        "winui3"
+      ]
+    },
+    {
+      "canonical": "wireshark",
+      "aliases": [
+        "wireshark"
+      ]
+    },
+    {
+      "canonical": "wms",
+      "aliases": [
+        "wms"
+      ]
+    },
+    {
+      "canonical": "woocommerce",
+      "aliases": [
+        "woocommerce"
+      ]
+    },
+    {
+      "canonical": "wordpress",
+      "aliases": [
+        "wordpress"
+      ]
+    },
+    {
+      "canonical": "workato",
+      "aliases": [
+        "workato"
+      ]
+    },
+    {
+      "canonical": "workday",
+      "aliases": [
+        "workday"
+      ]
+    },
+    {
+      "canonical": "wpf",
+      "aliases": [
+        "wpf"
+      ]
+    },
+    {
+      "canonical": "wpf ui",
+      "aliases": [
+        "wpf ui"
+      ]
+    },
+    {
+      "canonical": "wpgraphql",
+      "aliases": [
+        "wpgraphql"
+      ]
+    },
+    {
+      "canonical": "wso2 api manager",
+      "aliases": [
+        "wso2 api manager"
+      ]
+    },
+    {
+      "canonical": "x86",
+      "aliases": [
+        "x86"
+      ]
+    },
+    {
+      "canonical": "xcode",
+      "aliases": [
+        "xcode"
+      ]
+    },
+    {
+      "canonical": "xcodebuild",
+      "aliases": [
+        "xcodebuild"
+      ]
+    },
+    {
+      "canonical": "xdebug",
+      "aliases": [
+        "xdebug"
+      ]
+    },
+    {
+      "canonical": "xdr",
+      "aliases": [
+        "xdr"
+      ]
+    },
+    {
+      "canonical": "xen citrix",
+      "aliases": [
+        "xen citrix"
+      ]
+    },
+    {
+      "canonical": "xgboost",
+      "aliases": [
+        "xgboost"
+      ]
+    },
+    {
+      "canonical": "xml",
+      "aliases": [
+        "xml"
+      ]
+    },
+    {
+      "canonical": "xml-rpc",
+      "aliases": [
+        "xml-rpc"
+      ]
+    },
+    {
+      "canonical": "xpath",
+      "aliases": [
+        "xpath"
+      ]
+    },
+    {
+      "canonical": "xunit",
+      "aliases": [
+        "xunit"
+      ]
+    },
+    {
+      "canonical": "yaml",
+      "aliases": [
+        "yaml"
+      ]
+    },
+    {
+      "canonical": "yarn",
+      "aliases": [
+        "yarn"
+      ]
+    },
+    {
+      "canonical": "yaskawa",
+      "aliases": [
+        "yaskawa"
+      ]
+    },
+    {
+      "canonical": "yii",
+      "aliases": [
+        "yii"
+      ]
+    },
+    {
+      "canonical": "yii 2",
+      "aliases": [
+        "yii 2"
+      ]
+    },
+    {
+      "canonical": "yocto",
+      "aliases": [
+        "yocto"
+      ]
+    },
+    {
+      "canonical": "yocto build system",
+      "aliases": [
+        "yocto build system"
+      ]
+    },
+    {
+      "canonical": "zabbix",
+      "aliases": [
+        "zabbix"
+      ]
+    },
+    {
+      "canonical": "zapier",
+      "aliases": [
+        "zapier"
+      ]
+    },
+    {
+      "canonical": "zend",
+      "aliases": [
+        "zend"
+      ]
+    },
+    {
+      "canonical": "zendesk",
+      "aliases": [
+        "zendesk"
+      ]
+    },
+    {
+      "canonical": "zenhub",
+      "aliases": [
+        "zenhub"
+      ]
+    },
+    {
+      "canonical": "zephyr",
+      "aliases": [
+        "zephyr"
+      ]
+    },
+    {
+      "canonical": "zephyr scale",
+      "aliases": [
+        "zephyr scale"
+      ]
+    },
+    {
+      "canonical": "zeplin",
+      "aliases": [
+        "zeplin"
+      ]
+    },
+    {
+      "canonical": "zigbee",
+      "aliases": [
+        "zigbee"
+      ]
+    },
+    {
+      "canonical": "zk",
+      "aliases": [
+        "zk"
+      ]
+    },
+    {
+      "canonical": "zksync",
+      "aliases": [
+        "zksync"
+      ]
+    },
+    {
+      "canonical": "zod",
+      "aliases": [
+        "zod"
+      ]
+    },
+    {
+      "canonical": "zoom",
+      "aliases": [
+        "zoom"
+      ]
+    },
+    {
+      "canonical": "zustand",
+      "aliases": [
+        "zustand"
+      ]
     }
   ]
 }
