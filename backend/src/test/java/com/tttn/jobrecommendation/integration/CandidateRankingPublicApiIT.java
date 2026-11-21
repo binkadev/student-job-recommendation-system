@@ -338,7 +338,7 @@ class CandidateRankingPublicApiIT extends AbstractPostgresWebIntegrationTest {
         cv.setAnalysisStatus(CvAnalysisStatus.READY);
         cv.setLanguageCode("en");
         cv.setLanguageConfidence(new BigDecimal("0.99"));
-        cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cv.setProcessingVersion("english-spacy-v1-skills-v1");
         cv.setAnalyzedAt(LocalDateTime.of(2026, 8, 1, 10, 0));
         cvFileRepository.saveAndFlush(cv);
         createApplication(candidate, ownedJob, cv, ApplicationStatus.PENDING);

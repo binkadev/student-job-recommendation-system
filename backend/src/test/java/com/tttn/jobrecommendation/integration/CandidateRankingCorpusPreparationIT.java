@@ -11,7 +11,7 @@ import com.tttn.jobrecommendation.common.exception.ResourceNotFoundException;
 import com.tttn.jobrecommendation.modules.application.entity.JobApplication;
 import com.tttn.jobrecommendation.modules.application.repository.JobApplicationRepository;
 import com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingCorpusPreparationService;
-import com.tttn.jobrecommendation.modules.candidateranking.service.model.CandidateRankingPreparationResult;
+import com.tttn.jobrecommendation.modules.candidateranking.service.model.CandidateRankingV3PreparationResult;
 import com.tttn.jobrecommendation.modules.company.entity.Company;
 import com.tttn.jobrecommendation.modules.cv.entity.CvFile;
 import com.tttn.jobrecommendation.modules.job.entity.Job;
@@ -72,17 +72,17 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
         closedJob.setDeadline(LocalDate.now().minusDays(30));
         closedJob = jobRepository.saveAndFlush(closedJob);
 
-        CandidateRankingPreparationResult result = preparationService.prepare(owner.getId(), closedJob.getId());
+        CandidateRankingV3PreparationResult result = preparationService.prepareV3(owner.getId(), closedJob.getId());
 
         assertThat(result.jobSnapshot().id()).isEqualTo(closedJob.getId());
         assertThat(result.eligibleCandidateSnapshots()).isEmpty();
         assertThat(result.counters().totalApplicationsScanned()).isZero();
 
         Long selectedJobId = closedJob.getId();
-        assertThatThrownBy(() -> preparationService.prepare(foreignCompany.getId(), selectedJobId))
+        assertThatThrownBy(() -> preparationService.prepareV3(foreignCompany.getId(), selectedJobId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job not found");
-        assertThatThrownBy(() -> preparationService.prepare(owner.getId(), 999_999L))
+        assertThatThrownBy(() -> preparationService.prepareV3(owner.getId(), 999_999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Job not found");
     }
@@ -127,7 +127,7 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
                 .status(ApplicationStatus.REVIEWED)
                 .build());
 
-        CandidateRankingPreparationResult result = preparationService.prepare(company.getId(), job.getId());
+        CandidateRankingV3PreparationResult result = preparationService.prepareV3(company.getId(), job.getId());
 
         assertThat(result.counters().totalApplicationsScanned()).isEqualTo(2);
         assertThat(result.counters().eligibleCandidates()).isEqualTo(1);
@@ -154,7 +154,7 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
                 .status(ApplicationStatus.PENDING)
                 .build());
 
-        assertThatThrownBy(() -> preparationService.prepare(company.getId(), job.getId()))
+        assertThatThrownBy(() -> preparationService.prepareV3(company.getId(), job.getId()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Submitted CV does not belong to the application student");
     }
@@ -214,7 +214,9 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
         cv.setProcessedText(extractedText.toLowerCase());
         cv.setExtractedSkills(extractedSkills);
         cv.setAnalysisStatus(CvAnalysisStatus.READY);
-        cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cv.setLanguageCode("en");
+        cv.setLanguageConfidence(new java.math.BigDecimal("0.9900"));
+        cv.setProcessingVersion("english-spacy-v1-skills-v1");
         cv.setAnalyzedAt(LocalDateTime.of(2026, 8, 1, 10, 0).plusMinutes(cv.getId()));
         return cvFileRepository.saveAndFlush(cv);
     }
@@ -222,7 +224,7 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
     private Measurement measure(Long companyId, Long jobId) {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
-        CandidateRankingPreparationResult result = preparationService.prepare(companyId, jobId);
+        CandidateRankingV3PreparationResult result = preparationService.prepareV3(companyId, jobId);
         return new Measurement(
                 result,
                 statistics.getPrepareStatementCount(),
@@ -231,7 +233,7 @@ class CandidateRankingCorpusPreparationIT extends AbstractPostgresIntegrationTes
     }
 
     private record Measurement(
-            CandidateRankingPreparationResult result,
+            CandidateRankingV3PreparationResult result,
             long preparedStatements,
             long entityFetches
     ) {

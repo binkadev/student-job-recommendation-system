@@ -283,7 +283,7 @@ describe("DATN W1-A — Student Workspace Completion", () => {
       analysisError: null,
       languageCode: "vi",
       languageConfidence: 0.9821,
-      processingVersion: "bilingual-nlp-v2-skills-v1",
+      processingVersion: "english-spacy-v1-skills-v1",
       warnings: ["Trang 2 có bảng phức tạp được chuyển thành văn bản phẳng."],
       analyzedAt: "2026-11-10T08:16:00",
       uploadedAt: "2026-11-10T08:15:00",
@@ -318,7 +318,7 @@ describe("DATN W1-A — Student Workspace Completion", () => {
 
       expect(await screen.findByText("Tiếng Việt (vi)")).toBeInTheDocument();
       expect(screen.getByText("98.2% (0.9821)")).toBeInTheDocument();
-      expect(screen.getByText("bilingual-nlp-v2-skills-v1")).toBeInTheDocument();
+      expect(screen.getByText("english-spacy-v1-skills-v1")).toBeInTheDocument();
       expect(screen.getByText("Trang 2 có bảng phức tạp được chuyển thành văn bản phẳng.")).toBeInTheDocument();
       expect(screen.getByRole("region", { name: "Nội dung CV đã xử lý, cuộn để đọc" })).toHaveTextContent(
         "nguyen_van_a ky_nang java spring_boot postgresql",
@@ -339,7 +339,7 @@ describe("DATN W1-A — Student Workspace Completion", () => {
 
       expect(await screen.findByText("Trạng thái sẵn sàng cho gợi ý việc làm V3")).toBeInTheDocument();
       expect(screen.getByText("Đủ điều kiện (Sẵn sàng)")).toBeInTheDocument();
-      expect(screen.getByText("bilingual-nlp-v2-skills-v1 (Khớp chuẩn V3)")).toBeInTheDocument();
+      expect(screen.getByText("english-spacy-v1-skills-v1 (Khớp chuẩn V3)")).toBeInTheDocument();
       expect(screen.getByText("PRIMARY — SAME_LANGUAGE_HYBRID (65% văn bản TF-IDF + 35% kỹ năng)")).toBeInTheDocument();
       expect(screen.getByText("4 kỹ năng")).toBeInTheDocument();
       expect(screen.getByText("1 cảnh báo")).toBeInTheDocument();

@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.infrastructure.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,7 +33,20 @@ public record AiRecommendationV3Request(
         }
     }
 
-    public record JobInput(Long id, String text, List<String> skills) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record JobInput(
+            Long id,
+            String text,
+            List<String> skills,
+            String processedText,
+            String languageCode,
+            BigDecimal languageConfidence,
+            String processingVersion
+    ) {
+        public JobInput(Long id, String text, List<String> skills) {
+            this(id, text, skills, null, null, null, null);
+        }
+
         @JsonAnySetter
         public void rejectUnknownField(String fieldName, Object value) {
             throw new IllegalArgumentException("Unsupported field: " + fieldName);

@@ -79,7 +79,7 @@ def test_api_envelopes_are_supported_and_private_fields_are_excluded(tmp_path) -
         {"success": True, "errorCode": None, "data": run} for run in runs
     ])
     summary = _evaluate(tmp_path, source)
-    assert summary["algorithmVersion"] == "bilingual-recommendation-v3"
+    assert summary["algorithmVersion"] == "english-global-idf-recommendation-v1"
     for name in ARTIFACTS:
         assert "PRIVATE SENTINEL" not in (tmp_path / "output" / name).read_text(encoding="utf-8")
     exported = load_predictions(tmp_path / "output" / "predictions.json")

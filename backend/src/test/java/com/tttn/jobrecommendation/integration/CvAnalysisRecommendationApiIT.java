@@ -105,7 +105,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                   "skills": [" Java ", "Spring   Boot", "PostgreSQL", "java"],
                   "languageCode": "EN",
                   "languageConfidence": 0.98,
-                  "processingVersion": "bilingual-nlp-v2-skills-v1",
+                  "processingVersion": "english-spacy-v1-skills-v1",
                   "warnings": [" Layout fallback used "]
                 }
                 """));
@@ -204,7 +204,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("READY"))
                 .andExpect(jsonPath("$.data.languageCode").value("en"))
                 .andExpect(jsonPath("$.data.languageConfidence").value(0.98))
-                .andExpect(jsonPath("$.data.processingVersion").value("bilingual-nlp-v2-skills-v1"))
+                .andExpect(jsonPath("$.data.processingVersion").value("english-spacy-v1-skills-v1"))
                 .andExpect(jsonPath("$.data.warnings[0]").value("Layout fallback used"))
                 .andExpect(jsonPath("$.data.analyzedAt").isNotEmpty());
         CvFile analyzed = cvFileRepository.findById(cvFile.getId()).orElseThrow();
@@ -214,7 +214,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(analyzed.getAnalysisStatus()).isEqualTo(CvAnalysisStatus.READY);
         assertThat(analyzed.getLanguageCode()).isEqualTo("en");
         assertThat(analyzed.getLanguageConfidence()).isEqualByComparingTo("0.9800");
-        assertThat(analyzed.getProcessingVersion()).isEqualTo("bilingual-nlp-v2-skills-v1");
+        assertThat(analyzed.getProcessingVersion()).isEqualTo("english-spacy-v1-skills-v1");
         assertThat(analyzed.getAnalysisWarnings()).containsExactly("Layout fallback used");
         assertThat(analyzed.getAnalyzedAt()).isNotNull();
         assertThat(studentSkillRepository.findByStudentIdOrderByIdAsc(student.getId()))
@@ -297,7 +297,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                       "skills": ["Java", "Spring Boot"],
                       "languageCode": "en",
                       "languageConfidence": 0.97,
-                      "processingVersion": "bilingual-nlp-v2-skills-v1",
+                      "processingVersion": "english-spacy-v1-skills-v1",
                       "warnings": []
                     }
                     """ : """
@@ -307,7 +307,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                       "skills": ["Python", "FastAPI"],
                       "languageCode": "en",
                       "languageConfidence": 0.96,
-                      "processingVersion": "bilingual-nlp-v2-skills-v1",
+                      "processingVersion": "english-spacy-v1-skills-v1",
                       "warnings": []
                     }
                     """);
@@ -462,7 +462,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
-                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v3"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("english-global-idf-recommendation-v1"))
                 .andExpect(jsonPath("$.data.totalJobsScanned").value(3))
                 .andExpect(jsonPath("$.data.totalRecommended").value(3))
                 .andExpect(jsonPath("$.data.results[0].jobId").value(nullDeadline.getId()))
@@ -487,7 +487,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         assertThat(request.get("cv").get("languageCode").asText()).isEqualTo("en");
         assertThat(request.get("cv").get("languageConfidence").decimalValue()).isEqualByComparingTo("0.99");
         assertThat(request.get("cv").get("processingVersion").asText())
-                .isEqualTo("bilingual-nlp-v2-skills-v1");
+                .isEqualTo("english-spacy-v1-skills-v1");
         assertThat(idsOfText(request.get("cv").get("skills")))
                 .containsExactly("java", "spring boot");
         JsonNode firstJobInput = request.get("jobs").get(0);
@@ -519,7 +519,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         RecommendationRun run = recommendationRunRepository.findAll().getFirst();
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(run.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
-        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v3");
+        assertThat(run.getAlgorithmVersion()).isEqualTo("english-global-idf-recommendation-v1");
         assertThat(run.getTotalJobsScanned()).isEqualTo(3);
         assertThat(run.getFinishedAt()).isNotNull();
         List<RecommendationResult> persistedResults = recommendationResultRepository
@@ -608,7 +608,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v3",
+                      "algorithmVersion": "english-global-idf-recommendation-v1",
                       "results": [
                         {
                           "jobId": %d,
@@ -673,7 +673,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v3",
+                      "algorithmVersion": "english-global-idf-recommendation-v1",
                       "results": [
                         {
                           "jobId": %d,
@@ -736,7 +736,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                     {
                       "requestId": "%s",
                       "algorithm": "tfidf-cosine-hybrid",
-                      "algorithmVersion": "bilingual-recommendation-v3",
+                      "algorithmVersion": "english-global-idf-recommendation-v1",
                       "results": [
                         {
                           "jobId": %d,
@@ -797,7 +797,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.algorithm").value("tfidf-cosine-hybrid"))
-                .andExpect(jsonPath("$.data.algorithmVersion").value("bilingual-recommendation-v3"))
+                .andExpect(jsonPath("$.data.algorithmVersion").value("english-global-idf-recommendation-v1"))
                 .andExpect(jsonPath("$.data.totalJobsScanned").value(0))
                 .andExpect(jsonPath("$.data.totalRecommended").value(0))
                 .andExpect(jsonPath("$.data.results.length()").value(0));
@@ -805,7 +805,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         RecommendationRun emptyRun = recommendationRunRepository.findAll().getFirst();
         assertThat(emptyRun.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
         assertThat(emptyRun.getAlgorithm()).isEqualTo("tfidf-cosine-hybrid");
-        assertThat(emptyRun.getAlgorithmVersion()).isEqualTo("bilingual-recommendation-v3");
+        assertThat(emptyRun.getAlgorithmVersion()).isEqualTo("english-global-idf-recommendation-v1");
         assertThat(emptyRun.getTotalJobsScanned()).isZero();
         assertThat(emptyRun.getFinishedAt()).isNotNull();
         assertThat(emptyRun.getErrorMessage()).isNull();
@@ -1007,7 +1007,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
         cvFile.setLanguageCode("en");
         cvFile.setLanguageConfidence(new BigDecimal("0.99"));
-        cvFile.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cvFile.setProcessingVersion("english-spacy-v1-skills-v1");
         return cvFileRepository.saveAndFlush(cvFile);
     }
 
@@ -1083,7 +1083,7 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                 {
                   "requestId": "%s",
                   "algorithm": "tfidf-cosine-hybrid",
-                  "algorithmVersion": "bilingual-recommendation-v3",
+                  "algorithmVersion": "english-global-idf-recommendation-v1",
                   "results": [%s]
                 }
                 """.formatted(request.get("requestId").asText(), String.join(",", results)));
@@ -1108,8 +1108,8 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
     private static HttpServer startAiServer() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-            server.createContext("/internal/v2/cv/parse", exchange -> dispatch(PARSE_HANDLER, exchange));
-            server.createContext("/internal/v3/recommendations", exchange -> {
+            server.createContext("/internal/cv/parse", exchange -> dispatch(PARSE_HANDLER, exchange));
+            server.createContext("/internal/recommendations", exchange -> {
                 RECOMMENDATION_CALLS.incrementAndGet();
                 dispatch(RECOMMEND_HANDLER, exchange);
             });

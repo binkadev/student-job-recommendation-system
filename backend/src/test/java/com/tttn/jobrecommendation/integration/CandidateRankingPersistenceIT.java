@@ -362,7 +362,7 @@ class CandidateRankingPersistenceIT extends AbstractPostgresIntegrationTest {
             assertThat(result.getCvFile().getId()).isEqualTo(fixture.cvFile().getId());
             assertThat(result.getMatchedSkills()).containsExactly("java", "spring boot");
             assertThat(result.getMissingSkills()).containsExactly("docker");
-            assertThat(result.getCvProcessingVersion()).isEqualTo("bilingual-nlp-v2-skills-v1");
+            assertThat(result.getCvProcessingVersion()).isEqualTo("english-spacy-v1-skills-v1");
             assertThat(result.getCvAnalyzedAtSnapshot()).isEqualTo(fixture.cvFile().getAnalyzedAt());
         });
 
@@ -401,7 +401,7 @@ class CandidateRankingPersistenceIT extends AbstractPostgresIntegrationTest {
     private ApplicationFixture applicationFixture(Job job, String suffix) {
         Student student = createStudent("candidate-ranking-" + suffix + "-student@example.test");
         CvFile cvFile = createCv(student, "candidate-ranking-" + suffix + ".pdf", false);
-        cvFile.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cvFile.setProcessingVersion("english-spacy-v1-skills-v1");
         cvFile.setAnalyzedAt(LocalDateTime.of(2026, 8, 1, 10, 0));
         cvFileRepository.saveAndFlush(cvFile);
         JobApplication application = applicationRepository.saveAndFlush(JobApplication.builder()

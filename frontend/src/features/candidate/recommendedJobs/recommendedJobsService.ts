@@ -76,7 +76,7 @@ export interface CvAnalysisResponse {
   analysisError?: string | null;
 }
 
-const CURRENT_PROCESSING_VERSION = "bilingual-nlp-v2-skills-v1";
+const CURRENT_PROCESSING_VERSION = "english-spacy-v1-skills-v1";
 
 const recommendedJobStateStoragePrefix = "candidate-recommended-job-state";
 

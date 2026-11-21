@@ -49,16 +49,15 @@ class CandidateRankingGenerationServiceV3Test {
     private CandidateRankingGenerationService service;
 
     @BeforeEach void setUp() {
-        service = new CandidateRankingGenerationService(transactions, client, validator,
-                org.mockito.Mockito.mock(AiCandidateRankingResponseValidator.class));
+        service = new CandidateRankingGenerationService(transactions, client, validator);
     }
     @AfterEach void clearMdc() { MDC.clear(); }
 
     @Test
     void nonEmptyV3CorpusCallsOnlyV3ThenPersistsValidatedSuccess() {
         CandidateRankingV3GenerationContext context = context(false);
-        AiCandidateRankingV3Response response = new AiCandidateRankingV3Response(context.requestId(), "tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", List.of());
-        ValidatedCandidateRankingV3Response validated = new ValidatedCandidateRankingV3Response("tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", List.of());
+        AiCandidateRankingV3Response response = new AiCandidateRankingV3Response(context.requestId(), "tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", List.of());
+        ValidatedCandidateRankingV3Response validated = new ValidatedCandidateRankingV3Response("tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", List.of());
         when(transactions.createProcessingRunV3(COMPANY, JOB, THRESHOLD, 2, 3)).thenReturn(context);
         when(client.rankCandidatesV3(context.aiRequest(), "trace-v3")).thenReturn(response);
         when(validator.validate(context.requestId(), THRESHOLD, 2, 3, context.preparationResult(), response)).thenReturn(validated);
@@ -67,7 +66,6 @@ class CandidateRankingGenerationServiceV3Test {
         assertThat(service.generate(COMPANY, JOB, THRESHOLD, 2, 3)).isEqualTo(RUN);
 
         verify(client).rankCandidatesV3(context.aiRequest(), "trace-v3");
-        verify(client, never()).rankCandidates(any(), anyString());
         verify(validator).validate(context.requestId(), THRESHOLD, 2, 3, context.preparationResult(), response);
         verify(transactions).completeSuccessV3(RUN, COMPANY, JOB, validated);
         verify(transactions, never()).markFailed(any(), any());
@@ -83,7 +81,7 @@ class CandidateRankingGenerationServiceV3Test {
         verifyNoInteractions(client, validator);
         ArgumentCaptor<ValidatedCandidateRankingV3Response> result = ArgumentCaptor.forClass(ValidatedCandidateRankingV3Response.class);
         verify(transactions).completeSuccessV3(org.mockito.ArgumentMatchers.eq(RUN), org.mockito.ArgumentMatchers.eq(COMPANY), org.mockito.ArgumentMatchers.eq(JOB), result.capture());
-        assertThat(result.getValue().algorithmVersion()).isEqualTo("bilingual-candidate-ranking-v3");
+        assertThat(result.getValue().algorithmVersion()).isEqualTo("english-global-idf-candidate-ranking-v1");
         assertThat(result.getValue().results()).isEmpty();
     }
 
@@ -94,7 +92,7 @@ class CandidateRankingGenerationServiceV3Test {
         assertFailure(new AiCandidateRankingCapacityException(), ErrorCode.CANDIDATE_RANKING_CAPACITY_EXCEEDED);
         CandidateRankingV3GenerationContext context = context(false);
         when(transactions.createProcessingRunV3(COMPANY, JOB, THRESHOLD, 2, 3)).thenReturn(context);
-        when(client.rankCandidatesV3(any(), anyString())).thenReturn(new AiCandidateRankingV3Response(context.requestId(), "tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", List.of()));
+        when(client.rankCandidatesV3(any(), anyString())).thenReturn(new AiCandidateRankingV3Response(context.requestId(), "tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", List.of()));
         when(validator.validate(any(), any(), anyInt(), anyInt(), any(), any())).thenThrow(new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE));
         assertPublicFailure(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
         verify(transactions, never()).completeSuccessV3(any(), any(), any(), any());
@@ -118,7 +116,7 @@ class CandidateRankingGenerationServiceV3Test {
     private CandidateRankingV3GenerationContext context(boolean empty) {
         UUID requestId = UUID.randomUUID();
         CandidateRankingJobSnapshot job = new CandidateRankingJobSnapshot(JOB, "Backend", "Build", "Java", List.of("java"), LocalDateTime.of(2026, 1, 1, 1, 0));
-        List<CandidateRankingCandidateSnapshot> snapshots = empty ? List.of() : List.of(new CandidateRankingCandidateSnapshot(44L, ApplicationStatus.PENDING, 55L, "ignored", "processed", List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "bilingual-nlp-v2-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0)));
+        List<CandidateRankingCandidateSnapshot> snapshots = empty ? List.of() : List.of(new CandidateRankingCandidateSnapshot(44L, ApplicationStatus.PENDING, 55L, "ignored", "processed", List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "english-spacy-v1-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0)));
         List<AiCandidateRankingV3Request.CandidateInput> candidates = snapshots.stream().map(c -> new AiCandidateRankingV3Request.CandidateInput(c.applicationId(), c.cvId(), c.processedText(), c.canonicalExtractedSkills(), c.languageCode(), c.languageConfidence(), c.processingVersion())).toList();
         CandidateRankingV3PreparationResult preparation = new CandidateRankingV3PreparationResult(job, new AiCandidateRankingV3Request.JobInput(JOB, "Backend Build Java", List.of("java")), snapshots, candidates, new CandidateRankingCorpusCounters(snapshots.size(), snapshots.size(), 0, 0, 0), "a".repeat(64));
         return new CandidateRankingV3GenerationContext(RUN, COMPANY, JOB, requestId, new AiCandidateRankingV3Request(requestId, preparation.aiJobInput(), candidates, THRESHOLD, 2, 3), preparation);

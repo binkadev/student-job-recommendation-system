@@ -4,7 +4,12 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from v2.job_document import JobSection, parse_job_document
+from nlp.job_document import (
+    JobSection,
+    compute_job_content_hash,
+    format_job_source_text,
+    parse_job_document,
+)
 
 
 def test_parses_supported_headings_and_excludes_labels_and_skills() -> None:
@@ -161,3 +166,29 @@ def test_parser_result_is_immutable() -> None:
 def test_parser_rejects_non_string_input() -> None:
     with pytest.raises(TypeError, match="must be a string"):
         parse_job_document(None)  # type: ignore[arg-type]
+
+
+def test_canonical_job_content_hash_matches_golden_cross_language_vectors() -> None:
+    assert (
+        compute_job_content_hash(
+            "  Senior Java Engineer \r\n",
+            "\r\nBuild APIs\r\nwith Spring Boot.  ",
+            "  3+ years Java\r\n ",
+        )
+        == "ca95c77f1ec528fa92a6a490ec4a56ee4af6f96ce7dc54d69c0a19ff6bc27766"
+    )
+    null_hash = compute_job_content_hash("Backend Intern", "Work on services.", None)
+    blank_hash = compute_job_content_hash("Backend Intern", "Work on services.", "  \r\n\t ")
+    assert null_hash == "826dcbba00114e433a8cef49d659cab1cce305b2a7f1a2e66db83d4feeb2a951"
+    assert blank_hash == null_hash
+    assert (
+        compute_job_content_hash(
+            "AI Engineer — NLP",
+            "Build pipelines with C++ & .NET\u00a0modules.",
+            "English & Python",
+        )
+        == "bffb34b089f7a28aeaaddbd0753d4d2e454ada5ab497bebc36bd41adfb5c097c"
+    )
+    assert format_job_source_text("Backend Intern", "Work on services.", None) == (
+        "TITLE:\nBackend Intern\nDESCRIPTION:\nWork on services."
+    )

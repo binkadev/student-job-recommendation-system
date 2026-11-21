@@ -165,12 +165,12 @@ class CandidateRankingInputFingerprintTest {
         assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 111L, "processed", "ignored", List.of("java"))));
         assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "changed", "ignored", List.of("java"))));
         assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("docker"))));
-        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "vi", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
-        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.8"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
-        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.PROCESSING, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "vi", new BigDecimal("0.9"), CvAnalysisStatus.READY, "english-spacy-v1-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.8"), CvAnalysisStatus.READY, "english-spacy-v1-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.PROCESSING, "english-spacy-v1-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
         assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "v3", CV_ANALYZED_AT, ApplicationStatus.PENDING)));
-        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT.plusNanos(1), ApplicationStatus.PENDING)));
-        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.REVIEWED)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "english-spacy-v1-skills-v1", CV_ANALYZED_AT.plusNanos(1), ApplicationStatus.PENDING)));
+        assertDifferentV3(baseline, job, List.of(v3Candidate(10L, 110L, "processed", "ignored", List.of("java"), "en", new BigDecimal("0.9"), CvAnalysisStatus.READY, "english-spacy-v1-skills-v1", CV_ANALYZED_AT, ApplicationStatus.REVIEWED)));
     }
 
     private void assertDifferent(
@@ -188,7 +188,7 @@ class CandidateRankingInputFingerprintTest {
     private CandidateRankingCandidateSnapshot v3Candidate(Long applicationId, Long cvId, String processedText,
                                                            String extractedText, List<String> skills) {
         return v3Candidate(applicationId, cvId, processedText, extractedText, skills, "en", new BigDecimal("0.9"),
-                CvAnalysisStatus.READY, "bilingual-nlp-v2-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING);
+                CvAnalysisStatus.READY, "english-spacy-v1-skills-v1", CV_ANALYZED_AT, ApplicationStatus.PENDING);
     }
 
     private CandidateRankingCandidateSnapshot v3Candidate(Long applicationId, Long cvId, String processedText,

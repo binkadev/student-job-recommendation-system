@@ -76,7 +76,7 @@ interface CvAnalysisResponse {
   updatedAt?: string | null;
 }
 
-const V3_PROCESSING_VERSION = "bilingual-nlp-v2-skills-v1";
+const V3_PROCESSING_VERSION = "english-spacy-v1-skills-v1";
 const V3_SAME_LANGUAGE_CONFIDENCE_FLOOR = 0.65;
 
 export function CandidateCvsPage({ mode = "list" }: CandidateCvsPageProps) {

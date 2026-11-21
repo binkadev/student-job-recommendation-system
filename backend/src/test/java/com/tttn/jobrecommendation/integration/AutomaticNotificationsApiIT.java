@@ -367,7 +367,7 @@ class AutomaticNotificationsApiIT extends AbstractPostgresWebIntegrationTest {
         cv.setAnalysisStatus(CvAnalysisStatus.READY);
         cv.setLanguageCode("en");
         cv.setLanguageConfidence(new BigDecimal("0.99"));
-        cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+        cv.setProcessingVersion("english-spacy-v1-skills-v1");
         return cvFileRepository.saveAndFlush(cv);
     }
 
@@ -382,7 +382,7 @@ class AutomaticNotificationsApiIT extends AbstractPostgresWebIntegrationTest {
             AiRecommendationV3Request request = invocation.getArgument(0);
             AiRecommendationV3Request.JobInput job = request.jobs().getFirst();
             BigDecimal textScore = new BigDecimal("0.33333333");
-            return new AiRecommendationV3Response(request.requestId(), "tfidf-cosine-hybrid", "bilingual-recommendation-v3",
+            return new AiRecommendationV3Response(request.requestId(), "tfidf-cosine-hybrid", "english-global-idf-recommendation-v1",
                     List.of(new AiRecommendationV3Response.Result(job.id(), RecommendationRankingTier.PRIMARY,
                             textScore, textScore, textScore, BigDecimal.ZERO.setScale(8),
                             RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID, List.of(), job.skills(), "Java overlap")));

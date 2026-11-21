@@ -26,7 +26,7 @@ import java.util.UUID;
 @Component
 class AiCandidateRankingV3ResponseValidator {
     static final String ALGORITHM = "tfidf-cosine-hybrid";
-    static final String VERSION = "bilingual-candidate-ranking-v3";
+    static final String VERSION = "english-global-idf-candidate-ranking-v1";
     private static final BigDecimal TEXT_WEIGHT = new BigDecimal("0.65");
     private static final BigDecimal SKILL_WEIGHT = new BigDecimal("0.35");
     private final SkillCatalogCanonicalizer canonicalizer;

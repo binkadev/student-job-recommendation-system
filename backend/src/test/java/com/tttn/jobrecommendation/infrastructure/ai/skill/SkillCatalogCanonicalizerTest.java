@@ -61,9 +61,9 @@ class SkillCatalogCanonicalizerTest {
     void canonicalizesCompleteSetsWithDeterministicOrderingAndUnknownValues() {
         SkillCatalogCanonicalizer canonicalizer = new SkillCatalogCanonicalizer();
         assertThat(canonicalizer.canonicalizeAllSorted(List.of(
-                "Java", "  spring   boot ", "JAVA", "Kỹ năng mới"
-        ))).containsExactly("java", "kỹ năng mới", "spring boot");
-        assertThat(canonicalizer.canonicalize("TRÍ TUỆ NHÂN TẠO"))
+                "Java", "  spring   boot ", "JAVA", "Custom Skill"
+        ))).containsExactly("custom skill", "java", "spring boot");
+        assertThat(canonicalizer.canonicalize("AI"))
                 .isEqualTo("artificial intelligence");
         assertThat(canonicalizer.canonicalize("Cafe\u0301"))
                 .isEqualTo("café");
