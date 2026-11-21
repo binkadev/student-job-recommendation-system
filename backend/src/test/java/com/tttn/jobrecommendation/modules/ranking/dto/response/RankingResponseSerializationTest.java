@@ -32,7 +32,7 @@ class RankingResponseSerializationTest {
 
     @Test
     void companyRunSerializationPreservesDistinctV2AndV3LimitNullability() throws Exception {
-        CandidateRankingRunDetailResponse v3 = new CandidateRankingRunDetailResponse(1L, 2L, "Job", null, "tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", new BigDecimal("0.1"), null, 20, 15, 0, 0, 0, 0, 0, 0, null, null, null, null, List.of());
+        CandidateRankingRunDetailResponse v3 = new CandidateRankingRunDetailResponse(1L, 2L, "Job", null, "tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", new BigDecimal("0.1"), null, 20, 15, 0, 0, 0, 0, 0, 0, null, null, null, null, List.of());
         CandidateRankingRunDetailResponse v2 = new CandidateRankingRunDetailResponse(1L, 2L, "Job", null, "tfidf-cosine-hybrid", "bilingual-candidate-ranking-v2", new BigDecimal("0.1"), 20, null, null, 0, 0, 0, 0, 0, 0, null, null, null, null, List.of());
         JsonNode v3Json = mapper.readTree(mapper.writeValueAsString(v3)); JsonNode v2Json = mapper.readTree(mapper.writeValueAsString(v2));
         assertThat(v3Json.path("requestedLimit").isNull()).isTrue();

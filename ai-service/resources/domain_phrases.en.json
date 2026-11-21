@@ -1,0 +1,2189 @@
+{
+  "phrasesVersion": "domain-phrases-en-v1",
+  "phrases": [
+    {
+      "canonical": ".net developer",
+      "aliases": [
+        ".net developer"
+      ]
+    },
+    {
+      "canonical": ".net software engineer",
+      "aliases": [
+        ".net software engineer"
+      ]
+    },
+    {
+      "canonical": "account executive",
+      "aliases": [
+        "account executive"
+      ]
+    },
+    {
+      "canonical": "aem developer",
+      "aliases": [
+        "aem developer"
+      ]
+    },
+    {
+      "canonical": "ai agent developer",
+      "aliases": [
+        "ai agent developer"
+      ]
+    },
+    {
+      "canonical": "ai analyst",
+      "aliases": [
+        "ai analyst"
+      ]
+    },
+    {
+      "canonical": "ai backend developer",
+      "aliases": [
+        "ai backend developer"
+      ]
+    },
+    {
+      "canonical": "ai consultant",
+      "aliases": [
+        "ai consultant"
+      ]
+    },
+    {
+      "canonical": "ai developer",
+      "aliases": [
+        "ai developer"
+      ]
+    },
+    {
+      "canonical": "ai engineer",
+      "aliases": [
+        "ai engineer"
+      ]
+    },
+    {
+      "canonical": "ai ethics consultant",
+      "aliases": [
+        "ai ethics consultant"
+      ]
+    },
+    {
+      "canonical": "ai/ml engineer",
+      "aliases": [
+        "ai/ml engineer"
+      ]
+    },
+    {
+      "canonical": "analytics engineer",
+      "aliases": [
+        "analytics engineer"
+      ]
+    },
+    {
+      "canonical": "android developer",
+      "aliases": [
+        "android developer"
+      ]
+    },
+    {
+      "canonical": "android engineer",
+      "aliases": [
+        "android engineer"
+      ]
+    },
+    {
+      "canonical": "android software engineer",
+      "aliases": [
+        "android software engineer"
+      ]
+    },
+    {
+      "canonical": "ansible development engineer",
+      "aliases": [
+        "ansible development engineer"
+      ]
+    },
+    {
+      "canonical": "api integration engineer",
+      "aliases": [
+        "api integration engineer"
+      ]
+    },
+    {
+      "canonical": "application developer",
+      "aliases": [
+        "application developer"
+      ]
+    },
+    {
+      "canonical": "application engineer",
+      "aliases": [
+        "application engineer"
+      ]
+    },
+    {
+      "canonical": "application integration engineer",
+      "aliases": [
+        "application integration engineer"
+      ]
+    },
+    {
+      "canonical": "application operator",
+      "aliases": [
+        "application operator"
+      ]
+    },
+    {
+      "canonical": "artificial intelligence researcher",
+      "aliases": [
+        "artificial intelligence researcher"
+      ]
+    },
+    {
+      "canonical": "associate product manager",
+      "aliases": [
+        "associate product manager"
+      ]
+    },
+    {
+      "canonical": "associate solution support engineer",
+      "aliases": [
+        "associate solution support engineer"
+      ]
+    },
+    {
+      "canonical": "automation & system developer",
+      "aliases": [
+        "automation & system developer"
+      ]
+    },
+    {
+      "canonical": "automation engineer",
+      "aliases": [
+        "automation engineer"
+      ]
+    },
+    {
+      "canonical": "automation programming",
+      "aliases": [
+        "automation programming"
+      ]
+    },
+    {
+      "canonical": "automation qa engineer",
+      "aliases": [
+        "automation qa engineer"
+      ]
+    },
+    {
+      "canonical": "automation software engineer",
+      "aliases": [
+        "automation software engineer"
+      ]
+    },
+    {
+      "canonical": "automation specialist",
+      "aliases": [
+        "automation specialist"
+      ]
+    },
+    {
+      "canonical": "automation test",
+      "aliases": [
+        "automation test"
+      ]
+    },
+    {
+      "canonical": "automation test engineer",
+      "aliases": [
+        "automation test engineer"
+      ]
+    },
+    {
+      "canonical": "automation test lead",
+      "aliases": [
+        "automation test lead"
+      ]
+    },
+    {
+      "canonical": "automation tester",
+      "aliases": [
+        "automation tester"
+      ]
+    },
+    {
+      "canonical": "automation tester engineer",
+      "aliases": [
+        "automation tester engineer"
+      ]
+    },
+    {
+      "canonical": "automation/manual tester & business analyst",
+      "aliases": [
+        "automation/manual tester & business analyst"
+      ]
+    },
+    {
+      "canonical": "aws monitoring & operation specialist",
+      "aliases": [
+        "aws monitoring & operation specialist"
+      ]
+    },
+    {
+      "canonical": "back-end & devops developer",
+      "aliases": [
+        "back-end & devops developer"
+      ]
+    },
+    {
+      "canonical": "back-end developer",
+      "aliases": [
+        "back-end developer"
+      ]
+    },
+    {
+      "canonical": "backend developer",
+      "aliases": [
+        "backend developer"
+      ]
+    },
+    {
+      "canonical": "backend engineer",
+      "aliases": [
+        "backend engineer"
+      ]
+    },
+    {
+      "canonical": "backend team leader",
+      "aliases": [
+        "backend team leader"
+      ]
+    },
+    {
+      "canonical": "backend techlead",
+      "aliases": [
+        "backend techlead"
+      ]
+    },
+    {
+      "canonical": "backend technical lead",
+      "aliases": [
+        "backend technical lead"
+      ]
+    },
+    {
+      "canonical": "bi analyst",
+      "aliases": [
+        "bi analyst"
+      ]
+    },
+    {
+      "canonical": "big data engineer",
+      "aliases": [
+        "big data engineer"
+      ]
+    },
+    {
+      "canonical": "blockchain developer",
+      "aliases": [
+        "blockchain developer"
+      ]
+    },
+    {
+      "canonical": "blockchain engineer",
+      "aliases": [
+        "blockchain engineer"
+      ]
+    },
+    {
+      "canonical": "blockchain security engineer",
+      "aliases": [
+        "blockchain security engineer"
+      ]
+    },
+    {
+      "canonical": "blockchain security technical support engineer",
+      "aliases": [
+        "blockchain security technical support engineer"
+      ]
+    },
+    {
+      "canonical": "bridge & lead software engineer",
+      "aliases": [
+        "bridge & lead software engineer"
+      ]
+    },
+    {
+      "canonical": "bridge engineer",
+      "aliases": [
+        "bridge engineer"
+      ]
+    },
+    {
+      "canonical": "bridge project manager",
+      "aliases": [
+        "bridge project manager"
+      ]
+    },
+    {
+      "canonical": "bridge software engineer",
+      "aliases": [
+        "bridge software engineer"
+      ]
+    },
+    {
+      "canonical": "business analyst",
+      "aliases": [
+        "business analyst"
+      ]
+    },
+    {
+      "canonical": "business development manager",
+      "aliases": [
+        "business development manager"
+      ]
+    },
+    {
+      "canonical": "c c++ developer",
+      "aliases": [
+        "c c++ developer"
+      ]
+    },
+    {
+      "canonical": "c developer",
+      "aliases": [
+        "c developer"
+      ]
+    },
+    {
+      "canonical": "c language developer",
+      "aliases": [
+        "c language developer"
+      ]
+    },
+    {
+      "canonical": "c software engineer",
+      "aliases": [
+        "c software engineer"
+      ]
+    },
+    {
+      "canonical": "c# developer",
+      "aliases": [
+        "c# developer"
+      ]
+    },
+    {
+      "canonical": "c#.net leader",
+      "aliases": [
+        "c#.net leader"
+      ]
+    },
+    {
+      "canonical": "c++ developer",
+      "aliases": [
+        "c++ developer"
+      ]
+    },
+    {
+      "canonical": "c++ engineer",
+      "aliases": [
+        "c++ engineer"
+      ]
+    },
+    {
+      "canonical": "c++ graphics programmer",
+      "aliases": [
+        "c++ graphics programmer"
+      ]
+    },
+    {
+      "canonical": "c++ software engineer",
+      "aliases": [
+        "c++ software engineer"
+      ]
+    },
+    {
+      "canonical": "c++/c# developer",
+      "aliases": [
+        "c++/c# developer"
+      ]
+    },
+    {
+      "canonical": "c/c++ engineer",
+      "aliases": [
+        "c/c++ engineer"
+      ]
+    },
+    {
+      "canonical": "chief developer",
+      "aliases": [
+        "chief developer"
+      ]
+    },
+    {
+      "canonical": "chief technology officer",
+      "aliases": [
+        "chief technology officer"
+      ]
+    },
+    {
+      "canonical": "client developer",
+      "aliases": [
+        "client developer"
+      ]
+    },
+    {
+      "canonical": "cloud architect",
+      "aliases": [
+        "cloud architect"
+      ]
+    },
+    {
+      "canonical": "cloud business development manager",
+      "aliases": [
+        "cloud business development manager"
+      ]
+    },
+    {
+      "canonical": "cloud data engineering lead",
+      "aliases": [
+        "cloud data engineering lead"
+      ]
+    },
+    {
+      "canonical": "cloud devops lead",
+      "aliases": [
+        "cloud devops lead"
+      ]
+    },
+    {
+      "canonical": "cloud engineer",
+      "aliases": [
+        "cloud engineer"
+      ]
+    },
+    {
+      "canonical": "cloud migration specialist",
+      "aliases": [
+        "cloud migration specialist"
+      ]
+    },
+    {
+      "canonical": "cloud security analyst",
+      "aliases": [
+        "cloud security analyst"
+      ]
+    },
+    {
+      "canonical": "cloud security engineer",
+      "aliases": [
+        "cloud security engineer"
+      ]
+    },
+    {
+      "canonical": "cloud solutions analyst",
+      "aliases": [
+        "cloud solutions analyst"
+      ]
+    },
+    {
+      "canonical": "cloud solutions architect",
+      "aliases": [
+        "cloud solutions architect"
+      ]
+    },
+    {
+      "canonical": "cloud support engineer",
+      "aliases": [
+        "cloud support engineer"
+      ]
+    },
+    {
+      "canonical": "cloud/devops engineer",
+      "aliases": [
+        "cloud/devops engineer"
+      ]
+    },
+    {
+      "canonical": "cocos developer",
+      "aliases": [
+        "cocos developer"
+      ]
+    },
+    {
+      "canonical": "coding quality review team lead",
+      "aliases": [
+        "coding quality review team lead"
+      ]
+    },
+    {
+      "canonical": "computer vision engineer",
+      "aliases": [
+        "computer vision engineer"
+      ]
+    },
+    {
+      "canonical": "content marketer",
+      "aliases": [
+        "content marketer"
+      ]
+    },
+    {
+      "canonical": "curriculum developer",
+      "aliases": [
+        "curriculum developer"
+      ]
+    },
+    {
+      "canonical": "customer success associate",
+      "aliases": [
+        "customer success associate"
+      ]
+    },
+    {
+      "canonical": "customer support specialist",
+      "aliases": [
+        "customer support specialist"
+      ]
+    },
+    {
+      "canonical": "cybersecurity analyst",
+      "aliases": [
+        "cybersecurity analyst"
+      ]
+    },
+    {
+      "canonical": "cybersecurity engineer",
+      "aliases": [
+        "cybersecurity engineer"
+      ]
+    },
+    {
+      "canonical": "cybersecurity specialist",
+      "aliases": [
+        "cybersecurity specialist"
+      ]
+    },
+    {
+      "canonical": "data analyst",
+      "aliases": [
+        "data analyst"
+      ]
+    },
+    {
+      "canonical": "data analytics manager",
+      "aliases": [
+        "data analytics manager"
+      ]
+    },
+    {
+      "canonical": "data engineer",
+      "aliases": [
+        "data engineer"
+      ]
+    },
+    {
+      "canonical": "data governance analyst",
+      "aliases": [
+        "data governance analyst"
+      ]
+    },
+    {
+      "canonical": "data governance specialist",
+      "aliases": [
+        "data governance specialist"
+      ]
+    },
+    {
+      "canonical": "data integration engineer",
+      "aliases": [
+        "data integration engineer"
+      ]
+    },
+    {
+      "canonical": "data privacy officer",
+      "aliases": [
+        "data privacy officer"
+      ]
+    },
+    {
+      "canonical": "data product manager",
+      "aliases": [
+        "data product manager"
+      ]
+    },
+    {
+      "canonical": "data scientist",
+      "aliases": [
+        "data scientist"
+      ]
+    },
+    {
+      "canonical": "data solution architect",
+      "aliases": [
+        "data solution architect"
+      ]
+    },
+    {
+      "canonical": "database administrator",
+      "aliases": [
+        "database administrator"
+      ]
+    },
+    {
+      "canonical": "database analyst",
+      "aliases": [
+        "database analyst"
+      ]
+    },
+    {
+      "canonical": "database developer",
+      "aliases": [
+        "database developer"
+      ]
+    },
+    {
+      "canonical": "database engineer",
+      "aliases": [
+        "database engineer"
+      ]
+    },
+    {
+      "canonical": "deputy head of data services",
+      "aliases": [
+        "deputy head of data services"
+      ]
+    },
+    {
+      "canonical": "dev lead java",
+      "aliases": [
+        "dev lead java"
+      ]
+    },
+    {
+      "canonical": "developer experience engineer",
+      "aliases": [
+        "developer experience engineer"
+      ]
+    },
+    {
+      "canonical": "developer manager",
+      "aliases": [
+        "developer manager"
+      ]
+    },
+    {
+      "canonical": "devops architect",
+      "aliases": [
+        "devops architect"
+      ]
+    },
+    {
+      "canonical": "devops engineer",
+      "aliases": [
+        "devops engineer"
+      ]
+    },
+    {
+      "canonical": "devsecops engineer",
+      "aliases": [
+        "devsecops engineer"
+      ]
+    },
+    {
+      "canonical": "dotnet developer",
+      "aliases": [
+        "dotnet developer"
+      ]
+    },
+    {
+      "canonical": "drupal developer",
+      "aliases": [
+        "drupal developer"
+      ]
+    },
+    {
+      "canonical": "e-commerce business developer",
+      "aliases": [
+        "e-commerce business developer"
+      ]
+    },
+    {
+      "canonical": "embedded engineer",
+      "aliases": [
+        "embedded engineer"
+      ]
+    },
+    {
+      "canonical": "embedded engineering manager",
+      "aliases": [
+        "embedded engineering manager"
+      ]
+    },
+    {
+      "canonical": "embedded software engineer",
+      "aliases": [
+        "embedded software engineer"
+      ]
+    },
+    {
+      "canonical": "engineering manager",
+      "aliases": [
+        "engineering manager"
+      ]
+    },
+    {
+      "canonical": "erp consultant",
+      "aliases": [
+        "erp consultant"
+      ]
+    },
+    {
+      "canonical": "erp developer",
+      "aliases": [
+        "erp developer"
+      ]
+    },
+    {
+      "canonical": "erp specialist",
+      "aliases": [
+        "erp specialist"
+      ]
+    },
+    {
+      "canonical": "financial analyst",
+      "aliases": [
+        "financial analyst"
+      ]
+    },
+    {
+      "canonical": "flutter developer",
+      "aliases": [
+        "flutter developer"
+      ]
+    },
+    {
+      "canonical": "founding tech lead",
+      "aliases": [
+        "founding tech lead"
+      ]
+    },
+    {
+      "canonical": "fp&a analyst",
+      "aliases": [
+        "fp&a analyst"
+      ]
+    },
+    {
+      "canonical": "front end developer",
+      "aliases": [
+        "front end developer"
+      ]
+    },
+    {
+      "canonical": "front end web developer",
+      "aliases": [
+        "front end web developer"
+      ]
+    },
+    {
+      "canonical": "front-end developer",
+      "aliases": [
+        "front-end developer"
+      ]
+    },
+    {
+      "canonical": "frontend developer",
+      "aliases": [
+        "frontend developer"
+      ]
+    },
+    {
+      "canonical": "frontend reactjs developer",
+      "aliases": [
+        "frontend reactjs developer"
+      ]
+    },
+    {
+      "canonical": "full stack developer",
+      "aliases": [
+        "full stack developer"
+      ]
+    },
+    {
+      "canonical": "full stack engineer",
+      "aliases": [
+        "full stack engineer"
+      ]
+    },
+    {
+      "canonical": "full stack java",
+      "aliases": [
+        "full stack java"
+      ]
+    },
+    {
+      "canonical": "full stack java developer/programmer/engineer",
+      "aliases": [
+        "full stack java developer/programmer/engineer"
+      ]
+    },
+    {
+      "canonical": "full stack python developer/programmer/engineer",
+      "aliases": [
+        "full stack python developer/programmer/engineer"
+      ]
+    },
+    {
+      "canonical": "full-stack developer",
+      "aliases": [
+        "full-stack developer"
+      ]
+    },
+    {
+      "canonical": "fullstack developer",
+      "aliases": [
+        "fullstack developer"
+      ]
+    },
+    {
+      "canonical": "game designer",
+      "aliases": [
+        "game designer"
+      ]
+    },
+    {
+      "canonical": "game developer",
+      "aliases": [
+        "game developer"
+      ]
+    },
+    {
+      "canonical": "game livops manager",
+      "aliases": [
+        "game livops manager"
+      ]
+    },
+    {
+      "canonical": "generative ai engineer",
+      "aliases": [
+        "generative ai engineer"
+      ]
+    },
+    {
+      "canonical": "geospatial analysis team leader",
+      "aliases": [
+        "geospatial analysis team leader"
+      ]
+    },
+    {
+      "canonical": "gradle engineer",
+      "aliases": [
+        "gradle engineer"
+      ]
+    },
+    {
+      "canonical": "information security & it helpdesk manager",
+      "aliases": [
+        "information security & it helpdesk manager"
+      ]
+    },
+    {
+      "canonical": "information security architect",
+      "aliases": [
+        "information security architect"
+      ]
+    },
+    {
+      "canonical": "information technology engineer",
+      "aliases": [
+        "information technology engineer"
+      ]
+    },
+    {
+      "canonical": "infrastructure engineer",
+      "aliases": [
+        "infrastructure engineer"
+      ]
+    },
+    {
+      "canonical": "ios developer",
+      "aliases": [
+        "ios developer"
+      ]
+    },
+    {
+      "canonical": "is specialist",
+      "aliases": [
+        "is specialist"
+      ]
+    },
+    {
+      "canonical": "it administrator",
+      "aliases": [
+        "it administrator"
+      ]
+    },
+    {
+      "canonical": "it analyst",
+      "aliases": [
+        "it analyst"
+      ]
+    },
+    {
+      "canonical": "it analyst trainee",
+      "aliases": [
+        "it analyst trainee"
+      ]
+    },
+    {
+      "canonical": "it asset manager",
+      "aliases": [
+        "it asset manager"
+      ]
+    },
+    {
+      "canonical": "it auditor",
+      "aliases": [
+        "it auditor"
+      ]
+    },
+    {
+      "canonical": "it business analyst",
+      "aliases": [
+        "it business analyst"
+      ]
+    },
+    {
+      "canonical": "it business continuity manager",
+      "aliases": [
+        "it business continuity manager"
+      ]
+    },
+    {
+      "canonical": "it change manager",
+      "aliases": [
+        "it change manager"
+      ]
+    },
+    {
+      "canonical": "it compliance officer",
+      "aliases": [
+        "it compliance officer"
+      ]
+    },
+    {
+      "canonical": "it compliance specialist",
+      "aliases": [
+        "it compliance specialist"
+      ]
+    },
+    {
+      "canonical": "it consultant",
+      "aliases": [
+        "it consultant"
+      ]
+    },
+    {
+      "canonical": "it developer",
+      "aliases": [
+        "it developer"
+      ]
+    },
+    {
+      "canonical": "it engineer",
+      "aliases": [
+        "it engineer"
+      ]
+    },
+    {
+      "canonical": "it governance manager",
+      "aliases": [
+        "it governance manager"
+      ]
+    },
+    {
+      "canonical": "it governance officer",
+      "aliases": [
+        "it governance officer"
+      ]
+    },
+    {
+      "canonical": "it helpdesk support",
+      "aliases": [
+        "it helpdesk support"
+      ]
+    },
+    {
+      "canonical": "it manager",
+      "aliases": [
+        "it manager"
+      ]
+    },
+    {
+      "canonical": "it operations specialist",
+      "aliases": [
+        "it operations specialist"
+      ]
+    },
+    {
+      "canonical": "it procurement analyst",
+      "aliases": [
+        "it procurement analyst"
+      ]
+    },
+    {
+      "canonical": "it procurement coordinator",
+      "aliases": [
+        "it procurement coordinator"
+      ]
+    },
+    {
+      "canonical": "it procurement manager",
+      "aliases": [
+        "it procurement manager"
+      ]
+    },
+    {
+      "canonical": "it procurement specialist",
+      "aliases": [
+        "it procurement specialist"
+      ]
+    },
+    {
+      "canonical": "it product architect",
+      "aliases": [
+        "it product architect"
+      ]
+    },
+    {
+      "canonical": "it project coordinator",
+      "aliases": [
+        "it project coordinator"
+      ]
+    },
+    {
+      "canonical": "it project manager",
+      "aliases": [
+        "it project manager"
+      ]
+    },
+    {
+      "canonical": "it quality analyst",
+      "aliases": [
+        "it quality analyst"
+      ]
+    },
+    {
+      "canonical": "it risk analyst",
+      "aliases": [
+        "it risk analyst"
+      ]
+    },
+    {
+      "canonical": "it sales manager",
+      "aliases": [
+        "it sales manager"
+      ]
+    },
+    {
+      "canonical": "it sales representative",
+      "aliases": [
+        "it sales representative"
+      ]
+    },
+    {
+      "canonical": "it security analyst",
+      "aliases": [
+        "it security analyst"
+      ]
+    },
+    {
+      "canonical": "it security consultant",
+      "aliases": [
+        "it security consultant"
+      ]
+    },
+    {
+      "canonical": "it service desk analyst",
+      "aliases": [
+        "it service desk analyst"
+      ]
+    },
+    {
+      "canonical": "it support",
+      "aliases": [
+        "it support"
+      ]
+    },
+    {
+      "canonical": "it support analyst",
+      "aliases": [
+        "it support analyst"
+      ]
+    },
+    {
+      "canonical": "it support specialist",
+      "aliases": [
+        "it support specialist"
+      ]
+    },
+    {
+      "canonical": "it system admin",
+      "aliases": [
+        "it system admin"
+      ]
+    },
+    {
+      "canonical": "it team leader",
+      "aliases": [
+        "it team leader"
+      ]
+    },
+    {
+      "canonical": "it trainer",
+      "aliases": [
+        "it trainer"
+      ]
+    },
+    {
+      "canonical": "it trainer assistant",
+      "aliases": [
+        "it trainer assistant"
+      ]
+    },
+    {
+      "canonical": "it trainer specialist",
+      "aliases": [
+        "it trainer specialist"
+      ]
+    },
+    {
+      "canonical": "itsm development engineer",
+      "aliases": [
+        "itsm development engineer"
+      ]
+    },
+    {
+      "canonical": "itsm engineer",
+      "aliases": [
+        "itsm engineer"
+      ]
+    },
+    {
+      "canonical": "java backend developer",
+      "aliases": [
+        "java backend developer"
+      ]
+    },
+    {
+      "canonical": "java developer",
+      "aliases": [
+        "java developer"
+      ]
+    },
+    {
+      "canonical": "java developer / tech lead",
+      "aliases": [
+        "java developer / tech lead"
+      ]
+    },
+    {
+      "canonical": "java developer lead",
+      "aliases": [
+        "java developer lead"
+      ]
+    },
+    {
+      "canonical": "java engineer",
+      "aliases": [
+        "java engineer"
+      ]
+    },
+    {
+      "canonical": "java software engineer",
+      "aliases": [
+        "java software engineer"
+      ]
+    },
+    {
+      "canonical": "java tech lead",
+      "aliases": [
+        "java tech lead"
+      ]
+    },
+    {
+      "canonical": "java technical lead",
+      "aliases": [
+        "java technical lead"
+      ]
+    },
+    {
+      "canonical": "java web developer",
+      "aliases": [
+        "java web developer"
+      ]
+    },
+    {
+      "canonical": "java/golang/angular developer",
+      "aliases": [
+        "java/golang/angular developer"
+      ]
+    },
+    {
+      "canonical": "javascript developer",
+      "aliases": [
+        "javascript developer"
+      ]
+    },
+    {
+      "canonical": "kotlin developer",
+      "aliases": [
+        "kotlin developer"
+      ]
+    },
+    {
+      "canonical": "l2 software support engineer",
+      "aliases": [
+        "l2 software support engineer"
+      ]
+    },
+    {
+      "canonical": "lead app frontend developer",
+      "aliases": [
+        "lead app frontend developer"
+      ]
+    },
+    {
+      "canonical": "lead engineer",
+      "aliases": [
+        "lead engineer"
+      ]
+    },
+    {
+      "canonical": "lead java developer",
+      "aliases": [
+        "lead java developer"
+      ]
+    },
+    {
+      "canonical": "lead java engineer",
+      "aliases": [
+        "lead java engineer"
+      ]
+    },
+    {
+      "canonical": "lead mobile app",
+      "aliases": [
+        "lead mobile app"
+      ]
+    },
+    {
+      "canonical": "lead software engineer",
+      "aliases": [
+        "lead software engineer"
+      ]
+    },
+    {
+      "canonical": "lead/consultant reactjs engineer",
+      "aliases": [
+        "lead/consultant reactjs engineer"
+      ]
+    },
+    {
+      "canonical": "leader react native",
+      "aliases": [
+        "leader react native"
+      ]
+    },
+    {
+      "canonical": "leader tester engineer",
+      "aliases": [
+        "leader tester engineer"
+      ]
+    },
+    {
+      "canonical": "low-code developer",
+      "aliases": [
+        "low-code developer"
+      ]
+    },
+    {
+      "canonical": "low-code no-code engineer",
+      "aliases": [
+        "low-code no-code engineer"
+      ]
+    },
+    {
+      "canonical": "machine learning engineer",
+      "aliases": [
+        "machine learning engineer"
+      ]
+    },
+    {
+      "canonical": "machine learning leader",
+      "aliases": [
+        "machine learning leader"
+      ]
+    },
+    {
+      "canonical": "magento developer",
+      "aliases": [
+        "magento developer"
+      ]
+    },
+    {
+      "canonical": "manager data engineer",
+      "aliases": [
+        "manager data engineer"
+      ]
+    },
+    {
+      "canonical": "maven engineer",
+      "aliases": [
+        "maven engineer"
+      ]
+    },
+    {
+      "canonical": "microservices developer",
+      "aliases": [
+        "microservices developer"
+      ]
+    },
+    {
+      "canonical": "mis executive",
+      "aliases": [
+        "mis executive"
+      ]
+    },
+    {
+      "canonical": "mlops engineer",
+      "aliases": [
+        "mlops engineer"
+      ]
+    },
+    {
+      "canonical": "mobile app developer",
+      "aliases": [
+        "mobile app developer"
+      ]
+    },
+    {
+      "canonical": "mobile developer",
+      "aliases": [
+        "mobile developer"
+      ]
+    },
+    {
+      "canonical": "mobile engineer",
+      "aliases": [
+        "mobile engineer"
+      ]
+    },
+    {
+      "canonical": "network - system administrator",
+      "aliases": [
+        "network - system administrator"
+      ]
+    },
+    {
+      "canonical": "network administrator",
+      "aliases": [
+        "network administrator"
+      ]
+    },
+    {
+      "canonical": "network administrator trainee",
+      "aliases": [
+        "network administrator trainee"
+      ]
+    },
+    {
+      "canonical": "network engineer",
+      "aliases": [
+        "network engineer"
+      ]
+    },
+    {
+      "canonical": "network security engineer",
+      "aliases": [
+        "network security engineer"
+      ]
+    },
+    {
+      "canonical": "network solution engineer",
+      "aliases": [
+        "network solution engineer"
+      ]
+    },
+    {
+      "canonical": "noc engineer",
+      "aliases": [
+        "noc engineer"
+      ]
+    },
+    {
+      "canonical": "odoo developer",
+      "aliases": [
+        "odoo developer"
+      ]
+    },
+    {
+      "canonical": "operation engineer",
+      "aliases": [
+        "operation engineer"
+      ]
+    },
+    {
+      "canonical": "operations manager",
+      "aliases": [
+        "operations manager"
+      ]
+    },
+    {
+      "canonical": "oracle developer",
+      "aliases": [
+        "oracle developer"
+      ]
+    },
+    {
+      "canonical": "penetration tester",
+      "aliases": [
+        "penetration tester"
+      ]
+    },
+    {
+      "canonical": "php - wordpress developer",
+      "aliases": [
+        "php - wordpress developer"
+      ]
+    },
+    {
+      "canonical": "php developer",
+      "aliases": [
+        "php developer"
+      ]
+    },
+    {
+      "canonical": "php web application developer",
+      "aliases": [
+        "php web application developer"
+      ]
+    },
+    {
+      "canonical": "platform manager",
+      "aliases": [
+        "platform manager"
+      ]
+    },
+    {
+      "canonical": "playable ads developer",
+      "aliases": [
+        "playable ads developer"
+      ]
+    },
+    {
+      "canonical": "power platform developer",
+      "aliases": [
+        "power platform developer"
+      ]
+    },
+    {
+      "canonical": "pre-brse/ brse",
+      "aliases": [
+        "pre-brse/ brse"
+      ]
+    },
+    {
+      "canonical": "presales engineer",
+      "aliases": [
+        "presales engineer"
+      ]
+    },
+    {
+      "canonical": "principal engineer",
+      "aliases": [
+        "principal engineer"
+      ]
+    },
+    {
+      "canonical": "principal software engineer",
+      "aliases": [
+        "principal software engineer"
+      ]
+    },
+    {
+      "canonical": "process automation specialist",
+      "aliases": [
+        "process automation specialist"
+      ]
+    },
+    {
+      "canonical": "product analyst",
+      "aliases": [
+        "product analyst"
+      ]
+    },
+    {
+      "canonical": "product designer",
+      "aliases": [
+        "product designer"
+      ]
+    },
+    {
+      "canonical": "product developer",
+      "aliases": [
+        "product developer"
+      ]
+    },
+    {
+      "canonical": "product engineer",
+      "aliases": [
+        "product engineer"
+      ]
+    },
+    {
+      "canonical": "product executive",
+      "aliases": [
+        "product executive"
+      ]
+    },
+    {
+      "canonical": "product management",
+      "aliases": [
+        "product management"
+      ]
+    },
+    {
+      "canonical": "product management trainee",
+      "aliases": [
+        "product management trainee"
+      ]
+    },
+    {
+      "canonical": "product manager",
+      "aliases": [
+        "product manager"
+      ]
+    },
+    {
+      "canonical": "product owner",
+      "aliases": [
+        "product owner"
+      ]
+    },
+    {
+      "canonical": "product prompt engineer",
+      "aliases": [
+        "product prompt engineer"
+      ]
+    },
+    {
+      "canonical": "program coordinator",
+      "aliases": [
+        "program coordinator"
+      ]
+    },
+    {
+      "canonical": "programmer analyst",
+      "aliases": [
+        "programmer analyst"
+      ]
+    },
+    {
+      "canonical": "progress openedge developer",
+      "aliases": [
+        "progress openedge developer"
+      ]
+    },
+    {
+      "canonical": "project leader cum bridge software engineer",
+      "aliases": [
+        "project leader cum bridge software engineer"
+      ]
+    },
+    {
+      "canonical": "project manager",
+      "aliases": [
+        "project manager"
+      ]
+    },
+    {
+      "canonical": "pytest engineer",
+      "aliases": [
+        "pytest engineer"
+      ]
+    },
+    {
+      "canonical": "python automation developer",
+      "aliases": [
+        "python automation developer"
+      ]
+    },
+    {
+      "canonical": "python developer",
+      "aliases": [
+        "python developer"
+      ]
+    },
+    {
+      "canonical": "qa automation engineer",
+      "aliases": [
+        "qa automation engineer"
+      ]
+    },
+    {
+      "canonical": "qa engineer",
+      "aliases": [
+        "qa engineer"
+      ]
+    },
+    {
+      "canonical": "qa manager",
+      "aliases": [
+        "qa manager"
+      ]
+    },
+    {
+      "canonical": "qc engineer",
+      "aliases": [
+        "qc engineer"
+      ]
+    },
+    {
+      "canonical": "quality assurance engineer",
+      "aliases": [
+        "quality assurance engineer"
+      ]
+    },
+    {
+      "canonical": "quality assurance lead",
+      "aliases": [
+        "quality assurance lead"
+      ]
+    },
+    {
+      "canonical": "quality assurance manager",
+      "aliases": [
+        "quality assurance manager"
+      ]
+    },
+    {
+      "canonical": "quality control engineer",
+      "aliases": [
+        "quality control engineer"
+      ]
+    },
+    {
+      "canonical": "quality control lead",
+      "aliases": [
+        "quality control lead"
+      ]
+    },
+    {
+      "canonical": "quality control teamlead",
+      "aliases": [
+        "quality control teamlead"
+      ]
+    },
+    {
+      "canonical": "quality engineer",
+      "aliases": [
+        "quality engineer"
+      ]
+    },
+    {
+      "canonical": "quantitative developer",
+      "aliases": [
+        "quantitative developer"
+      ]
+    },
+    {
+      "canonical": "react developer",
+      "aliases": [
+        "react developer"
+      ]
+    },
+    {
+      "canonical": "react native developer leader",
+      "aliases": [
+        "react native developer leader"
+      ]
+    },
+    {
+      "canonical": "rpa developer",
+      "aliases": [
+        "rpa developer"
+      ]
+    },
+    {
+      "canonical": "ruby on rails developer",
+      "aliases": [
+        "ruby on rails developer"
+      ]
+    },
+    {
+      "canonical": "salesforce developer",
+      "aliases": [
+        "salesforce developer"
+      ]
+    },
+    {
+      "canonical": "salesforce engineer",
+      "aliases": [
+        "salesforce engineer"
+      ]
+    },
+    {
+      "canonical": "sap btp cap developer",
+      "aliases": [
+        "sap btp cap developer"
+      ]
+    },
+    {
+      "canonical": "scrum coordinator",
+      "aliases": [
+        "scrum coordinator"
+      ]
+    },
+    {
+      "canonical": "scrum master",
+      "aliases": [
+        "scrum master"
+      ]
+    },
+    {
+      "canonical": "search engineer",
+      "aliases": [
+        "search engineer"
+      ]
+    },
+    {
+      "canonical": "security engineer",
+      "aliases": [
+        "security engineer"
+      ]
+    },
+    {
+      "canonical": "security operations engineer",
+      "aliases": [
+        "security operations engineer"
+      ]
+    },
+    {
+      "canonical": "server administrator",
+      "aliases": [
+        "server administrator"
+      ]
+    },
+    {
+      "canonical": "server developer",
+      "aliases": [
+        "server developer"
+      ]
+    },
+    {
+      "canonical": "server engineer",
+      "aliases": [
+        "server engineer"
+      ]
+    },
+    {
+      "canonical": "simulation engineer",
+      "aliases": [
+        "simulation engineer"
+      ]
+    },
+    {
+      "canonical": "site reliability engineer",
+      "aliases": [
+        "site reliability engineer"
+      ]
+    },
+    {
+      "canonical": "smart contract engineer",
+      "aliases": [
+        "smart contract engineer"
+      ]
+    },
+    {
+      "canonical": "smart contract security engineer",
+      "aliases": [
+        "smart contract security engineer"
+      ]
+    },
+    {
+      "canonical": "software architect",
+      "aliases": [
+        "software architect"
+      ]
+    },
+    {
+      "canonical": "software developer",
+      "aliases": [
+        "software developer"
+      ]
+    },
+    {
+      "canonical": "software development manager",
+      "aliases": [
+        "software development manager"
+      ]
+    },
+    {
+      "canonical": "software engineer",
+      "aliases": [
+        "software engineer"
+      ]
+    },
+    {
+      "canonical": "software implementation",
+      "aliases": [
+        "software implementation"
+      ]
+    },
+    {
+      "canonical": "software implementation staff",
+      "aliases": [
+        "software implementation staff"
+      ]
+    },
+    {
+      "canonical": "software qa project manager",
+      "aliases": [
+        "software qa project manager"
+      ]
+    },
+    {
+      "canonical": "software quality assurance engineer",
+      "aliases": [
+        "software quality assurance engineer"
+      ]
+    },
+    {
+      "canonical": "software security engineer",
+      "aliases": [
+        "software security engineer"
+      ]
+    },
+    {
+      "canonical": "software ship",
+      "aliases": [
+        "software ship"
+      ]
+    },
+    {
+      "canonical": "software test engineer",
+      "aliases": [
+        "software test engineer"
+      ]
+    },
+    {
+      "canonical": "software tester",
+      "aliases": [
+        "software tester"
+      ]
+    },
+    {
+      "canonical": "solution android engineer",
+      "aliases": [
+        "solution android engineer"
+      ]
+    },
+    {
+      "canonical": "solution architect",
+      "aliases": [
+        "solution architect"
+      ]
+    },
+    {
+      "canonical": "solution support engineer",
+      "aliases": [
+        "solution support engineer"
+      ]
+    },
+    {
+      "canonical": "solutions engineer",
+      "aliases": [
+        "solutions engineer"
+      ]
+    },
+    {
+      "canonical": "special projects engineer",
+      "aliases": [
+        "special projects engineer"
+      ]
+    },
+    {
+      "canonical": "sre architect",
+      "aliases": [
+        "sre architect"
+      ]
+    },
+    {
+      "canonical": "sre engineer",
+      "aliases": [
+        "sre engineer"
+      ]
+    },
+    {
+      "canonical": "system admin",
+      "aliases": [
+        "system admin"
+      ]
+    },
+    {
+      "canonical": "system administrator",
+      "aliases": [
+        "system administrator"
+      ]
+    },
+    {
+      "canonical": "system engineer",
+      "aliases": [
+        "system engineer"
+      ]
+    },
+    {
+      "canonical": "system/network engineer",
+      "aliases": [
+        "system/network engineer"
+      ]
+    },
+    {
+      "canonical": "systems architect",
+      "aliases": [
+        "systems architect"
+      ]
+    },
+    {
+      "canonical": "team lead",
+      "aliases": [
+        "team lead"
+      ]
+    },
+    {
+      "canonical": "team leader",
+      "aliases": [
+        "team leader"
+      ]
+    },
+    {
+      "canonical": "team leader back-end developer",
+      "aliases": [
+        "team leader back-end developer"
+      ]
+    },
+    {
+      "canonical": "tech lead",
+      "aliases": [
+        "tech lead"
+      ]
+    },
+    {
+      "canonical": "technical architect",
+      "aliases": [
+        "technical architect"
+      ]
+    },
+    {
+      "canonical": "technical art lead",
+      "aliases": [
+        "technical art lead"
+      ]
+    },
+    {
+      "canonical": "technical artist",
+      "aliases": [
+        "technical artist"
+      ]
+    },
+    {
+      "canonical": "technical business analyst",
+      "aliases": [
+        "technical business analyst"
+      ]
+    },
+    {
+      "canonical": "technical documentation engineer",
+      "aliases": [
+        "technical documentation engineer"
+      ]
+    },
+    {
+      "canonical": "technical expert",
+      "aliases": [
+        "technical expert"
+      ]
+    },
+    {
+      "canonical": "technical lead",
+      "aliases": [
+        "technical lead"
+      ]
+    },
+    {
+      "canonical": "technical leader",
+      "aliases": [
+        "technical leader"
+      ]
+    },
+    {
+      "canonical": "technical manager",
+      "aliases": [
+        "technical manager"
+      ]
+    },
+    {
+      "canonical": "technical product manager",
+      "aliases": [
+        "technical product manager"
+      ]
+    },
+    {
+      "canonical": "technical project manager",
+      "aliases": [
+        "technical project manager"
+      ]
+    },
+    {
+      "canonical": "technical reporting engineer",
+      "aliases": [
+        "technical reporting engineer"
+      ]
+    },
+    {
+      "canonical": "technical scrum master",
+      "aliases": [
+        "technical scrum master"
+      ]
+    },
+    {
+      "canonical": "technical support engineer",
+      "aliases": [
+        "technical support engineer"
+      ]
+    },
+    {
+      "canonical": "technical support specialist",
+      "aliases": [
+        "technical support specialist"
+      ]
+    },
+    {
+      "canonical": "testing software supervisor",
+      "aliases": [
+        "testing software supervisor"
+      ]
+    },
+    {
+      "canonical": "text-to-speech engineer",
+      "aliases": [
+        "text-to-speech engineer"
+      ]
+    },
+    {
+      "canonical": "ui designer",
+      "aliases": [
+        "ui designer"
+      ]
+    },
+    {
+      "canonical": "ui developer",
+      "aliases": [
+        "ui developer"
+      ]
+    },
+    {
+      "canonical": "ui-ux designer",
+      "aliases": [
+        "ui-ux designer"
+      ]
+    },
+    {
+      "canonical": "ui-ux web designer",
+      "aliases": [
+        "ui-ux web designer"
+      ]
+    },
+    {
+      "canonical": "ui/ux designer",
+      "aliases": [
+        "ui/ux designer"
+      ]
+    },
+    {
+      "canonical": "unity developer",
+      "aliases": [
+        "unity developer"
+      ]
+    },
+    {
+      "canonical": "ux designer",
+      "aliases": [
+        "ux designer"
+      ]
+    },
+    {
+      "canonical": "ux research assistant",
+      "aliases": [
+        "ux research assistant"
+      ]
+    },
+    {
+      "canonical": "ux researcher",
+      "aliases": [
+        "ux researcher"
+      ]
+    },
+    {
+      "canonical": "ux/ui designer",
+      "aliases": [
+        "ux/ui designer"
+      ]
+    },
+    {
+      "canonical": "vision engineer",
+      "aliases": [
+        "vision engineer"
+      ]
+    },
+    {
+      "canonical": "visual basic developer",
+      "aliases": [
+        "visual basic developer"
+      ]
+    },
+    {
+      "canonical": "web app developer",
+      "aliases": [
+        "web app developer"
+      ]
+    },
+    {
+      "canonical": "web application developer",
+      "aliases": [
+        "web application developer"
+      ]
+    },
+    {
+      "canonical": "web developer",
+      "aliases": [
+        "web developer"
+      ]
+    },
+    {
+      "canonical": "winform developer",
+      "aliases": [
+        "winform developer"
+      ]
+    },
+    {
+      "canonical": "wordpress developer",
+      "aliases": [
+        "wordpress developer"
+      ]
+    }
+  ]
+}

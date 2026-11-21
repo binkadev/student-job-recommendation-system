@@ -89,7 +89,7 @@ public class AutomaticNotificationsBrowserFixture {
                             cv.setAnalysisStatus(CvAnalysisStatus.READY);
                             cv.setLanguageCode("en");
                             cv.setLanguageConfidence(new BigDecimal("0.99"));
-                            cv.setProcessingVersion("bilingual-nlp-v2-skills-v1");
+                            cv.setProcessingVersion("english-spacy-v1-skills-v1");
                             entities.put("cvId", cvs.saveAndFlush(cv).getId());
                         }
                     }

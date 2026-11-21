@@ -29,12 +29,12 @@ app:
     read-timeout: ${APP_AI_SERVICE_READ_TIMEOUT:15s}
 
   ai:
-    recommendation:
-      algorithm: ${APP_AI_RECOMMENDATION_ALGORITHM:tfidf-cosine-hybrid}
-      algorithm-version: ${APP_AI_RECOMMENDATION_ALGORITHM_VERSION:bilingual-recommendation-v2}
     candidate-ranking:
       max-candidates-per-request: ${APP_AI_CANDIDATE_RANKING_MAX_CANDIDATES_PER_REQUEST:500}
       max-request-bytes: ${APP_AI_CANDIDATE_RANKING_MAX_REQUEST_BYTES:8388608}
+
+  recommendation:
+    max-candidate-jobs: ${APP_RECOMMENDATION_MAX_CANDIDATE_JOBS:500}
 
 springdoc:
   api-docs:

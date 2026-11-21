@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([switch]$KeepE2EStack)
 
 $ErrorActionPreference = 'Stop'
@@ -86,7 +86,7 @@ function Assert-Forbidden {
 function Get-AiCounts {
     $logs = @(& docker compose @ComposeArgs logs --no-color ai-service 2>&1)
     if ($LASTEXITCODE -ne 0) { throw 'Could not inspect isolated AI request counts.' }
-    return @{ v3 = @($logs | Select-String -SimpleMatch 'POST /internal/v3/recommendations HTTP/1.1"').Count; v3Success = @($logs | Select-String -SimpleMatch 'POST /internal/v3/recommendations HTTP/1.1" 200').Count; v2 = @($logs | Select-String -SimpleMatch 'POST /internal/v2/recommendations HTTP/1.1"').Count }
+    return @{ v3 = @($logs | Select-String -SimpleMatch 'POST /internal/recommendations HTTP/1.1"').Count; v3Success = @($logs | Select-String -SimpleMatch 'POST /internal/recommendations HTTP/1.1" 200').Count; v2 = @($logs | Select-String -SimpleMatch 'POST /internal/v2/recommendations HTTP/1.1"').Count }
 }
 function Write-FixtureDiagnostics {
     param([object]$Run)
@@ -127,7 +127,7 @@ try {
 INSERT INTO skills (name, normalized_name, category) VALUES
  ('Java','java','Backend'),('Spring Boot','spring boot','Backend'),('PostgreSQL','postgresql','Database'),('Docker','docker','DevOps');
 INSERT INTO cv_files (student_id,file_name,original_file_name,stored_file_name,file_url,file_path,content_type,file_size,extracted_text,processed_text,extracted_skills,is_active,analysis_status,language_code,language_confidence,processing_version,analyzed_at)
-SELECT s.id,'student.pdf','student.pdf','student.pdf','e2e/student.pdf','e2e/student.pdf','application/pdf',128,'ignored','Java Spring Boot developer builds REST APIs with PostgreSQL and Docker.','["docker","java","postgresql","spring boot"]',TRUE,'READY','en',0.99,'bilingual-nlp-v2-skills-v1',CURRENT_TIMESTAMP FROM students s JOIN users u ON u.id=s.user_id WHERE u.email='recommendation-e2e-student@example.test';
+SELECT s.id,'student.pdf','student.pdf','student.pdf','e2e/student.pdf','e2e/student.pdf','application/pdf',128,'ignored','software_engineer java spring_boot build rest_api postgresql docker','["docker","java","postgresql","spring boot"]',TRUE,'READY','en',0.99,'english-spacy-v1-skills-v1',CURRENT_TIMESTAMP FROM students s JOIN users u ON u.id=s.user_id WHERE u.email='recommendation-e2e-student@example.test';
 -- There is no public Admin registration. Bootstrap one NEW test-only identity
 -- in this fresh owned DB, reusing only the random fixture password's BCrypt hash.
 INSERT INTO users (email,password_hash,full_name,role,status)
@@ -153,7 +153,7 @@ FROM users WHERE email='recommendation-e2e-student@example.test';
     Assert-Condition ($skills.Count -eq 4) 'Fixture must declare exactly four canonical Job skills.'
     $jobBodies = @(
         @{ title = 'English Backend Role'; description = 'Build reliable backend systems with Java and Spring Boot.'; requirements = 'Java Spring Boot PostgreSQL Docker.'; benefits = 'Mentoring' },
-        @{ title = 'Vietnamese Backend Role'; description = 'Xây dựng hệ thống backend bằng Java Spring Boot và PostgreSQL.'; requirements = 'Yêu cầu Java, Spring Boot, PostgreSQL và Docker.'; benefits = 'Hướng dẫn' }
+        @{ title = 'Non-English Backend Role'; description = 'Developpement des services backend avec Java Spring Boot et PostgreSQL pour notre equipe.'; requirements = 'Competences avec Java, Spring Boot, PostgreSQL et Docker.'; benefits = 'Formation' }
     )
     $fixtureJobs = @()
     foreach ($body in $jobBodies) {
@@ -182,7 +182,7 @@ FROM users WHERE email='recommendation-e2e-student@example.test';
     Assert-Condition ((Invoke-DatabaseScalar "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") -eq ((1..25) -join ',')) 'Exactly Flyway V1-V25 must be applied.'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM flyway_schema_history WHERE NOT success OR (version IS NOT NULL AND checksum IS NULL);") -eq '0') 'All applied migrations must have successful checksums.'
     $created=Invoke-Api POST '/api/students/me/recommendations/generate' @{cvId=[long]$cvId;threshold=0;limit=10} $headers; Assert-Condition $created.success 'Public Student generation must succeed.'
-    $run=$created.data; Assert-Condition ($run.status -eq 'SUCCESS' -and $run.algorithm -eq 'tfidf-cosine-hybrid' -and $run.algorithmVersion -eq 'bilingual-recommendation-v3') 'Student V3 run metadata is invalid.'
+    $run=$created.data; Assert-Condition ($run.status -eq 'SUCCESS' -and $run.algorithm -eq 'tfidf-cosine-hybrid' -and $run.algorithmVersion -eq 'english-global-idf-recommendation-v1') 'Student V3 run metadata is invalid.'
     Write-FixtureDiagnostics $run
     $results=@($run.results);Assert-Condition ($results.Count -eq 2) 'Fixture must return one PRIMARY and one FALLBACK.'
     Assert-Condition (@($results | Where-Object rankingTier -eq 'PRIMARY').Count -eq 1 -and @($results | Where-Object rankingTier -eq 'FALLBACK').Count -eq 1) 'Exactly one result per V3 tier is required.'
@@ -215,9 +215,9 @@ FROM users WHERE email='recommendation-e2e-student@example.test';
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM recommendation_runs;") -eq '1' -and (Invoke-DatabaseScalar "SELECT COUNT(*) FROM recommendation_runs WHERE status='PROCESSING';") -eq '0') 'Only one completed generation and no stuck PROCESSING run are allowed.'
     $counts = Get-AiCounts
     Assert-Condition ($counts.v3 -eq 1 -and $counts.v3Success -eq 1 -and $counts.v2 -eq 0) 'Exactly one actual internal V3 request (200) and no V2 substitution are required.'
-    $v3=@((& docker compose @ComposeArgs logs ai-service 2>&1|Select-String -SimpleMatch 'POST /internal/v3/recommendations HTTP/1.1" 200'));$v2=@((& docker compose @ComposeArgs logs ai-service 2>&1|Select-String -SimpleMatch 'POST /internal/v2/recommendations HTTP/1.1"'))
+    $v3=@((& docker compose @ComposeArgs logs ai-service 2>&1|Select-String -SimpleMatch 'POST /internal/recommendations HTTP/1.1" 200'));$v2=@((& docker compose @ComposeArgs logs ai-service 2>&1|Select-String -SimpleMatch 'POST /internal/v2/recommendations HTTP/1.1"'))
     Assert-Condition ($v3.Count -eq 1 -and $v2.Count -eq 0) 'Exactly one V3 Student AI request and no V2 recommendation call are required.'
-    Write-Host 'Real Student Recommendation V3 E2E passed.';Write-Host 'AI HTTP: POST /internal/v3/recommendations=1; /internal/v2/recommendations=0.'
+    Write-Host 'Real Student Recommendation V3 E2E passed.';Write-Host 'AI HTTP: POST /internal/recommendations=1; /internal/v2/recommendations=0.'
 } catch {
     $failure = $_
     [Console]::Error.WriteLine(('Core smoke failed: ' + $_.Exception.Message))

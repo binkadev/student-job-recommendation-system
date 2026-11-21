@@ -26,7 +26,7 @@ describe("student recommendation V3 contract", () => {
       extractedText: null,
       languageCode: "vi",
       languageConfidence: 0.92,
-      processingVersion: "bilingual-nlp-v2-skills-v1",
+      processingVersion: "english-spacy-v1-skills-v1",
     })).toEqual({ status: "READY", ready: true, reason: null });
   });
 });

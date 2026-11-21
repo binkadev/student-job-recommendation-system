@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from v2.reason_generator import generate_same_language_reason
+from scoring.reason_generator import generate_same_language_reason
 
 
 def _generate(**overrides) -> str:

@@ -11,6 +11,12 @@ __pycache__
 .pytest_cache
 *.pyc
 *.pyo
+built_models
+models
+*.sqlite
+*.sqlite-*
+*.pkl
+*.pkl.*
 tests
 test_*.py
 README.md

@@ -11,7 +11,7 @@ Required fields use actual public names:
 | Run | Result |
 |---|---|
 | `id` (run identity), `cvId`, `sourceType=CV`, `status=SUCCESS` | `jobId`, `rankingTier`, `rankingScore` |
-| `algorithm=tfidf-cosine-hybrid`, `algorithmVersion=bilingual-recommendation-v3` | `overallScore`, `textScore`, `skillScore`, `scoringStrategy` |
+| `algorithm=tfidf-cosine-hybrid`, `algorithmVersion=english-global-idf-recommendation-v1` | `overallScore`, `textScore`, `skillScore`, `scoringStrategy` |
 | `totalJobsScanned`, `totalRecommended`, `results` | `rankPosition`, `tierRankPosition` by default |
 | Existing `startedAt`, `finishedAt`, `createdAt` retained when present | Optional deprecated `score` must agree with `rankingScore` |
 

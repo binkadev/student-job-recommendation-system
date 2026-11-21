@@ -10,6 +10,7 @@ import com.tttn.jobrecommendation.common.observability.RequestIdSupport;
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiCandidateRankingProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.config.AiServiceProperties;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiCandidateRankingV3Request;
+import com.tttn.jobrecommendation.infrastructure.ai.dto.AiJobPreprocessRequest;
 import com.tttn.jobrecommendation.infrastructure.ai.dto.AiRecommendationV3Request;
 import com.tttn.jobrecommendation.infrastructure.ai.exception.AiCandidateRankingCapacityException;
 import org.junit.jupiter.api.AfterEach;
@@ -63,7 +64,7 @@ class RestAiServiceClientV3Test {
         AtomicReference<String> transportId = new AtomicReference<>();
         AtomicReference<byte[]> body = new AtomicReference<>();
         AiRecommendationV3Request request = studentRequest();
-        server.createContext("/internal/v3/recommendations", exchange -> {
+        server.createContext("/internal/recommendations", exchange -> {
             assertThat(exchange.getRequestMethod()).isEqualTo("POST");
             apiKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Api-Key"));
             transportId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
@@ -86,19 +87,19 @@ class RestAiServiceClientV3Test {
     @Test
     void studentV3MapsMalformedEmptyUnknownTimeoutAndHttpFailures() throws IOException {
         AiRecommendationV3Request request = studentRequest();
-        server.createContext("/internal/v3/recommendations", exchange -> respond(exchange, 200, ""));
+        server.createContext("/internal/recommendations", exchange -> respond(exchange, 200, ""));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).recommendV3(request), ErrorCode.AI_SERVICE_INVALID_RESPONSE);
-        server.removeContext("/internal/v3/recommendations");
-        server.createContext("/internal/v3/recommendations", exchange -> respond(exchange, 200, studentResponse(request.requestId(), ",\"unknown\":true")));
+        server.removeContext("/internal/recommendations");
+        server.createContext("/internal/recommendations", exchange -> respond(exchange, 200, studentResponse(request.requestId(), ",\"unknown\":true")));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).recommendV3(request), ErrorCode.AI_SERVICE_INVALID_RESPONSE);
-        server.removeContext("/internal/v3/recommendations");
-        server.createContext("/internal/v3/recommendations", exchange -> respond(exchange, 500, "private upstream error"));
+        server.removeContext("/internal/recommendations");
+        server.createContext("/internal/recommendations", exchange -> respond(exchange, 500, "private upstream error"));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).recommendV3(request), ErrorCode.AI_SERVICE_UNAVAILABLE);
-        server.removeContext("/internal/v3/recommendations");
-        server.createContext("/internal/v3/recommendations", exchange -> respond(exchange, 400, "private request error"));
+        server.removeContext("/internal/recommendations");
+        server.createContext("/internal/recommendations", exchange -> respond(exchange, 400, "private request error"));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).recommendV3(request), ErrorCode.AI_SERVICE_INVALID_RESPONSE);
-        server.removeContext("/internal/v3/recommendations");
-        server.createContext("/internal/v3/recommendations", exchange -> {
+        server.removeContext("/internal/recommendations");
+        server.createContext("/internal/recommendations", exchange -> {
             try {
                 Thread.sleep(300);
             } catch (InterruptedException exception) {
@@ -115,7 +116,7 @@ class RestAiServiceClientV3Test {
         AtomicInteger calls = new AtomicInteger();
         AtomicReference<byte[]> sent = new AtomicReference<>();
         AtomicReference<String> requestId = new AtomicReference<>();
-        server.createContext("/internal/v3/candidate-rankings", exchange -> {
+        server.createContext("/internal/candidate-rankings", exchange -> {
             calls.incrementAndGet();
             sent.set(exchange.getRequestBody().readAllBytes());
             requestId.set(exchange.getRequestHeaders().getFirst("X-Request-Id"));
@@ -140,17 +141,17 @@ class RestAiServiceClientV3Test {
     @Test
     void companyV3MapsStrictResponseAndTransportFailures() throws IOException {
         AiCandidateRankingV3Request request = companyRequest(1);
-        server.createContext("/internal/v3/candidate-rankings", exchange -> respond(exchange, 413, "private capacity error"));
+        server.createContext("/internal/candidate-rankings", exchange -> respond(exchange, 413, "private capacity error"));
         assertThatThrownBy(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).rankCandidatesV3(request, "trace"))
                 .isInstanceOf(AiCandidateRankingCapacityException.class);
-        server.removeContext("/internal/v3/candidate-rankings");
-        server.createContext("/internal/v3/candidate-rankings", exchange -> respond(exchange, 200, companyResponse(request.requestId().toString(), ",\"rank\":1")));
+        server.removeContext("/internal/candidate-rankings");
+        server.createContext("/internal/candidate-rankings", exchange -> respond(exchange, 200, companyResponse(request.requestId().toString(), ",\"rank\":1")));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).rankCandidatesV3(request, "trace"), ErrorCode.AI_SERVICE_INVALID_RESPONSE);
-        server.removeContext("/internal/v3/candidate-rankings");
-        server.createContext("/internal/v3/candidate-rankings", exchange -> respond(exchange, 500, "private error"));
+        server.removeContext("/internal/candidate-rankings");
+        server.createContext("/internal/candidate-rankings", exchange -> respond(exchange, 500, "private error"));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).rankCandidatesV3(request, "trace"), ErrorCode.AI_SERVICE_UNAVAILABLE);
-        server.removeContext("/internal/v3/candidate-rankings");
-        server.createContext("/internal/v3/candidate-rankings", exchange -> respond(exchange, 400, "private error"));
+        server.removeContext("/internal/candidate-rankings");
+        server.createContext("/internal/candidate-rankings", exchange -> respond(exchange, 400, "private error"));
         assertError(() -> client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).rankCandidatesV3(request, "trace"), ErrorCode.AI_SERVICE_INVALID_RESPONSE);
         int unusedPort;
         try (ServerSocket socket = new ServerSocket(0)) {
@@ -195,6 +196,30 @@ class RestAiServiceClientV3Test {
         }
     }
 
+    @Test
+    void preprocessJobsUsesExactEndpointHeadersBodyAndStrictResponse() throws Exception {
+        AtomicReference<String> apiKey = new AtomicReference<>();
+        AtomicReference<byte[]> body = new AtomicReference<>();
+        server.createContext("/internal/jobs/preprocess", exchange -> {
+            assertThat(exchange.getRequestMethod()).isEqualTo("POST");
+            apiKey.set(exchange.getRequestHeaders().getFirst("X-Internal-Api-Key"));
+            body.set(exchange.getRequestBody().readAllBytes());
+            respond(exchange, 200, """
+                    {"results":[{"id":55,"processedText":"java spring_boot","languageCode":"en","languageConfidence":0.95,"processingVersion":"english-spacy-v1-skills-v1"}]}
+                    """);
+        });
+
+        var response = client(5, Long.MAX_VALUE, Duration.ofSeconds(2)).preprocessJobs(
+                new AiJobPreprocessRequest(List.of(new AiJobPreprocessRequest.JobItem(55L, "TITLE:\nJava")))
+        );
+
+        assertThat(apiKey.get()).isEqualTo(API_KEY);
+        JsonNode json = OBJECT_MAPPER.readTree(body.get());
+        assertThat(json.path("jobs").get(0).path("id").asLong()).isEqualTo(55L);
+        assertThat(response.results()).hasSize(1);
+        assertThat(response.results().getFirst().processedText()).isEqualTo("java spring_boot");
+    }
+
     private RestAiServiceClient client(int maximumCandidates, long maximumBytes, Duration timeout) {
         return client("http://127.0.0.1:" + server.getAddress().getPort(), maximumCandidates, maximumBytes, timeout);
     }
@@ -213,7 +238,7 @@ class RestAiServiceClientV3Test {
 
     private AiRecommendationV3Request studentRequest() {
         return new AiRecommendationV3Request(UUID.randomUUID(),
-                new AiRecommendationV3Request.CvInput(1L, "private processed CV", List.of("java"), "en", new BigDecimal("0.99"), "bilingual-nlp-v2-skills-v1"),
+                new AiRecommendationV3Request.CvInput(1L, "private processed CV", List.of("java"), "en", new BigDecimal("0.99"), "english-spacy-v1-skills-v1"),
                 List.of(new AiRecommendationV3Request.JobInput(2L, "Java job", List.of("java"))), new BigDecimal("0.1"), 20);
     }
 
@@ -221,19 +246,19 @@ class RestAiServiceClientV3Test {
         return new AiCandidateRankingV3Request(UUID.randomUUID(),
                 new AiCandidateRankingV3Request.JobInput(1L, "Java job", List.of("java")),
                 java.util.stream.IntStream.range(0, candidateCount).mapToObj(index ->
-                        new AiCandidateRankingV3Request.CandidateInput(10L + index, 20L + index, "private processed CV", List.of("java"), "en", new BigDecimal("0.99"), "bilingual-nlp-v2-skills-v1")
+                        new AiCandidateRankingV3Request.CandidateInput(10L + index, 20L + index, "private processed CV", List.of("java"), "en", new BigDecimal("0.99"), "english-spacy-v1-skills-v1")
                 ).toList(), new BigDecimal("0.1"), 20, 20);
     }
 
     private String studentResponse(UUID requestId, String suffix) {
         return """
-                {"requestId":"%s","algorithm":"tfidf-cosine-hybrid","algorithmVersion":"bilingual-recommendation-v3","results":[{"jobId":2,"rankingTier":"PRIMARY","rankingScore":0.75000000,"overallScore":0.75000000,"textScore":0.65000000,"skillScore":0.93571429,"scoringStrategy":"SAME_LANGUAGE_HYBRID","matchedSkills":["java"],"missingSkills":[],"reason":"reason"}]%s}
+                {"requestId":"%s","algorithm":"tfidf-cosine-hybrid","algorithmVersion":"english-global-idf-recommendation-v1","results":[{"jobId":2,"rankingTier":"PRIMARY","rankingScore":0.75000000,"overallScore":0.75000000,"textScore":0.65000000,"skillScore":0.93571429,"scoringStrategy":"SAME_LANGUAGE_HYBRID","matchedSkills":["java"],"missingSkills":[],"reason":"reason"}]%s}
                 """.formatted(requestId, suffix);
     }
 
     private String companyResponse(String requestId, String suffix) {
         return """
-                {"requestId":"%s","algorithm":"tfidf-cosine-hybrid","algorithmVersion":"bilingual-candidate-ranking-v3","results":[{"applicationId":10,"cvId":20,"rankingTier":"FALLBACK","rankingScore":0.50000000,"overallScore":null,"textScore":null,"skillScore":0.50000000,"scoringStrategy":"CROSS_LANGUAGE_SKILL_BASED","matchedSkills":["java"],"missingSkills":[]}]%s}
+                {"requestId":"%s","algorithm":"tfidf-cosine-hybrid","algorithmVersion":"english-global-idf-candidate-ranking-v1","results":[{"applicationId":10,"cvId":20,"rankingTier":"FALLBACK","rankingScore":0.50000000,"overallScore":null,"textScore":null,"skillScore":0.50000000,"scoringStrategy":"CROSS_LANGUAGE_SKILL_BASED","matchedSkills":["java"],"missingSkills":[]}]%s}
                 """.formatted(requestId, suffix);
     }
 

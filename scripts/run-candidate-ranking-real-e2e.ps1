@@ -186,17 +186,17 @@ SELECT s.id, values_row.file_name, values_row.file_name, values_row.file_name,
        'e2e/' || values_row.file_name, 'e2e/' || values_row.file_name,
        'application/pdf', 128, values_row.cv_text, values_row.cv_text,
        values_row.skills::jsonb, TRUE, 'READY', values_row.language_code,
-       values_row.language_confidence, 'bilingual-nlp-v2-skills-v1', CURRENT_TIMESTAMP
+       values_row.language_confidence, 'english-spacy-v1-skills-v1', CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('candidate-ranking-e2e-student-one@example.test', 'candidate-one.pdf',
-         'Java Spring Boot backend developer building REST APIs with PostgreSQL and Docker.',
+         'java spring_boot backend_developer build rest_api postgresql docker',
          '["docker", "java", "postgresql", "spring boot"]', 'en', 0.99),
         ('candidate-ranking-e2e-student-two@example.test', 'candidate-two.pdf',
-         'Lap trinh vien Java Spring Boot xay dung REST API va co so du lieu PostgreSQL.',
-         '["docker", "java", "postgresql", "spring boot"]', 'vi', 0.99),
+         'developpeur java spring_boot api postgresql docker',
+         '["docker", "java", "postgresql", "spring boot"]', 'unknown', 0.00),
         ('candidate-ranking-e2e-student-three@example.test', 'candidate-three.pdf',
-         'Junior Java developer familiar with Docker, Git, and backend development.',
+         'junior java developer familiar docker git backend development',
          '["docker", "java"]', 'en', 0.99)
 ) AS values_row(email, file_name, cv_text, skills, language_code, language_confidence)
 JOIN users u ON u.email = values_row.email
@@ -228,7 +228,7 @@ WHERE u.email LIKE 'candidate-ranking-e2e-student-%@example.test';
     $runId = [string]$run.id
     Assert-Condition ($run.status -eq 'SUCCESS') 'Run must finish synchronously as SUCCESS.'
     Assert-Condition ($run.algorithm -eq 'tfidf-cosine-hybrid') 'Run algorithm must match the locked contract.'
-    Assert-Condition ($run.algorithmVersion -eq 'bilingual-candidate-ranking-v3') 'Run algorithm version must match the locked contract.'
+    Assert-Condition ($run.algorithmVersion -eq 'english-global-idf-candidate-ranking-v1') 'Run algorithm version must match the locked contract.'
     Assert-Condition ([decimal]$run.threshold -eq [decimal]0) 'Run threshold must be preserved.'
     Assert-Condition ($null -eq $run.requestedLimit) 'V3 run requestedLimit must be null.'
     Assert-Condition ($run.requestedPrimaryLimit -eq 2 -and $run.requestedFallbackLimit -eq 1) 'V3 tier limits must be preserved.'
@@ -313,22 +313,22 @@ GROUP BY r.id, r.status, r.algorithm, r.algorithm_version;
     Assert-Condition ($persistedParts.Count -eq 6) 'Persisted run summary must contain exactly six fields.'
     Assert-Condition ($persistedParts[0] -eq 'SUCCESS') 'Persisted run status must be SUCCESS.'
     Assert-Condition ($persistedParts[1] -eq 'tfidf-cosine-hybrid') 'Persisted run algorithm must match the locked contract.'
-    Assert-Condition ($persistedParts[2] -eq 'bilingual-candidate-ranking-v3') 'Persisted run algorithm version must match the locked contract.'
+    Assert-Condition ($persistedParts[2] -eq 'english-global-idf-candidate-ranking-v1') 'Persisted run algorithm version must match the locked contract.'
     Assert-Condition ($persistedParts[3] -eq '3' -and $persistedParts[4] -eq '3' -and $persistedParts[5] -eq '3') 'Persisted result set must have no partial duplicates.'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM candidate_ranking_runs WHERE job_id = $jobId AND status = 'PROCESSING';") -eq '0') 'No PROCESSING run may remain.'
     $runLimits = Invoke-DatabaseScalar "SELECT COALESCE(requested_limit::text, 'NULL') || '|' || requested_primary_limit || '|' || requested_fallback_limit FROM candidate_ranking_runs WHERE id = $runId;"
     Assert-Condition ($runLimits -eq 'NULL|2|1') 'Persisted V3 run must retain null legacy and independent tier limits.'
     $fallbackDb = Invoke-DatabaseScalar "SELECT ranking_tier || '|' || score || '|' || skill_score || '|' || COALESCE(overall_score::text, 'NULL') || '|' || COALESCE(text_score::text, 'NULL') || '|' || rank_position || '|' || tier_rank_position || '|' || COALESCE(cv_processing_version, 'NULL') || '|' || (cv_analyzed_at_snapshot IS NOT NULL) FROM candidate_ranking_results WHERE run_id = $runId AND ranking_tier = 'FALLBACK';"
-    Assert-Condition ($fallbackDb -match '^FALLBACK\|1\.00000\|1\.00000\|NULL\|NULL\|3\|1\|bilingual-nlp-v2-skills-v1\|true$') 'Persisted FALLBACK row must retain V3 nullable score semantics and CV audit fields.'
+    Assert-Condition ($fallbackDb -match '^FALLBACK\|1\.00000\|1\.00000\|NULL\|NULL\|3\|1\|english-spacy-v1-skills-v1\|true$') 'Persisted FALLBACK row must retain V3 nullable score semantics and CV audit fields.'
 
-    $aiV3LogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/v3/candidate-rankings HTTP/1.1" 200'))
+    $aiV3LogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/candidate-rankings HTTP/1.1" 200'))
     $aiV2LogMatches = @((& docker compose @ComposeArgs logs ai-service 2>&1 | Select-String -SimpleMatch 'POST /internal/v2/candidate-rankings HTTP/1.1"'))
-    Assert-Condition ($aiV3LogMatches.Count -eq 1) 'Exactly one real V3 AI bulk HTTP request must be logged.'
-    Assert-Condition ($aiV2LogMatches.Count -eq 0) 'V3 public flow must not call the V2 candidate-ranking endpoint.'
+    Assert-Condition ($aiV3LogMatches.Count -eq 1) 'Exactly one real AI bulk candidate-ranking HTTP request must be logged.'
+    Assert-Condition ($aiV2LogMatches.Count -eq 0) 'Public flow must not call the legacy V2 candidate-ranking endpoint.'
 
     Write-Host 'Real Candidate Ranking E2E passed.'
     Write-Host "Public API status: register=201 login=200 create=200 list=200 detail=200; runId=$runId"
-    Write-Host 'Counters: scanned=3 eligible=3 primary=2 fallback=1; V3 tier limits=2/1; AI HTTP POST /internal/v3/candidate-rankings=200 (once), V2=0.'
+    Write-Host 'Counters: scanned=3 eligible=3 primary=2 fallback=1; V3 tier limits=2/1; AI HTTP POST /internal/candidate-rankings=200 (once), V2=0.'
 } catch {
     Write-Error $_
     if ($started) {

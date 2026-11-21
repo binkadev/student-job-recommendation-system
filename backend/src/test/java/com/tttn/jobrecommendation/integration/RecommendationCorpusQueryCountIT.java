@@ -54,6 +54,9 @@ class RecommendationCorpusQueryCountIT extends AbstractPostgresIntegrationTest {
         cvFile.setProcessedText("java spring");
         cvFile.setExtractedSkills(List.of("java", "spring"));
         cvFile.setAnalysisStatus(CvAnalysisStatus.READY);
+        cvFile.setLanguageCode("en");
+        cvFile.setLanguageConfidence(new BigDecimal("0.9900"));
+        cvFile.setProcessingVersion("english-spacy-v1-skills-v1");
         cvFileRepository.saveAndFlush(cvFile);
         Company company = createCompany(
                 "query-count-company@example.test",
@@ -85,7 +88,7 @@ class RecommendationCorpusQueryCountIT extends AbstractPostgresIntegrationTest {
         request.setCvId(cvFile.getId());
         request.setThreshold(new BigDecimal("0.1"));
         request.setLimit(20);
-        transactionService.createProcessingRun(student.getUser().getId(), request);
+        transactionService.createProcessingRunV3(student.getUser().getId(), request);
 
         return statistics.getPrepareStatementCount();
     }

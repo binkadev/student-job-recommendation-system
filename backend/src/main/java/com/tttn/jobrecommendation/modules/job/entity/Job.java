@@ -89,6 +89,24 @@ public class Job {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
+    @Column(name = "processed_text", columnDefinition = "TEXT")
+    private String processedText;
+
+    @Column(name = "language_code", length = 20)
+    private String languageCode;
+
+    @Column(name = "language_confidence", precision = 5, scale = 4)
+    private BigDecimal languageConfidence;
+
+    @Column(name = "processing_version", length = 100)
+    private String processingVersion;
+
+    @Column(name = "content_hash", length = 64)
+    private String contentHash;
+
+    @Column(name = "analyzed_at")
+    private LocalDateTime analyzedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

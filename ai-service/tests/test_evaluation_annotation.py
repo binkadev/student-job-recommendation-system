@@ -21,7 +21,7 @@ from evaluation.annotation import (
 CVS = [
     {
         "id": 1,
-        "text": 'Kỹ sư backend,\nkinh nghiệm "Java" và REST API.',
+        "text": 'Backend engineer,\nexperienced with "Java" and REST API.',
         "skills": ["Java", "Spring Boot"],
     },
     {
@@ -33,7 +33,7 @@ CVS = [
 JOBS = [
     {
         "id": 101,
-        "text": 'Lập trình viên Java,\nphát triển "REST API".',
+        "text": 'Java developer,\nbuilding "REST API" services.',
         "skills": ["Java", "REST API"],
     },
     {
@@ -195,7 +195,7 @@ def test_prepare_creates_complete_deterministic_blinded_packets(
         assert all(row["notes"] == "" for row in rows)
         assert all(row["annotator_id"] == annotator_id for row in rows)
         assert FORBIDDEN_PACKET_FIELDS.isdisjoint(header)
-        assert "Kỹ sư backend,\n" in (
+        assert "Backend engineer,\n" in (
             first / file_name
         ).read_text(encoding="utf-8")
         assert not (first / file_name).read_bytes().startswith(b"\xef\xbb\xbf")

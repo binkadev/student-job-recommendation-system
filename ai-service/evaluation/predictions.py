@@ -10,7 +10,7 @@ from .dataset import DatasetValidationError, _read_json, _require_positive_json_
 
 
 ALGORITHM = "tfidf-cosine-hybrid"
-ALGORITHM_VERSION = "bilingual-recommendation-v3"
+ALGORITHM_VERSION = "english-global-idf-recommendation-v1"
 RESULT_FIELDS = (
     "jobId", "rankPosition", "tierRankPosition", "rankingTier",
     "rankingScore", "textScore", "skillScore", "overallScore", "scoringStrategy",

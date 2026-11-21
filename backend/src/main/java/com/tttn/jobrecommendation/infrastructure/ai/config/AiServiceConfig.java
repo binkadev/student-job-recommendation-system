@@ -10,8 +10,8 @@ import org.springframework.web.client.RestClient;
 @Configuration
 @EnableConfigurationProperties({
         AiServiceProperties.class,
-        AiRecommendationProperties.class,
-        AiCandidateRankingProperties.class
+        AiCandidateRankingProperties.class,
+        RecommendationCorpusProperties.class
 })
 public class AiServiceConfig {
 

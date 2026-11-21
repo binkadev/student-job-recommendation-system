@@ -75,7 +75,7 @@ class CandidateRankingTransactionServiceV3Test {
         when(f.corpus.prepareV3(COMPANY, JOB)).thenReturn(preparation);
         CvFile cv = CvFile.builder().id(CV).build(); CvFile cvTwo = CvFile.builder().id(CV_TWO).build();
         when(f.applications.findCandidateRankingApplicationsByIdIn(java.util.Set.of(APPLICATION, APPLICATION_TWO))).thenReturn(List.of(JobApplication.builder().id(APPLICATION).job(job()).cvFile(cv).build(), JobApplication.builder().id(APPLICATION_TWO).job(job()).cvFile(cvTwo).build()));
-        ValidatedCandidateRankingV3Response response = new ValidatedCandidateRankingV3Response("tfidf-cosine-hybrid", "bilingual-candidate-ranking-v3", List.of(
+        ValidatedCandidateRankingV3Response response = new ValidatedCandidateRankingV3Response("tfidf-cosine-hybrid", "english-global-idf-candidate-ranking-v1", List.of(
                 result(APPLICATION, CV, RecommendationRankingTier.PRIMARY, RecommendationScoringStrategy.SAME_LANGUAGE_HYBRID, new BigDecimal("0.70"), new BigDecimal("0.70"), new BigDecimal("0.80"), 1, 1),
                 result(APPLICATION_TWO, CV_TWO, RecommendationRankingTier.FALLBACK, RecommendationScoringStrategy.CROSS_LANGUAGE_SKILL_BASED, new BigDecimal("0.50"), null, null, 2, 1)
         ));
@@ -90,7 +90,7 @@ class CandidateRankingTransactionServiceV3Test {
         assertThat(persisted.getValue().get(1).getTextScore()).isNull();
         assertThat(persisted.getValue()).extracting(CandidateRankingResult::getTierRankPosition).containsExactly(1, 1);
         assertThat(run.getStatus()).isEqualTo(RecommendationRunStatus.SUCCESS);
-        assertThat(run.getAlgorithmVersion()).isEqualTo("bilingual-candidate-ranking-v3");
+        assertThat(run.getAlgorithmVersion()).isEqualTo("english-global-idf-candidate-ranking-v1");
 
         Fixture drift = fixture(); CandidateRankingRun stale = CandidateRankingRun.builder().id(RUN).job(job()).status(RecommendationRunStatus.PROCESSING).inputFingerprint(preparation.inputFingerprint()).build();
         when(drift.runs.findByIdForUpdate(RUN)).thenReturn(Optional.of(stale));
@@ -100,14 +100,14 @@ class CandidateRankingTransactionServiceV3Test {
     }
 
     private ValidatedCandidateRankingV3Response.Result result(long application, long cv, RecommendationRankingTier tier, RecommendationScoringStrategy strategy, BigDecimal ranking, BigDecimal overall, BigDecimal text, int rank, int tierRank) {
-        return new ValidatedCandidateRankingV3Response.Result(application, cv, tier, ranking, overall, text, new BigDecimal("0.50"), strategy, List.of("java"), List.of("spring"), "reason", rank, tierRank, "bilingual-nlp-v2-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
+        return new ValidatedCandidateRankingV3Response.Result(application, cv, tier, ranking, overall, text, new BigDecimal("0.50"), strategy, List.of("java"), List.of("spring"), "reason", rank, tierRank, "english-spacy-v1-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
     }
     private CandidateRankingV3PreparationResult preparation(String processedText) {
         CandidateRankingJobSnapshot job = new CandidateRankingJobSnapshot(JOB, "Backend", "Build", "Java", List.of("java", "spring"), LocalDateTime.of(2026, 1, 1, 1, 0));
-        CandidateRankingCandidateSnapshot candidate = new CandidateRankingCandidateSnapshot(APPLICATION, ApplicationStatus.PENDING, CV, "ignored", processedText, List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "bilingual-nlp-v2-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
-        CandidateRankingCandidateSnapshot candidateTwo = new CandidateRankingCandidateSnapshot(APPLICATION_TWO, ApplicationStatus.REVIEWED, CV_TWO, "ignored", "processed two", List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "bilingual-nlp-v2-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
+        CandidateRankingCandidateSnapshot candidate = new CandidateRankingCandidateSnapshot(APPLICATION, ApplicationStatus.PENDING, CV, "ignored", processedText, List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "english-spacy-v1-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
+        CandidateRankingCandidateSnapshot candidateTwo = new CandidateRankingCandidateSnapshot(APPLICATION_TWO, ApplicationStatus.REVIEWED, CV_TWO, "ignored", "processed two", List.of("java"), CvAnalysisStatus.READY, "en", BigDecimal.ONE, "english-spacy-v1-skills-v1", LocalDateTime.of(2026, 1, 1, 0, 0));
         AiCandidateRankingV3Request.JobInput input = new AiCandidateRankingV3Request.JobInput(JOB, "Backend Build Java", List.of("java", "spring"));
-        return new CandidateRankingV3PreparationResult(job, input, List.of(candidate, candidateTwo), List.of(new AiCandidateRankingV3Request.CandidateInput(APPLICATION, CV, processedText, List.of("java"), "en", BigDecimal.ONE, "bilingual-nlp-v2-skills-v1"), new AiCandidateRankingV3Request.CandidateInput(APPLICATION_TWO, CV_TWO, "processed two", List.of("java"), "en", BigDecimal.ONE, "bilingual-nlp-v2-skills-v1")), new CandidateRankingCorpusCounters(2, 2, 0, 0, 0), CandidateRankingInputFingerprint.computeV3(job, List.of(candidate, candidateTwo)));
+        return new CandidateRankingV3PreparationResult(job, input, List.of(candidate, candidateTwo), List.of(new AiCandidateRankingV3Request.CandidateInput(APPLICATION, CV, processedText, List.of("java"), "en", BigDecimal.ONE, "english-spacy-v1-skills-v1"), new AiCandidateRankingV3Request.CandidateInput(APPLICATION_TWO, CV_TWO, "processed two", List.of("java"), "en", BigDecimal.ONE, "english-spacy-v1-skills-v1")), new CandidateRankingCorpusCounters(2, 2, 0, 0, 0), CandidateRankingInputFingerprint.computeV3(job, List.of(candidate, candidateTwo)));
     }
     private Job job() { return Job.builder().id(JOB).build(); }
     private Fixture fixture() { CandidateRankingCorpusPreparationService corpus=mock(CandidateRankingCorpusPreparationService.class); CandidateRankingRunRepository runs=mock(CandidateRankingRunRepository.class); CandidateRankingResultRepository results=mock(CandidateRankingResultRepository.class); JobApplicationRepository applications=mock(JobApplicationRepository.class); JobRepository jobs=mock(JobRepository.class); return new Fixture(new CandidateRankingTransactionService(corpus,runs,results,applications,jobs,mock(CandidateRankingFailureMessageSanitizer.class)),corpus,runs,results,applications,jobs); }

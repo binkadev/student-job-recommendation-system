@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import ast
 from dataclasses import FrozenInstanceError
 import json
 from pathlib import Path
 
 import pytest
 
-from v2.constants import SKILL_CATALOG_VERSION
-import v2.skill_canonicalizer as canonicalizer_module
-from v2.skill_canonicalizer import (
+from core.constants import SKILL_CATALOG_VERSION
+import nlp.skill_canonicalizer as canonicalizer_module
+from nlp.skill_canonicalizer import (
     SkillCatalogError,
     load_default_catalog,
     load_skill_catalog,
@@ -61,32 +60,13 @@ def _valid_document() -> dict:
     }
 
 
-def _load_v1_skill_definitions() -> tuple[set[str], dict[str, str]]:
-    source_path = Path(__file__).resolve().parents[1] / "nlp_processor.py"
-    syntax_tree = ast.parse(source_path.read_text(encoding="utf-8"))
-    assignments: dict[str, object] = {}
-
-    for node in syntax_tree.body:
-        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        for target in targets:
-            if (
-                isinstance(target, ast.Name)
-                and target.id in {"KNOWN_SKILLS", "SKILL_ALIASES"}
-            ):
-                assignments[target.id] = ast.literal_eval(node.value)
-
-    return assignments["KNOWN_SKILLS"], assignments["SKILL_ALIASES"]
-
-
 def test_default_catalog_has_expected_version_and_counts() -> None:
     catalog = load_default_catalog()
 
     assert catalog.catalog_version == "skills-v1"
-    assert catalog.canonical_count == 89
-    assert catalog.lookup_key_count == 146
-    assert catalog.non_canonical_alias_count == 57
+    assert catalog.canonical_count == 1822
+    assert catalog.lookup_key_count == 1861
+    assert catalog.non_canonical_alias_count == 39
 
 
 def test_all_backend_seeded_skills_map_exactly_to_themselves() -> None:
@@ -97,19 +77,6 @@ def test_all_backend_seeded_skills_map_exactly_to_themselves() -> None:
         skill: catalog.canonicalize_one(skill)
         for skill in BACKEND_SEEDED_SKILLS
     } == {skill: skill for skill in BACKEND_SEEDED_SKILLS}
-
-
-def test_catalog_preserves_current_english_v1_skill_compatibility() -> None:
-    catalog = load_default_catalog()
-    known_skills, aliases = _load_v1_skill_definitions()
-
-    for skill in known_skills:
-        normalized = normalize_skill(skill)
-        expected = "go" if normalized == "golang" else normalized
-        assert catalog.canonicalize_one(skill) == expected
-
-    for alias, canonical in aliases.items():
-        assert catalog.canonicalize_one(alias) == normalize_skill(canonical)
 
 
 @pytest.mark.parametrize(
@@ -136,29 +103,10 @@ def test_required_aliases_and_technical_punctuation(
     assert load_default_catalog().canonicalize_one(supplied) == expected
 
 
-@pytest.mark.parametrize(
-    ("supplied", "expected"),
-    [
-        ("học máy", "machine learning"),
-        ("hoc may", "machine learning"),
-        ("trí tuệ nhân tạo", "artificial intelligence"),
-        ("tri tue nhan tao", "artificial intelligence"),
-        ("cơ sở dữ liệu", "database"),
-        ("co so du lieu", "database"),
-        ("điện toán đám mây", "cloud computing"),
-        ("dien toan dam may", "cloud computing"),
-        ("kiến trúc vi dịch vụ", "microservices"),
-        ("vi dịch vụ", "microservices"),
-        ("lập trình hướng đối tượng", "object oriented programming"),
-        ("kiểm thử phần mềm", "software testing"),
-        ("quản lý dự án", "project management"),
-    ],
-)
-def test_vietnamese_aliases_share_the_canonical_namespace(
-    supplied: str,
-    expected: str,
-) -> None:
-    assert load_default_catalog().canonicalize_one(supplied) == expected
+def test_catalog_contains_only_english_ascii_aliases() -> None:
+    catalog = load_default_catalog()
+    assert all(alias.isascii() for alias in catalog.alias_to_canonical)
+    assert all(skill.isascii() for skill in catalog.canonical_skills)
 
 
 def test_normalization_uses_nfc_casefold_and_unicode_whitespace_collapse() -> None:
@@ -174,8 +122,8 @@ def test_unknown_skills_use_only_syntactic_normalization() -> None:
     catalog = load_default_catalog()
 
     assert catalog.canonicalize_one("  Unknown\u2003Skill  ") == "unknown skill"
-    assert catalog.canonicalize_one("  HỌC   MÁY  ") == "machine learning"
-    assert catalog.canonicalize_one("  Chuyên môn mới  ") == "chuyên môn mới"
+    assert catalog.canonicalize_one("  MACHINE   LEARNING  ") == "machine learning"
+    assert catalog.canonicalize_one("  Custom Domain Skill  ") == "custom domain skill"
 
 
 def test_canonicalize_many_uses_complete_input_and_deduplicates() -> None:
