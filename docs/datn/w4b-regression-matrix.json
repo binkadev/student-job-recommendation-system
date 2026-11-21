@@ -1,0 +1,2436 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-12",
+  "timezone": "Asia/Bangkok",
+  "repository": "binkadev/student-job-recommendation-system",
+  "baseline_sha": "1158dd7abb8868f7fd03b74a3584ea78522de741",
+  "branch": "test/datn-w4b-integrated-regression",
+  "worktree": ".worktrees/datn-w4b-integrated-regression",
+  "release_readiness": "NOT READY",
+  "blockers": [
+    "Recruiting E01-E10 blocked by reproducible stale V24 fixture assertion on V25 master.",
+    "Untriaged high dependency advisory findings remain, including 8 high in npm omit-dev graph."
+  ],
+  "classification_legend": {
+    "RERUN_EXACT_MASTER": "Executed locally against unchanged baseline source.",
+    "CI_EXACT_MASTER": "GitHub run head_sha equals baseline; not a local rerun.",
+    "HISTORICAL_NOT_RERUN": "Different commit or historical PR document; no transferred PASS.",
+    "NOT_RUN": "No scenario execution; distinct from a framework skipped test."
+  },
+  "environment": {
+    "os": "Windows 11 amd64",
+    "shell": "Windows PowerShell 5.1",
+    "java": "Microsoft OpenJDK21.0.11",
+    "maven": "3.9.16",
+    "node": "24.18.1",
+    "npm": "11.16.0",
+    "python": "3.11.9",
+    "pip": "24.0",
+    "postgresql_testcontainers": "17.11 (postgres:17-alpine)",
+    "docker_engine": "29.8.2",
+    "docker_desktop": "4.95.0",
+    "docker_compose": "5.6.0",
+    "playwright": "1.56.1",
+    "chromium": {
+      "engine": "Chromium",
+      "version": "141.0.7390.37",
+      "headless": true
+    },
+    "ai": {
+      "fastapi": "0.139.2",
+      "pydantic": "2.13.4",
+      "scikit_learn": "1.9.0",
+      "numpy": "2.4.6",
+      "pytest": "9.1.1",
+      "underthesea": "9.5.0"
+    }
+  },
+  "ci_exact_master": {
+    "classification": "CI_EXACT_MASTER",
+    "runs": [
+      {
+        "conclusion": "success",
+        "created_at": "2026-11-11T17:42:20Z",
+        "event": "push",
+        "head_sha": "1158dd7abb8868f7fd03b74a3584ea78522de741",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070720428",
+        "id": 43070720428,
+        "name": "Core Smoke CI",
+        "status": "completed",
+        "updated_at": "2026-11-11T17:45:19Z"
+      },
+      {
+        "conclusion": "success",
+        "created_at": "2026-11-11T17:42:19Z",
+        "event": "dynamic",
+        "head_sha": "1158dd7abb8868f7fd03b74a3584ea78522de741",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070719633",
+        "id": 43070719633,
+        "name": "pages build and deployment",
+        "status": "completed",
+        "updated_at": "2026-11-11T17:43:00Z"
+      }
+    ],
+    "checks": [
+      {
+        "conclusion": "success",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070719633/job/130697748864",
+        "name": "deploy",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070719633/job/130697748716",
+        "name": "report-build-status",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070719633/job/130697531157",
+        "name": "build",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "html_url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43070720428/job/130697526129",
+        "name": "Docker core acceptance smoke",
+        "status": "completed"
+      }
+    ],
+    "core_diagnostics": {
+      "companyStatusAfterRegistration": "PENDING",
+      "persistedResults": [
+        {
+          "jobId": 1,
+          "rankingTier": "PRIMARY",
+          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+          "rankingScore": 0.35,
+          "overallScore": 0.35,
+          "textScore": 0.0,
+          "skillScore": 1.0,
+          "rankPosition": 1,
+          "tierRankPosition": 1
+        },
+        {
+          "jobId": 2,
+          "rankingTier": "FALLBACK",
+          "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
+          "rankingScore": 1.0,
+          "overallScore": null,
+          "textScore": null,
+          "skillScore": 1.0,
+          "rankPosition": 2,
+          "tierRankPosition": 1
+        }
+      ],
+      "resultCount": 2,
+      "fallbackCount": 1,
+      "protocol": [
+        {
+          "path": "/api/auth/register",
+          "status": 201,
+          "method": "POST"
+        },
+        {
+          "path": "/api/auth/register",
+          "status": 201,
+          "method": "POST"
+        },
+        {
+          "path": "/api/auth/login",
+          "status": 200,
+          "method": "POST"
+        },
+        {
+          "path": "/api/auth/login",
+          "status": 200,
+          "method": "POST"
+        },
+        {
+          "path": "/api/companies/me",
+          "status": 200,
+          "method": "GET"
+        },
+        {
+          "path": "/api/auth/login",
+          "status": 200,
+          "method": "POST"
+        },
+        {
+          "path": "/api/jobs",
+          "status": 200,
+          "method": "POST"
+        },
+        {
+          "path": "/api/jobs",
+          "status": 200,
+          "method": "POST"
+        },
+        {
+          "path": "/api/admin/companies/1/status",
+          "status": 403,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/jobs/1/status",
+          "status": 403,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/admin/companies/1/status",
+          "status": 200,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/jobs/1/status",
+          "status": 403,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/jobs/1/status",
+          "status": 200,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/jobs/1/status",
+          "status": 200,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/public/jobs/1",
+          "status": 200,
+          "method": "GET"
+        },
+        {
+          "path": "/api/jobs/2/status",
+          "status": 200,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/jobs/2/status",
+          "status": 200,
+          "method": "PATCH"
+        },
+        {
+          "path": "/api/public/jobs/2",
+          "status": 200,
+          "method": "GET"
+        },
+        {
+          "path": "/api/students/me/recommendations/generate",
+          "status": 200,
+          "method": "POST"
+        }
+      ],
+      "migrationVersions": "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
+      "processingRuns": 0,
+      "ai": {
+        "v2": 0,
+        "v3": 1,
+        "v3Success": 1
+      },
+      "runStatus": "SUCCESS",
+      "fixture": {
+        "companyStatus": "VERIFIED",
+        "companyId": 1,
+        "jobs": [
+          {
+            "id": 1,
+            "companyId": 1,
+            "status": "ACTIVE",
+            "deadline": "2026-12-11"
+          },
+          {
+            "id": 2,
+            "companyId": 1,
+            "status": "ACTIVE",
+            "deadline": "2026-12-11"
+          }
+        ],
+        "eligibleJobs": 2
+      },
+      "postgresMajor": 17,
+      "primaryCount": 1
+    },
+    "core_cleanup_log_marker": "Cleaned owned E2E project 'core-smoke-948a7f2ec9bf4300a339585dbce08180'.",
+    "backend_frontend_ai_ci_at_exact_sha": "NOT RUN (workflow path filters; no same-SHA runs found)",
+    "failed_jobs_rerun": false,
+    "checks_bypassed": false
+  },
+  "historical_ci_not_rerun": {
+    "backend": [
+      {
+        "conclusion": "success",
+        "databaseId": 43064732131,
+        "headSha": "6e2720006bffae4b50cf08780a47b56e7cc3a0a6",
+        "name": "Backend CI",
+        "status": "completed",
+        "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43064732131"
+      }
+    ],
+    "frontend": [
+      {
+        "conclusion": "success",
+        "databaseId": 43061520057,
+        "headSha": "bf4fd415bee1d8829b137cabadcc06e7ad43595f",
+        "name": "Frontend CI",
+        "status": "completed",
+        "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/43061520057"
+      }
+    ],
+    "ai": [
+      {
+        "conclusion": "success",
+        "databaseId": 38409079935,
+        "headSha": "e019f7a45d4799c2f2c7d0dcfe5ca1e68784d686",
+        "name": "AI Service CI",
+        "status": "completed",
+        "url": "https://github.com/binkadev/student-job-recommendation-system/actions/runs/38409079935"
+      }
+    ]
+  },
+  "merged_prs": [
+    {
+      "baseRefName": "master",
+      "headRefName": "test/datn-w2b3-company-verification-e2e",
+      "mergeCommit": {
+        "oid": "53c149441a02e29956b5b963529e39803dc007d7"
+      },
+      "mergedAt": "2026-11-11T11:37:43Z",
+      "number": 88,
+      "state": "MERGED",
+      "title": "test(company): isolated Wave 2-B profile and verification document E2E",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/88"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "feat/datn-w3c1a-interviews-invitations-backend",
+      "mergeCommit": {
+        "oid": "f58217ddab3dc60c17bd4822e931843f562c519e"
+      },
+      "mergedAt": "2026-11-11T12:15:06Z",
+      "number": 89,
+      "state": "MERGED",
+      "title": "feat(recruiting): private interviews and job invitations Backend (V24)",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/89"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "feat/datn-w3c1b-interviews-invitations-frontend",
+      "mergeCommit": {
+        "oid": "d8174a8e308869e1287bf7cb7277f33f86c01503"
+      },
+      "mergedAt": "2026-11-11T12:47:52Z",
+      "number": 90,
+      "state": "MERGED",
+      "title": "feat(recruiting): integrate Company and Student interviews/invitations UI",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/90"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "test/datn-w3c1c-recruiting-workflows-e2e",
+      "mergeCommit": {
+        "oid": "37e9d86f2cfe8db3df50911b038d5b6599644940"
+      },
+      "mergedAt": "2026-11-11T15:57:26Z",
+      "number": 91,
+      "state": "MERGED",
+      "title": "test(recruiting): isolated interviews and invitations E2E (E01–E10)",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/91"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "feat/datn-w3c2a-application-messaging-backend",
+      "mergeCommit": {
+        "oid": "c50f440909c644f93a2bcb962447c5e31ea4f0ac"
+      },
+      "mergedAt": "2026-11-11T16:23:30Z",
+      "number": 92,
+      "state": "MERGED",
+      "title": "feat: private Application-scoped messaging Backend (V25)",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/92"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "feat/datn-w3c2b-application-messaging-frontend",
+      "mergeCommit": {
+        "oid": "bf4fd415bee1d8829b137cabadcc06e7ad43595f"
+      },
+      "mergedAt": "2026-11-11T16:45:51Z",
+      "number": 93,
+      "state": "MERGED",
+      "title": "feat: Application-scoped private messaging Frontend",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/93"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "test/datn-w3c2c-application-messaging-e2e",
+      "mergeCommit": {
+        "oid": "6e2720006bffae4b50cf08780a47b56e7cc3a0a6"
+      },
+      "mergedAt": "2026-11-11T17:05:31Z",
+      "number": 94,
+      "state": "MERGED",
+      "title": "test: isolated Application Messaging E2E (M01–M10)",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/94"
+    },
+    {
+      "baseRefName": "master",
+      "headRefName": "fix/datn-w4a-core-smoke-v3-fixture",
+      "mergeCommit": {
+        "oid": "1158dd7abb8868f7fd03b74a3584ea78522de741"
+      },
+      "mergedAt": "2026-11-11T17:42:17Z",
+      "number": 95,
+      "state": "MERGED",
+      "title": "fix: repair Core Smoke V3 fixture and isolate owned stack",
+      "url": "https://github.com/binkadev/student-job-recommendation-system/pull/95"
+    }
+  ],
+  "backend": {
+    "classification": "RERUN_EXACT_MASTER",
+    "command": "cd backend; .\\mvnw.cmd -B -ntp clean verify",
+    "exit_code": 0,
+    "totals": {
+      "failsafe": {
+        "suites": 47,
+        "tests": 432,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "surefire": {
+        "suites": 41,
+        "tests": 249,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "unique_tests": 681,
+    "reports": {
+      "failsafe": [
+        {
+          "suite": "com.tttn.jobrecommendation.integration.ApplicationApiIT",
+          "tests": 21,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 17.745
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.ApplicationLifecycleApiIT",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.019
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.ApplicationMessagingApiIT",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.555
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.ApplicationMessagingMigrationIT",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.696
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.ApplicationReapplyApiIT",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.206
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.AutomaticNotificationsApiIT",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 5.949
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CandidateRankingCorpusPreparationIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.397
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CandidateRankingOrchestrationIT",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.425
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CandidateRankingPersistenceIT",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.041
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CandidateRankingPublicApiIT",
+          "tests": 31,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 4.608
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CandidateRankingPublicQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.713
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyAnalyticsApiIT",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.975
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyApplicationListQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.487
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyCoverApiIT",
+          "tests": 33,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.269
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyOwnJobsApiIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 4.147
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyProfileExtensionsMigrationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.901
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CompanyVerificationDocumentApiIT",
+          "tests": 30,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.838
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CvActiveTransactionIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.111
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CvAnalysisRecommendationApiIT",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.227
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CvApiIT",
+          "tests": 14,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.127
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CvDeleteFailureIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.99
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.CvReanalysisStateIT",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.62
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.DatabaseAiContractV2MigrationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.134
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.DatabaseConstraintIT",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.494
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.DatabaseMigrationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.158
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.DatabaseRecommendationRankingV3MigrationIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.839
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.JobListQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.482
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.JobModerationApiIT",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.468
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.NotificationApiIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.771
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.NotificationSettingsApiIT",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.794
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.PasswordChangeApiIT",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.88
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.PublicJobApiIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.329
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.PublicStatisticsApiIT",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.093
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecommendationCorpusQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.296
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecommendationPersistenceFailureIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.32
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecommendationRunListQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.303
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecommendationV3PersistenceIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.1
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecruitingWorkflowApiIT",
+          "tests": 33,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 4.67
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RecruitingWorkflowMigrationIT",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.298
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.RepositoryFilterIT",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.205
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.SavedCandidateApiIT",
+          "tests": 26,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.423
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.SavedJobListQueryCountIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.413
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.SavedSearchApiIT",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.398
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.SettingsConcurrencyIT",
+          "tests": 33,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.354
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.SettingsMigrationIT",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.803
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.StudentProfileAtomicApiIT",
+          "tests": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 2.765
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.integration.StudentSkillApiIT",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.379
+        }
+      ],
+      "surefire": [
+        {
+          "suite": "com.tttn.jobrecommendation.common.exception.GlobalExceptionHandlerTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.847
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.common.observability.RequestIdFilterTest",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.226
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.infrastructure.ai.client.RestAiServiceClientCandidateRankingTest",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.428
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.infrastructure.ai.client.RestAiServiceClientTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.259
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.infrastructure.ai.client.RestAiServiceClientV3Test",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.292
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.infrastructure.ai.dto.AiV3WireDtoTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.014
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.infrastructure.ai.skill.SkillCatalogCanonicalizerTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.038
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.JobRecommendationApplicationTests",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 7.75
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.application.service.ApplicationServiceImplTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.374
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.dto.request.CreateCandidateRankingRunRequestTest",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.229
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.mapper.CandidateRankingMapperTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.018
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.AiCandidateRankingResponseValidatorTest",
+          "tests": 59,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.182
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.AiCandidateRankingV3ResponseValidatorTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.037
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingCorpusPreparationServiceTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.087
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingCorpusPreparationServiceV3Test",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.021
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingFailureMessageSanitizerTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.008
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingGenerationServiceTest",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.279
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingGenerationServiceV3Test",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.067
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingInputFingerprintTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.012
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingPublicServiceTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.151
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.CandidateRankingTransactionServiceV3Test",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.131
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.candidateranking.service.impl.CandidateRankingQueryServiceImplTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.333
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.company.service.impl.SavedCandidateServiceImplTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.083
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.cv.service.impl.AiCvParseResponseValidatorTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.021
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.cv.service.impl.CvAnalysisServiceImplTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.13
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.cv.service.impl.CvStorageServiceImplTest",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.064
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.job.service.PublicJobServiceImplTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.011
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.notification.service.impl.NotificationServiceImplTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.22
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.ranking.dto.response.RankingResponseSerializationTest",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.044
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.mapper.RecommendationMapperTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.014
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.AiRecommendationRequestMapperTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.005
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.AiRecommendationResponseValidatorTest",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.038
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.AiRecommendationV3ResponseValidatorTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.054
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.EligibleJobCorpusBuilderTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.006
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.EligibleJobCorpusV3BuilderTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.017
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.RecommendationFailureMessageSanitizerTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.RecommendationGenerationServiceImplTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.258
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.RecommendationQueryServiceImplTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.118
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.recommendation.service.impl.RecommendationTransactionServiceV3Test",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.275
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.student.service.impl.SavedSearchServiceImplTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.059
+        },
+        {
+          "suite": "com.tttn.jobrecommendation.modules.user.service.impl.UserPasswordServiceImplTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.074
+        }
+      ]
+    },
+    "additional_fast_run": {
+      "command": ".\\mvnw.cmd -B -ntp test",
+      "passed": 249,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "added_to_unique_total": false
+    }
+  },
+  "frontend": {
+    "classification": "RERUN_EXACT_MASTER",
+    "files": 57,
+    "tests": 564,
+    "passed": 564,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "vitest_nested_suite_count_not_file_count": 122,
+    "checks": [
+      {
+        "exitCode": 0,
+        "step": "typescript"
+      },
+      {
+        "exitCode": 0,
+        "step": "eslint"
+      },
+      {
+        "exitCode": 0,
+        "step": "production-build"
+      }
+    ],
+    "install_exit_code": 0,
+    "evidence_location": "e2e/.local/w4b/frontend-*"
+  },
+  "ai": {
+    "classification": "RERUN_EXACT_MASTER",
+    "totals": {
+      "tests": 887,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "install_hashes_and_binary_only": true,
+    "pip_check": "No broken requirements found.",
+    "exit_code": 0,
+    "warnings": [
+      "One StarletteDeprecationWarning: httpx TestClient is deprecated."
+    ],
+    "evidence_location": "e2e/.local/w4b/ai-*",
+    "academic_evaluation_metrics_claimed": false
+  },
+  "core_local": {
+    "classification": "RERUN_EXACT_MASTER",
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-core.ps1",
+    "exit_code": 0,
+    "run": "core-smoke-9e84a22c51fe4f508c523f3e0434b8de",
+    "diagnostics": {
+      "fixture": {
+        "companyStatus": "VERIFIED",
+        "companyId": 1,
+        "jobs": [
+          {
+            "id": 1,
+            "companyId": 1,
+            "status": "ACTIVE",
+            "deadline": "2026-12-12"
+          },
+          {
+            "id": 2,
+            "companyId": 1,
+            "status": "ACTIVE",
+            "deadline": "2026-12-12"
+          }
+        ],
+        "eligibleJobs": 2
+      },
+      "fallbackCount": 1,
+      "persistedResults": [
+        {
+          "jobId": 1,
+          "rankingTier": "PRIMARY",
+          "scoringStrategy": "SAME_LANGUAGE_HYBRID",
+          "rankingScore": 0.35,
+          "overallScore": 0.35,
+          "textScore": 0.0,
+          "skillScore": 1.0,
+          "rankPosition": 1,
+          "tierRankPosition": 1
+        },
+        {
+          "jobId": 2,
+          "rankingTier": "FALLBACK",
+          "scoringStrategy": "CROSS_LANGUAGE_SKILL_BASED",
+          "rankingScore": 1.0,
+          "overallScore": null,
+          "textScore": null,
+          "skillScore": 1.0,
+          "rankPosition": 2,
+          "tierRankPosition": 1
+        }
+      ],
+      "postgresMajor": 17,
+      "companyStatusAfterRegistration": "PENDING",
+      "processingRuns": 0,
+      "ai": {
+        "v3": 1,
+        "v2": 0,
+        "v3Success": 1
+      },
+      "protocol": [
+        {
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/companies/me",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/jobs",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/jobs",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/admin/companies/1/status",
+          "status": 403
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/1/status",
+          "status": 403
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/admin/companies/1/status",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/1/status",
+          "status": 403
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/1/status",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/1/status",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/public/jobs/1",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/2/status",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/jobs/2/status",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/public/jobs/2",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/students/me/recommendations/generate",
+          "status": 200
+        }
+      ],
+      "migrationVersions": "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
+      "primaryCount": 1,
+      "runStatus": "SUCCESS",
+      "resultCount": 2
+    },
+    "cleanup": {
+      "remainingContainers": 0,
+      "remainingNetworks": 0,
+      "project": "core-smoke-9e84a22c51fe4f508c523f3e0434b8de",
+      "remainingVolumes": 0,
+      "clean": true
+    },
+    "wrapper_checkout_note": "CRLF converted to canonical LF for Linux build; original bytes restored in finally; no Git diff."
+  },
+  "company_browser": {
+    "classification": "RERUN_EXACT_MASTER",
+    "run": "company-verification-4c56e18e091440c0a42fc5c7610d3eb7",
+    "evidence_location": "e2e/.local/company-verification-4c56e18e091440c0a42fc5c7610d3eb7/",
+    "stats": {
+      "startTime": "2026-11-12T04:06:56.062Z",
+      "duration": 13841.047,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "B3-01 Company profile saves/clears media with If-Match and preserves other data",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 4300,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "B3-02 Initial private PDF submission refreshes revision and downloads exact bytes",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1455,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "B3-03 PNG replacement returns new bytes, cleans prior file and leaks no key",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1444,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "B3-04 Stale upload gets 409, retains file without retry; manual reload gets current ETag",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 2536,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "B3-05 Admin downloads private submission and manually verifies the still-pending owner",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1962,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "B3-06 Role/owner boundaries and public/listing metadata isolation",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1327,
+            "retry": 0
+          }
+        ]
+      }
+    ],
+    "cleanup": {
+      "ownedPostgresStopped": true,
+      "temporaryStorageRemoved": true,
+      "ownedJvmStopped": true,
+      "ownedViteStopped": true
+    }
+  },
+  "company_supplementary_excluded_from_acceptance": {
+    "run": "company-verification-aa40a384728b4a7fa1f7fe67126d81ef",
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "profiles": [
+      "integration",
+      "dev"
+    ],
+    "reason": "Inherited dev profile activated seeder only in disposable database; rerun with process-local integration profile used for acceptance.",
+    "cleanup": {
+      "ownedPostgresStopped": true,
+      "temporaryStorageRemoved": true,
+      "ownedJvmStopped": true,
+      "ownedViteStopped": true
+    }
+  },
+  "recruiting_browser": {
+    "classification": "NOT_RUN",
+    "runner_status": "FAIL_SETUP_REPRODUCED",
+    "attempts": [
+      {
+        "run": "recruiting-workflows-c80547637b22492fa6ae2b1caaa144a9",
+        "runner_exit_code": 1,
+        "exception": "java.lang.IllegalStateException: V24 validation failed",
+        "assertion": "RecruitingWorkflowsBrowserFixture.java:117",
+        "expected_flyway_current": "24",
+        "actual_flyway_current": "25",
+        "migrations_successful": 25,
+        "fixture_json_created": false,
+        "browser_results_created": false,
+        "runner_cleanup_json_present": false,
+        "independent_owned_container_absent": true,
+        "independent_owned_jvm_exited": true,
+        "owned_vite_started": false,
+        "matching_temporary_directories_remaining": 0
+      },
+      {
+        "run": "recruiting-workflows-299c8238be5740bf83546f4e8c9b341f",
+        "runner_exit_code": 1,
+        "exception": "java.lang.IllegalStateException: V24 validation failed",
+        "assertion": "RecruitingWorkflowsBrowserFixture.java:117",
+        "expected_flyway_current": "24",
+        "actual_flyway_current": "25",
+        "migrations_successful": 25,
+        "fixture_json_created": false,
+        "browser_results_created": false,
+        "runner_cleanup_json_present": false,
+        "independent_owned_container_absent": true,
+        "independent_owned_jvm_exited": true,
+        "owned_vite_started": false,
+        "matching_temporary_directories_remaining": 0
+      }
+    ],
+    "scenario_status": {
+      "E01": "NOT RUN",
+      "E02": "NOT RUN",
+      "E03": "NOT RUN",
+      "E04": "NOT RUN",
+      "E05": "NOT RUN",
+      "E06": "NOT RUN",
+      "E07": "NOT RUN",
+      "E08": "NOT RUN",
+      "E09": "NOT RUN",
+      "E10": "NOT RUN"
+    },
+    "executed": 0,
+    "passed": 0,
+    "failed_browser_tests": 0,
+    "skipped": 0,
+    "not_run": 10,
+    "suspected_component": "test-only RecruitingWorkflowsBrowserFixture.java:117",
+    "historical_not_rerun": {
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "baseline": "d8174a8e308869e1287bf7cb7277f33f86c01503",
+      "document": "docs/datn/recruiting-workflows-isolated-e2e.md",
+      "pr": "https://github.com/binkadev/student-job-recommendation-system/pull/91"
+    }
+  },
+  "messaging_browser": {
+    "classification": "RERUN_EXACT_MASTER",
+    "run": "application-messaging-7d073c0e53d146d0966ccd59474d15cd",
+    "evidence_location": "e2e/.local/application-messaging-7d073c0e53d146d0966ccd59474d15cd/",
+    "stats": {
+      "startTime": "2026-11-12T04:09:40.564Z",
+      "duration": 29043.551,
+      "expected": 10,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "M01 Student creates a real Application conversation with exact DTO and SQL ownership",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 2162,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M02 Company reuses the same conversation and both owned lists expose it without duplicates",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 2980,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M03 Student multiline Unicode send is confirmed once and received by Company with SQL agreement",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 3495,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M04 Company reply, Student reload and SQL preserve chronological identities and recruiting data",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 3038,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M05 Explicit bodyless recipient read is idempotent and never marks outbound or later messages",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 2119,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M06 REJECTED/WITHDRAWN Applications retain separate persistent histories without Application mutations",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 3898,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M07 Owned multi-page metadata deep links and chronological/latest message pages use real bounded APIs",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1992,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M08 Real JWT/RBAC ownership, spoofing and content validation deny private access without writes",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 1971,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M09 Genuine offline send preserves draft without retry and requires explicit successful latest-history recovery",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 3743,
+            "retry": 0
+          }
+        ]
+      },
+      {
+        "title": "M10 Real locked history GET is cancelled on logout and another account sees only its own data",
+        "status": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "duration": 2644,
+            "retry": 0
+          }
+        ]
+      }
+    ],
+    "cleanup": {
+      "ownedPostgresStopped": true,
+      "ownedJvmStopped": true,
+      "ownedViteStopped": true,
+      "ownedBuildLinkRemoved": true,
+      "ownedScratchRemoved": true,
+      "cleanupProbe": false,
+      "temporaryStorageRemoved": true
+    },
+    "sql_integrity": {
+      "postgresMajor": 17,
+      "migrationVersions": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25"
+      ],
+      "flywayChecksumsValidated": true,
+      "protectedBusiness": {
+        "applications": {
+          "count": 108,
+          "sha256": "dcd98f53b436380b63d9dfa3de2de6ece600c861d2778f4486d9d711eb9415df"
+        },
+        "jobs": {
+          "count": 108,
+          "sha256": "3e87d8ef062946b2787f8636d9ee7c49c16a1e92672d0f537e333b79bb8dd25b"
+        },
+        "cv_files": {
+          "count": 1,
+          "sha256": "e2571b1d014b53f861dd2f86fce3be0d2fcbb7c4b98d2766b4fa32849a737600"
+        },
+        "interviews": {
+          "count": 1,
+          "sha256": "5107f5f67640fde8fc1cf3f2dd1c4bfad93d3e822b55714d2abf66f286ae1c7b"
+        },
+        "job_invitations": {
+          "count": 1,
+          "sha256": "42cc5228fb23b58c7aeca7f31f81433acdab7503f3c0409e50a17461c8a8f516"
+        }
+      },
+      "conversationCount": 108,
+      "messageCount": 31,
+      "tupleMismatchCount": 0,
+      "senderMismatchCount": 0,
+      "lastMessageMismatchCount": 0
+    },
+    "network_failure": {
+      "genuineChromiumOffline": true,
+      "offlineAttemptCommitted": false,
+      "automaticRetries": 0,
+      "manualResendCommittedOnce": true,
+      "afterCommitResponseLossCovered": false
+    },
+    "session_switch": {
+      "realPostgresTableLock": true,
+      "waitingQueryConfirmed": true,
+      "watchdogSeconds": 30,
+      "pendingBeforeSwitch": 1,
+      "cancelledPendingRequests": 1,
+      "priorDraftAbsent": true,
+      "currentAccountOnly": true
+    }
+  },
+  "dependency_audit": {
+    "classification": "RERUN_EXACT_MASTER",
+    "full_graph": {
+      "info": 0,
+      "low": 0,
+      "moderate": 13,
+      "high": 11,
+      "critical": 0,
+      "total": 24
+    },
+    "omit_dev_graph": {
+      "info": 0,
+      "low": 0,
+      "moderate": 3,
+      "high": 8,
+      "critical": 0,
+      "total": 11
+    },
+    "full_exit_code": 1,
+    "omit_dev_exit_code": 1,
+    "omit_dev_package_entries": [
+      {
+        "package": "axios",
+        "installed_version": "1.18.1",
+        "severity": "high",
+        "is_direct": true,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "Axios: Prototype pollution gadget in fetch adapter can alter outbound requests",
+            "url": "https://github.com/advisories/GHSA-vh66-26gq-q6x8",
+            "severity": "moderate",
+            "range": ">=1.7.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Prototype-Pollution Gadget in the Default Instance Allows Inherited Object.prototype.method to Override HTTP Method",
+            "url": "https://github.com/advisories/GHSA-9fr6-4gfg-395g",
+            "severity": "moderate",
+            "range": ">=1.0.0 <1.20.0"
+          },
+          {
+            "title": "Axios: ReDoS in fromDataURI data: URL parser freezes the Node event loop (DoS)",
+            "url": "https://github.com/advisories/GHSA-c29m-xwm3-cm6r",
+            "severity": "high",
+            "range": ">=1.16.1 <1.20.0"
+          },
+          {
+            "title": "Axios: ReDoS (O(N²)) in shouldBypassProxy host normalization, reachable via untrusted redirect Location",
+            "url": "https://github.com/advisories/GHSA-mghh-pgcx-3jjj",
+            "severity": "high",
+            "range": ">=1.15.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Prototype Pollution Gadget in axios toFormData Options",
+            "url": "https://github.com/advisories/GHSA-x97p-jq2g-jp4f",
+            "severity": "high",
+            "range": ">=1.15.1 <1.20.0"
+          },
+          {
+            "title": "Axios: HTTP/2 adapter bypasses configured DNS lookup and proxy controls",
+            "url": "https://github.com/advisories/GHSA-3pq3-5fj3-cg6v",
+            "severity": "high",
+            "range": ">=1.13.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Denial of Service via Unhandled 'error' Event in HTTP/2 ClientHttp2Session Initialization",
+            "url": "https://github.com/advisories/GHSA-542g-h47m-68v8",
+            "severity": "high",
+            "range": ">=1.13.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Header Injection via Inherited headers After Minimal Interceptor",
+            "url": "https://github.com/advisories/GHSA-j8rh-479h-cp32",
+            "severity": "moderate",
+            "range": ">=1.0.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Fetch Adapter Header Injection via Inherited FormData getHeaders",
+            "url": "https://github.com/advisories/GHSA-4hqw-qxg8-jxx2",
+            "severity": "moderate",
+            "range": ">=1.12.0 <1.20.0"
+          },
+          {
+            "title": "Axios: Node HTTP adapter prototype-pollution gadget allows request socket hijack via inherited createConnection",
+            "url": "https://github.com/advisories/GHSA-m8m8-qj5v-23w3",
+            "severity": "high",
+            "range": ">=1.15.2 <1.20.0"
+          },
+          {
+            "title": "Axios: CIDR-form NO_PROXY entries are ignored, causing proxy exclusion bypass for internal IP ranges",
+            "url": "https://github.com/advisories/GHSA-44g4-m2mj-wpvx",
+            "severity": "moderate",
+            "range": ">=1.15.0 <1.20.0"
+          },
+          {
+            "title": "Axios: maxRedirects: 0 is not enforced by the fetch adapter, allowing redirect-based SSRF",
+            "url": "https://github.com/advisories/GHSA-r4gj-5m52-g5wh",
+            "severity": "high",
+            "range": ">=1.17.0 <1.20.0"
+          }
+        ]
+      },
+      {
+        "package": "baseline-browser-mapping",
+        "installed_version": "2.10.42",
+        "severity": "moderate",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+            "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+            "severity": "moderate",
+            "range": ">=2.0.0 <2.11.0"
+          }
+        ]
+      },
+      {
+        "package": "browserslist",
+        "installed_version": "4.28.5",
+        "severity": "high",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+            "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+            "severity": "high",
+            "range": "<=4.28.6"
+          },
+          {
+            "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+            "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+            "severity": "high",
+            "range": "<=4.28.6"
+          }
+        ]
+      },
+      {
+        "package": "follow-redirects",
+        "installed_version": "1.16.0",
+        "severity": "high",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "follow-redirects array-form headers bypass cross-origin credential stripping",
+            "url": "https://github.com/advisories/GHSA-q3jh-wrc6-jgq8",
+            "severity": "high",
+            "range": ">=1.16.0 <1.16.1"
+          },
+          {
+            "title": "follow-redirects sensitiveHeaders regex escaping can expose credential headers",
+            "url": "https://github.com/advisories/GHSA-8r9p-f939-6h3c",
+            "severity": "high",
+            "range": ">=1.16.0 <1.16.1"
+          },
+          {
+            "title": "follow-redirects: Cross-realm sensitiveHeaders arrays are discarded and custom credentials can follow redirects",
+            "url": "https://github.com/advisories/GHSA-mrwp-f3q8-3g9p",
+            "severity": "high",
+            "range": ">=1.16.0 <=1.16.1"
+          }
+        ]
+      },
+      {
+        "package": "nanoid",
+        "installed_version": "3.3.15",
+        "severity": "high",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+            "url": "https://github.com/advisories/GHSA-28wg-ghj8-5hjv",
+            "severity": "high",
+            "range": "<3.3.16"
+          },
+          {
+            "title": "nanoid: custom generators can loop indefinitely when size is zero",
+            "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+            "severity": "high",
+            "range": "<3.3.18"
+          }
+        ]
+      },
+      {
+        "package": "postcss",
+        "installed_version": "8.5.16",
+        "severity": "high",
+        "is_direct": true,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+            "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp",
+            "severity": "moderate",
+            "range": "<=8.5.22"
+          },
+          {
+            "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+            "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849",
+            "severity": "high",
+            "range": "<=8.5.17"
+          }
+        ]
+      },
+      {
+        "package": "react-router",
+        "installed_version": "6.30.4",
+        "severity": "moderate",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "React Router: Open redirect via backslash in <Link> and useNavigate (CVE-2025-68470 bypass)",
+            "url": "https://github.com/advisories/GHSA-wrjc-x8rr-h8h6",
+            "severity": "moderate",
+            "range": ">=6.0.0 <7.18.0"
+          },
+          {
+            "title": "React Router: Arbitrary Constructor Injection via deserializeErrors() in React Router SSR Hydration",
+            "url": "https://github.com/advisories/GHSA-337j-9hxr-rhxg",
+            "severity": "moderate",
+            "range": ">=6.4.0 <7.18.0"
+          }
+        ]
+      },
+      {
+        "package": "react-router-dom",
+        "installed_version": "6.30.4",
+        "severity": "moderate",
+        "is_direct": true,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "React Router: Open redirect leading to XSS",
+            "url": "https://github.com/advisories/GHSA-jjmj-jmhj-qwj2",
+            "severity": "moderate",
+            "range": ">=6.30.2 <=6.30.5"
+          }
+        ]
+      },
+      {
+        "package": "source-map-js",
+        "installed_version": "1.2.1",
+        "severity": "high",
+        "is_direct": false,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+            "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+            "severity": "high",
+            "range": ">=1.0.0 <1.2.2"
+          }
+        ]
+      },
+      {
+        "package": "vite",
+        "installed_version": "6.4.3",
+        "severity": "high",
+        "is_direct": true,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
+            "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv",
+            "severity": "moderate",
+            "range": "<=6.4.3"
+          },
+          {
+            "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
+            "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw",
+            "severity": "moderate",
+            "range": "<=6.4.3"
+          },
+          {
+            "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+            "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
+            "severity": "high",
+            "range": "<=6.4.3"
+          },
+          {
+            "title": "Vite: Cross origin script execution through Vite custom middleware",
+            "url": "https://github.com/advisories/GHSA-9jrq-w75r-8gcw",
+            "severity": "low",
+            "range": "<=6.4.3"
+          },
+          {
+            "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
+            "url": "https://github.com/advisories/GHSA-rq7h-c2jc-7f22",
+            "severity": "moderate",
+            "range": "<=6.4.3"
+          }
+        ]
+      },
+      {
+        "package": "zod",
+        "installed_version": "4.4.3",
+        "severity": "high",
+        "is_direct": true,
+        "fix_available_reported_by_npm": true,
+        "advisories": [
+          {
+            "title": "Zod can exhaust memory while validating oversized constrained collections",
+            "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+            "severity": "high",
+            "range": "<4.6.6"
+          }
+        ]
+      }
+    ],
+    "reachability_exploit_assessment": "NOT RUN",
+    "remediation": "Separate scoped dependency-security PR required; no automatic fixes."
+  },
+  "preservation": {
+    "docker_initially_unavailable": true,
+    "docker_desktop_started_once": true,
+    "daemon_restart_or_prune_executed": false,
+    "startup_policy_autostarted_three_existing_demo_containers": true,
+    "container_comparison_baseline": "After Docker Desktop startup, before regression Docker suites",
+    "preexisting_container_count": 4,
+    "preexisting_container_comparisons": [
+      {
+        "same_id": true,
+        "same_image": true,
+        "same_started_at": true,
+        "same_state": true
+      },
+      {
+        "same_id": true,
+        "same_image": true,
+        "same_started_at": true,
+        "same_state": true
+      },
+      {
+        "same_id": true,
+        "same_image": true,
+        "same_started_at": true,
+        "same_state": true
+      },
+      {
+        "same_id": true,
+        "same_image": true,
+        "same_started_at": true,
+        "same_state": true
+      }
+    ],
+    "unexpected_remaining_container_count": 0,
+    "preexisting_volume_count": 3,
+    "missing_preexisting_volume_count": 0,
+    "unexpected_remaining_volume_count": 0,
+    "preexisting_process_comparisons": [
+      {
+        "process": "node",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "node",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "node_repl",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "node_repl",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "postgres",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "python",
+        "same_pid_and_name": true
+      },
+      {
+        "process": "python",
+        "same_pid_and_name": true
+      }
+    ],
+    "root_status": [
+      " M frontend/tsconfig.app.tsbuildinfo",
+      "?? .agents/",
+      "?? .worktrees/",
+      "?? skills-lock.json"
+    ],
+    "worktrees_after_count": 29,
+    "worktrees_added_by_task": 1,
+    "worktrees_removed_or_pruned": 0,
+    "direct_demo_database_queries_or_mutations_sent": false,
+    "demo_database_content_hash_verified": false,
+    "limitation": "No pre-start Docker/DB content snapshot was available; container metadata preservation is measured after automatic startup. Application internal startup side effects were not audited."
+  },
+  "matrix": [
+    {
+      "id": "R01",
+      "area": "Auth and role guards",
+      "requirement_contract": "JWT-derived role/owner; 401/403; no Admin inbox override",
+      "existing_automated_tests": [
+        "ApplicationApiIT",
+        "ApplicationMessagingApiIT",
+        "RecruitingWorkflowApiIT",
+        "frontend auth/session tests"
+      ],
+      "actual_validation": "Full Backend; Company B3-06; Messaging M08 real HTTP and UI logins",
+      "status": "PASS",
+      "known_limitation": "Password recovery excluded; this is not a penetration test.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "company_browser.cases",
+        "messaging_browser.cases"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R02",
+      "area": "Company verification and Job moderation",
+      "requirement_contract": "PENDING registration; Admin verifies/reviews; DRAFT -> PENDING_APPROVAL -> ACTIVE; no self-publish",
+      "existing_automated_tests": [
+        "JobModerationApiIT (9)",
+        "CompanyVerificationDocumentApiIT (30)",
+        "Core Smoke"
+      ],
+      "actual_validation": "Backend tests; real Core Smoke positive workflow and 3 forbidden mutations; Company B3-05/B3-06",
+      "status": "PASS",
+      "known_limitation": "Synthetic local stack; no full Admin browser moderation journey rerun.",
+      "evidence_locations": [
+        "core_local.diagnostics",
+        "company_browser.cases"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R03",
+      "area": "Student/Company profiles and optimistic concurrency",
+      "requirement_contract": "Captured revisions; atomic save/rollback; stale409; missing428; retain CV analysis",
+      "existing_automated_tests": [
+        "StudentProfileAtomicApiIT (18)",
+        "SettingsConcurrencyIT (33)",
+        "CompanyCoverApiIT (33)",
+        "CompanyVerificationDocumentApiIT (30)"
+      ],
+      "actual_validation": "Full Backend race/rollback tests; Frontend tests; Company B3-01/B3-04 real409 without retry",
+      "status": "PASS",
+      "known_limitation": "Complete Student profile browser journey not rerun.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "frontend",
+        "company_browser.cases"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R04",
+      "area": "CV upload, activation and analysis",
+      "requirement_contract": "Owned CV; one active; protected deletes; persisted READY V2 analysis drives V3",
+      "existing_automated_tests": [
+        "CvApiIT (14)",
+        "CvActiveTransactionIT (1)",
+        "CvAnalysisRecommendationApiIT (15)",
+        "CvReanalysisStateIT (6)",
+        "AI parser/fixture tests"
+      ],
+      "actual_validation": "Backend HTTP/transaction/storage tests plus standalone AI parser tests; Core Smoke uses persisted synthetic READY snapshot",
+      "status": "PASS",
+      "known_limitation": "No fresh upload -> real AI parsing -> recommendation browser journey; concurrent real reanalysis not certified.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "ai",
+        "core_local.diagnostics"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R05",
+      "area": "Student Recommendation V3",
+      "requirement_contract": "PRIMARY first; .65 text/.35 skills; FALLBACK skill-only/null overall; Backend ranks; persisted snapshot",
+      "existing_automated_tests": [
+        "RestAiServiceClientV3Test",
+        "RecommendationV3PersistenceIT",
+        "AI V3 contract/scoring tests",
+        "Core Smoke CI"
+      ],
+      "actual_validation": "Real Backend/FastAPI/PostgreSQL Core Smoke local and exact-master CI; 1 PRIMARY/1 FALLBACK, 1 V3/0 V2, 0 PROCESSING",
+      "status": "PASS",
+      "known_limitation": "PRIMARY textScore=0 in this fixture; nonzero-text formula and language variants covered by automated contracts, not this smoke. No relevance quality metric.",
+      "evidence_locations": [
+        "core_local",
+        "ci_exact_master",
+        "ai"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R06",
+      "area": "Company Candidate Ranking V3",
+      "requirement_contract": "Submitted CV snapshot; independent tier limits/ranks; eligible owned applications; no CV reprocessing",
+      "existing_automated_tests": [
+        "CandidateRankingCorpusPreparationIT (4)",
+        "CandidateRankingOrchestrationIT (15)",
+        "CandidateRankingPersistenceIT (15)",
+        "CandidateRankingPublicApiIT (31)",
+        "AI V3 candidate tests"
+      ],
+      "actual_validation": "Full Backend orchestration/public/persistence tests and independent AI unit/contract tests",
+      "status": "PASS",
+      "known_limitation": "Backend AI doubles in these ITs; dedicated real Backend-to-AI Candidate Ranking E2E NOT RUN.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "ai"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R07",
+      "area": "Applications and saved candidates",
+      "requirement_contract": "V18 active uniqueness; latest REJECTED permits new history; WITHDRAWN blocks; company+student bookmark uniqueness",
+      "existing_automated_tests": [
+        "ApplicationApiIT (21)",
+        "ApplicationLifecycleApiIT (6)",
+        "ApplicationReapplyApiIT (2)",
+        "SavedCandidateApiIT (26)"
+      ],
+      "actual_validation": "Full PostgreSQL tests incl. state races; Messaging M06 preserves terminal histories and separate conversations",
+      "status": "PASS",
+      "known_limitation": "Full apply/saved-candidate browser flow not rerun.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "messaging_browser.sql_integrity"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R08",
+      "area": "Notifications",
+      "requirement_contract": "Scoped persistence/read; settings CAS; only implemented automatic producer; no realtime guarantee",
+      "existing_automated_tests": [
+        "AutomaticNotificationsApiIT (13)",
+        "NotificationApiIT (5)",
+        "NotificationSettingsApiIT (9)",
+        "SettingsConcurrencyIT (33)"
+      ],
+      "actual_validation": "Full Backend persistence, ownership, filtering and concurrency; Frontend Vitest",
+      "status": "PASS",
+      "known_limitation": "Notification-specific browser runner NOT RUN; no new producer/realtime/email claim.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "frontend"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R09",
+      "area": "Interviews and invitations",
+      "requirement_contract": "Owner/state transitions; expectedStatus conflict; no Application mutation; retained history",
+      "existing_automated_tests": [
+        "RecruitingWorkflowApiIT (33)",
+        "RecruitingWorkflowMigrationIT (2)",
+        "E01-E10 dedicated runner"
+      ],
+      "actual_validation": "Backend 35 cases PASS. Browser runner setup FAIL twice at RecruitingWorkflowsBrowserFixture.java:117: expected24 versus actual25; E01-E10 never started.",
+      "status": "NOT RUN",
+      "known_limitation": "Current-master browser integration and E09 late-request cancellation unverified; strict stale harness assertion left unchanged.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "recruiting_browser"
+      ],
+      "historical_not_counted_as_rerun": [
+        "docs/datn/recruiting-workflows-isolated-e2e.md: historical 10 PASS on V24 baseline; not current rerun"
+      ]
+    },
+    {
+      "id": "R10",
+      "area": "Application-scoped messages",
+      "requirement_contract": "Persisted Application participants only; append/read locks; sender from JWT; chronology; no recruitment history writes",
+      "existing_automated_tests": [
+        "ApplicationMessagingApiIT (15)",
+        "ApplicationMessagingMigrationIT (2)",
+        "M01-M10"
+      ],
+      "actual_validation": "10 real browser cases PASS; PostgreSQL fingerprints unchanged; 0 tuple/sender/last-message mismatches; full Backend races PASS",
+      "status": "PASS",
+      "known_limitation": "M09 covers pre-commit offline failure, not after-commit response loss; no idempotency key/exactly-once guarantee.",
+      "evidence_locations": [
+        "messaging_browser",
+        "backend.failsafe"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R11",
+      "area": "Private storage/downloads",
+      "requirement_contract": "JWT-authorized private bytes; bounded signatures; safe paths; replacement cleanup; no public key/path leakage",
+      "existing_automated_tests": [
+        "CompanyVerificationDocumentApiIT (30)",
+        "CvApiIT (14)",
+        "CvDeleteFailureIT (1)",
+        "B3-02/B3-03/B3-06"
+      ],
+      "actual_validation": "Real PDF/PNG multipart and byte-exact private downloads; replacement/role checks; Backend storage failure/path checks",
+      "status": "PASS",
+      "known_limitation": "Crash orphan reconciliation and production filesystem ACL review NOT RUN.",
+      "evidence_locations": [
+        "company_browser",
+        "backend.failsafe"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R12",
+      "area": "Session switching and late-request cancellation",
+      "requirement_contract": "Account-scoped data/drafts; old in-flight requests discarded; no automatic mutation retry",
+      "existing_automated_tests": [
+        "Frontend auth/session tests",
+        "Messaging M09/M10",
+        "Recruiting E09"
+      ],
+      "actual_validation": "Messaging real table lock confirms 1 waiting request, 1 cancellation, prior draft absent and current-account-only UI; all Vitest PASS",
+      "status": "PASS",
+      "known_limitation": "Recruiting E09 NOT RUN on V25; Chromium one worker only; multi-browser/multi-tab stress not certified.",
+      "evidence_locations": [
+        "messaging_browser.session_switch",
+        "frontend"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R13",
+      "area": "PostgreSQL migration/data preservation",
+      "requirement_contract": "Exact V1-V25; checksums; Hibernate validate; additive populated upgrades; restrictive histories",
+      "existing_automated_tests": [
+        "DatabaseMigrationIT (1)",
+        "DatabaseAiContractV2MigrationIT (1)",
+        "DatabaseRecommendationRankingV3MigrationIT (3)",
+        "RecruitingWorkflowMigrationIT (2)",
+        "ApplicationMessagingMigrationIT (2)"
+      ],
+      "actual_validation": "PostgreSQL17.11 full suite; exact V1-V25 Core Smoke; populated V24->V25 snapshots and Messaging fingerprints PASS",
+      "status": "PASS",
+      "known_limitation": "Only disposable databases queried. No demo DB before/after content hash; no production backup/restore/rollback rehearsal.",
+      "evidence_locations": [
+        "backend.failsafe",
+        "core_local.diagnostics",
+        "messaging_browser.sql_integrity",
+        "preservation"
+      ],
+      "historical_not_counted_as_rerun": []
+    },
+    {
+      "id": "R14",
+      "area": "Dependency security release gate",
+      "requirement_contract": "Known high findings require reachability triage/remediation before unrestricted release",
+      "existing_automated_tests": [
+        "npm ci automatic audit",
+        "npm audit --json",
+        "npm audit --omit=dev --json"
+      ],
+      "actual_validation": "Full graph:24 affected package entries (13 moderate/11 high); omit-dev graph:11 (3 moderate/8 high); both audits exit1",
+      "status": "FAIL",
+      "known_limitation": "Advisory matches, not exploit proof; build packages can remain in omit-dev graph via declared dependency paths. No dependency upgrade or npm audit fix executed.",
+      "evidence_locations": [
+        "dependency_audit"
+      ],
+      "historical_not_counted_as_rerun": []
+    }
+  ],
+  "matrix_summary": {
+    "PASS": 12,
+    "NOT RUN": 1,
+    "FAIL": 1
+  },
+  "unverified": [
+    "Recruiting E01-E10 on V25 master",
+    "Real full-stack fresh CV upload/parsing/scoring journey",
+    "Real Backend/FastAPI Company Candidate Ranking E2E",
+    "Dedicated notification browser suite",
+    "Firefox/WebKit/mobile/multi-timezone and load/stress testing",
+    "After-commit messaging response loss/idempotency",
+    "Production filesystem ACLs, backup/restore, rollback and deployment operations",
+    "Dependency advisory reachability/exploitation",
+    "Demo database content hashes across Docker Desktop startup",
+    "Human-labeled relevance evaluation metrics"
+  ],
+  "excluded": [
+    "Password recovery",
+    "Business-feature/production source changes",
+    "Flyway changes",
+    "Automatic CI retry",
+    "Merge"
+  ],
+  "unique_automated_test_total_excluding_smoke_and_repeated_runs": 2148
+}
