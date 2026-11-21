@@ -179,7 +179,7 @@ FROM users WHERE email='recommendation-e2e-student@example.test';
     $primaryJobId = [long]$fixtureJobs[0].id; $fallbackJobId = [long]$fixtureJobs[1].id
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM jobs j JOIN companies c ON c.id=j.company_id WHERE j.status='ACTIVE' AND c.status='VERIFIED' AND (j.deadline IS NULL OR j.deadline>=CURRENT_DATE);") -eq '2') 'Exactly two real Jobs must enter the V3 eligible corpus.'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT current_setting('server_version_num')::int/10000;") -eq '17') 'Smoke must use PostgreSQL 17.'
-    Assert-Condition ((Invoke-DatabaseScalar "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") -eq ((1..25) -join ',')) 'Exactly Flyway V1-V25 must be applied.'
+    Assert-Condition ((Invoke-DatabaseScalar "SELECT string_agg(version,',' ORDER BY installed_rank) FROM flyway_schema_history WHERE success AND version IS NOT NULL;") -eq ((1..26) -join ',')) 'Exactly Flyway V1-V26 must be applied.'
     Assert-Condition ((Invoke-DatabaseScalar "SELECT COUNT(*) FROM flyway_schema_history WHERE NOT success OR (version IS NOT NULL AND checksum IS NULL);") -eq '0') 'All applied migrations must have successful checksums.'
     $created=Invoke-Api POST '/api/students/me/recommendations/generate' @{cvId=[long]$cvId;threshold=0;limit=10} $headers; Assert-Condition $created.success 'Public Student generation must succeed.'
     $run=$created.data; Assert-Condition ($run.status -eq 'SUCCESS' -and $run.algorithm -eq 'tfidf-cosine-hybrid' -and $run.algorithmVersion -eq 'english-global-idf-recommendation-v1') 'Student V3 run metadata is invalid.'

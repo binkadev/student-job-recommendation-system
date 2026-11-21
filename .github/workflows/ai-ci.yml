@@ -26,8 +26,8 @@ concurrency:
 
 jobs:
   test:
-    name: Test bilingual AI service (Python 3.11.9)
-    runs-on: ubuntu-latest
+    name: Test English AI service (Python 3.11.9)
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     defaults:
@@ -64,6 +64,18 @@ jobs:
 
       - name: Validate dependency graph
         run: python -m pip check
+
+      - name: Compile spaCy pipeline and bootstrap TF-IDF model
+        run: |
+          python -m offline.build_spacy_model \
+            --output-dir built_models/spacy_custom_model
+          python -m offline.train_tfidf_incremental \
+            --bootstrap \
+            --force-rebuild \
+            --bootstrap-dir data/bootstrap_raw \
+            --spacy-model-dir built_models/spacy_custom_model \
+            --state-path built_models/tfidf/df_state.sqlite \
+            --output-path built_models/tfidf/tfidf_model.pkl
 
       - name: Run AI tests
         run: python -m pytest

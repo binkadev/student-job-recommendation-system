@@ -443,9 +443,11 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
         jobRepository.saveAndFlush(nullDeadline);
         Job todayDeadline = createJob(verified, "Today deadline", JobStatus.ACTIVE);
         todayDeadline.setDeadline(LocalDate.now());
+        todayDeadline.setPublishedAt(LocalDateTime.of(2026, 7, 2, 12, 0));
         jobRepository.saveAndFlush(todayDeadline);
         Job futureDeadline = createJob(verified, "Future deadline", JobStatus.ACTIVE);
         futureDeadline.setDeadline(LocalDate.now().plusDays(1));
+        futureDeadline.setPublishedAt(LocalDateTime.of(2026, 7, 1, 12, 0));
         jobRepository.saveAndFlush(futureDeadline);
         Job expired = createJob(verified, "Expired", JobStatus.ACTIVE);
         expired.setDeadline(LocalDate.now().minusDays(1));
@@ -544,6 +546,88 @@ class CvAnalysisRecommendationApiIT extends AbstractPostgresWebIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(student.getUser())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(3));
+    }
+
+    @Test
+    void prefilterOrdersByRelevanceThenFreshnessThenJobIdAscAndRespectsLimit() {
+        Company verified = createCompany("prefilter-verified@example.test", "Prefilter Co", CompanyStatus.VERIFIED);
+
+        Job olderTied = createJob(verified, "Operations Coordinator", JobStatus.ACTIVE);
+        olderTied.setDescription("Manage office schedule");
+        olderTied.setRequirements("Communication skills");
+        olderTied.setPublishedAt(LocalDateTime.of(2026, 7, 1, 12, 0));
+        jobRepository.saveAndFlush(olderTied);
+
+        Job sameDateFirst = createJob(verified, "Product Analyst", JobStatus.ACTIVE);
+        sameDateFirst.setDescription("Review product metrics");
+        sameDateFirst.setRequirements("Spreadsheet reporting");
+        sameDateFirst.setPublishedAt(LocalDateTime.of(2026, 7, 2, 12, 0));
+        jobRepository.saveAndFlush(sameDateFirst);
+
+        Job sameDateSecond = createJob(verified, "Business Analyst", JobStatus.ACTIVE);
+        sameDateSecond.setDescription("Document stakeholder feedback");
+        sameDateSecond.setRequirements("Presentation skills");
+        sameDateSecond.setPublishedAt(LocalDateTime.of(2026, 7, 2, 12, 0));
+        jobRepository.saveAndFlush(sameDateSecond);
+
+        Job newerTied = createJob(verified, "Support Specialist", JobStatus.ACTIVE);
+        newerTied.setDescription("Assist customer tickets");
+        newerTied.setRequirements("Customer service");
+        newerTied.setPublishedAt(LocalDateTime.of(2026, 7, 3, 12, 0));
+        jobRepository.saveAndFlush(newerTied);
+
+        Job highRelevance = createJob(verified, "Backend Engineer", JobStatus.ACTIVE);
+        highRelevance.setDescription("Build Java APIs");
+        highRelevance.setRequirements("Java and Spring Boot");
+        highRelevance.setPublishedAt(LocalDateTime.of(2026, 6, 1, 12, 0));
+        jobRepository.saveAndFlush(highRelevance);
+        addJobSkill(highRelevance, "Java");
+
+        LocalDate today = LocalDate.now();
+        List<Long> firstRun = jobRepository.findTopCandidateJobIdsForRecommendation(
+                today,
+                List.of("java"),
+                "java",
+                10
+        );
+        List<Long> secondRun = jobRepository.findTopCandidateJobIdsForRecommendation(
+                today,
+                List.of("java"),
+                "java",
+                10
+        );
+
+        assertThat(firstRun).containsExactly(
+                highRelevance.getId(),
+                newerTied.getId(),
+                sameDateFirst.getId(),
+                sameDateSecond.getId(),
+                olderTied.getId()
+        );
+        assertThat(secondRun).isEqualTo(firstRun);
+
+        List<Long> limitedTop3 = jobRepository.findTopCandidateJobIdsForRecommendation(
+                today,
+                List.of("java"),
+                "java",
+                3
+        );
+        assertThat(limitedTop3).containsExactly(
+                highRelevance.getId(),
+                newerTied.getId(),
+                sameDateFirst.getId()
+        );
+
+        List<Long> limitedTop2 = jobRepository.findTopCandidateJobIdsForRecommendation(
+                today,
+                List.of("java"),
+                "java",
+                2
+        );
+        assertThat(limitedTop2).containsExactly(
+                highRelevance.getId(),
+                newerTied.getId()
+        );
     }
 
     @Test
