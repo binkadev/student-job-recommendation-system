@@ -79,7 +79,7 @@ export function NovaHero({ isAuthenticated, currentRole }: NovaHeroProps) {
           <div className="nova-eyebrow">
             <span className="nova-eyebrow-badge" />
             <FileText size={14} className="text-[#d5f36a]" aria-hidden="true" />
-            <span>NỀN TẢNG ĐỐI SÁNH VIỆC LÀM IT ĐA NGỮ</span>
+            <span>NỀN TẢNG ĐỐI SÁNH VIỆC LÀM IT THÔNG MINH</span>
           </div>
 
           <h1 className="nova-hero-title">
@@ -90,7 +90,7 @@ export function NovaHero({ isAuthenticated, currentRole }: NovaHeroProps) {
           </h1>
 
           <p className="nova-hero-description nova-hero-desc">
-            Biến nội dung CV thành cơ hội nghề nghiệp tương thích cao. Khám phá khoảng trống kỹ năng, minh bạch lý do gợi ý với công nghệ TF-IDF và Cosine Similarity song ngữ chuẩn hóa.
+            Biến nội dung CV thành cơ hội nghề nghiệp tương thích cao. Khám phá khoảng trống kỹ năng, minh bạch lý do gợi ý với công nghệ TF-IDF và Cosine Similarity cho CV tiếng Anh chuẩn hóa.
           </p>
 
           <div className="nova-cta-group mt-8 flex flex-wrap items-center gap-3.5">
@@ -121,7 +121,7 @@ export function NovaHero({ isAuthenticated, currentRole }: NovaHeroProps) {
 
           <div className="nova-tech-tagline mt-6 flex items-center gap-2 text-xs font-medium text-[#9bb0c9]">
             <Sparkles size={14} className="text-[#d5f36a]" />
-            <span>Thuật toán TF-IDF · Cosine Similarity song ngữ Việt - Anh · Xếp hạng V3 phân tầng</span>
+            <span>Thuật toán TF-IDF · Cosine Similarity cho CV tiếng Anh · Xếp hạng V3 phân tầng</span>
           </div>
         </div>
 

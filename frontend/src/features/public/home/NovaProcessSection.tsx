@@ -28,7 +28,7 @@ export function NovaProcessSection() {
                 <CheckCircle2 size={15} />
               </span>
               <p>
-                <strong className="text-[#0c111c]">Trích xuất đa ngữ:</strong> Tải CV PDF hoặc DOCX, hoàn tất tiền xử lý ngôn ngữ và trích xuất kỹ năng quy chuẩn (Canonical Skills).
+                <strong className="text-[#0c111c]">Phân tích CV tiếng Anh:</strong> Tải CV PDF hoặc DOCX, hoàn tất tiền xử lý ngôn ngữ và trích xuất kỹ năng quy chuẩn (Canonical Skills).
               </p>
             </div>
 

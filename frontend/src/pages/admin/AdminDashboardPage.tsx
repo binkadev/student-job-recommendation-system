@@ -110,7 +110,7 @@ export function AdminDashboardPage() {
 
   const stats = [
     { label: "Tổng ứng viên", value: data.totalStudents, icon: <Users /> },
-    { label: "Tổng recruiter", value: data.totalRecruiters, icon: <Users /> },
+    { label: "Tổng nhà tuyển dụng", value: data.totalRecruiters, icon: <Users /> },
     { label: "Tổng doanh nghiệp", value: data.totalCompanies, icon: <Building2 /> },
     { label: "Tổng việc làm", value: data.totalJobs, icon: <BriefcaseBusiness /> },
     { label: "Tổng đơn ứng tuyển", value: data.totalApplications, icon: <FileText /> },
@@ -136,7 +136,7 @@ export function AdminDashboardPage() {
         <p className="text-sm font-medium text-[#4B5C73]">Khoảng thời gian thống kê hệ thống:</p>
         <div className="w-48">
           <Select
-            label="Filter thời gian"
+            label="Bộ lọc thời gian"
             value={timeRange}
             onChange={(event) => setTimeRange(event.target.value as TimeRange)}
             options={Object.entries(rangeLabels).map(([value, label]) => ({ value, label }))}

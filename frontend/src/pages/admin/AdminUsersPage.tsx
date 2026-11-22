@@ -133,7 +133,9 @@ function AdminUsersListPage({ mode }: { mode: "users" | "recruiters" | "detail" 
       </Card>
 
       <Card className="mb-5">
-        <p className="text-sm font-medium text-slate-900">Tổng người dùng: {result?.totalItems ?? 0}</p>
+        <p className="text-sm font-medium text-slate-900">
+          Tổng người dùng: {usersQuery.loading && !result ? "Đang tải..." : (result?.totalItems ?? 0)}
+        </p>
       </Card>
 
       {usersQuery.loading ? <LoadingState /> : null}
