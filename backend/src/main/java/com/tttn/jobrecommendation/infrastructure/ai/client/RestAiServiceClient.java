@@ -1,6 +1,7 @@
 package com.tttn.jobrecommendation.infrastructure.ai.client;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tttn.jobrecommendation.common.exception.AppException;
 import com.tttn.jobrecommendation.common.exception.ErrorCode;
@@ -83,7 +84,7 @@ public class RestAiServiceClient implements AiServiceClient {
                     .retrieve()
                     .body(AiCvParseResponse.class);
         } catch (RestClientException exception) {
-            throw mapException(exception);
+            throw mapCvParseException(exception);
         }
     }
 
@@ -188,6 +189,27 @@ public class RestAiServiceClient implements AiServiceClient {
             return objectMapper.writeValueAsBytes(request);
         } catch (IOException exception) {
             throw new AppException(ErrorCode.AI_SERVICE_INVALID_RESPONSE);
+        }
+    }
+
+    private AppException mapCvParseException(RestClientException exception) {
+        if (exception instanceof RestClientResponseException responseException
+                && responseException.getStatusCode().value() == 422
+                && isUnsupportedLanguageError(responseException.getResponseBodyAsByteArray())) {
+            return new AppException(ErrorCode.CV_UNSUPPORTED_LANGUAGE);
+        }
+        return mapException(exception);
+    }
+
+    private boolean isUnsupportedLanguageError(byte[] responseBody) {
+        if (responseBody == null || responseBody.length == 0) {
+            return false;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            return "UNSUPPORTED_LANGUAGE".equals(root.path("errorCode").asText(null));
+        } catch (IOException ignored) {
+            return false;
         }
     }
 

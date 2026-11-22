@@ -187,7 +187,7 @@ export function NovaSkillToJobVisualization() {
 
         <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#9bb0c9]">
           <CheckCircle2 size={12} className="text-[#d5f36a]" />
-          <span>Trích xuất đa ngữ (VI/EN)</span>
+          <span>Phân tích NLP tiếng Anh</span>
         </div>
       </div>
 

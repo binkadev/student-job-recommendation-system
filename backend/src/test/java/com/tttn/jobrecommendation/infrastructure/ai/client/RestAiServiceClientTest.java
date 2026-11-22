@@ -193,6 +193,44 @@ class RestAiServiceClientTest {
         );
     }
 
+    @Test
+    void mapsCvParseHttp422UnsupportedLanguageWithoutLeakingUpstreamMessage() {
+        server.createContext("/internal/cv/parse", exchange ->
+                respond(exchange, 422, "{\"errorCode\":\"UNSUPPORTED_LANGUAGE\",\"message\":\"raw upstream CV text must never leak\"}"));
+        assertError(
+                () -> client(Duration.ofSeconds(2)).parseCv(
+                        new ByteArrayResource(new byte[]{1}),
+                        "vi-resume.pdf",
+                        MediaType.APPLICATION_PDF
+                ),
+                ErrorCode.CV_UNSUPPORTED_LANGUAGE
+        );
+
+        server.removeContext("/internal/cv/parse");
+        server.createContext("/internal/cv/parse", exchange ->
+                respond(exchange, 422, "{\"errorCode\":\"VALIDATION_ERROR\",\"message\":\"secret detail\"}"));
+        assertError(
+                () -> client(Duration.ofSeconds(2)).parseCv(
+                        new ByteArrayResource(new byte[]{1}),
+                        "bad-resume.pdf",
+                        MediaType.APPLICATION_PDF
+                ),
+                ErrorCode.AI_SERVICE_INVALID_RESPONSE
+        );
+
+        server.removeContext("/internal/cv/parse");
+        server.createContext("/internal/cv/parse", exchange ->
+                respond(exchange, 422, "{malformed-json"));
+        assertError(
+                () -> client(Duration.ofSeconds(2)).parseCv(
+                        new ByteArrayResource(new byte[]{1}),
+                        "broken-resume.pdf",
+                        MediaType.APPLICATION_PDF
+                ),
+                ErrorCode.AI_SERVICE_INVALID_RESPONSE
+        );
+    }
+
     private RestAiServiceClient client(Duration readTimeout) {
         return client("http://127.0.0.1:" + server.getAddress().getPort(), readTimeout);
     }

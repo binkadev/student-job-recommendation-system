@@ -102,6 +102,17 @@ class CvAnalysisServiceImplTest {
         verify(persistenceService, never()).saveParsedAnalysis(anyLong(), anyLong(), any());
     }
 
+    @Test
+    void sanitizerReturnsSafeMessageForUnsupportedLanguage() {
+        CvAnalysisFailureMessageSanitizer sanitizer = new CvAnalysisFailureMessageSanitizer();
+        AppException exception = new AppException(
+                ErrorCode.CV_UNSUPPORTED_LANGUAGE,
+                "raw upstream body must never be persisted"
+        );
+        assertThat(sanitizer.sanitize(exception))
+                .isEqualTo("Only English CVs are supported for AI analysis");
+    }
+
     private AiCvParseResponse parsedResponse() {
         return new AiCvParseResponse(
                 "raw",

@@ -53,6 +53,11 @@ public enum ErrorCode {
             "AI service returned an invalid response",
             HttpStatus.BAD_GATEWAY
     ),
+    CV_UNSUPPORTED_LANGUAGE(
+            "CV_UNSUPPORTED_LANGUAGE",
+            "Only English CVs are supported for AI analysis",
+            HttpStatus.UNPROCESSABLE_ENTITY
+    ),
     CANDIDATE_RANKING_ALREADY_PROCESSING(
             "CANDIDATE_RANKING_ALREADY_PROCESSING",
             "Candidate ranking is already processing",

@@ -14,6 +14,7 @@ public class CvAnalysisFailureMessageSanitizer {
                 case AI_SERVICE_TIMEOUT -> "AI service request timed out";
                 case AI_SERVICE_UNAVAILABLE -> "AI service is unavailable";
                 case AI_SERVICE_INVALID_RESPONSE -> "AI service returned an invalid response";
+                case CV_UNSUPPORTED_LANGUAGE -> "Only English CVs are supported for AI analysis";
                 case RESOURCE_NOT_FOUND -> "CV source file is unavailable";
                 default -> "CV analysis failed";
             };

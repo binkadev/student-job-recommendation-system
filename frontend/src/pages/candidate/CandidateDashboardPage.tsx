@@ -213,7 +213,7 @@ export function CandidateDashboardPage() {
                 <span className="nova-text-gradient">Những cơ hội có cơ sở.</span>
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-[#B4C5DA]">
-                Chọn CV đã phân tích sẵn sàng để khám phá việc làm gợi ý song ngữ Việt–Anh, xem rõ kỹ năng khớp và kỹ năng còn thiếu trước khi nộp hồ sơ.
+                Chọn CV đã phân tích sẵn sàng để khám phá việc làm gợi ý phù hợp từ CV tiếng Anh, xem rõ kỹ năng khớp và kỹ năng còn thiếu trước khi nộp hồ sơ.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link to="/candidate/jobs/recommended" className="nova-btn-primary">
